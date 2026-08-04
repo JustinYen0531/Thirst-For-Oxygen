@@ -34,3 +34,8 @@ Final Boss（深海之王）
 
 - [Mini Boss I：深海守衛](../小Boss/小Boss_I_深海守衛.md)
 - [Mini Boss II：深海祭司](../小Boss/小Boss_II_深海祭司.md)
+
+## 第二章變異 Mini Boss
+
+- [變異 Mini Boss I：深海守衛](../小Boss/變異小Boss_I_深海守衛.md)
+- [變異 Mini Boss II：深海祭司](../小Boss/變異小Boss_II_深海祭司.md)
