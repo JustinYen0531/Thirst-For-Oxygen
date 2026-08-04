@@ -29,3 +29,8 @@ Final Boss（深海之王）
 整體重心從 Boss 數量轉移到核心小怪品質。
 
 玩家一場遊戲大概會遇到數百隻小怪，但 Boss 只有幾場。如果把開發資源放在 4 種 Lv.2 核心小怪上，讓每一隻都有鮮明特色，整體遊戲體驗會比多做幾隻 Boss 更紮實。
+
+## 已定義 Mini Boss
+
+- [Mini Boss I：深海守衛](../小Boss/小Boss_I_深海守衛.md)
+- [Mini Boss II：深海祭司](../小Boss/小Boss_II_深海祭司.md)
