@@ -14,8 +14,8 @@
 
 ## 已定義 Mini Boss
 
-- [Mini Boss I：稜鏡巨蟹](小Boss_I_深海守衛.md)
-- [Mini Boss II：潮律鸚鵡螺](小Boss_II_深海祭司.md)
+- [Mini Boss I：稜鏡巨蟹](深海守衛/Mini%20Boss%20I_深海守衛.md)
+- [Mini Boss II：潮律鸚鵡螺](深海祭司/Mini%20Boss%20II_深海祭司.md)
 
 ## 兩位 Mini Boss 的對比
 
@@ -31,5 +31,5 @@
 
 第二章 Boss 的強化，不是增加技能，而是讓原本的技能「留下後果（Aftermath）」。
 
-- [變異 Mini Boss I：變異稜鏡巨蟹](變異小Boss_I_深海守衛.md)
-- [變異 Mini Boss II：變異潮律鸚鵡螺](變異小Boss_II_深海祭司.md)
+- [變異 Mini Boss I：變異稜鏡巨蟹](變異深海守衛/Mutated%20Mini%20Boss%20I_深海守衛.md)
+- [變異 Mini Boss II：變異潮律鸚鵡螺](變異深海祭司/Mutated%20Mini%20Boss%20II_深海祭司.md)
