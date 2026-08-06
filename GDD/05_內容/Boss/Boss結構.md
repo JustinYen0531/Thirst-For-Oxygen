@@ -38,6 +38,8 @@ Final Boss（深海之王）
 
 完整技能與戰場控制規則請見 [Final Boss：深海之王](Boss.md)。
 
+Final Boss 的第二章版本不新增技能，而是讓原有技能留下 Aftermath，並透過重力、潮流、地形、召喚物與氧氣污染互相連鎖。詳細規則與第一章／第二章對照請見 [Final Boss：深海之王](Boss.md) 的「第二章變異版：上浮篇 Aftermath Buff」。
+
 ## 已定義 Mini Boss
 
 - [Mini Boss I：深海守衛](../小Boss/小Boss_I_深海守衛.md)
