@@ -1,4 +1,4 @@
-# Mini Boss I：深海守衛（Guardian）
+# Mini Boss I：稜鏡巨蟹（原：深海守衛；Guardian）
 
 ## 定位
 

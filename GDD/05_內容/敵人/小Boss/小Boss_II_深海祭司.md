@@ -1,4 +1,4 @@
-# Mini Boss II：深海祭司（High Priest）
+# Mini Boss II：潮律鸚鵡螺（原：深海祭司；High Priest）
 
 ## 定位
 

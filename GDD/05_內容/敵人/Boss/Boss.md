@@ -1,4 +1,4 @@
-# Final Boss：深海之王（The Abyssal Sovereign）
+# Final Boss：深淵抹香鯨（原：深海之王；The Abyssal Sovereign）
 
 ## 核心定位
 
