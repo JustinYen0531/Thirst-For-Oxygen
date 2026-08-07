@@ -494,13 +494,25 @@ function openConditionalGate(map, gateKey, chapter, events, mutateMap) {
   return true;
 }
 
-function markButtonPressed(map, contact, chapter) {
+function toggleConditionalGate(map, gateKey, chapter, mutateMap) {
+  const gate = getActiveCell(map, gateKey, chapter);
+  if (!gate?.conditionalGate || !mutateMap) return false;
+  const opened = !Boolean(gate.conditionalGate.opened);
+  patchCell(map, gateKey, {
+    terrain: opened ? 'water' : 'blocked',
+    gravityLevel: 'L1',
+    conditionalGate: { ...gate.conditionalGate, opened },
+  }, chapter);
+  return true;
+}
+
+function markButtonPressed(map, contact, chapter, pressed = true) {
   const ownerKey = contact.ownerKey ?? contact.key;
   const editable = getEditableCell(map, ownerKey, chapter);
   if (!editable) return;
   const property = contact.free ? 'freeObjects' : 'objects';
   const nextObjects = editable[property].map((object, index) => (
-    index === contact.index ? { ...object, pressed: true } : object
+    index === contact.index ? { ...object, pressed } : object
   ));
   patchCell(map, ownerKey, { [property]: nextObjects }, chapter);
 }
@@ -537,6 +549,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
     });
   });
 
+  const activeToggleButtons = new Set();
   contactObjects.forEach(({ key, ownerKey, objectCell, object, position, hitRadius, free, index }) => {
       if (object.kind === 'ink' && Math.hypot(actor.x - position.x, actor.y - position.y) <= actor.radius + hitRadius) {
         actor.inInk = true;
@@ -546,14 +559,24 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
       const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
       if (distance > actor.radius + hitRadius) return;
 
-      if (object.kind === 'button' && !object.pressed) {
-        const openedGates = mutateMap
-          ? (object.targetGates ?? []).filter((gateKey) => openConditionalGate(map, gateKey, chapter, events, mutateMap)).length
-          : 0;
-        if (mutateMap) markButtonPressed(map, { ownerKey, index, free }, chapter);
-        addEvent(events, 'button', openedGates > 0
-          ? `按鈕：已開啟 ${openedGates} 個條件通行門。`
-          : '按鈕：已按下，但沒有可開啟的條件通行門。');
+      if (object.kind === 'button') {
+        const buttonMode = object.mode === 'toggle' ? 'toggle' : 'once';
+        if (buttonMode === 'toggle') activeToggleButtons.add(key);
+        if (!object.pressed) {
+          const changedGates = mutateMap
+            ? (object.targetGates ?? []).filter((gateKey) => buttonMode === 'toggle'
+              ? toggleConditionalGate(map, gateKey, chapter, mutateMap)
+              : openConditionalGate(map, gateKey, chapter, events, mutateMap)).length
+            : 0;
+          if (mutateMap) markButtonPressed(map, { ownerKey, index, free }, chapter);
+          addEvent(events, 'button', changedGates > 0
+            ? buttonMode === 'toggle'
+              ? `按鈕：已切換 ${changedGates} 個條件通行門。`
+              : `按鈕：已開啟 ${changedGates} 個條件通行門。`
+            : buttonMode === 'toggle'
+              ? '按鈕：已切換，但沒有可切換的條件通行門。'
+              : '按鈕：已按下，但沒有可開啟的條件通行門。');
+        }
       }
 
       if (object.kind === 'razor' && !isOnCooldown(actor, `razor:${key}`)) {
@@ -627,6 +650,24 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
         addEvent(events, 'checkpoint', 'Checkpoint：已更新重生點並回滿資源。');
       }
   });
+  if (mutateMap) {
+    Object.entries(map.cells).forEach(([cellKey]) => {
+      const editable = getEditableCell(map, cellKey, chapter);
+      const nextObjects = editable.objects.map((object, index) => (
+        object.kind === 'button' && object.mode === 'toggle' && object.pressed && !activeToggleButtons.has(`${cellKey}:object:${index}`)
+          ? { ...object, pressed: false }
+          : object
+      ));
+      const nextFreeObjects = (editable.freeObjects ?? []).map((object, index) => (
+        object.kind === 'button' && object.mode === 'toggle' && object.pressed && !activeToggleButtons.has(`${cellKey}:free:${index}`)
+          ? { ...object, pressed: false }
+          : object
+      ));
+      const changed = nextObjects.some((object, index) => object !== editable.objects[index])
+        || nextFreeObjects.some((object, index) => object !== (editable.freeObjects ?? [])[index]);
+      if (changed) patchCell(map, cellKey, { objects: nextObjects, freeObjects: nextFreeObjects }, chapter);
+    });
+  }
   if (actor.inInk) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 }
 

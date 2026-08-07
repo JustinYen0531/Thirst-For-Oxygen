@@ -157,6 +157,7 @@ const paletteLabels = {
   checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀', button: '一次性開門按鈕',
   conditionalGate: '條件通行門（L1）',
   noGate: '不是條件通行門', buttonGate: '條件通行門',
+  once: '一次性開門', toggle: '開關門',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
   none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
 };
@@ -203,6 +204,7 @@ const toolDefinitions = {
   select: { label: '選取', values: [] },
   terrain: { label: '地形', values: TERRAIN_TYPES },
   gravity: { label: '重力', values: [...GRAVITY_ORDER, 'conditionalGate'] },
+  waterLayer: { label: '水域層級', values: WATER_LAYERS },
   overlay: { label: '環境效果', values: OVERLAY_TYPES },
   object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
   actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
@@ -281,6 +283,7 @@ const state = {
   selectedCellKey: null,
   selectedEdgeKey: null,
   selectedMapObject: null,
+  connection: null,
   dirty: false,
   dragging: null,
   painting: null,
@@ -316,6 +319,7 @@ function updateCanvasCursor() {
   const canPan = state.mode === 'edit' && state.tool === 'select' && !state.viewDrag;
   canvas.classList.toggle('is-pan-ready', canPan);
   canvas.classList.toggle('is-panning', Boolean(state.viewDrag));
+  canvas.classList.toggle('is-connecting', Boolean(state.connection));
 }
 
 function updateObjectPlacementControl() {
@@ -351,6 +355,7 @@ function setPaletteTab(tab) {
 
 function setTool(tool, preferredValue = null, paletteTab = null) {
   state.painting = null;
+  state.connection = null;
   state.tool = tool;
   brushValue.innerHTML = '';
   const values = toolDefinitions[tool].values;
@@ -388,7 +393,7 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge', 'erase']);
+  const directPaletteTools = new Set(['terrain', 'gravity', 'waterLayer', 'overlay', 'object', 'actor', 'edge', 'erase']);
   Object.entries(toolDefinitions).filter(([key]) => !directPaletteTools.has(key)).forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -403,6 +408,7 @@ function createPalette() {
   const paletteGroups = {
     gravity: [
       { tool: 'gravity', values: [...GRAVITY_ORDER, 'conditionalGate'] },
+      { tool: 'waterLayer', values: WATER_LAYERS },
       { tool: 'terrain', values: ['blocked'] },
     ],
     overlay: [
@@ -481,8 +487,14 @@ function createPaletteVisual(tool, value) {
     visual.alt = '';
   } else {
     visual.className = 'palette-swatch';
-        visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
+        visual.textContent = tool === 'gravity' || tool === 'waterLayer'
+          ? value
+          : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
         if (tool === 'gravity') visual.style.background = gravityColours[value];
+        if (tool === 'waterLayer') {
+          visual.classList.add('palette-layer-swatch');
+          visual.style.background = value === 'T2' ? '#214d82' : '#315f83';
+        }
   }
   return visual;
 }
@@ -497,6 +509,11 @@ function getPaletteDescription(tool, value) {
       L2: '向下 1.5G：下沉更快。',
       L3: '向下 2.0G：最強下沉水域。',
     })[value];
+  }
+  if (tool === 'waterLayer') {
+    return value === 'T2'
+      ? '水域層級整格筆刷：選取後點擊或拖曳，直接把連續六邊形改成 T2；不必逐格開 Inspector。'
+      : '水域層級整格筆刷：選取後點擊或拖曳，直接把連續六邊形恢復成 T1。';
   }
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
   if (tool === 'overlay' && value === 'ink') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
@@ -963,6 +980,72 @@ function drawCellObjects(cell) {
   });
 }
 
+function drawButtonConnectionLine(start, end, colour = '#73e3f3', active = false) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.5) return;
+  const direction = { x: dx / distance, y: dy / distance };
+  const arrowSize = active ? 6 : 5;
+  const arrowBase = {
+    x: end.x - direction.x * arrowSize,
+    y: end.y - direction.y * arrowSize,
+  };
+  ctx.save();
+  ctx.globalAlpha = active ? 0.95 : 0.72;
+  ctx.strokeStyle = colour;
+  ctx.fillStyle = colour;
+  ctx.lineWidth = active ? 1.5 : 1.05;
+  ctx.setLineDash(active ? [3.5, 2.5] : [4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(arrowBase.x, arrowBase.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(end.x, end.y);
+  ctx.lineTo(arrowBase.x - direction.y * arrowSize * 0.55, arrowBase.y + direction.x * arrowSize * 0.55);
+  ctx.lineTo(arrowBase.x + direction.y * arrowSize * 0.55, arrowBase.y - direction.x * arrowSize * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawButtonConnections() {
+  if (state.mode !== 'edit') return;
+  Object.entries(state.map.cells).forEach(([key]) => {
+    const cell = getActiveCell(state.map, key, state.chapter);
+    if (!cell) return;
+    const drawForObject = (object, index, storage) => {
+      if (object.kind !== 'button') return;
+      const source = { storage, key, index, cell, object };
+      const sourcePosition = getMapObjectPosition(source);
+      if (!sourcePosition) return;
+      (object.targetGates ?? []).forEach((gateKey) => {
+        const gate = getActiveCell(state.map, gateKey, state.chapter);
+        if (!gate?.conditionalGate) return;
+        const gateCenter = getHexCenter(gate, state.origin);
+        drawButtonConnectionLine(sourcePosition, gateCenter);
+        ctx.save();
+        ctx.fillStyle = '#73e3f3';
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(gateCenter.x, gateCenter.y, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+      if (state.connection?.pointerId !== null
+        && isActiveConnectionSource({ storage, key, index })
+        && state.connection.targetPoint) {
+        const gate = getConditionalGateAtPoint(state.connection.targetPoint);
+        drawButtonConnectionLine(sourcePosition, state.connection.targetPoint, gate ? '#8dffbe' : '#ff857d', true);
+      }
+    };
+    (cell.freeObjects ?? []).forEach((object, index) => drawForObject(object, index, 'free'));
+    cell.objects.forEach((object, index) => drawForObject(object, index, 'object'));
+  });
+}
+
 const sideVertexIndexes = [
   [0, 1], // E
   [5, 0], // NE
@@ -1101,21 +1184,21 @@ function drawEdges() {
     const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(edge.type);
     const cellA = getActiveCell(state.map, a, state.chapter);
     const cellB = getActiveCell(state.map, b, state.chapter);
+    const shared = getSharedEdgePoints({ a, b });
+    if (edge.type === 'layerPortal' && shared) {
+      drawLayerPortal(shared, centerA, centerB, cellA, cellB, size);
+      return;
+    }
     const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
-    const attachmentAngle = edge.type === 'layerPortal'
-      ? getLayerPortalAngle(edgeAngle, cellA, cellB)
-      : tangentAngle + (opensTowardA ? Math.PI : 0);
+    const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
     const receivesHelp = state.mode === 'play' && (
       (edge.type === 'coralCluster' && isActorNearEdgeAttachment(state.actor, state.map, state.chapter, state.origin, 'coralCluster'))
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * (edge.type === 'layerPortal' ? 1.08 : isAnchoredPlant ? 1.18 : 1.04) * size;
+      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04) * size;
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
-      const imageMidpoint = edge.type === 'layerPortal'
-        ? movePoint(midpoint, getLayerPortalLowDirection(edgeAngle, cellA, cellB), Math.max(0, width * 0.5 - 0.8))
-        : midpoint;
-      drawOutlinedEdgeImage(edgeImage, imageMidpoint, attachmentAngle, width, height, edge.type, receivesHelp);
+      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
     if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
@@ -1123,30 +1206,75 @@ function drawEdges() {
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size);
-    if (edge.type === 'layerPortal' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('階', midpoint.x, midpoint.y, { font: 'bold 8px system-ui', fill: '#f6e66d' });
   });
 }
 
-// The generated stair asset is authored with its high landing on the upper-left
-// and its low landing on the lower-right. Rotate that source axis onto the
-// shared edge's T1 -> T2 direction so the lower end always faces T2.
-const LAYER_PORTAL_SOURCE_AXIS = Math.atan2(0.6, 1);
-function getLayerPortalLowDirection(edgeAngle, cellA, cellB) {
-  const layerA = cellA?.waterLayer ?? 'T1';
-  const layerB = cellB?.waterLayer ?? 'T1';
-  return layerA === 'T1' && layerB === 'T2' ? edgeAngle : edgeAngle + Math.PI;
-}
-function getLayerPortalAngle(edgeAngle, cellA, cellB) {
-  return getLayerPortalLowDirection(edgeAngle, cellA, cellB) - LAYER_PORTAL_SOURCE_AXIS;
+function drawLayerPortalTriangle(point, direction, radius, colour) {
+  const perpendicular = { x: -direction.y, y: direction.x };
+  const tip = { x: point.x + direction.x * radius, y: point.y + direction.y * radius };
+  const back = { x: point.x - direction.x * radius * 0.7, y: point.y - direction.y * radius * 0.7 };
+  ctx.beginPath();
+  ctx.moveTo(tip.x, tip.y);
+  ctx.lineTo(back.x + perpendicular.x * radius * 0.62, back.y + perpendicular.y * radius * 0.62);
+  ctx.lineTo(back.x - perpendicular.x * radius * 0.62, back.y - perpendicular.y * radius * 0.62);
+  ctx.closePath();
+  ctx.fillStyle = colour;
+  ctx.fill();
 }
 
-function movePoint(point, angle, distance) {
-  return { x: point.x + Math.cos(angle) * distance, y: point.y + Math.sin(angle) * distance };
+function drawLayerPortal(shared, centerA, centerB, cellA, cellB, size = 1) {
+  const [first, second] = shared;
+  const edgeVector = { x: second.x - first.x, y: second.y - first.y };
+  const edgeLength = Math.hypot(edgeVector.x, edgeVector.y);
+  if (!Number.isFinite(edgeLength) || edgeLength < 1) return;
+  const tangent = { x: edgeVector.x / edgeLength, y: edgeVector.y / edgeLength };
+  const midpoint = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+  const t1Center = (cellA?.waterLayer ?? 'T1') === 'T1' ? centerA : centerB;
+  const t2Center = (cellA?.waterLayer ?? 'T1') === 'T1' ? centerB : centerA;
+  const layerVector = { x: t2Center.x - t1Center.x, y: t2Center.y - t1Center.y };
+  const layerLength = Math.hypot(layerVector.x, layerVector.y) || 1;
+  const layerDirection = { x: layerVector.x / layerLength, y: layerVector.y / layerLength };
+  const safeSize = Math.max(0.5, Number(size) || 1);
+  const halfRail = Math.max(3, Math.min(edgeLength * 0.34, edgeLength / 2 - 1));
+  const railStart = { x: midpoint.x - tangent.x * halfRail, y: midpoint.y - tangent.y * halfRail };
+  const railEnd = { x: midpoint.x + tangent.x * halfRail, y: midpoint.y + tangent.y * halfRail };
+  const seamHalf = Math.min(4.5 * safeSize, edgeLength * 0.22);
+  const t1Marker = { x: midpoint.x - layerDirection.x * seamHalf, y: midpoint.y - layerDirection.y * seamHalf };
+  const t2Marker = { x: midpoint.x + layerDirection.x * seamHalf, y: midpoint.y + layerDirection.y * seamHalf };
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(4, 13, 27, 0.96)';
+  ctx.lineWidth = 8 * safeSize;
+  ctx.beginPath();
+  ctx.moveTo(railStart.x, railStart.y);
+  ctx.lineTo(railEnd.x, railEnd.y);
+  ctx.stroke();
+  ctx.strokeStyle = '#75d8e9';
+  ctx.lineWidth = 4.6 * safeSize;
+  ctx.beginPath();
+  ctx.moveTo(railStart.x, railStart.y);
+  ctx.lineTo(railEnd.x, railEnd.y);
+  ctx.stroke();
+  ctx.strokeStyle = '#f0d17b';
+  ctx.lineWidth = 1.05 * safeSize;
+  ctx.beginPath();
+  ctx.moveTo(railStart.x, railStart.y);
+  ctx.lineTo(railEnd.x, railEnd.y);
+  ctx.stroke();
+  ctx.strokeStyle = '#effcff';
+  ctx.lineWidth = 0.9 * safeSize;
+  ctx.beginPath();
+  ctx.moveTo(t1Marker.x, t1Marker.y);
+  ctx.lineTo(t2Marker.x, t2Marker.y);
+  ctx.stroke();
+  drawLayerPortalTriangle(t1Marker, layerDirection, 2.6 * safeSize, '#75e3f2');
+  drawLayerPortalTriangle(t2Marker, { x: -layerDirection.x, y: -layerDirection.y }, 2.6 * safeSize, '#f5cf77');
+  ctx.restore();
 }
 
 function isCellPlacementValid(cell) {
   if (!cell) return false;
-  if (state.tool === 'gravity' || state.tool === 'terrain') return true;
+  if (state.tool === 'gravity' || state.tool === 'waterLayer' || state.tool === 'terrain') return true;
   if (state.tool === 'overlay' || state.tool === 'object' || state.tool === 'actor') return cell.terrain === 'water';
   return false;
 }
@@ -1225,7 +1353,7 @@ function drawPlacementPreview() {
     drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, previewPoint, '#f6e66d', 0.82);
     return;
   }
-  const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
+  const cellTool = ['gravity', 'waterLayer', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
   const edgeTool = state.tool === 'edge';
   if (!cellTool && !edgeTool) return;
   const validColour = '#f6e66d';
@@ -1363,6 +1491,94 @@ function getSelectedMapObject() {
   return object ? { ...selection, cell, object } : null;
 }
 
+function getMapObjectPosition(selection) {
+  if (!selection?.cell || !selection.object) return null;
+  if (selection.storage === 'free') return getFreeObjectPosition(selection.cell, selection.object);
+  return getHexCenter(selection.cell, state.origin);
+}
+
+function getConnectionSource() {
+  const source = state.connection?.source ?? state.selectedMapObject;
+  if (!source) return null;
+  const cell = getActiveCell(state.map, source.key, state.chapter);
+  if (!cell) return null;
+  const objects = source.storage === 'free' ? cell.freeObjects : cell.objects;
+  const object = objects?.[source.index];
+  if (!object || object.kind !== 'button') return null;
+  return { ...source, cell, object, position: getMapObjectPosition({ ...source, cell, object }) };
+}
+
+function getConditionalGateKeys() {
+  return Object.entries(state.map.cells)
+    .map(([key, cell]) => ({ key, cell: getActiveCell(state.map, key, state.chapter) }))
+    .filter(({ cell }) => Boolean(cell?.conditionalGate))
+    .sort((left, right) => (left.cell.r - right.cell.r) || (left.cell.q - right.cell.q))
+    .map(({ key }) => key);
+}
+
+function getConditionalGateLabel(key) {
+  const index = getConditionalGateKeys().indexOf(key);
+  return index >= 0 ? `G${index + 1}` : '無效門';
+}
+
+function getConditionalGateAtPoint(point) {
+  const hit = findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  return hit?.cell?.conditionalGate ? hit : null;
+}
+
+function isActiveConnectionSource(selection) {
+  const source = state.connection?.source;
+  return Boolean(source && selection
+    && source.storage === selection.storage
+    && source.key === selection.key
+    && source.index === selection.index);
+}
+
+function startButtonConnection() {
+  const selected = getSelectedMapObject();
+  if (!selected || selected.object.kind !== 'button') return;
+  state.connection = {
+    source: { storage: selected.storage, key: selected.key, index: selected.index },
+    pointerId: null,
+    targetPoint: selected.position ?? getMapObjectPosition(selected),
+  };
+  setStatus('請從按鈕圖示拖曳到條件通行門；放開即可建立連線。');
+  updateCanvasCursor();
+  render();
+}
+
+function cancelButtonConnection() {
+  state.connection = null;
+  updateCanvasCursor();
+  setStatus('已結束按鈕連線模式。');
+  render();
+}
+
+function clearButtonConnections() {
+  const selected = getSelectedMapObject();
+  if (!selected || selected.object.kind !== 'button') return;
+  updateSelectedMapObject({ targetGates: [] });
+  setStatus('已清除這個按鈕的所有門連線。');
+  render();
+}
+
+function completeButtonConnection(point) {
+  const source = getConnectionSource();
+  const gate = getConditionalGateAtPoint(point);
+  if (!source) {
+    cancelButtonConnection();
+    return;
+  }
+  if (!gate) {
+    setStatus('連線未完成：請把線放在條件通行門的六邊形中央。');
+    return;
+  }
+  const targetGates = [...new Set([...(source.object.targetGates ?? []), gate.key])];
+  state.selectedMapObject = { storage: source.storage, key: source.key, index: source.index };
+  updateSelectedMapObject({ targetGates });
+  setStatus(`已建立 ${getConditionalGateLabel(gate.key)} 連線；可繼續拖曳到其他門。`);
+}
+
 function selectMapObject(target) {
   if (target.storage === 'overlay') {
     const editable = getEditableCell(state.map, target.key, state.chapter);
@@ -1399,6 +1615,7 @@ function updateSelectedMapObject(values = {}, reset = false) {
   });
   if (selected.object.kind === 'button') {
     next.targetGates = reset ? [] : (values.targetGates ?? selected.object.targetGates ?? []);
+    next.mode = reset ? 'once' : (values.mode ?? selected.object.mode ?? 'once');
   }
   const editable = getEditableCell(state.map, selected.key, state.chapter);
   const property = selected.storage === 'free' ? 'freeObjects' : 'objects';
@@ -1559,24 +1776,52 @@ function renderCellInspector(cell) {
 function renderObjectInspector(selected) {
   const object = selected.object;
   const fields = getFreeObjectFields(object.kind);
-  const signature = JSON.stringify({ selection: state.selectedMapObject, object, chapter: state.chapter });
+  const signature = JSON.stringify({
+    selection: state.selectedMapObject,
+    object,
+    chapter: state.chapter,
+    connection: state.connection ? { source: state.connection.source, pointerId: state.connection.pointerId } : null,
+  });
   setInspector(signature, () => {
     appendInspectorHeader(`${paletteLabels[object.kind] ?? object.kind}・可調參數`, '此物件已使用官方預設建立；改動只影響這一個實例。');
     const fieldList = document.createElement('div');
     fieldList.className = 'inspector-fields';
     fields.forEach((field) => appendInspectorField(fieldList, field, getFreeObjectSetting(object, field.key), (value) => updateSelectedMapObject({ [field.key]: value })));
     if (object.kind === 'button') {
-      appendInspectorText(fieldList, {
-        key: 'targetGates',
-        label: '要開啟的門',
-        placeholder: '例如：2,4; 3,4',
-        note: 'Cell 座標用分號分隔',
-      }, (object.targetGates ?? []).join('; '), (value) => {
-        const targetGates = [...new Set(value.split(';').map((part) => part.trim()).filter((part) => /^-?\d+\s*,\s*-?\d+$/.test(part)).map((part) => part.split(',').map((number) => Number(number.trim())).join(',')))];
-        updateSelectedMapObject({ targetGates });
-      });
+      appendInspectorSelect(fieldList, {
+        key: 'mode',
+        label: '按鈕模式',
+        options: ['once', 'toggle'],
+        defaultValue: 'once',
+      }, object.mode === 'toggle' ? 'toggle' : 'once', (value) => updateSelectedMapObject({ mode: value }));
     }
     inspector.append(fieldList);
+    if (object.kind === 'button') {
+      const targetGates = Array.isArray(object.targetGates) ? object.targetGates : [];
+      const connectionSummary = document.createElement('p');
+      connectionSummary.className = 'inspector-connection-summary';
+      connectionSummary.textContent = targetGates.length
+        ? `已連接：${targetGates.map((key) => `${getConditionalGateLabel(key)}（${key}）`).join('、')}`
+        : '已連接：尚未指定條件通行門。';
+      inspector.append(connectionSummary);
+      const connectButton = document.createElement('button');
+      connectButton.type = 'button';
+      connectButton.className = 'inspector-connect';
+      connectButton.textContent = isActiveConnectionSource(selected) ? '結束拖曳連線' : '開始拖曳連線';
+      connectButton.addEventListener('click', () => {
+        if (isActiveConnectionSource(selected)) cancelButtonConnection();
+        else startButtonConnection();
+      });
+      inspector.append(connectButton);
+      if (targetGates.length) {
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'inspector-reset inspector-clear-connections';
+        clearButton.textContent = '清除所有門連線';
+        clearButton.addEventListener('click', clearButtonConnections);
+        inspector.append(clearButton);
+      }
+    }
     appendResetButton(() => updateSelectedMapObject({}, true));
   });
 }
@@ -1662,6 +1907,7 @@ function render() {
   // into a neighbouring Cell, so drawing per-Cell would let the next surface
   // cover part of the object.
   drawEdgeOccupancyWedges();
+  drawButtonConnections();
   cells.forEach((cell) => drawCellObjects(cell));
   drawTerrainBoundaries();
   drawEdges();
@@ -1755,14 +2001,16 @@ function applyFreeObjectTool(point) {
   const editable = getEditableCell(state.map, nearest.key, state.chapter);
   const center = getHexCenter(nearest.cell, state.origin);
   const placementPoint = state.objectPlacementMode === 'center' ? center : point;
-  const freeObjects = [
-    ...(editable.freeObjects ?? []),
-    {
-      kind: value,
-      offset: { x: placementPoint.x - center.x, y: placementPoint.y - center.y },
-      ...getOfficialFreeObjectState(value),
-    },
-  ];
+  const placedObject = {
+    kind: value,
+    offset: { x: placementPoint.x - center.x, y: placementPoint.y - center.y },
+    ...getOfficialFreeObjectState(value),
+  };
+  if (value === 'button') {
+    placedObject.targetGates = [];
+    placedObject.mode = 'once';
+  }
+  const freeObjects = [...(editable.freeObjects ?? []), placedObject];
   patchCell(state.map, nearest.key, { freeObjects }, state.chapter);
   state.selectedMapObject = { storage: 'free', key: nearest.key, index: freeObjects.length - 1 };
   state.selectedCellKey = null;
@@ -1814,6 +2062,7 @@ function applyCellTool(key) {
       ? { terrain: 'blocked', gravityLevel: 'L1', conditionalGate: { opened: false } }
       : { terrain: 'water', gravityLevel: value, conditionalGate: null }, state.chapter);
   }
+  if (state.tool === 'waterLayer') patchCell(state.map, key, { waterLayer: value }, state.chapter);
   if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
     setStatus('水域上物件現在是自由放置，不會吸附到這個六角格。');
     return;
@@ -1842,7 +2091,7 @@ function applyCellTool(key) {
 }
 
 function isCellPaintTool() {
-  return state.mode === 'edit' && ['gravity', 'terrain'].includes(state.tool);
+  return state.mode === 'edit' && ['gravity', 'waterLayer', 'terrain'].includes(state.tool);
 }
 
 function paintCell(key) {
@@ -1858,6 +2107,7 @@ function paintCell(key) {
       ? { terrain: 'blocked', gravityLevel: 'L1', conditionalGate: { opened: false } }
       : { terrain: 'water', gravityLevel: brushValue.value, conditionalGate: null }, state.chapter);
   }
+  if (state.tool === 'waterLayer') patchCell(state.map, key, { waterLayer: brushValue.value }, state.chapter);
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: brushValue.value }, state.chapter);
   return true;
 }
@@ -1986,6 +2236,19 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
+  if (state.connection) {
+    const source = getConnectionSource();
+    const sourceDistance = source?.position ? Math.hypot(point.x - source.position.x, point.y - source.position.y) : Infinity;
+    if (!source || sourceDistance > getFreeObjectHitRadius(source.object) + 5) {
+      setStatus('請從已選取的按鈕圖示開始拖曳連線。');
+      return;
+    }
+    state.connection.pointerId = event.pointerId;
+    state.connection.targetPoint = point;
+    canvas.setPointerCapture(event.pointerId);
+    render();
+    return;
+  }
   if (state.tool === 'select') {
     state.viewDrag = { pointerId: event.pointerId, startPoint: point, lastPoint: point, moved: false };
     canvas.setPointerCapture(event.pointerId);
@@ -2018,7 +2281,7 @@ canvas.addEventListener('pointerdown', (event) => {
     render();
     return;
   }
-  const canExtendDownward = ['gravity', 'terrain', 'actor'].includes(state.tool);
+  const canExtendDownward = ['gravity', 'waterLayer', 'terrain', 'actor'].includes(state.tool);
   const hitCell = getOrExtendCellAtPoint(point, canExtendDownward);
   if (hitCell) applyCellTool(hitCell.key);
   render();
@@ -2028,6 +2291,11 @@ canvas.addEventListener('pointermove', (event) => {
   const point = eventPoint(event);
   state.hoverPoint = point;
   if (state.dragging) state.dragging.pointer = point;
+  if (state.connection?.pointerId === event.pointerId) {
+    state.connection.targetPoint = point;
+    render();
+    return;
+  }
   if (state.viewDrag?.pointerId === event.pointerId) {
     const drag = state.viewDrag;
     const delta = { x: point.x - drag.lastPoint.x, y: point.y - drag.lastPoint.y };
@@ -2052,6 +2320,18 @@ canvas.addEventListener('pointerleave', () => {
 });
 
 canvas.addEventListener('pointerup', (event) => {
+  if (state.connection?.pointerId === event.pointerId) {
+    const pointer = eventPoint(event);
+    completeButtonConnection(pointer);
+    if (state.connection) {
+      state.connection.pointerId = null;
+      state.connection.targetPoint = getConnectionSource()?.position ?? pointer;
+    }
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    updateCanvasCursor();
+    render();
+    return;
+  }
   if (state.viewDrag?.pointerId === event.pointerId) {
     const drag = state.viewDrag;
     state.viewDrag = null;
@@ -2084,6 +2364,10 @@ canvas.addEventListener('pointerup', (event) => {
 });
 
 canvas.addEventListener('pointercancel', (event) => {
+  if (state.connection?.pointerId === event.pointerId) {
+    state.connection.pointerId = null;
+    state.connection.targetPoint = getConnectionSource()?.position ?? null;
+  }
   if (state.painting?.pointerId === event.pointerId) state.painting = null;
   if (state.dragging) state.dragging = null;
   if (state.viewDrag?.pointerId === event.pointerId) state.viewDrag = null;
@@ -2096,6 +2380,7 @@ function setMode(mode) {
   state.dragging = null;
   state.painting = null;
   state.viewDrag = null;
+  state.connection = null;
   state.accumulator = 0;
   updateCanvasCursor();
   if (mode === 'play') {
@@ -2128,6 +2413,8 @@ document.querySelector('#demo-map').addEventListener('click', () => {
   chapterSelect.value = state.chapter;
   state.selectedCellKey = null;
   state.selectedEdgeKey = null;
+  state.selectedMapObject = null;
+  state.connection = null;
   markDirty('已重設為空白 24×17 地圖：全水域為 L0，沒有物件、Actor 或 Edge。');
   render();
 });
@@ -2160,6 +2447,8 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
     state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
     state.selectedCellKey = null;
     state.selectedEdgeKey = null;
+    state.selectedMapObject = null;
+    state.connection = null;
     state.validation = validateMap(state.map);
     markDirty(`已匯入 ${file.name}。`);
   } catch (error) {

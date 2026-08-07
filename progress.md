@@ -318,3 +318,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added `sandbox-sim.js`: all 19 enemy definitions can be spawned, every current attack type has a sandbox execution path, and effects cover contact/melee, projectiles, lobbed zones, summons, support/link, beams, split, clones, rule changes, gravity fields, and oxygen corruption.
 - Added customizable weapon/level selection, all passive ability levels, invincibility, infinite oxygen/energy, pause/reset controls, animated enemy GIF reuse, and procedural fallback markers for enemies without authored GIFs.
 - Static verification passed for this sandbox pass: `npm run check` (34/34 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
+
+## 2026-08-08 — Step 40 complete
+
+- Added a dedicated `水域層級`整格筆刷 with T1/T2 cards. Selecting T2 and clicking or dragging now batch-paints water-layer data without opening each Cell Inspector; continuation rows keep the same downward authoring behavior.
+- Replaced manual button target-coordinate input with an Inspector `開始拖曳連線` flow. Dragging a selected button onto a conditional gate stores the Cell link, draws a persistent editor-only arrow, and supports both one-time and toggle button modes.
+- Replaced the perspective layer-portal staircase bitmap on the map with a symmetric vector marker anchored to the exact shared hex edge and T1/T2 center direction, so every edge orientation stays centered instead of leaning.
+- Static-only verification passed: `npm run check` (36/36 tests), `npm run build`, `git diff --check`, and a pure Node toggle-button interaction check. Browser and Playwright checks remain prohibited per user instruction.

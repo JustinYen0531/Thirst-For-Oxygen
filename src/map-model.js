@@ -369,6 +369,7 @@ export function validateMap(map) {
     cell.objects.forEach((object) => {
       if (!CELL_OBJECT_TYPES.includes(object.kind)) results.push({ level: 'error', message: `${key} 有未知物件：${object.kind}` });
       if (object.kind === 'button') {
+        if (object.mode != null && !['once', 'toggle'].includes(object.mode)) results.push({ level: 'error', message: `${key} 的按鈕模式無效：${object.mode}。` });
         if (!Array.isArray(object.targetGates)) results.push({ level: 'error', message: `${key} 的按鈕沒有指定條件通行門。` });
         else object.targetGates.forEach((gateKey) => {
           if (!map.cells[gateKey]) results.push({ level: 'error', message: `${key} 的按鈕指定了不存在的門：${gateKey}。` });
@@ -384,6 +385,9 @@ export function validateMap(map) {
         results.push({ level: 'error', message: `${key} 的自由物件缺少有效位置：${object.kind}` });
       }
       if (object.kind === 'button') {
+        if (object.mode != null && !['once', 'toggle'].includes(object.mode)) {
+          results.push({ level: 'error', message: `${key} 的按鈕模式無效：${object.mode}。` });
+        }
         if (!Array.isArray(object.targetGates)) {
           results.push({ level: 'error', message: `${key} 的按鈕沒有指定條件通行門。` });
         } else {
