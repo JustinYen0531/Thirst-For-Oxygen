@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thirst for Oxygen — 敵人圖鑑</title>
+    <link rel="stylesheet" href="/src/encyclopedia.css" />
+  </head>
+  <body>
+    <main class="encyclopedia-shell">
+      <header class="encyclopedia-header">
+        <div>
+          <p class="eyebrow">THIRST FOR OXYGEN / FIELD GUIDE</p>
+          <h1>敵人圖鑑</h1>
+          <p class="lede">先看敵人在水中自然漂浮，再點技能按鈕觀看它的攻擊演示。</p>
+        </div>
+        <a class="back-link" href="/">返回地圖編輯器</a>
+      </header>
+
+      <section class="guide-note" aria-label="圖鑑使用說明">
+        <strong>演示入口已整合</strong>
+        <span>每張卡片的第一個按鈕都是「自然漂浮」。沒有 GIF 的 Boss 仍會列出完整技能與數值，待素材補齊後可直接接回同一個入口。</span>
+      </section>
+
+      <nav id="tier-filters" class="tier-filters" aria-label="敵人等級篩選"></nav>
+      <section id="enemy-grid" class="enemy-grid" aria-live="polite"></section>
+    </main>
+    <script type="module" src="/src/enemy-encyclopedia-page.js"></script>
+  </body>
+</html>
+

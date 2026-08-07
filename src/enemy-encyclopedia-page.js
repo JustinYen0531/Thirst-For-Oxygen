@@ -1,0 +1,84 @@
+import { ATTACK_VALUE_LABELS, ENEMY_ENCYCLOPEDIA, formatAttackValue } from './enemy-encyclopedia.js';
+
+const tierFilters = document.querySelector('#tier-filters');
+const enemyGrid = document.querySelector('#enemy-grid');
+const tierOrder = ['all', 1, 2, 3, 4, 'miniBoss', 'mutatedMiniBoss', 'finalBoss'];
+const tierLabels = { all: '全部', 1: '等級 1', 2: '等級 2', 3: '等級 3', 4: '等級 4', miniBoss: '小 Boss', mutatedMiniBoss: '變異小 Boss', finalBoss: 'Final Boss' };
+
+const escapeHtml = (value) => String(value)
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#039;');
+
+function attackValues(attack) {
+  return Object.entries(attack)
+    .filter(([key, value]) => !['id', 'name', 'type'].includes(key) && value !== undefined)
+    .map(([key, value]) => `<span><b>${escapeHtml(ATTACK_VALUE_LABELS[key] ?? key)}</b>${escapeHtml(formatAttackValue(key, value))}</span>`)
+    .join('');
+}
+
+function enemyCard(enemy) {
+  const hasIdle = Boolean(enemy.visuals?.idle);
+  const preview = hasIdle
+    ? `<img class="enemy-preview-image" src="${enemy.visuals.idle}" alt="${escapeHtml(enemy.name)} 自然漂浮" data-preview-image />`
+    : '<div class="enemy-preview-placeholder"><span>GIF</span><small>動畫素材待補</small></div>';
+  const actions = enemy.attacks.map((attack) => {
+    const hasAnimation = Boolean(enemy.visuals?.actions?.[attack.id]);
+    return `<button class="action-button${hasAnimation ? '' : ' is-unavailable'}" type="button" data-action-id="${escapeHtml(attack.id)}" ${hasAnimation ? '' : 'aria-disabled="true"'}>${escapeHtml(attack.name)}${hasAnimation ? '' : ' · 待素材'}</button>`;
+  }).join('');
+  return `<article class="enemy-card" data-tier="${escapeHtml(enemy.tier)}" data-enemy-id="${escapeHtml(enemy.id)}">
+    <div class="enemy-card-heading">
+      <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
+      <span class="role-label">${escapeHtml(enemy.role)}</span>
+    </div>
+    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? '自然漂浮' : '目前沒有 GIF 預覽素材'}</p></div>
+    <div class="preview-actions"><button class="action-button idle-button is-active" type="button" data-idle-action>自然漂浮</button>${actions}</div>
+    <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
+    <div class="skill-list">${enemy.attacks.map((attack) => `<section class="skill-entry"><h3>${escapeHtml(attack.name)}</h3><p class="skill-type">${escapeHtml(attack.type)}</p><div class="skill-values">${attackValues(attack)}</div></section>`).join('')}</div>
+  </article>`;
+}
+
+function renderCards(filter = 'all') {
+  enemyGrid.innerHTML = ENEMY_ENCYCLOPEDIA
+    .filter((enemy) => filter === 'all' || String(enemy.tier) === String(filter))
+    .map(enemyCard)
+    .join('');
+}
+
+function setActiveFilter(filter) {
+  tierFilters.querySelectorAll('button').forEach((button) => button.classList.toggle('is-active', button.dataset.filter === String(filter)));
+  renderCards(filter);
+}
+
+tierFilters.innerHTML = tierOrder.map((tier) => `<button type="button" data-filter="${tier}">${tierLabels[tier]}</button>`).join('');
+tierFilters.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-filter]');
+  if (button) setActiveFilter(button.dataset.filter);
+});
+
+enemyGrid.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-action-id], [data-idle-action]');
+  if (!button) return;
+  const card = button.closest('.enemy-card');
+  const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
+  if (!enemy) return;
+  const attackId = button.dataset.actionId;
+  const image = card.querySelector('[data-preview-image]');
+  const caption = card.querySelector('[data-preview-caption]');
+  const source = attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle;
+  const attack = enemy.attacks.find(({ id }) => id === attackId);
+  card.querySelectorAll('.action-button').forEach((candidate) => candidate.classList.remove('is-active'));
+  button.classList.add('is-active');
+  if (source && image) {
+    image.src = source;
+    image.alt = `${enemy.name} ${attack?.name ?? '自然漂浮'}`;
+    caption.textContent = attack?.name ?? '自然漂浮';
+  } else {
+    caption.textContent = attack ? `${attack.name}：動畫素材待補，數值已可查閱` : '目前沒有 GIF 預覽素材';
+  }
+});
+
+setActiveFilter('all');
+

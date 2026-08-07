@@ -29,6 +29,8 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 #status-line { margin-top: 4px; color: #aabfd5; font-size: 13px; }
 .topbar-actions { display: flex; gap: 7px; }
 .topbar-actions button { width: auto; white-space: nowrap; }
+.topbar-nav { display: inline-flex; align-items: center; width: auto; padding: 7px 9px; border: 1px solid #6d5fa1; border-radius: 4px; color: #f2eaff; background: #28234b; font: inherit; text-decoration: none; white-space: nowrap; }
+.topbar-nav:hover { border-color: #d6c9ff; background: #4b3f82; }
 
 .workspace { display: grid; grid-template-columns: 200px minmax(780px, 1000px) 260px; gap: 12px; max-width: 1500px; margin: 0 auto; align-items: start; }
 .panel { border: 1px solid #223c5d; border-radius: 6px; padding: 12px; background: #0e1b2c; }
