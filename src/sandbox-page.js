@@ -82,6 +82,8 @@ function updateSkillPicker() {
   if (!enemy) {
     skillSelect.disabled = true;
     skillDescription.textContent = '';
+    skillSelect.dataset.signature = '';
+    skillSelect.replaceChildren();
     selectedEnemyName.textContent = '尚未選取敵人';
     selectedEnemyStats.textContent = '點擊場上的敵人後，在這裡選擇要驗收的技能。';
     return;
@@ -91,12 +93,17 @@ function updateSkillPicker() {
   selectedEnemyName.textContent = `${definition.name}${enemy.defeated ? '（已擊敗）' : ''}`;
   selectedEnemyStats.textContent = `生命 ${Math.round(enemy.health)} / ${enemy.maxHealth}｜角色 ${definition.role}｜移速 ${definition.moveSpeed}`;
   const skills = listSandboxSkills(enemy.enemyId);
-  skills.forEach((skill) => {
-    const option = document.createElement('option');
-    option.value = skill.id;
-    option.textContent = `${skill.name} · ${skill.type}`;
-    skillSelect.append(option);
-  });
+  const optionSignature = skills.map((skill) => `${skill.id}:${skill.name}:${skill.type}`).join('|');
+  if (skillSelect.dataset.signature !== optionSignature) {
+    skillSelect.replaceChildren();
+    skills.forEach((skill) => {
+      const option = document.createElement('option');
+      option.value = skill.id;
+      option.textContent = `${skill.name} · ${skill.type}`;
+      skillSelect.append(option);
+    });
+    skillSelect.dataset.signature = optionSignature;
+  }
   skillSelect.disabled = skills.length === 0 || enemy.defeated;
   state.selectedSkillId = skills.some((skill) => skill.id === state.selectedSkillId)
     ? state.selectedSkillId
