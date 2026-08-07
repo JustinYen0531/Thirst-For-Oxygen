@@ -271,6 +271,7 @@ const state = {
   selectedMapObject: null,
   dirty: false,
   dragging: null,
+  painting: null,
   events: [],
   validation: [],
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
@@ -308,6 +309,7 @@ function setPaletteTab(tab) {
 }
 
 function setTool(tool, preferredValue = null, paletteTab = null) {
+  state.painting = null;
   state.tool = tool;
   brushValue.innerHTML = '';
   const values = toolDefinitions[tool].values;
@@ -1594,6 +1596,45 @@ function applyCellTool(key) {
   markDirty(`${key} 已套用 ${toolDefinitions[state.tool].label}${value ? `：${value}` : ''}。`);
 }
 
+function isCellPaintTool() {
+  return state.mode === 'edit' && ['gravity', 'terrain'].includes(state.tool);
+}
+
+function paintCell(key) {
+  if (!state.painting || state.painting.visited.has(key)) return false;
+  const cell = getActiveCell(state.map, key, state.chapter);
+  if (!cell) return false;
+  state.painting.visited.add(key);
+  state.selectedCellKey = key;
+  state.selectedEdgeKey = null;
+  state.selectedMapObject = null;
+  if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: brushValue.value }, state.chapter);
+  if (state.tool === 'terrain') patchCell(state.map, key, { terrain: brushValue.value }, state.chapter);
+  return true;
+}
+
+function paintCellsAlongPath(point) {
+  if (!state.painting) return;
+  const previous = state.painting.lastPoint ?? point;
+  const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
+  const steps = Math.max(1, Math.ceil(distance / 6));
+  let changed = false;
+  for (let index = 1; index <= steps; index += 1) {
+    const progress = index / steps;
+    const sample = {
+      x: previous.x + (point.x - previous.x) * progress,
+      y: previous.y + (point.y - previous.y) * progress,
+    };
+    const hitCell = getOrExtendCellAtPoint(sample, true);
+    if (hitCell) changed = paintCell(hitCell.key) || changed;
+  }
+  state.painting.lastPoint = point;
+  if (changed && !state.painting.statusShown) {
+    state.painting.statusShown = true;
+    markDirty(`拖曳塗色：已連續套用${toolDefinitions[state.tool].label}「${brushValue.value}」。`);
+  }
+}
+
 function applyEdgeTool(edgeTarget) {
   state.selectedEdgeKey = edgeTarget.key;
   state.selectedCellKey = null;
@@ -1681,6 +1722,13 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
+  if (isCellPaintTool()) {
+    state.painting = { pointerId: event.pointerId, lastPoint: point, visited: new Set(), statusShown: false };
+    canvas.setPointerCapture(event.pointerId);
+    paintCellsAlongPath(point);
+    render();
+    return;
+  }
   if (state.tool === 'overlay' || state.tool === 'object') {
     applyFreeObjectTool(point);
     render();
@@ -1718,6 +1766,7 @@ canvas.addEventListener('pointermove', (event) => {
   const point = eventPoint(event);
   state.hoverPoint = point;
   if (state.dragging) state.dragging.pointer = point;
+  if (state.painting?.pointerId === event.pointerId) paintCellsAlongPath(point);
   if (state.mode === 'edit') render();
 });
 
@@ -1727,6 +1776,12 @@ canvas.addEventListener('pointerleave', () => {
 });
 
 canvas.addEventListener('pointerup', (event) => {
+  if (state.painting?.pointerId === event.pointerId) {
+    state.painting = null;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    render();
+    return;
+  }
   if (!state.dragging) {
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     return;
@@ -1743,9 +1798,16 @@ canvas.addEventListener('pointerup', (event) => {
   if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 });
 
+canvas.addEventListener('pointercancel', (event) => {
+  if (state.painting?.pointerId === event.pointerId) state.painting = null;
+  if (state.dragging) state.dragging = null;
+  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+});
+
 function setMode(mode) {
   state.mode = mode;
   state.dragging = null;
+  state.painting = null;
   state.accumulator = 0;
   if (mode === 'play') {
     startTestRun(state.actor, state.map, state.chapter, state.origin);

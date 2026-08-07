@@ -191,6 +191,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Occupied Edge Snap locations gain a water-colour, lightened center-to-edge triangular sector; water objects and Edge art receive white silhouette outlines so Free Snap items remain visually distinct from Edge occupancy.
 - Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 23 in progress
+
+- Added click-and-drag painting for Cell materials. Holding the pointer after selecting a gravity Tile or terrain brush captures the pointer, samples the path between events, and applies the same value to every crossed hexagon without toggling or repeating a Cell.
+- Single-click placement remains unchanged. Free Snap water objects still place independently at the cursor, while play-mode player dragging keeps its existing launch behavior.
+- Updated the palette hint to document the hold-and-drag workflow. Pointer cancellation, tool changes, and mode changes safely stop an active paint stroke.
+- Static verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
+- Remaining: scoped commit and push; unrelated enemy preview changes in the working tree remain untouched.
+
 ## 2026-08-08 — Step 25 in progress
 
 - Changed the default editor zoom from 150% to 200% and made the internal canvas width fit the stable map width at that default, so the left and right map edges meet the viewport without a horizontal crop.
