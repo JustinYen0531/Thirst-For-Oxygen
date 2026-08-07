@@ -188,7 +188,6 @@ const toolDefinitions = {
   select: { label: '選取', values: [] },
   terrain: { label: '地形', values: TERRAIN_TYPES },
   gravity: { label: '重力', values: GRAVITY_ORDER },
-  waterLayer: { label: '水域層級', values: WATER_LAYERS },
   overlay: { label: '環境效果', values: OVERLAY_TYPES },
   object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
   actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
@@ -311,7 +310,7 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  const directPaletteTools = new Set(['terrain', 'gravity', 'waterLayer', 'overlay', 'object', 'actor', 'edge', 'erase']);
+  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge', 'erase']);
   Object.entries(toolDefinitions).filter(([key]) => !directPaletteTools.has(key)).forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -326,7 +325,6 @@ function createPalette() {
   const paletteGroups = {
     gravity: [
       { tool: 'gravity', values: GRAVITY_ORDER },
-      { tool: 'waterLayer', values: WATER_LAYERS },
       { tool: 'terrain', values: ['blocked'] },
     ],
     overlay: [
@@ -401,9 +399,8 @@ function createPaletteVisual(tool, value) {
     visual.alt = '';
   } else {
     visual.className = 'palette-swatch';
-    visual.textContent = tool === 'gravity' ? value : tool === 'waterLayer' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
-    if (tool === 'gravity') visual.style.background = gravityColours[value];
-    if (tool === 'waterLayer') visual.style.background = value === 'T2' ? '#13213f' : '#284d73';
+        visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
+        if (tool === 'gravity') visual.style.background = gravityColours[value];
   }
   return visual;
 }
@@ -418,8 +415,6 @@ function getPaletteDescription(tool, value) {
       L3: '向下 2.0G：最強下沉水域。',
     })[value];
   }
-  if (tool === 'waterLayer' && value === 'T1') return '水域第一層：與 T2 分層存在；沒有層間轉接門時，不能直接穿越分界。';
-  if (tool === 'waterLayer' && value === 'T2') return '水域第二層：同一水域的較深層級；與 T1 的邊界需要層間轉接門才能通過。';
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
   if (tool === 'overlay' && value === 'ink') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
   if (tool === 'object' && value === 'mine') return '水域上物件：自由放置；物件自身輪廓是 hitbox，角色接觸時造成傷害。';
@@ -593,7 +588,7 @@ function freeObjectAtPoint(point) {
   return closest;
 }
 
-function drawCell(key, cell) {
+function drawCellSurface(cell) {
   const center = getHexCenter(cell, state.origin);
   ctx.save();
   pathHex(cell);
@@ -614,7 +609,10 @@ function drawCell(key, cell) {
     ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
   ctx.restore();
+}
 
+function drawCellObjects(cell) {
+  const center = getHexCenter(cell, state.origin);
   cell.overlays.forEach((overlay) => drawCellAsset(overlay, center.x, center.y, HEX_SIZE * 1.8));
   cell.objects.forEach((object, index) => {
     const angle = (index / Math.max(cell.objects.length, 1)) * Math.PI * 2;
@@ -629,7 +627,6 @@ function drawCell(key, cell) {
   cell.actors.forEach((actor, index) => {
     drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
   });
-
 }
 
 const sideVertexIndexes = [
@@ -752,7 +749,7 @@ function drawEdges() {
 
 function isCellPlacementValid(cell) {
   if (!cell) return false;
-  if (state.tool === 'gravity' || state.tool === 'waterLayer' || state.tool === 'terrain') return true;
+  if (state.tool === 'gravity' || state.tool === 'terrain') return true;
   if (state.tool === 'overlay' || state.tool === 'object' || state.tool === 'actor') return cell.terrain === 'water';
   return false;
 }
@@ -830,7 +827,7 @@ function drawPlacementPreview() {
     drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, state.hoverPoint, '#f6e66d', 0.82);
     return;
   }
-  const cellTool = ['gravity', 'waterLayer', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
+  const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
   const edgeTool = state.tool === 'edge';
   if (!cellTool && !edgeTool) return;
   const validColour = '#f6e66d';
@@ -1078,6 +1075,30 @@ function appendInspectorField(fields, field, value, onCommit) {
   fields.append(row);
 }
 
+function appendInspectorSelect(fields, field, value, onCommit) {
+  const row = document.createElement('div');
+  row.className = 'inspector-field';
+  const label = document.createElement('label');
+  const id = `inspector-${field.key}`;
+  label.htmlFor = id;
+  label.textContent = field.label;
+  const select = document.createElement('select');
+  select.id = id;
+  field.options.forEach((optionValue) => {
+    const option = document.createElement('option');
+    option.value = optionValue;
+    option.textContent = paletteLabels[optionValue] ?? optionValue;
+    select.append(option);
+  });
+  select.value = value;
+  select.addEventListener('change', () => onCommit(select.value));
+  const official = document.createElement('span');
+  official.className = 'inspector-default';
+  official.textContent = `官方預設：${paletteLabels[field.defaultValue] ?? field.defaultValue}`;
+  row.append(label, select, official);
+  fields.append(row);
+}
+
 function appendResetButton(onClick) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -1085,6 +1106,27 @@ function appendResetButton(onClick) {
   button.textContent = '恢復官方預設';
   button.addEventListener('click', onClick);
   inspector.append(button);
+}
+
+function updateSelectedCell(values = {}, reset = false) {
+  const key = state.selectedCellKey;
+  const cell = key && getActiveCell(state.map, key, state.chapter);
+  if (!cell) return;
+  const nextLayer = reset ? 'T1' : (values.waterLayer ?? cell.waterLayer ?? 'T1');
+  patchCell(state.map, key, { waterLayer: nextLayer }, state.chapter);
+  markDirty(reset ? `${key} 已恢復水域層級官方預設。` : `${key} 已切換為 ${nextLayer}。`);
+}
+
+function renderCellInspector(cell) {
+  const signature = JSON.stringify({ key: state.selectedCellKey, gravity: cell.gravityLevel, waterLayer: cell.waterLayer, chapter: state.chapter });
+  setInspector(signature, () => {
+    appendInspectorHeader(`${paletteLabels[cell.gravityLevel] ?? cell.gravityLevel}・可調參數`, '水域重力 Tile 放置後，可在這裡選擇它屬於 T1 或 T2。不同層級之間需要層間轉接門。');
+    const fieldList = document.createElement('div');
+    fieldList.className = 'inspector-fields';
+    appendInspectorSelect(fieldList, { key: 'waterLayer', label: '水域層級', options: WATER_LAYERS, defaultValue: 'T1' }, cell.waterLayer ?? 'T1', (value) => updateSelectedCell({ waterLayer: value }));
+    inspector.append(fieldList);
+    appendResetButton(() => updateSelectedCell({}, true));
+  });
 }
 
 function renderObjectInspector(selected) {
@@ -1141,7 +1183,7 @@ function renderInspector() {
   }
   if (state.selectedCellKey) {
     const cell = getActiveCell(state.map, state.selectedCellKey, state.chapter);
-    renderInspectorJson({ kind: 'Cell', key: state.selectedCellKey, chapter: state.chapter, ...cell }, `cell:${state.selectedCellKey}:${JSON.stringify(cell)}`);
+    renderCellInspector(cell);
     return;
   }
   setInspector('empty', () => { inspector.textContent = '未選取 Cell、Edge 或水域上物件。'; });
@@ -1171,7 +1213,12 @@ function render() {
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.scale(state.zoom, state.zoom);
   ctx.translate(-canvas.width / 2, -canvas.height / 2);
-  Object.entries(state.map.cells).forEach(([key]) => drawCell(key, getActiveCell(state.map, key, state.chapter)));
+  const cells = Object.entries(state.map.cells).map(([key]) => getActiveCell(state.map, key, state.chapter));
+  cells.forEach((cell) => drawCellSurface(cell));
+  // Paint every water surface before any object. A Free Snap object may cross
+  // into a neighbouring Cell, so drawing per-Cell would let the next surface
+  // cover part of the object.
+  cells.forEach((cell) => drawCellObjects(cell));
   drawTerrainBoundaries();
   drawEdges();
   drawPlacementPreview();
@@ -1271,7 +1318,6 @@ function applyCellTool(key) {
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
   if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
-  if (state.tool === 'waterLayer') patchCell(state.map, key, { terrain: 'water', waterLayer: value }, state.chapter);
   if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
     setStatus('水域上物件現在是自由放置，不會吸附到這個六角格。');
     return;

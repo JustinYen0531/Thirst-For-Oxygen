@@ -104,6 +104,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
 
+## 2026-08-08 — Step 18 in progress
+
+- Corrected the layer UI model: T1/T2 are no longer separate water-gravity palette materials. Every L-1/L0/L1/L2/L3 water Tile keeps its gravity identity, and the selected Cell Inspector now exposes a `水域層級` selector for T1 or T2 plus a reset-to-T1 action.
+- The layer portal and cross-layer physics remain unchanged; this only moves layer selection to the per-Cell parameter workflow requested by the user.
+- Static verification passed: `npm run check` (26/26 tests), `npm run build`, and `git diff --check`. Browser validation remains intentionally disabled per user instruction.
+- Remaining: scoped Git commit and push, then report the exact result to the user.
+
 ## 2026-08-08 — Step 16 refinement
 
 - Updated the palette instructions and every water-object info card to describe free placement and object-owned hitboxes.
