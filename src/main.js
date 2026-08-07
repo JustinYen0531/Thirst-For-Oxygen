@@ -9,8 +9,10 @@ import {
   WATER_LAYERS,
   TERRAIN_TYPES,
   allMapEdges,
+  cellKeyFromColumn,
   createBlankMap,
   edgeKey,
+  ensureOddRRows,
   findCellContainingPoint,
   getActiveCell,
   getActiveEdge,
@@ -58,6 +60,7 @@ import {
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
+const canvasViewport = document.querySelector('#map-viewport');
 const statusLine = document.querySelector('#status-line');
 const toolButtons = document.querySelector('#tool-buttons');
 const brushValue = document.querySelector('#brush-value');
@@ -198,11 +201,37 @@ const toolDefinitions = {
   erase: { label: '橡皮擦', values: [] },
 };
 
-function calculateMapOrigin(map) {
+const DEFAULT_ZOOM = 2;
+const MAP_VERTICAL_BUFFER_ROWS = 4;
+const MAP_TOP_SCREEN_PADDING = 24;
+const MAP_ROW_STEP = HEX_SIZE * 1.5;
+
+function calculateCanvasWidth(map) {
   const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
+  return Math.max(1, Math.ceil((bounds.right - bounds.left) * DEFAULT_ZOOM));
+}
+
+function calculateCanvasHeight(map, zoom = DEFAULT_ZOOM) {
+  const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
+  const worldHeight = bounds.bottom - bounds.top + MAP_VERTICAL_BUFFER_ROWS * MAP_ROW_STEP;
+  return Math.max(1, Math.ceil(worldHeight * zoom + MAP_TOP_SCREEN_PADDING * 2));
+}
+
+function syncCanvasGeometry(map, zoom = DEFAULT_ZOOM) {
+  const previousScrollTop = canvasViewport?.scrollTop ?? 0;
+  canvas.width = calculateCanvasWidth(map);
+  canvas.height = calculateCanvasHeight(map, zoom);
+  if (canvasViewport) {
+    canvasViewport.scrollTop = Math.min(previousScrollTop, Math.max(0, canvasViewport.scrollHeight - canvasViewport.clientHeight));
+  }
+}
+
+function calculateMapOrigin(map, zoom = DEFAULT_ZOOM) {
+  const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
+  const topSource = canvas.height / 2 + (MAP_TOP_SCREEN_PADDING - canvas.height / 2) / zoom;
   return {
     x: (canvas.width - (bounds.right - bounds.left)) / 2 - bounds.left,
-    y: (canvas.height - (bounds.bottom - bounds.top)) / 2 - bounds.top,
+    y: topSource - bounds.top,
   };
 }
 
@@ -228,7 +257,8 @@ function loadMap() {
 }
 
 const initialMap = loadMap();
-const initialOrigin = calculateMapOrigin(initialMap);
+syncCanvasGeometry(initialMap, DEFAULT_ZOOM);
+const initialOrigin = calculateMapOrigin(initialMap, DEFAULT_ZOOM);
 const state = {
   map: initialMap,
   origin: initialOrigin,
@@ -244,7 +274,7 @@ const state = {
   validation: [],
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
-  zoom: 1.5,
+  zoom: DEFAULT_ZOOM,
   paletteTab: 'gravity',
   hoverPoint: null,
   animationTime: 0,
@@ -470,14 +500,6 @@ function clipToMapSideBoundaries(bounds) {
   ctx.clip();
 }
 
-function drawMapRectangleFrame(bounds) {
-  ctx.save();
-  ctx.strokeStyle = 'rgba(132, 197, 245, 0.42)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(bounds.left + 0.5, bounds.top + 0.5, bounds.right - bounds.left - 1, bounds.bottom - bounds.top - 1);
-  ctx.restore();
-}
-
 function drawMapBackplate(bounds) {
   ctx.save();
   ctx.fillStyle = '#0f3156';
@@ -605,6 +627,50 @@ function findNearestCell(point) {
   return nearest;
 }
 
+function estimateCellGridPosition(point) {
+  const row = Math.max(0, Math.floor((point.y - state.origin.y + HEX_SIZE) / MAP_ROW_STEP));
+  const column = Math.round((point.x - state.origin.x) / (HEX_SIZE * Math.sqrt(3)) - row / 2);
+  return { column, row, key: cellKeyFromColumn(column, row) };
+}
+
+function getOrExtendCellAtPoint(point, allowExtend = false) {
+  const existing = findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  if (existing || !allowExtend) return existing;
+
+  const candidate = estimateCellGridPosition(point);
+  const width = Number(state.map.layout?.width) || 0;
+  const height = Number(state.map.layout?.height) || 0;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+
+  ensureOddRRows(state.map, candidate.row);
+  syncCanvasGeometry(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom);
+  return findCellContainingPoint(state.map, point, state.chapter, state.origin);
+}
+
+function getCellPreviewAtPoint(point) {
+  const existing = findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  if (existing) return existing;
+  const candidate = estimateCellGridPosition(point);
+  const width = Number(state.map.layout?.width) || 0;
+  const height = Number(state.map.layout?.height) || 0;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+  return {
+    key: candidate.key,
+    cell: {
+      q: candidate.column - Math.floor(candidate.row / 2),
+      r: candidate.row,
+      terrain: 'water',
+      gravityLevel: 'L0',
+      waterLayer: 'T1',
+      overlays: [],
+      objects: [],
+      freeObjects: [],
+      actors: [],
+    },
+  };
+}
+
 function freeObjectAtPoint(point) {
   let closest = null;
   Object.entries(state.map.cells).forEach(([key]) => {
@@ -657,6 +723,25 @@ function drawCellSurface(cell) {
     // identity and add a neutral low-light veil instead of a hue shift.
     ctx.fillStyle = 'rgba(3, 8, 20, 0.17)';
     ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  }
+  ctx.restore();
+}
+
+function drawContinuationGuide() {
+  const width = Number(state.map.layout?.width) || 0;
+  const firstRow = Number(state.map.layout?.height) || 0;
+  ctx.save();
+  ctx.fillStyle = 'rgba(33, 84, 116, 0.2)';
+  ctx.strokeStyle = 'rgba(123, 195, 224, 0.42)';
+  ctx.lineWidth = 0.7;
+  ctx.setLineDash([2.5, 3.5]);
+  for (let row = firstRow; row < firstRow + MAP_VERTICAL_BUFFER_ROWS; row += 1) {
+    for (let column = 0; column < width; column += 1) {
+      const cell = { q: column - Math.floor(row / 2), r: row };
+      pathHex(cell);
+      ctx.fill();
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -719,6 +804,9 @@ function drawTerrainBoundaries() {
       const adjacentKey = neighborKey(key, directionIndex);
       const adjacent = state.map.cells[adjacentKey] ? getActiveCell(state.map, adjacentKey, state.chapter) : null;
       if (!adjacent) {
+        // The map is open-ended downward. Keep the top and side guides, but do
+        // not draw a bottom cap that suggests authoring has ended.
+        if (directionIndex >= 4) return;
         drawCellSide(cell, directionIndex, outerBorder);
         return;
       }
@@ -943,7 +1031,7 @@ function drawPlacementPreview() {
   const validColour = '#f6e66d';
   const invalidColour = '#ff6f68';
   if (cellTool) {
-    const hitCell = findCellContainingPoint(state.map, state.hoverPoint, state.chapter, state.origin);
+    const hitCell = getCellPreviewAtPoint(state.hoverPoint);
     if (!hitCell) return;
     const valid = isCellPlacementValid(hitCell.cell);
     pathHex(hitCell.cell);
@@ -1054,9 +1142,9 @@ function updateHudBar(element, valueElement, value, maximum, unit = '%') {
 function renderHud() {
   const actor = state.actor;
   const preview = state.mode !== 'play';
-  playerHud.classList.toggle('is-preview', preview);
+  playerHud.hidden = preview;
   playerHud.classList.toggle('is-game-over', actor.gameOver);
-  hudMode.textContent = actor.gameOver ? '永久死亡：請重新開始測試' : (preview ? 'HUD 預覽' : '測試玩家');
+  hudMode.textContent = actor.gameOver ? '永久死亡：請重新開始測試' : '測試玩家';
   updateHudBar(hudHealth, hudHealthValue, actor.health, MAX_HEALTH);
   hudLives.textContent = `${'●'.repeat(actor.lives)}${'○'.repeat(actor.maxLives - actor.lives)}`;
   hudLivesValue.textContent = `${actor.lives}/${actor.maxLives}`;
@@ -1320,6 +1408,7 @@ function render() {
   drawMapBackplate(mapBounds);
   const cells = Object.entries(state.map.cells).map(([key]) => getActiveCell(state.map, key, state.chapter));
   cells.forEach((cell) => drawCellSurface(cell));
+  drawContinuationGuide();
   // Paint every water surface before any object. A Free Snap object may cross
   // into a neighbouring Cell, so drawing per-Cell would let the next surface
   // cover part of the object.
@@ -1332,7 +1421,6 @@ function render() {
   drawTestActor();
   drawInkMask();
   ctx.restore();
-  drawMapRectangleFrame(mapBounds);
   ctx.restore();
   renderInspector();
   renderLists();
@@ -1368,8 +1456,11 @@ function addOrRemove(values, value) {
 }
 
 function applyFreeObjectTool(point) {
-  const nearest = findNearestCell(point);
-  if (!nearest) return;
+  const nearest = getOrExtendCellAtPoint(point, true);
+  if (!nearest) {
+    setStatus('請在地圖寬度內放置素材；地圖可以向下繼續延伸。');
+    return;
+  }
   const value = brushValue.value;
   const editable = getEditableCell(state.map, nearest.key, state.chapter);
   const freeObjects = [
@@ -1567,7 +1658,8 @@ canvas.addEventListener('pointerdown', (event) => {
     render();
     return;
   }
-  const hitCell = findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  const canExtendDownward = ['gravity', 'terrain', 'actor'].includes(state.tool);
+  const hitCell = getOrExtendCellAtPoint(point, canExtendDownward);
   if (hitCell) applyCellTool(hitCell.key);
   render();
 });
@@ -1625,10 +1717,11 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 });
 document.querySelector('#demo-map').addEventListener('click', () => {
   state.map = createBlankMap();
-  state.origin = calculateMapOrigin(state.map);
-  state.zoom = 1.5;
+  state.zoom = DEFAULT_ZOOM;
+  syncCanvasGeometry(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom);
   zoomSlider.value = String(state.zoom);
-  zoomValue.textContent = '150%';
+  zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
   state.chapter = 'chapter1';
   chapterSelect.value = state.chapter;
   state.selectedCellKey = null;
@@ -1660,7 +1753,8 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
     state.map = migrateMapToOddR(parsed);
-    state.origin = calculateMapOrigin(state.map);
+    syncCanvasGeometry(state.map, state.zoom);
+    state.origin = calculateMapOrigin(state.map, state.zoom);
     state.selectedCellKey = null;
     state.selectedEdgeKey = null;
     state.validation = validateMap(state.map);
@@ -1679,6 +1773,8 @@ chapterSelect.addEventListener('change', () => {
 });
 zoomSlider.addEventListener('input', () => {
   state.zoom = Number(zoomSlider.value);
+  syncCanvasGeometry(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom);
   zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
   render();
 });
@@ -1726,7 +1822,11 @@ window.render_game_to_text = () => {
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
-    viewport: { zoom: state.zoom },
+    viewport: {
+      zoom: state.zoom,
+      scrollTop: Math.round(canvasViewport?.scrollTop ?? 0),
+      scrollHeight: Math.round(canvasViewport?.scrollHeight ?? canvas.height),
+    },
   });
 };
 

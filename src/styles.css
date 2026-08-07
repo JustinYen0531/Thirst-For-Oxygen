@@ -34,9 +34,10 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 
 .workspace { display: grid; grid-template-columns: 200px minmax(780px, 1000px) 260px; gap: 12px; max-width: 1500px; margin: 0 auto; align-items: start; }
 .panel { border: 1px solid #223c5d; border-radius: 6px; padding: 12px; background: #0e1b2c; }
-.canvas-wrap { width: 100%; }
-.canvas-stage { position: relative; }
-canvas { display: block; width: 100%; height: auto; border: 1px solid #385a81; border-radius: 6px; cursor: crosshair; background: #091423; }
+.canvas-wrap { width: 100%; min-width: 0; }
+.map-viewport { height: min(70vh, 680px); min-height: 280px; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; border: 1px solid #385a81; border-radius: 6px; background: #091423; }
+.canvas-stage { position: relative; width: 100%; }
+canvas { display: block; width: 100%; height: auto; border: 0; border-radius: 0; cursor: crosshair; background: #091423; }
 .player-hud { position: absolute; top: 12px; left: 12px; z-index: 1; width: 230px; padding: 9px 10px 10px; border: 1px solid rgba(143, 214, 255, 0.78); border-radius: 6px; background: rgba(7, 18, 33, 0.9); box-shadow: 0 5px 18px rgba(0, 0, 0, 0.24); pointer-events: none; }
 .player-hud.is-preview { opacity: 0.72; }
 .player-hud.is-game-over { border-color: #ff6f87; box-shadow: 0 5px 18px rgba(255, 63, 94, 0.28); }

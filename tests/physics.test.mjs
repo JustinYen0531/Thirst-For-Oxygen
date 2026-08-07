@@ -4,6 +4,7 @@ import {
   createEmptyMap,
   createBlankMap,
   cellKeyFromColumn,
+  ensureOddRRows,
   getActiveCell,
   findCellContainingPoint,
   getOddRRectangularBounds,
@@ -135,6 +136,19 @@ test('compact editor uses a rectangular odd-r grid with one-Cell player diameter
   assert.ok(map.cells[cellKeyFromColumn(0, 16)]);
   assert.ok(map.cells[cellKeyFromColumn(23, 16)]);
   assert.equal(Object.keys(map.cells).length, 24 * 17);
+});
+
+test('odd-r authoring maps can grow downward without changing their column width', () => {
+  const map = createEmptyMap({ width: 3, height: 2 });
+  ensureOddRRows(map, 5);
+  assert.equal(map.layout.width, 3);
+  assert.equal(map.layout.height, 6);
+  assert.ok(map.cells[cellKeyFromColumn(0, 5)]);
+  assert.ok(map.cells[cellKeyFromColumn(2, 5)]);
+  assert.equal(Object.keys(map.cells).length, 18);
+  ensureOddRRows(map, 3);
+  assert.equal(map.layout.height, 6);
+  assert.equal(Object.keys(map.cells).length, 18);
 });
 
 test('odd-r rectangular bounds trim alternating side tips without changing Cells', () => {

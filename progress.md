@@ -191,6 +191,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Occupied Edge Snap locations gain a water-colour, lightened center-to-edge triangular sector; water objects and Edge art receive white silhouette outlines so Free Snap items remain visually distinct from Edge occupancy.
 - Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 25 in progress
+
+- Changed the default editor zoom from 150% to 200% and made the internal canvas width fit the stable map width at that default, so the left and right map edges meet the viewport without a horizontal crop.
+- Wrapped the canvas in a vertical camera viewport. The viewport scrolls vertically without changing `state.zoom`; the canvas grows as the map grows and exposes scroll state through `render_game_to_text`.
+- Added `ensureOddRRows` and downward authoring: clicking within the fixed column range below the current last row creates continuous odd-r Cell rows, while the bottom perimeter cap is omitted so the map does not look closed.
+- Browser and Playwright checks remain prohibited per user instruction; static Node tests and Vite build are still required before commit and push.
+
 ## 2026-08-08 — Step 22 in progress
 
 - Corrected the generated layer-portal placement: the stair is now reduced from 1.8× to 1.08× Edge length and its high-side contact edge is shifted onto the shared hex Edge instead of being centered over it.
