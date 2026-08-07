@@ -103,3 +103,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Every palette card now shows its material name below the image. Removed the Coral Safe Zone overlay from palette data, demo data, runtime safety logic, and its obsolete physics test; coral cluster remains as an Edge-attached protective object.
 - Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
+
+## 2026-08-07 — Step 15 complete
+
+- Removed connected opaque matte backgrounds from all enemy animation GIFs while preserving the original sprite pixels and existing alpha information. The remover keys each frame from its border colour, so both pure black and the dark-blue juvenile seahorse matte are handled.
+- Updated both app assets (`public/assets/enemies`, 89 GIFs) and GDD source previews (86 GIFs): 175 GIFs / 1362 frames total. Static alpha validation reports 0 corner errors across both trees.
+- Added the repeatable `scripts/remove-gif-black-background.py` utility. `npm run check` passed (20/20 tests), `npm run build` passed, and Python syntax validation passed. Browser validation remains prohibited by user instruction.
