@@ -136,6 +136,7 @@ const edgeImagePaths = {
   springJelly: '/assets/editor/edges/spring-jellyfish.png',
   spike: '/assets/editor/edges/edge-spike-barrier.png',
   barrier: '/assets/editor/edges/edge-spike-barrier.png',
+  layerPortal: '/assets/editor/edges/layer-portal-stair.png',
   seaweed: '/assets/editor/objects/sea-grass.png',
   coralCluster: '/assets/editor/objects/coral-cluster.png',
 };
@@ -727,13 +728,15 @@ function drawEdges() {
     const cellA = getActiveCell(state.map, a, state.chapter);
     const cellB = getActiveCell(state.map, b, state.chapter);
     const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
-    const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
+    const attachmentAngle = edge.type === 'layerPortal'
+      ? getLayerPortalAngle(edgeAngle, cellA, cellB)
+      : tangentAngle + (opensTowardA ? Math.PI : 0);
     const receivesHelp = state.mode === 'play' && (
       (edge.type === 'coralCluster' && isActorNearEdgeAttachment(state.actor, state.map, state.chapter, state.origin, 'coralCluster'))
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04) * size;
+      const width = edgeLength * (edge.type === 'layerPortal' ? 1.8 : isAnchoredPlant ? 1.18 : 1.04) * size;
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
       drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
@@ -743,8 +746,19 @@ function drawEdges() {
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size);
-    if (edge.type === 'layerPortal') drawText('⇄', midpoint.x, midpoint.y, { font: 'bold 12px system-ui', fill: '#f6e66d' });
+    if (edge.type === 'layerPortal' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('階', midpoint.x, midpoint.y, { font: 'bold 8px system-ui', fill: '#f6e66d' });
   });
+}
+
+// The generated stair asset is authored with its high landing on the upper-left
+// and its low landing on the lower-right. Rotate that source axis onto the
+// shared edge's T1 -> T2 direction so the lower end always faces T2.
+const LAYER_PORTAL_SOURCE_AXIS = Math.atan2(0.6, 1);
+function getLayerPortalAngle(edgeAngle, cellA, cellB) {
+  const layerA = cellA?.waterLayer ?? 'T1';
+  const layerB = cellB?.waterLayer ?? 'T1';
+  const lowDirection = layerA === 'T1' && layerB === 'T2' ? edgeAngle : edgeAngle + Math.PI;
+  return lowDirection - LAYER_PORTAL_SOURCE_AXIS;
 }
 
 function isCellPlacementValid(cell) {

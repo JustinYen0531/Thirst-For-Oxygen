@@ -139,6 +139,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run check` (20/20 tests), `npm run build`, and `git diff --check`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
 
+## 2026-08-08 — Step 19 in progress
+
+- Replaced the layer portal's temporary two-arrow marker with a generated deep-sea stone staircase asset. The source was generated with the Image Generation skill, chroma-key background was removed to real alpha, and the final asset is `public/assets/editor/edges/layer-portal-stair.png`.
+- The staircase is rendered across the shared Edge rather than as an Edge-tangent symbol. Its high landing faces T1 and its low landing faces T2; reversing the two Cell layers flips the stair direction. The faint silhouette outline remains pixel-shaped, with no rectangular neon frame.
+- Added an explicit `階梯大小` Edge Inspector setting for the portal. T1/T2-only placement validation and cross-layer passage physics are unchanged.
+- Static verification passed: `npm run check` (26/26 tests), `npm run build`, `git diff --check`, and RGBA/alpha validation of the generated asset. Browser validation remains intentionally disabled per user instruction.
+- Remaining: perform the scoped Git commit and push and report the exact result.
+
 ## 2026-08-07 — Step 15 complete
 
 - Removed connected opaque matte backgrounds from all enemy animation GIFs while preserving the original sprite pixels and existing alpha information. The remover keys each frame from its border colour, so both pure black and the dark-blue juvenile seahorse matte are handled.
