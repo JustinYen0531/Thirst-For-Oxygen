@@ -1242,7 +1242,9 @@ function applyEdgeTool(edgeTarget) {
   }
   if (state.tool === 'edge') {
     if (!isEdgePlacementValid(edgeTarget)) {
-      setStatus('邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
+      setStatus(value === 'layerPortal'
+        ? '層間轉接門只能放在 T1 與 T2 相鄰的共享六角邊。'
+        : '邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
       return;
     }
     const isBlocking = ['springJelly', 'spike', 'barrier'].includes(value);
