@@ -70,6 +70,7 @@ const waterTilePaths = {
   L3: '/assets/editor/water/L3.png',
 };
 const objectSymbols = {
+  coralCluster: '✿',
   mine: '✹',
   weightStone: '◆',
   seaweed: '≈',
@@ -79,6 +80,7 @@ const objectSymbols = {
   torricelli: 'T',
 };
 const objectImagePaths = {
+  coralCluster: '/assets/editor/objects/coral-cluster.png',
   coral: '/assets/editor/objects/coral-safe-zone-overlay.png',
   ink: '/assets/editor/objects/ink-zone-overlay.png',
   mine: '/assets/editor/objects/deep-sea-mine.png',
@@ -89,14 +91,19 @@ const objectImagePaths = {
   bubble: '/assets/editor/objects/photosynthesis-bubble.png',
   torricelli: '/assets/editor/objects/torricelli-space.png',
 };
-const paletteImagePaths = { ...waterTilePaths, ...objectImagePaths };
+const edgeImagePaths = {
+  springJelly: '/assets/editor/edges/spring-jellyfish.png',
+  spike: '/assets/editor/edges/edge-spike-barrier.png',
+  barrier: '/assets/editor/edges/edge-spike-barrier.png',
+};
+const paletteImagePaths = { ...waterTilePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行',
-  coral: '珊瑚安全區', ink: '墨水區',
+  coral: '珊瑚安全區', ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
   checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
-  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺', barrier: '障礙', current: '潮流',
+  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流',
 };
 const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level, source]) => {
   const image = new Image();
@@ -108,8 +115,14 @@ const objectImages = Object.fromEntries(Object.entries(objectImagePaths).map(([k
   image.src = source;
   return [kind, image];
 }));
+const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [kind, image];
+}));
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
+Object.values(edgeImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
   playerStart: 'P',
   enemySpawn: 'E',
@@ -251,11 +264,21 @@ function createPalette() {
       }
       const label = document.createElement('span');
       label.textContent = paletteLabels[value] ?? value;
+      button.title = getPaletteNote(tool, value);
       button.append(visual, label);
       button.addEventListener('click', () => setTool(tool, value));
       root.append(button);
     });
   });
+}
+
+function getPaletteNote(tool, value) {
+  if (tool === 'edge' && value === 'barrier') return '邏輯上是通用障礙；目前共用 edge-spike-barrier.png，沒有獨立 barrier 圖。';
+  if (tool === 'edge' && value === 'current') return '潮流是程式化方向與強度工具，不使用 bitmap。';
+  if (tool === 'edge' && value === 'none') return '清除 Edge 的操作，不是素材。';
+  if (tool === 'actor') return '出生點是編輯器語意標記，不是本輪生成的靜態素材。';
+  if (tool === 'terrain') return '地形狀態工具；水域外觀由重力水域素材與畫布底圖處理。';
+  return paletteLabels[value] ?? value;
 }
 
 function pathHex(cell) {
@@ -357,6 +380,19 @@ function drawEdges() {
     const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), state.origin);
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
     const selected = state.selectedEdgeKey === key;
+    const edgeAngle = Math.atan2(centerB.y - centerA.y, centerB.x - centerA.x);
+    const edgeLength = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
+    const edgeImage = edgeImages[edge.type];
+    if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
+      const width = edgeLength * 1.04;
+      const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
+      ctx.save();
+      ctx.translate(midpoint.x, midpoint.y);
+      ctx.rotate(edgeAngle);
+      ctx.globalAlpha = selected ? 1 : 0.92;
+      ctx.drawImage(edgeImage, -width / 2, -height / 2, width, height);
+      ctx.restore();
+    }
     ctx.save();
     ctx.lineWidth = selected ? 3 : 2;
     ctx.strokeStyle = selected ? '#f6e66d' : ({ springJelly: '#e37bff', spike: '#ff6f68', barrier: '#abb5c5', current: '#d9ff68' }[edge.type]);
@@ -364,9 +400,9 @@ function drawEdges() {
     ctx.arc(midpoint.x, midpoint.y, selected ? 6 : 4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
-    if (edge.type === 'springJelly') drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
-    if (edge.type === 'spike') drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
-    if (edge.type === 'barrier') drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
+    if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
+    if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
+    if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection));
   });
 }

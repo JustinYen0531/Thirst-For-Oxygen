@@ -23,6 +23,7 @@ export const GRAVITY_ORDER = Object.freeze(['L-1', 'L0', 'L1', 'L2', 'L3']);
 export const TERRAIN_TYPES = Object.freeze(['water', 'blocked']);
 export const OVERLAY_TYPES = Object.freeze(['coral', 'ink']);
 export const CELL_OBJECT_TYPES = Object.freeze([
+  'coralCluster',
   'mine',
   'weightStone',
   'seaweed',
