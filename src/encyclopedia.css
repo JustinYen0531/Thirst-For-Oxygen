@@ -41,14 +41,17 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .preview-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px 11px; border-bottom: 1px solid #213f5a; }
 .action-button { flex: 1 1 120px; min-width: 0; font-size: 12px; }
 .action-button.is-unavailable { border-style: dashed; color: #8da4b6; }
+.action-hint { flex: 1 0 100%; color: #7895a9; font-size: 10px; }
 .enemy-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; padding: 10px 14px; border-bottom: 1px solid #213f5a; }
 .enemy-stats div { display: grid; gap: 3px; }
 .enemy-stats dt { color: #8ea9bd; font-size: 11px; }
 .enemy-stats dd { margin: 0; color: #f2fbff; font: 700 15px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.skill-list { padding: 10px 14px 13px; }
-.skill-entry + .skill-entry { margin-top: 10px; padding-top: 10px; border-top: 1px solid #1c3850; }
-.skill-entry h3 { display: inline; color: #e5f6ff; font-size: 13px; }
+.enemy-description, .selected-skill-panel { padding: 12px 14px 15px; }
+.enemy-description h3, .selected-skill-panel h3 { display: inline; color: #e5f6ff; font-size: 14px; }
+.enemy-description p, .skill-description { margin-top: 7px; color: #b9d0df; font-size: 12px; line-height: 1.6; }
+.selected-skill-panel { border-top: 1px solid #31566f; background: rgba(17, 57, 78, .24); }
 .skill-type { display: inline; margin-left: 7px; color: #6e9bb2; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.selected-skill-panel .skill-type { margin-left: 8px; }
 .skill-values { display: flex; flex-wrap: wrap; gap: 5px 11px; margin-top: 6px; color: #b9d0df; font-size: 11px; }
 .skill-values span { display: inline-flex; gap: 4px; }
 .skill-values b { color: #7faabd; font-weight: 500; }

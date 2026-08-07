@@ -135,3 +135,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added the shared `src/afterimage.js` profile: four historical samples, nearest opacity 28%, exponential decay 0.58, and a 3 px per-sample drift so older ghosts visibly separate from the current sprite.
 - Added a repeatable `scripts/create-gif-afterimage.py` generator and produced 89 transparent animated WebP previews under `public/assets/enemies-afterimage`. The encyclopedia now defaults to the formal trail and provides a switch to compare clean animation versus afterimage.
 - Static validation passed: 89 WebP files / 690 frames, 3,158,586 partial-alpha pixels, 0 transparent-corner errors; all 19 enemy catalog mappings resolve. `npm run check` passed (20/20 tests), `npm run build` passed, and Python syntax validation passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 17 complete
+
+- Fixed afterimage loop boundaries by wrapping the four historical samples across the animation cycle; the first frame now inherits the previous cycle's tail instead of flashing to a single sprite.
+- Removed the fake `自然漂浮` skill tab. Skill buttons now toggle: selecting a skill opens its animation and detailed description; clicking the same skill again cancels it and restores the natural-floating state.
+- Added complete ecology descriptions for all 19 enemies and detailed descriptions for all 48 authored attacks. Natural-floating cards show `生態觀察`; skill selection replaces it with the selected attack's explanation and numerical details.
+- Static verification passed: all 89 afterimage WebP loops retain transparent corners and first-frame history, all catalog descriptions have no fallback text, `npm run check` passed (21/21 tests), and `npm run build` passed. Browser validation remains prohibited by user instruction.

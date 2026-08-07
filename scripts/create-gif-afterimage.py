@@ -34,9 +34,9 @@ def process_gif(source_path: Path, target_path: Path) -> int:
     for current_index, current in enumerate(frames):
         canvas = Image.new("RGBA", current.size, (0, 0, 0, 0))
         for age in range(SAMPLE_COUNT, 0, -1):
-            previous_index = current_index - age
-            if previous_index < 0:
-                continue
+            # Wrap across the animation loop so the first frame inherits the
+            # tail of the previous cycle instead of flashing to a clean sprite.
+            previous_index = (current_index - age) % len(frames)
             opacity = NEAREST_OPACITY * (DECAY ** (age - 1))
             ghost = with_opacity(frames[previous_index], opacity)
             canvas.alpha_composite(ghost, dest=(round(age * DRIFT_X), round(age * DRIFT_Y)))

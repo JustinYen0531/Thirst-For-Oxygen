@@ -32,15 +32,16 @@ function enemyCard(enemy) {
     const hasAnimation = Boolean(enemy.visuals?.actions?.[attack.id]);
     return `<button class="action-button${hasAnimation ? '' : ' is-unavailable'}" type="button" data-action-id="${escapeHtml(attack.id)}" ${hasAnimation ? '' : 'aria-disabled="true"'}>${escapeHtml(attack.name)}${hasAnimation ? '' : ' · 待素材'}</button>`;
   }).join('');
-  return `<article class="enemy-card" data-tier="${escapeHtml(enemy.tier)}" data-enemy-id="${escapeHtml(enemy.id)}">
+  return `<article class="enemy-card" data-tier="${escapeHtml(enemy.tier)}" data-enemy-id="${escapeHtml(enemy.id)}" data-selected-action="idle">
     <div class="enemy-card-heading">
       <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
       <span class="role-label">${escapeHtml(enemy.role)}</span>
     </div>
     <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? '自然漂浮 · 正式殘影' : '目前沒有 GIF 預覽素材'}</p></div>
-    <div class="preview-actions"><button class="action-button idle-button is-active" type="button" data-idle-action>自然漂浮</button>${actions}</div>
+    <div class="preview-actions">${actions}<span class="action-hint">再次點擊已選技能即可取消，回到自然漂浮</span></div>
     <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
-    <div class="skill-list">${enemy.attacks.map((attack) => `<section class="skill-entry"><h3>${escapeHtml(attack.name)}</h3><p class="skill-type">${escapeHtml(attack.type)}</p><div class="skill-values">${attackValues(attack)}</div></section>`).join('')}</div>
+    <section class="enemy-description" data-enemy-description><h3>生態觀察</h3><p>${escapeHtml(enemy.description)}</p></section>
+    <section class="selected-skill-panel" data-skill-panel hidden></section>
   </article>`;
 }
 
@@ -63,12 +64,23 @@ function updatePreview(card, enemy, attackId) {
   const trailSource = attackId ? enemy.visuals?.afterimageActions?.[attackId] : enemy.visuals?.afterimageIdle;
   const source = afterimageEnabled && trailSource ? trailSource : normalSource;
   const attack = enemy.attacks.find(({ id }) => id === attackId);
+  const enemyDescription = card.querySelector('[data-enemy-description]');
+  const skillPanel = card.querySelector('[data-skill-panel]');
   if (source && image) {
     image.src = source;
     image.alt = `${enemy.name} ${attack?.name ?? '自然漂浮'}`;
     caption.textContent = `${attack?.name ?? '自然漂浮'}${afterimageEnabled && trailSource ? ' · 正式殘影' : ''}`;
   } else {
     caption.textContent = attack ? `${attack.name}：動畫素材待補，數值已可查閱` : '目前沒有 GIF 預覽素材';
+  }
+  if (attack) {
+    enemyDescription.hidden = true;
+    skillPanel.hidden = false;
+    skillPanel.innerHTML = `<h3>${escapeHtml(attack.name)}</h3><p class="skill-type">${escapeHtml(attack.type)}</p><p class="skill-description">${escapeHtml(attack.description)}</p><div class="skill-values">${attackValues(attack)}</div>`;
+  } else {
+    enemyDescription.hidden = false;
+    skillPanel.hidden = true;
+    skillPanel.innerHTML = '';
   }
 }
 
@@ -88,16 +100,16 @@ afterimageToggle.addEventListener('change', () => {
 });
 
 enemyGrid.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-action-id], [data-idle-action]');
+  const button = event.target.closest('[data-action-id]');
   if (!button) return;
   const card = button.closest('.enemy-card');
   const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
   if (!enemy) return;
-  const attackId = button.dataset.actionId;
-  const attack = enemy.attacks.find(({ id }) => id === attackId);
+  const clickedAttackId = button.dataset.actionId;
+  const attackId = card.dataset.selectedAction === clickedAttackId ? undefined : clickedAttackId;
   card.dataset.selectedAction = attackId ?? 'idle';
   card.querySelectorAll('.action-button').forEach((candidate) => candidate.classList.remove('is-active'));
-  button.classList.add('is-active');
+  if (attackId) button.classList.add('is-active');
   updatePreview(card, enemy, attackId);
 });
 
