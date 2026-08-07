@@ -750,8 +750,12 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
   state.pan.x += previousOrigin.x - resizedOrigin.x;
   state.pan.y += previousOrigin.y - resizedOrigin.y;
   state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
-  return findCellContainingPoint(state.map, point, state.chapter, state.origin)
-    ?? { key: targetKey, cell: getActiveCell(state.map, targetKey, state.chapter) };
+  // The target row was already resolved before the map grew. Re-running the
+  // geometric hit test after resizing can snap a click near the new row's
+  // boundary back to the previous row, making downward painting and Free Snap
+  // placement appear to do nothing. Return the authoring target directly.
+  const targetCell = getActiveCell(state.map, targetKey, state.chapter);
+  return targetCell ? { key: targetKey, cell: targetCell } : null;
 }
 
 function getWaterObjectCellAtPoint(point, allowExtend = false) {

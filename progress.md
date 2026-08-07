@@ -306,3 +306,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Removed the previous incorrect behavior that copied gravity from the two Cells above the gate. The palette now places the conditional gate directly as a gravity Cell tool, and Inspector designation also forces L1.
 - Removed the generated image's black surround with the chroma-key helper and verified transparent corners (`RGBA`, alpha `0`).
 - Static-only verification passed: `npm run check` (31/31 tests), `npm run build`, `git diff --check`, and the conditional gate alpha check. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 38 in progress
+
+- Fixed downward authoring and Free Snap placement target resolution: after extending the map, the editor now returns the resolved continuation Cell directly instead of re-running a boundary-sensitive geometric hit test.
+- Static verification passed for this regression fix: `npm run check` (31/31 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
