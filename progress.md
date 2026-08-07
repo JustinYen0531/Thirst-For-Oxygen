@@ -184,3 +184,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Water-object tuning now drives physics: ink visibility range, mine damage, weight-stone break speed and downward weight, oxygen-ore yield plus impact threshold, photosynthesis-bubble oxygen plus gravity-immunity time, and Torricelli oxygen recovery per second. Spring jelly bounce and spike damage are likewise Edge parameters; seaweed and coral expose size only.
 - Removed the selected-Cell neighbour connector lines. Fixed gravity levels remain explicit: L3 2.0G down, L2 1.5G down, L1 1.0G down, L0 0G, and L-1 1.0G up.
 - Static verification passed: `npm run check` (24/24 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 21 complete
+
+- Rendering now clips the alternating left/right half-Cell tips to a stable rectangular map silhouette without changing stored odd-r coordinates, Cells, Edges, or pointer hit-testing.
+- Occupied Edge Snap locations gain a water-colour, lightened center-to-edge triangular sector; water objects and Edge art receive white silhouette outlines so Free Snap items remain visually distinct from Edge occupancy.
+- Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

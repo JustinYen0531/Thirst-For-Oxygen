@@ -216,6 +216,21 @@ export function getHexCenter(cell, origin = { x: 78, y: 86 }) {
   };
 }
 
+// Odd-r rows alternate their horizontal offset by half a Cell. Rendering to
+// these centre-to-centre limits trims only the alternating half-Cell tips,
+// giving the editor a stable rectangular map silhouette without changing any
+// Cell coordinate or hit-testing rule.
+export function getOddRRectangularBounds(map, origin = { x: 0, y: 0 }) {
+  const centers = Object.values(map.cells).map((cell) => getHexCenter(cell, origin));
+  if (!centers.length) return { left: origin.x, right: origin.x, top: origin.y, bottom: origin.y };
+  return {
+    left: Math.min(...centers.map((center) => center.x)),
+    right: Math.max(...centers.map((center) => center.x)),
+    top: Math.min(...centers.map((center) => center.y)) - HEX_SIZE,
+    bottom: Math.max(...centers.map((center) => center.y)) + HEX_SIZE,
+  };
+}
+
 export function getHexVertices(cell, origin) {
   const center = getHexCenter(cell, origin);
   return Array.from({ length: 6 }, (_, index) => {

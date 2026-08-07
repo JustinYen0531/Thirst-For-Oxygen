@@ -6,6 +6,7 @@ import {
   cellKeyFromColumn,
   getActiveCell,
   findCellContainingPoint,
+  getOddRRectangularBounds,
   getHexCenter,
   HEX_SIZE,
   migrateMapToOddR,
@@ -134,6 +135,17 @@ test('compact editor uses a rectangular odd-r grid with one-Cell player diameter
   assert.ok(map.cells[cellKeyFromColumn(0, 16)]);
   assert.ok(map.cells[cellKeyFromColumn(23, 16)]);
   assert.equal(Object.keys(map.cells).length, 24 * 17);
+});
+
+test('odd-r rectangular bounds trim alternating side tips without changing Cells', () => {
+  const map = createEmptyMap({ width: 3, height: 2 });
+  const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
+  const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
+  assert.equal(bounds.left, 0);
+  assert.equal(bounds.right, Math.sqrt(3) * HEX_SIZE * 2.5);
+  assert.equal(bounds.top, -HEX_SIZE);
+  assert.equal(bounds.bottom, HEX_SIZE * 2.5);
+  assert.equal(getHexCenter(getActiveCell(map, '0,0'), { x: 0, y: 0 }).x - halfWidth < bounds.left, true);
 });
 
 test('legacy axial-parallelogram maps migrate without losing Cell content', () => {

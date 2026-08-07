@@ -17,6 +17,7 @@ import {
   getEditableCell,
   getHexCenter,
   getHexVertices,
+  getOddRRectangularBounds,
   getDirectionVector,
   migrateMapToOddR,
   neighborKey,
@@ -197,15 +198,10 @@ const toolDefinitions = {
 };
 
 function calculateMapOrigin(map) {
-  const centers = Object.values(map.cells).map((cell) => getHexCenter(cell, { x: 0, y: 0 }));
-  const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
-  const minX = Math.min(...centers.map((center) => center.x)) - halfWidth;
-  const maxX = Math.max(...centers.map((center) => center.x)) + halfWidth;
-  const minY = Math.min(...centers.map((center) => center.y)) - HEX_SIZE;
-  const maxY = Math.max(...centers.map((center) => center.y)) + HEX_SIZE;
+  const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
   return {
-    x: (canvas.width - (maxX - minX)) / 2 - minX,
-    y: (canvas.height - (maxY - minY)) / 2 - minY,
+    x: (canvas.width - (bounds.right - bounds.left)) / 2 - bounds.left,
+    y: (canvas.height - (bounds.bottom - bounds.top)) / 2 - bounds.top,
   };
 }
 
@@ -456,6 +452,31 @@ function pathHex(cell) {
   ctx.closePath();
 }
 
+function getMapRenderBounds() {
+  return getOddRRectangularBounds(state.map, state.origin);
+}
+
+function clipToMapRectangle(bounds) {
+  ctx.beginPath();
+  ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+  ctx.clip();
+}
+
+function drawMapRectangleFrame(bounds) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(132, 197, 245, 0.42)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bounds.left + 0.5, bounds.top + 0.5, bounds.right - bounds.left - 1, bounds.bottom - bounds.top - 1);
+  ctx.restore();
+}
+
+function drawMapBackplate(bounds) {
+  ctx.save();
+  ctx.fillStyle = '#0f3156';
+  ctx.fillRect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+  ctx.restore();
+}
+
 function drawText(text, x, y, options = {}) {
   ctx.save();
   ctx.fillStyle = options.fill ?? '#eff8ff';
@@ -486,9 +507,9 @@ function drawRazor(position, size, object = null, alpha = 0.96) {
   ctx.translate(position.x, position.y);
   ctx.rotate(rotation);
   // The blade artwork places its pivot on the left, so it rotates around the axis.
-  ctx.drawImage(blade, -bladeSize * 0.08, -bladeSize / 2, bladeSize, bladeSize);
+  drawImageWithSilhouetteOutline(blade, -bladeSize * 0.08, -bladeSize / 2, bladeSize, bladeSize, { alpha });
   ctx.restore();
-  ctx.drawImage(axis, position.x - axisSize / 2, position.y - axisSize / 2, axisSize, axisSize);
+  drawImageWithSilhouetteOutline(axis, position.x - axisSize / 2, position.y - axisSize / 2, axisSize, axisSize, { alpha });
 }
 
 function drawFreeObject(object, position) {
@@ -542,6 +563,26 @@ function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96,
     ctx.stroke();
     drawCellAsset(kind, position.x, position.y, size * 0.72);
   }
+  ctx.restore();
+}
+
+function drawImageWithSilhouetteOutline(image, x, y, width, height, options = {}) {
+  const colour = options.colour ?? 'rgba(247, 252, 255, 0.92)';
+  const radius = options.radius ?? 0.68;
+  const alpha = options.alpha ?? 0.96;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = colour;
+  ctx.shadowBlur = 0;
+  [[-radius, 0], [radius, 0], [0, -radius], [0, radius], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]].forEach(([offsetX, offsetY]) => {
+    ctx.shadowOffsetX = offsetX;
+    ctx.shadowOffsetY = offsetY;
+    ctx.drawImage(image, x, y, width, height);
+  });
+  ctx.shadowColor = 'transparent';
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.drawImage(image, x, y, width, height);
   ctx.restore();
 }
 
@@ -680,12 +721,50 @@ function drawTerrainBoundaries() {
   });
 }
 
+function drawEdgeOccupancyWedge(cell, shared) {
+  const center = getHexCenter(cell, state.origin);
+  const baseColour = cell.terrain === 'water' ? gravityColours[cell.gravityLevel] : '#315573';
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(center.x, center.y);
+  ctx.lineTo(shared[0].x, shared[0].y);
+  ctx.lineTo(shared[1].x, shared[1].y);
+  ctx.closePath();
+  ctx.globalAlpha = cell.waterLayer === 'T2' ? 0.27 : 0.36;
+  ctx.fillStyle = baseColour;
+  ctx.fill();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.24;
+  ctx.fillStyle = '#bfe9ff';
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 0.64;
+  ctx.strokeStyle = '#c8edff';
+  ctx.lineWidth = 0.7;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawEdgeOccupancyWedges() {
+  allMapEdges(state.map).forEach(({ key, a, b }) => {
+    const edge = getActiveEdge(state.map, key, state.chapter);
+    if (!edge || edge.type === 'none') return;
+    const cellA = getActiveCell(state.map, a, state.chapter);
+    const cellB = getActiveCell(state.map, b, state.chapter);
+    const shared = getSharedEdgePoints({ a, b });
+    if (!cellA || !cellB || !shared) return;
+    const waterCells = [cellA, cellB].filter((cell) => cell.terrain === 'water');
+    // Most Edge Snap objects sit beside a blocked Cell, so mark the usable
+    // water-side sector. A layer portal is water-to-water and marks both sides.
+    const cellsToHighlight = waterCells.length === 1 ? waterCells : [cellA, cellB];
+    cellsToHighlight.forEach((cell) => drawEdgeOccupancyWedge(cell, shared));
+  });
+}
+
 function drawCellAsset(kind, x, y, size) {
   const image = objectImages[kind];
   if (image?.complete && image.naturalWidth > 0) {
-    ctx.save();
-    ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
-    ctx.restore();
+    drawImageWithSilhouetteOutline(image, x - size / 2, y - size / 2, size, size);
     return;
   }
   drawText(objectSymbols[kind] ?? kind[0]?.toUpperCase() ?? '?', x, y, { font: 'bold 8px system-ui', fill: '#f9e38c' });
@@ -881,25 +960,16 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, rece
   const imageX = -width / 2;
   const transparentBottomPadding = { seaweed: 0.08, coralCluster: 0.123 }[type] ?? 0;
   const imageY = isAnchoredPlant ? -height + height * transparentBottomPadding : -height / 2;
-  const outlineColour = receivesHelp ? 'rgba(246, 215, 110, 0.96)' : 'rgba(244, 250, 255, 0.28)';
   ctx.save();
   ctx.translate(midpoint.x, midpoint.y);
   ctx.rotate(angle);
-  // Canvas shadows follow only non-transparent pixels. Repeating a one-pixel
-  // shadow creates a silhouette outline, never an image-bounds rectangle.
-  ctx.shadowColor = outlineColour;
-  ctx.shadowBlur = 0;
-  const outlineRadius = receivesHelp ? 0.9 : 0.28;
-  [[-outlineRadius, 0], [outlineRadius, 0], [0, -outlineRadius], [0, outlineRadius], [-outlineRadius, -outlineRadius], [outlineRadius, -outlineRadius], [-outlineRadius, outlineRadius], [outlineRadius, outlineRadius]].forEach(([x, y]) => {
-    ctx.shadowOffsetX = x;
-    ctx.shadowOffsetY = y;
-    ctx.drawImage(image, imageX, imageY, width, height);
+  // The silhouette follows only opaque pixels, so Edge art never gets a
+  // rectangular bitmap frame. Active help is slightly thicker, still white.
+  drawImageWithSilhouetteOutline(image, imageX, imageY, width, height, {
+    colour: 'rgba(247, 252, 255, 0.94)',
+    radius: receivesHelp ? 0.9 : 0.68,
+    alpha: 0.96,
   });
-  ctx.shadowColor = 'transparent';
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.globalAlpha = 0.92;
-  ctx.drawImage(image, imageX, imageY, width, height);
   ctx.restore();
 }
 
@@ -1227,11 +1297,16 @@ function render() {
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.scale(state.zoom, state.zoom);
   ctx.translate(-canvas.width / 2, -canvas.height / 2);
+  const mapBounds = getMapRenderBounds();
+  ctx.save();
+  clipToMapRectangle(mapBounds);
+  drawMapBackplate(mapBounds);
   const cells = Object.entries(state.map.cells).map(([key]) => getActiveCell(state.map, key, state.chapter));
   cells.forEach((cell) => drawCellSurface(cell));
   // Paint every water surface before any object. A Free Snap object may cross
   // into a neighbouring Cell, so drawing per-Cell would let the next surface
   // cover part of the object.
+  drawEdgeOccupancyWedges();
   cells.forEach((cell) => drawCellObjects(cell));
   drawTerrainBoundaries();
   drawEdges();
@@ -1239,6 +1314,8 @@ function render() {
   drawTrajectory();
   drawTestActor();
   drawInkMask();
+  ctx.restore();
+  drawMapRectangleFrame(mapBounds);
   ctx.restore();
   renderInspector();
   renderLists();
