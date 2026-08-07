@@ -53,3 +53,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Correcting the Step 7 blocked-Tile presentation mistake: the generated chroma-green background is removed to alpha, the visible “不可通行” label is removed, and the redundant “其他” Tab is removed. Selecting any water-gravity Tile now also restores that Cell to passable water, so no separate passable-water palette card is necessary.
 - Every direct-placement material card now has a right-top `i` control. It flips the card to a purpose description and has a separate return control; opening this explanation never selects a brush or changes the map.
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 9 complete
+
+- Completed the three-resource player loop and an in-editor HUD. `health` remains a three-point survival resource; oxygen is now spent by every launch and cannot be spent below zero; the GDD's stamina is represented in code and HUD as `energy`, which pays for aiming and launches, recovers at rest, and recovers faster while attached to seaweed.
+- Added an always-visible, non-interactive Canvas overlay: editor mode shows a HUD preview, and physics-test mode renders live health hearts plus oxygen and energy bars. Checkpoints refill all three resources; health/oxygen depletion still returns the tester to its most recent checkpoint.
+- Starter balance values are centralised in `src/physics.js`; they are initial tuning rather than a claimed final GDD number. Static verification passed: `npm run check` (15/15 tests) and `npm run build`. Browser validation was deliberately not run per user direction.

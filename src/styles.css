@@ -35,6 +35,17 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .canvas-wrap { width: 100%; }
 .canvas-stage { position: relative; }
 canvas { display: block; width: 100%; height: auto; border: 1px solid #385a81; border-radius: 6px; cursor: crosshair; background: #091423; }
+.player-hud { position: absolute; top: 12px; left: 12px; z-index: 1; width: 230px; padding: 9px 10px 10px; border: 1px solid rgba(143, 214, 255, 0.78); border-radius: 6px; background: rgba(7, 18, 33, 0.9); box-shadow: 0 5px 18px rgba(0, 0, 0, 0.24); pointer-events: none; }
+.player-hud.is-preview { opacity: 0.72; }
+.hud-mode { margin-bottom: 7px; color: #d8efff; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+.hud-row { display: grid; grid-template-columns: 34px 1fr 38px; align-items: center; gap: 7px; min-height: 20px; }
+.hud-label, .hud-value { color: #c9dff1; font-size: 11px; }
+.hud-value { text-align: right; font-variant-numeric: tabular-nums; }
+.hud-hearts { color: #ff8da3; font-size: 16px; letter-spacing: 1px; line-height: 1; text-shadow: 0 0 8px rgba(255, 97, 133, 0.45); }
+.hud-bar { height: 8px; overflow: hidden; border: 1px solid #31536f; border-radius: 999px; background: #07111d; }
+.hud-bar > span { display: block; width: var(--resource-fill, 100%); height: 100%; border-radius: inherit; transition: width 100ms linear; }
+.hud-oxygen > span { background: linear-gradient(90deg, #4de4ee, #a9fbff); box-shadow: 0 0 8px rgba(84, 235, 242, 0.7); }
+.hud-energy > span { background: linear-gradient(90deg, #f4c25a, #fff09b); box-shadow: 0 0 8px rgba(255, 220, 103, 0.62); }
 .zoom-control { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; margin: 8px 0 0; padding: 7px 9px; border: 1px solid #385a81; border-radius: 6px; color: #c6d9eb; font-size: 12px; }
 .zoom-control input { padding: 0; accent-color: #8cdcff; }
 .zoom-control output { min-width: 38px; color: #f6e66d; text-align: right; }

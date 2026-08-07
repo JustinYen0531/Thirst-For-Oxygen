@@ -16,7 +16,18 @@ export const SIMULATION_SPEED_SCALE = 0.1;
 export const GRAVITY_SCALE = 0.5;
 export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE * GRAVITY_SCALE;
 export const MAX_SPEED = 560 * SIMULATION_SPEED_SCALE;
+export const MAX_HEALTH = 3;
+export const MAX_OXYGEN = 100;
+export const MAX_ENERGY = 100;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
+const LAUNCH_OXYGEN_BASE_COST = 2;
+const LAUNCH_OXYGEN_COST_PER_PIXEL = 0.055;
+const LAUNCH_ENERGY_BASE_COST = 3;
+const LAUNCH_ENERGY_COST_PER_PIXEL = 0.08;
+const AIM_ENERGY_PER_SECOND = 9;
+const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
+const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
+const OXYGEN_DRAIN_PER_SECOND = 0.15;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
 const WEIGHT_STONE_BREAK_SPEED = 310 * SIMULATION_SPEED_SCALE;
 const HORIZONTAL_WATER_DRAG = 0.96;
@@ -51,6 +62,23 @@ function addEvent(events, type, message) {
   events.push({ type, message });
 }
 
+function launchDistance(actor, pointer) {
+  return clamp(Math.hypot(actor.x - pointer.x, actor.y - pointer.y), 0, 170);
+}
+
+export function getLaunchCosts(distance) {
+  return {
+    oxygen: LAUNCH_OXYGEN_BASE_COST + distance * LAUNCH_OXYGEN_COST_PER_PIXEL,
+    energy: LAUNCH_ENERGY_BASE_COST + distance * LAUNCH_ENERGY_COST_PER_PIXEL,
+  };
+}
+
+export function drainAimEnergy(actor, dt = FIXED_STEP) {
+  const used = Math.min(actor.energy, AIM_ENERGY_PER_SECOND * dt);
+  actor.energy = Math.max(0, actor.energy - used);
+  return used;
+}
+
 export function createTestActor(position = { x: 180, y: 180 }) {
   return {
     x: position.x,
@@ -58,9 +86,9 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     vx: 0,
     vy: 0,
     radius: 6,
-    health: 3,
-    oxygen: 100,
-    stamina: 100,
+    health: MAX_HEALTH,
+    oxygen: MAX_OXYGEN,
+    energy: MAX_ENERGY,
     attached: false,
     gravityImmunity: 0,
     safe: false,
@@ -88,16 +116,19 @@ export function resetTestActor(actor, map, chapter, origin) {
 }
 
 export function launchActor(actor, pointer) {
-  if (actor.attached) return 0;
-  const pull = { x: actor.x - pointer.x, y: actor.y - pointer.y };
-  const distance = clamp(Math.hypot(pull.x, pull.y), 0, 170);
-  if (distance < 5) return 0;
+  if (actor.attached) return { launched: false, reason: 'attached' };
+  const distance = launchDistance(actor, pointer);
+  if (distance < 5) return { launched: false, reason: 'tooClose' };
+  const costs = getLaunchCosts(distance);
+  if (actor.oxygen < costs.oxygen) return { launched: false, reason: 'oxygen', costs };
+  if (actor.energy < costs.energy) return { launched: false, reason: 'energy', costs };
   const direction = unitVector(pointer, actor);
   const speed = LAUNCH_SPEED_PER_PIXEL * distance;
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
-  actor.stamina = clamp(actor.stamina - distance * 0.08, 0, 100);
-  return speed;
+  actor.oxygen = clamp(actor.oxygen - costs.oxygen, 0, MAX_OXYGEN);
+  actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
+  return { launched: true, speed, distance, costs };
 }
 
 export function toggleSeaweedAttachment(actor, map, chapter, origin) {
@@ -240,9 +271,9 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
       }
       if (object.kind === 'checkpoint') {
         actor.spawn = { x: position.x, y: position.y };
-        actor.health = 3;
-        actor.oxygen = 100;
-        actor.stamina = 100;
+        actor.health = MAX_HEALTH;
+        actor.oxygen = MAX_OXYGEN;
+        actor.energy = MAX_ENERGY;
         addEvent(events, 'checkpoint', 'Checkpoint：已更新重生點並回滿資源。');
       }
     });
@@ -256,7 +287,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   });
   actor.gravityImmunity = Math.max(0, actor.gravityImmunity - dt);
   if (actor.attached) {
-    actor.stamina = Math.min(100, actor.stamina + 12 * dt);
+    actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);
     return events;
   }
 
@@ -282,15 +313,18 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events);
   // Consume oxygen before contact rewards so Checkpoint and oxygen sources can
   // fulfill their documented promise of restoring the resource to its maximum.
-  actor.oxygen = Math.max(0, actor.oxygen - (0.15 + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
+  actor.oxygen = Math.max(0, actor.oxygen - (OXYGEN_DRAIN_PER_SECOND + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
   processCellObjects(map, actor, chapter, origin, events, mutateMap);
+  if (Math.hypot(actor.vx, actor.vy) < 1) {
+    actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);
+  }
   return events;
 }
 
 export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120 }) {
   const previewMap = JSON.parse(JSON.stringify(map));
   const ghost = JSON.parse(JSON.stringify(actor));
-  launchActor(ghost, pointer);
+  if (!launchActor(ghost, pointer).launched) return [];
   const points = [];
   for (let index = 0; index < steps; index += 1) {
     stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: true });

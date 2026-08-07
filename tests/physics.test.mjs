@@ -20,6 +20,8 @@ import {
   MAX_SPEED,
   SIMULATION_SPEED_SCALE,
   createTestActor,
+  drainAimEnergy,
+  getLaunchCosts,
   launchActor,
   stepPhysics,
   toggleSeaweedAttachment,
@@ -59,11 +61,29 @@ test('L-1 accelerates upward and L0 preserves inertia', () => {
 
 test('launch velocity is opposite the pull direction', () => {
   const actor = createTestActor({ x: 200, y: 200 });
-  const speed = launchActor(actor, { x: 120, y: 200 });
-  assert.ok(speed > 0);
+  const launch = launchActor(actor, { x: 120, y: 200 });
+  assert.ok(launch.launched);
+  assert.ok(launch.speed > 0);
   assert.ok(actor.vx > 0);
   assert.equal(actor.vy, 0);
-  assert.ok(speed < 30, 'launch speed should use the 0.1 simulation scale');
+  assert.ok(launch.speed < 30, 'launch speed should use the 0.1 simulation scale');
+  assert.ok(actor.oxygen < 100, 'launch should consume oxygen');
+  assert.ok(actor.energy < 100, 'launch should consume energy');
+});
+
+test('launch requires both oxygen and energy, while aiming consumes energy', () => {
+  const actor = createTestActor({ x: 200, y: 200 });
+  const costs = getLaunchCosts(80);
+  actor.oxygen = costs.oxygen - 0.01;
+  assert.equal(launchActor(actor, { x: 120, y: 200 }).reason, 'oxygen');
+
+  actor.oxygen = 100;
+  actor.energy = costs.energy - 0.01;
+  assert.equal(launchActor(actor, { x: 120, y: 200 }).reason, 'energy');
+
+  actor.energy = 10;
+  drainAimEnergy(actor, 0.5);
+  assert.ok(actor.energy < 10);
 });
 
 test('all primary motion limits use the 0.1 simulation scale', () => {
@@ -173,12 +193,12 @@ test('high-speed impact breaks a weight stone and checkpoint restores resources'
   const visitor = actorIn(map, '1,0');
   visitor.health = 1;
   visitor.oxygen = 12;
-  visitor.stamina = 5;
+  visitor.energy = 5;
   const checkpointEvents = stepPhysics({ map, actor: visitor, origin: ORIGIN });
   assert.ok(checkpointEvents.some((event) => event.type === 'checkpoint'));
   assert.equal(visitor.health, 3);
   assert.equal(visitor.oxygen, 100);
-  assert.equal(visitor.stamina, 100);
+  assert.equal(visitor.energy, 100);
 });
 
 test('bubble grants gravity immunity and seaweed suspends gravity', () => {
@@ -197,5 +217,5 @@ test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   assert.equal(attached.attached, true);
   stepPhysics({ map, actor: seaweedActor, origin: ORIGIN });
   assert.equal(seaweedActor.vy, 0);
-  assert.ok(seaweedActor.stamina > 100 - 0.01);
+  assert.ok(seaweedActor.energy > 100 - 0.01);
 });

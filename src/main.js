@@ -28,8 +28,12 @@ import {
   FIXED_STEP,
   WORLD_BOUNDS,
   createTestActor,
+  drainAimEnergy,
   findPlayerStart,
   launchActor,
+  MAX_ENERGY,
+  MAX_HEALTH,
+  MAX_OXYGEN,
   predictTrajectory,
   resetTestActor,
   stepPhysics,
@@ -49,6 +53,14 @@ const validationList = document.querySelector('#validation-list');
 const eventList = document.querySelector('#event-list');
 const dirtyIndicator = document.querySelector('#dirty-indicator');
 const playHelp = document.querySelector('#play-help');
+const playerHud = document.querySelector('#player-hud');
+const hudMode = document.querySelector('#hud-mode');
+const hudHealth = document.querySelector('#hud-health');
+const hudHealthValue = document.querySelector('#hud-health-value');
+const hudOxygen = document.querySelector('#hud-oxygen');
+const hudOxygenValue = document.querySelector('#hud-oxygen-value');
+const hudEnergy = document.querySelector('#hud-energy');
+const hudEnergyValue = document.querySelector('#hud-energy-value');
 const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
 const zoomSlider = document.querySelector('#zoom-slider');
@@ -620,6 +632,25 @@ function drawInkMask() {
   ctx.restore();
 }
 
+function updateHudBar(element, valueElement, value, maximum, unit = '%') {
+  const safeValue = Math.max(0, Math.min(maximum, value));
+  const percent = (safeValue / maximum) * 100;
+  element.style.setProperty('--resource-fill', `${percent}%`);
+  element.setAttribute('aria-valuenow', String(Math.round(safeValue)));
+  valueElement.textContent = unit === '%' ? `${Math.round(safeValue)}%` : `${Math.round(safeValue)}/${maximum}`;
+}
+
+function renderHud() {
+  const actor = state.actor;
+  const preview = state.mode !== 'play';
+  playerHud.classList.toggle('is-preview', preview);
+  hudMode.textContent = preview ? 'HUD 預覽' : '測試玩家';
+  hudHealth.textContent = `${'♥'.repeat(actor.health)}${'♡'.repeat(MAX_HEALTH - actor.health)}`;
+  hudHealthValue.textContent = `${actor.health}/${MAX_HEALTH}`;
+  updateHudBar(hudOxygen, hudOxygenValue, actor.oxygen, MAX_OXYGEN);
+  updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
+}
+
 function renderInspector() {
   if (state.selectedEdgeKey) {
     const edge = getActiveEdge(state.map, state.selectedEdgeKey, state.chapter);
@@ -676,6 +707,7 @@ function render() {
   editorModeButton.classList.toggle('is-active', state.mode === 'edit');
   playModeButton.classList.toggle('is-active', state.mode === 'play');
   playHelp.hidden = state.mode !== 'play';
+  renderHud();
 }
 
 function eventPoint(event) {
@@ -766,6 +798,13 @@ function recordEvents(events) {
 
 function stepGame() {
   if (state.mode !== 'play') return;
+  if (state.dragging) {
+    drainAimEnergy(state.actor, FIXED_STEP);
+    if (state.actor.energy <= 0) {
+      state.dragging = null;
+      recordEvents([{ type: 'aim', message: '能量耗盡：已取消瞄準，靜止後可恢復能量。' }]);
+    }
+  }
   const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS });
   if (state.actor.health <= 0 || state.actor.oxygen <= 0) {
     const cause = state.actor.health <= 0 ? '生命歸零' : '氧氣歸零';
@@ -793,7 +832,7 @@ function animationFrame(now) {
 canvas.addEventListener('pointerdown', (event) => {
   const point = eventPoint(event);
   if (state.mode === 'play') {
-    if (Math.hypot(point.x - state.actor.x, point.y - state.actor.y) < 52) {
+    if (!state.actor.attached && Math.hypot(point.x - state.actor.x, point.y - state.actor.y) < 52) {
       state.dragging = { pointer: point };
       canvas.setPointerCapture(event.pointerId);
     }
@@ -816,10 +855,18 @@ canvas.addEventListener('pointermove', (event) => {
 });
 
 canvas.addEventListener('pointerup', (event) => {
-  if (!state.dragging) return;
+  if (!state.dragging) {
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    return;
+  }
   const pointer = eventPoint(event);
-  const speed = launchActor(state.actor, pointer);
-  if (speed > 0) recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(speed)} px/s；之後由固定步長重力與潮流持續影響。` }]);
+  const launch = launchActor(state.actor, pointer);
+  if (launch.launched) {
+    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；氧氣 -${Math.ceil(launch.costs.oxygen)}，能量 -${Math.ceil(launch.costs.energy)}。` }]);
+  } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
+    const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
+    recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法彈射，請補給或原地休息。` }]);
+  }
   state.dragging = null;
   if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
 });
@@ -917,8 +964,12 @@ window.addEventListener('keydown', (event) => {
   }
   if (event.key === ' ' && state.mode === 'play') {
     event.preventDefault();
-    const speed = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
-    if (speed) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(speed)} px/s。` }]);
+    const launch = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
+    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；氧氣與能量已扣除。` }]);
+    else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
+      const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
+      recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法快速彈射。` }]);
+    }
   }
   if (event.key.toLowerCase() === 'f') {
     event.preventDefault();
@@ -939,7 +990,7 @@ window.render_game_to_text = () => {
       x: formatNumber(state.actor.x), y: formatNumber(state.actor.y),
       vx: formatNumber(state.actor.vx), vy: formatNumber(state.actor.vy),
       cell: actorCell, health: state.actor.health, oxygen: formatNumber(state.actor.oxygen),
-      stamina: formatNumber(state.actor.stamina), attached: state.actor.attached,
+      energy: formatNumber(state.actor.energy), attached: state.actor.attached,
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
