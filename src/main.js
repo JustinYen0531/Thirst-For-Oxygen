@@ -752,22 +752,7 @@ function drawCellSurface(cell) {
   const center = getHexCenter(cell, state.origin);
   ctx.save();
   pathHex(cell);
-  const row = Number(cell.r);
-  const column = cell.q + Math.floor(row / 2);
-  const mapWidth = Number(state.map.layout?.width) || 0;
-  // Keep the global rectangular silhouette, then trim only the alternating
-  // outer Cells that would otherwise remain whole. This makes both sides of
-  // a row show the same half-Cell without introducing stepped row bands.
   ctx.clip();
-  if (column === 0 && row % 2 === 1) {
-    ctx.beginPath();
-    ctx.rect(center.x, center.y - HEX_SIZE, HEX_SIZE, HEX_SIZE * 2);
-    ctx.clip();
-  } else if (column === mapWidth - 1 && row % 2 === 0) {
-    ctx.beginPath();
-    ctx.rect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE, HEX_SIZE * 2);
-    ctx.clip();
-  }
   ctx.fillStyle = cell.terrain === 'blocked' ? '#0b111b' : gravityColours[cell.gravityLevel];
   ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   const tile = cell.terrain === 'blocked' ? terrainImages.blocked : waterTiles[cell.gravityLevel];
@@ -784,6 +769,29 @@ function drawCellSurface(cell) {
     ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
   ctx.restore();
+}
+
+function drawMapBoundaryMasks() {
+  const mapWidth = Number(state.map.layout?.width) || 0;
+  if (!mapWidth) return;
+  Object.values(state.map.cells).forEach((cell) => {
+    const row = Number(cell.r);
+    const column = cell.q + Math.floor(row / 2);
+    const center = getHexCenter(cell, state.origin);
+    const maskOuterHalf = (column === 0 && row % 2 === 1) || (column === mapWidth - 1 && row % 2 === 0);
+    if (!maskOuterHalf) return;
+    ctx.save();
+    ctx.fillStyle = '#091423';
+    pathHex(cell);
+    ctx.clip();
+    ctx.fillRect(
+      center.x + (column === 0 ? -HEX_SIZE : 0),
+      center.y - HEX_SIZE,
+      HEX_SIZE,
+      HEX_SIZE * 2,
+    );
+    ctx.restore();
+  });
 }
 
 function drawContinuationGuide() {
@@ -1480,6 +1488,7 @@ function render() {
   drawTrajectory();
   drawTestActor();
   drawInkMask();
+  drawMapBoundaryMasks();
   ctx.restore();
   ctx.restore();
   renderInspector();

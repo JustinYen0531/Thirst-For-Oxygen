@@ -237,3 +237,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Zooming from the slider or canvas wheel keeps the last pointed canvas location anchored by compensating the map pan before re-rendering.
 - Reverted the row-by-row side clip after visual review. The global silhouette clip remains, while only the alternating full outer Cell surfaces are trimmed to their inner half so each row's two sides use matching half-Cell treatment.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 28 complete
+
+- Replaced the surface-only outer-cell trim with a final perimeter mask applied after surfaces, objects, edges, actor art, and ink overlays. Any alternating outer Cell that would have remained whole now loses its outer half at the same final visual layer, keeping the left and right perimeter treatment symmetric.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
