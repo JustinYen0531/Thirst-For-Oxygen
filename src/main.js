@@ -815,9 +815,12 @@ function drawEdges() {
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * (edge.type === 'layerPortal' ? 1.8 : isAnchoredPlant ? 1.18 : 1.04) * size;
+      const width = edgeLength * (edge.type === 'layerPortal' ? 1.08 : isAnchoredPlant ? 1.18 : 1.04) * size;
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
-      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
+      const imageMidpoint = edge.type === 'layerPortal'
+        ? movePoint(midpoint, getLayerPortalLowDirection(edgeAngle, cellA, cellB), Math.max(0, width * 0.5 - 0.8))
+        : midpoint;
+      drawOutlinedEdgeImage(edgeImage, imageMidpoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
     if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
@@ -833,11 +836,17 @@ function drawEdges() {
 // and its low landing on the lower-right. Rotate that source axis onto the
 // shared edge's T1 -> T2 direction so the lower end always faces T2.
 const LAYER_PORTAL_SOURCE_AXIS = Math.atan2(0.6, 1);
-function getLayerPortalAngle(edgeAngle, cellA, cellB) {
+function getLayerPortalLowDirection(edgeAngle, cellA, cellB) {
   const layerA = cellA?.waterLayer ?? 'T1';
   const layerB = cellB?.waterLayer ?? 'T1';
-  const lowDirection = layerA === 'T1' && layerB === 'T2' ? edgeAngle : edgeAngle + Math.PI;
-  return lowDirection - LAYER_PORTAL_SOURCE_AXIS;
+  return layerA === 'T1' && layerB === 'T2' ? edgeAngle : edgeAngle + Math.PI;
+}
+function getLayerPortalAngle(edgeAngle, cellA, cellB) {
+  return getLayerPortalLowDirection(edgeAngle, cellA, cellB) - LAYER_PORTAL_SOURCE_AXIS;
+}
+
+function movePoint(point, angle, distance) {
+  return { x: point.x + Math.cos(angle) * distance, y: point.y + Math.sin(angle) * distance };
 }
 
 function isCellPlacementValid(cell) {

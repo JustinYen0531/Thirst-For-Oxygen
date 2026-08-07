@@ -190,3 +190,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Rendering now clips the alternating left/right half-Cell tips to a stable rectangular map silhouette without changing stored odd-r coordinates, Cells, Edges, or pointer hit-testing.
 - Occupied Edge Snap locations gain a water-colour, lightened center-to-edge triangular sector; water objects and Edge art receive white silhouette outlines so Free Snap items remain visually distinct from Edge occupancy.
 - Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 22 in progress
+
+- Corrected the generated layer-portal placement: the stair is now reduced from 1.8× to 1.08× Edge length and its high-side contact edge is shifted onto the shared hex Edge instead of being centered over it.
+- The stair extends toward the T2 side from that contact line; the T1/T2 direction flip is preserved, so the low landing remains on T2 while the attached diagonal edge stays aligned to the boundary.
+- Static verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
+- Remaining: scoped commit and push; unrelated enemy preview changes in the working tree remain untouched.
