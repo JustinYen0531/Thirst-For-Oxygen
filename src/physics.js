@@ -243,6 +243,22 @@ export function toggleSeaweedAttachment(actor, map, chapter, origin) {
     actor.attached = false;
     return { changed: true, attached: false, message: '已離開水草，重力重新生效。' };
   }
+  for (const { key, a, b } of allMapEdges(map)) {
+    const edge = getEdgeBetween(map, a, b, chapter);
+    if (edge.type !== 'seaweed') continue;
+    const centerA = getHexCenter(getActiveCell(map, a, chapter), origin);
+    const centerB = getHexCenter(getActiveCell(map, b, chapter), origin);
+    const position = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
+    if (Math.hypot(actor.x - position.x, actor.y - position.y) <= 42) {
+      actor.x = position.x;
+      actor.y = position.y;
+      actor.vx = 0;
+      actor.vy = 0;
+      actor.attached = true;
+      return { changed: true, attached: true, message: '已附著邊緣水草：暫停重力並回復體力。' };
+    }
+  }
+  // Compatibility for maps authored before water grass became an Edge object.
   for (const [key] of Object.entries(map.cells)) {
     const cell = getActiveCell(map, key, chapter);
     if (!cell.objects.some((object) => object.kind === 'seaweed')) continue;

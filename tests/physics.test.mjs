@@ -222,7 +222,8 @@ test('high-speed impact breaks a weight stone and checkpoint restores resources'
 test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L3', objects: [{ kind: 'bubble' }] });
-  patchCell(map, '1,0', { gravityLevel: 'L3', objects: [{ kind: 'seaweed' }] });
+  patchCell(map, '1,0', { gravityLevel: 'L3' });
+  patchEdge(map, '0,0', '1,0', { type: 'seaweed', blocksPassage: false });
   const bubbleActor = actorIn(map, '0,0');
   stepPhysics({ map, actor: bubbleActor, origin: ORIGIN });
   const afterContact = bubbleActor.vy;

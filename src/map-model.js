@@ -32,7 +32,9 @@ export const CELL_OBJECT_TYPES = Object.freeze([
   'bubble',
   'torricelli',
 ]);
-export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current']);
+// seaweed/coralCluster remain accepted in CELL_OBJECT_TYPES for existing saved
+// maps, but new authoring always places them as Edge attachments.
+export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster']);
 export const ACTOR_TYPES = Object.freeze(['playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn']);
 
 export function cellKey(q, r) {
@@ -331,7 +333,6 @@ export function createDemoMap() {
   addOverlay(point(0.72, 0.2), 'ink');
   addObject(point(0.42, 0.34), 'mine');
   addObject(point(0.5, 0.34), 'weightStone');
-  addObject(point(0.2, 0.46), 'seaweed');
   addObject(point(0.34, 0.62), 'oxygen');
   addObject(point(0.54, 0.74), 'checkpoint');
   addObject(point(0.8, 0.16), 'bubble');
@@ -340,9 +341,13 @@ export function createDemoMap() {
   const spikeColumn = Math.round((width - 1) * 0.42);
   const barrierColumn = Math.round((width - 1) * 0.65);
   const currentColumn = Math.round((width - 1) * 0.26);
+  const seaweedColumn = Math.round((width - 1) * 0.2);
+  const coralClusterColumn = Math.round((width - 1) * 0.74);
   patchEdge(map, at(springColumn, Math.round((height - 1) * 0.34)), at(springColumn + 1, Math.round((height - 1) * 0.34)), { type: 'springJelly', blocksPassage: true });
   patchEdge(map, at(spikeColumn, Math.round((height - 1) * 0.62)), at(spikeColumn + 1, Math.round((height - 1) * 0.62)), { type: 'spike', blocksPassage: true });
   patchEdge(map, at(barrierColumn, Math.round((height - 1) * 0.62)), at(barrierColumn + 1, Math.round((height - 1) * 0.62)), { type: 'barrier', blocksPassage: true });
   patchEdge(map, at(currentColumn, Math.round((height - 1) * 0.46)), at(currentColumn + 1, Math.round((height - 1) * 0.46)), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
+  patchEdge(map, at(seaweedColumn, Math.round((height - 1) * 0.46)), at(seaweedColumn + 1, Math.round((height - 1) * 0.46)), { type: 'seaweed', blocksPassage: false });
+  patchEdge(map, at(coralClusterColumn, Math.round((height - 1) * 0.2)), at(coralClusterColumn + 1, Math.round((height - 1) * 0.2)), { type: 'coralCluster', blocksPassage: false });
   return map;
 }

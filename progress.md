@@ -68,6 +68,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-07 — Step 11 in progress
 
+- Corrected edge attachment orientation: Cell-centre-to-centre is the Edge normal, so edge visual art is now rotated by an additional 90 degrees to lie tangent to the hex edge. Every bitmap-backed edge attachment receives its own short, outlined mounting frame so it remains legible against water.
+- Reclassified water grass and coral cluster as new edge types. They are removed from the direct-water palette and now use an edge-attached anchor; if one adjacent Cell is blocked, their base faces the obstacle and their art extends into the passable-water side. Seaweed attachment physics now locates the nearest seaweed Edge, with a legacy Cell-object fallback only for older saved maps.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 11 in progress
+
 - Replaced the previous 3/3 health representation with a 0–100 `health` bar plus a separate permanent `lives` counter. Reaching zero health or oxygen consumes exactly one life; Checkpoint respawn restores resources but never restores lives; the final life produces a permanent game-over state until a new test run starts.
 - Added `src/game-data.js` as the central numerical contract for player resources, the four passive abilities, the four weapons, and all 19 authored enemy / Mini Boss / Final Boss definitions, including both mutated Mini Boss variants from the enemy encyclopedia. Every hostile entry exposes numeric health and attack/support skill data, including cooldown, damage, telegraph, range, projectile, area, status, or control values where applicable.
 - Wired numerical helpers for derived passive modifiers, weapon damage and energy cost, player damage / shield / resource recovery, enemy-defeat resource rewards, and test-run respawn semantics. Static verification passed: `npm run check` (19/19 tests) and `npm run build`. Browser validation remains prohibited by user instruction.

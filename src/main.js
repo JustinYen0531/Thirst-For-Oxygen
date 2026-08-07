@@ -119,6 +119,8 @@ const edgeImagePaths = {
   springJelly: '/assets/editor/edges/spring-jellyfish.png',
   spike: '/assets/editor/edges/edge-spike-barrier.png',
   barrier: '/assets/editor/edges/edge-spike-barrier.png',
+  seaweed: '/assets/editor/objects/sea-grass.png',
+  coralCluster: '/assets/editor/objects/coral-cluster.png',
 };
 const paletteImagePaths = { ...waterTilePaths, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
@@ -299,7 +301,7 @@ function createPalette() {
     ],
     overlay: [
       { tool: 'overlay', values: OVERLAY_TYPES },
-      { tool: 'object', values: CELL_OBJECT_TYPES },
+      { tool: 'object', values: CELL_OBJECT_TYPES.filter((value) => !['seaweed', 'coralCluster'].includes(value)) },
     ],
     actor: [{ tool: 'actor', values: ACTOR_TYPES }],
     edge: [{ tool: 'edge', values: EDGE_TYPES }],
@@ -367,10 +369,8 @@ function getPaletteDescription(tool, value) {
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
   if (tool === 'overlay' && value === 'coral') return '水域上物件：直接覆蓋可通行水域格；在此格中免於地雷傷害。';
   if (tool === 'overlay' && value === 'ink') return '水域上物件：直接覆蓋可通行水域格；物理測試時遮蔽角色周圍以外的視野。';
-  if (tool === 'object' && value === 'coralCluster') return '水域上物件：可直接放置在任何可通行水域格。';
   if (tool === 'object' && value === 'mine') return '水域上物件：直接覆蓋可通行水域格；角色接觸時造成傷害，珊瑚安全區內不生效。';
   if (tool === 'object' && value === 'weightStone') return '水域上物件：直接覆蓋可通行水域格；高速撞擊可破壞它。';
-  if (tool === 'object' && value === 'seaweed') return '水域上物件：直接覆蓋可通行水域格；物理測試按 E 可附著或離開，附著時暫停重力。';
   if (tool === 'object' && value === 'oxygen') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
   if (tool === 'object' && value === 'checkpoint') return '水域上物件：直接覆蓋可通行水域格；更新重生位置並恢復資源。';
   if (tool === 'object' && value === 'bubble') return '水域上物件：直接覆蓋可通行水域格；短暫免疫重力。';
@@ -381,6 +381,8 @@ function getPaletteDescription(tool, value) {
   if (tool === 'edge' && value === 'spike') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'barrier') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
+  if (tool === 'edge' && value === 'seaweed') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。物理測試按 E 可附著或離開。';
+  if (tool === 'edge' && value === 'coralCluster') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。';
   return getPaletteNote(tool, value);
 }
 
@@ -540,30 +542,49 @@ function drawEdges() {
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
     const selected = state.selectedEdgeKey === key;
     const edgeAngle = Math.atan2(centerB.y - centerA.y, centerB.x - centerA.x);
+    const tangentAngle = edgeAngle + Math.PI / 2;
     const edgeLength = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
     const edgeImage = edgeImages[edge.type];
+    const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(edge.type);
+    const cellA = getActiveCell(state.map, a, state.chapter);
+    const cellB = getActiveCell(state.map, b, state.chapter);
+    const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
+    const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * 1.04;
+      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04);
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
+      drawEdgeAttachmentFrame(midpoint, tangentAngle, width, isAnchoredPlant ? 5 : height + 4, selected, edge.type);
       ctx.save();
       ctx.translate(midpoint.x, midpoint.y);
-      ctx.rotate(edgeAngle);
+      ctx.rotate(attachmentAngle);
       ctx.globalAlpha = selected ? 1 : 0.92;
-      ctx.drawImage(edgeImage, -width / 2, -height / 2, width, height);
+      if (isAnchoredPlant) ctx.drawImage(edgeImage, -width / 2, -height, width, height);
+      else ctx.drawImage(edgeImage, -width / 2, -height / 2, width, height);
       ctx.restore();
     }
-    ctx.save();
-    ctx.lineWidth = selected ? 3 : 2;
-    ctx.strokeStyle = selected ? '#f6e66d' : ({ springJelly: '#e37bff', spike: '#ff6f68', barrier: '#abb5c5', current: '#d9ff68' }[edge.type]);
-    ctx.beginPath();
-    ctx.arc(midpoint.x, midpoint.y, selected ? 6 : 4, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
     if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
     if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
+    if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
+    if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection));
   });
+}
+
+function drawEdgeAttachmentFrame(midpoint, angle, width, height, selected, type) {
+  const colour = ({ springJelly: '#e37bff', spike: '#ff6f68', barrier: '#abb5c5', seaweed: '#86f0d0', coralCluster: '#ff9bca' }[type] ?? '#d9ff68');
+  const radius = Math.min(4, height / 2);
+  ctx.save();
+  ctx.translate(midpoint.x, midpoint.y);
+  ctx.rotate(angle);
+  ctx.fillStyle = 'rgba(3, 12, 26, 0.72)';
+  ctx.strokeStyle = selected ? '#f6e66d' : colour;
+  ctx.lineWidth = selected ? 2 : 1.15;
+  ctx.beginPath();
+  ctx.roundRect(-width / 2 - 2, -height / 2 - 2, width + 4, height + 4, radius);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawSelectedCellNeighbours() {
