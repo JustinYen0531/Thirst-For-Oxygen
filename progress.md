@@ -35,3 +35,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - User requested gravity at 50%, player size at half its current size, horizontal-only drag that settles to a full stop, and separate authored Tile art for every gravity level.
 - Located the five authored water Tiles under `GDD/07_技術/六邊形水域素材/`: L-1 rising, L0 neutral, L1 standard, L2 transition, and L3 deep. Runtime copies are being bound one-to-one to `gravityLevel`; the prior one-texture tint approach is removed.
 - Static verification passed: 14/14 tests and Vite production build. The build contains all five distinct runtime water Tile files; browser validation remains disallowed.
+
+## 2026-08-07 — Step 6 in progress
+
+- User requested category Tabs for the direct-placement palette so one large, readable asset category is visible at a time, and removal of visible L-level text because the authored Tiles already communicate the water level by color.
+- Palette categories now map to water gravity, environment effects, Cell objects, Actor/spawns, Edge interactions, and other terrain. Gravity Tile buttons and map Cells render without L-1/L0/L1/L2/L3 text.
+- Static verification passed: 14/14 tests and Vite production build. Browser validation remains prohibited by user instruction.

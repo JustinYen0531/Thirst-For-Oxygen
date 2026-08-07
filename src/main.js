@@ -51,6 +51,8 @@ const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
 const zoomSlider = document.querySelector('#zoom-slider');
 const zoomValue = document.querySelector('#zoom-value');
+const paletteTabs = [...document.querySelectorAll('[data-palette-tab]')];
+const palettePanels = [...document.querySelectorAll('[data-palette-panel]')];
 const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge', 'terrain']
   .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
@@ -187,6 +189,7 @@ const state = {
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
   zoom: 1.5,
+  paletteTab: 'gravity',
 };
 
 function setStatus(message) {
@@ -203,6 +206,18 @@ function updatePaletteSelection() {
   });
 }
 
+function setPaletteTab(tab) {
+  state.paletteTab = tab;
+  paletteTabs.forEach((button) => {
+    const active = button.dataset.paletteTab === tab;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  palettePanels.forEach((panel) => {
+    panel.hidden = panel.dataset.palettePanel !== tab;
+  });
+}
+
 function setTool(tool, preferredValue = null) {
   state.tool = tool;
   brushValue.innerHTML = '';
@@ -215,6 +230,7 @@ function setTool(tool, preferredValue = null) {
   });
   if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
   brushValue.disabled = values.length === 0;
+  if (paletteRoots[tool]) setPaletteTab(tool);
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
   setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
   updatePaletteSelection();
@@ -263,9 +279,14 @@ function createPalette() {
         if (tool === 'gravity') visual.style.background = gravityColours[value];
       }
       const label = document.createElement('span');
-      label.textContent = paletteLabels[value] ?? value;
       button.title = getPaletteNote(tool, value);
-      button.append(visual, label);
+      if (tool === 'gravity') {
+        button.setAttribute('aria-label', `水域 Tile ${value}`);
+        button.append(visual);
+      } else {
+        label.textContent = paletteLabels[value] ?? value;
+        button.append(visual, label);
+      }
       button.addEventListener('click', () => setTool(tool, value));
       root.append(button);
     });
@@ -319,7 +340,6 @@ function drawCell(key, cell) {
   ctx.stroke();
 
   cell.overlays.forEach((overlay) => drawCellAsset(overlay, center.x, center.y, HEX_SIZE * 1.8));
-  drawText(cell.gravityLevel, center.x, center.y, { font: 'bold 7px ui-monospace, monospace' });
   cell.objects.forEach((object, index) => {
     const angle = (index / Math.max(cell.objects.length, 1)) * Math.PI * 2;
     const x = center.x + Math.cos(angle) * 4;
@@ -815,8 +835,10 @@ window.advanceTime = (milliseconds) => {
 };
 
 brushValue.addEventListener('change', updatePaletteSelection);
+paletteTabs.forEach((button) => button.addEventListener('click', () => setPaletteTab(button.dataset.paletteTab)));
 createToolButtons();
 createPalette();
+setPaletteTab('gravity');
 setTool('select');
 state.validation = validateMap(state.map);
 dirtyIndicator.textContent = '示範地圖已載入；可直接修改或匯入自己的 JSON。';

@@ -71,13 +71,21 @@
               <h2>直接放置素材</h2>
               <p>先點下面的素材，再直接點格子；不需要先選格子再到 Inspector 改設定。</p>
             </div>
+            <div class="palette-tabs" role="tablist" aria-label="素材分類">
+              <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity">水域重力</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="overlay">環境效果</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="object">Cell 物件</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="actor">Actor／出生點</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="edge">Edge 互動</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="terrain">其他</button>
+            </div>
             <div class="palette-groups">
-              <section class="palette-group"><h3>水域重力</h3><div id="palette-gravity" class="palette-items"></div></section>
-              <section class="palette-group"><h3>環境效果</h3><div id="palette-overlay" class="palette-items"></div></section>
-              <section class="palette-group"><h3>Cell 物件</h3><div id="palette-object" class="palette-items"></div></section>
-              <section class="palette-group"><h3>Actor／出生點</h3><div id="palette-actor" class="palette-items"></div></section>
-              <section class="palette-group"><h3>Edge 互動</h3><div id="palette-edge" class="palette-items"></div></section>
-              <section class="palette-group"><h3>其他</h3><div id="palette-terrain" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="gravity"><div id="palette-gravity" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="overlay" hidden><div id="palette-overlay" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="object" hidden><div id="palette-object" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="actor" hidden><div id="palette-actor" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="edge" hidden><div id="palette-edge" class="palette-items"></div></section>
+              <section class="palette-group" data-palette-panel="terrain" hidden><div id="palette-terrain" class="palette-items"></div></section>
             </div>
           </section>
         </section>
