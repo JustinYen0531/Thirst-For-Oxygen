@@ -259,3 +259,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Reverted the left-perimeter mask after visual review showed it created oversized dark triangular gaps. The rest of the perimeter and editor interaction changes remain unchanged.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 32 complete
+
+- Replaced the mixed perimeter behavior with one global rectangular clip for the completed map. Both left and right sides use the same half-Cell inset; no per-Cell or per-row perimeter masks remain.
+- Re-centred map-origin calculation against that full-map rectangle so the crop is a single symmetric viewport boundary rather than a collection of Cell edits.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

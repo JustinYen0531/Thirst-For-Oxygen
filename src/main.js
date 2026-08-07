@@ -230,7 +230,7 @@ function syncCanvasGeometry(map, zoom = DEFAULT_ZOOM) {
 function calculateMapOrigin(map, zoom = DEFAULT_ZOOM, pan = { x: 0, y: 0 }) {
   const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
   const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
-  const renderLeft = bounds.left - halfWidth;
+  const renderLeft = bounds.left + halfWidth;
   const renderRight = bounds.right - halfWidth;
   const topSource = canvas.height / 2 + (MAP_TOP_SCREEN_PADDING - canvas.height / 2) / zoom;
   return {
@@ -512,20 +512,19 @@ function pathHex(cell) {
 function getMapRenderBounds() {
   const bounds = getOddRRectangularBounds(state.map, state.origin);
   const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
-  // The left perimeter keeps the full outer Cell. On the right, shift the
-  // silhouette by one half-Cell so the narrow protruding odd-r edge Cell is
-  // excluded instead of leaving a clipped sliver.
+  // Clip the completed map with one global rectangle. The same half-Cell inset
+  // is applied to both sides, so no per-Cell mask or row-specific edge logic
+  // can introduce asymmetric notches.
   return {
     ...bounds,
-    left: bounds.left - halfWidth,
+    left: bounds.left + halfWidth,
     right: bounds.right - halfWidth,
   };
 }
 
 function clipToMapSideBoundaries(bounds) {
   ctx.beginPath();
-  // Use one shifted silhouette: the left edge includes the full outer Cell,
-  // while the narrow protruding Cell at the right edge is removed entirely.
+  // This is the only perimeter crop: one fixed rectangle for the whole map.
   ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
   ctx.clip();
 }
