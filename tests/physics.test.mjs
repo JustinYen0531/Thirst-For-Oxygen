@@ -194,6 +194,22 @@ test('current applies horizontal acceleration from an Edge', () => {
   assert.ok(actor.vx > 0.1, 'eastward current should add positive x velocity at the slowed scale');
 });
 
+test('free-snap water objects use their own position and hitbox', () => {
+  const map = createEmptyMap({ width: 1, height: 1 });
+  patchCell(map, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{ kind: 'mine', offset: { x: 10, y: 0 }, hitRadius: 7 }],
+  });
+  const actor = actorIn(map, '0,0');
+  const center = getHexCenter(getActiveCell(map, '0,0'), ORIGIN);
+  actor.x = center.x + 10;
+  actor.y = center.y;
+  const events = stepPhysics({ map, actor, origin: ORIGIN });
+  assert.ok(events.some((event) => event.type === 'mine'));
+  assert.equal(actor.health, MAX_HEALTH - 24);
+  assert.equal(validateMap(map).some((result) => result.level === 'error'), false);
+});
+
 test('edge-attached coral cluster protects a nearby player', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L0', objects: [{ kind: 'mine' }] });

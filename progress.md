@@ -104,6 +104,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
 
+## 2026-08-08 — Step 16 in progress
+
+- Changed `水域上物件` from Cell-snapped placement to free-snap placement. The selected object follows the cursor with its own silhouette-shaped gold outline, and clicking anywhere on the Canvas adds an independent instance rather than toggling a Cell slot.
+- Persisted each free object under its nearest Cell with a world offset, visual size, and hitbox radius. Repeated clicks therefore add collision coverage; physics now checks each object's actual position/radius, while legacy Cell-centered objects remain compatible.
+- The eraser can target a free object directly by its hitbox before falling back to an Edge or Cell target.
+- Static verification passed: `npm run check` (21/21 tests), `npm run build`, and `git diff --check`. Browser validation remains intentionally disabled per user instruction.
+- Remaining: scoped Git commit and push, then report the exact result to the user.
+
 ## 2026-08-08 — Step 15 in progress
 
 - Replaced the old `清除 Edge` palette material with a dedicated `⌫ 橡皮擦` button in the upper-right of the material palette; the old left-side clear tool and Edge clear card are no longer exposed.
