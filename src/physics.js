@@ -14,6 +14,11 @@ import {
   getPlayerDerivedStats,
   RESOURCE_LIMITS,
 } from './game-data.js';
+import {
+  getEdgeSetting,
+  getFreeObjectHitRadius,
+  getFreeObjectSetting,
+} from './map-object-settings.js';
 
 export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
@@ -39,7 +44,6 @@ const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
 const OXYGEN_DRAIN_PER_SECOND = 0.15;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
-const WEIGHT_STONE_BREAK_SPEED = 310 * SIMULATION_SPEED_SCALE;
 const HORIZONTAL_WATER_DRAG = 0.96;
 const VERTICAL_WATER_DRAG = 0.998;
 const HORIZONTAL_STOP_SPEED = 0.15;
@@ -343,11 +347,34 @@ function processBoundary(actor, bounds, events) {
 function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events) {
   if (!fromKey || !toKey || fromKey === toKey) return;
   const edge = getEdgeBetween(map, fromKey, toKey, chapter);
+  const fromCell = getActiveCell(map, fromKey, chapter);
+  const toCell = getActiveCell(map, toKey, chapter);
+  const fromLayer = fromCell?.waterLayer ?? 'T1';
+  const toLayer = toCell?.waterLayer ?? 'T1';
+  const crossesWaterLayer = fromCell?.terrain === 'water'
+    && toCell?.terrain === 'water'
+    && fromLayer !== toLayer;
+  if (crossesWaterLayer && edge.type !== 'layerPortal') {
+    const from = getHexCenter(fromCell, origin);
+    const to = getHexCenter(toCell, origin);
+    const normal = unitVector(from, to);
+    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.68);
+    actor.vx = reflected.x;
+    actor.vy = reflected.y;
+    actor.x = from.x + normal.x * 8;
+    actor.y = from.y + normal.y * 8;
+    addEvent(events, 'layerBoundary', `水域層級邊界：T${fromLayer.slice(1)} 與 T${toLayer.slice(1)} 之間沒有層間轉接門。`);
+    return;
+  }
+  if (crossesWaterLayer && edge.type === 'layerPortal') {
+    addEvent(events, 'layerPortal', `層間轉接門：已從 ${fromLayer} 進入 ${toLayer}。`);
+    return;
+  }
   if (!edge.blocksPassage && edge.type !== 'springJelly') return;
   const from = getHexCenter(getActiveCell(map, fromKey, chapter), origin);
   const to = getHexCenter(getActiveCell(map, toKey, chapter), origin);
   const normal = unitVector(from, to);
-  const multiplier = edge.type === 'springJelly' ? 1.08 : 0.68;
+  const multiplier = edge.type === 'springJelly' ? getEdgeSetting(edge, 'bounceMultiplier') : 0.68;
   const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, multiplier);
   actor.vx = reflected.x;
   actor.vy = reflected.y;
@@ -355,26 +382,39 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
   actor.y = from.y + normal.y * 8;
   if (edge.type === 'springJelly') addEvent(events, 'springJelly', '彈簧水母：依入射角反射並加速。');
   else if (edge.type === 'spike') {
-    const damage = applyDamage(actor, 20, 'spike', 'contact');
+    const damage = applyDamage(actor, getEdgeSetting(edge, 'damage'), 'spike', 'contact');
     addEvent(events, 'spike', `尖刺阻擋：反彈並受到 ${Math.round(damage.applied)} 點傷害。`);
   } else addEvent(events, 'barrier', '障礙 Edge 阻擋：速度已反彈。');
 }
 
-function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
+function removeContactObject(map, contact, chapter) {
+  const ownerKey = contact.ownerKey ?? contact.key;
+  const editable = getActiveCell(map, ownerKey, chapter);
+  if (!editable) return;
+  if (contact.free) {
+    patchCell(map, ownerKey, { freeObjects: editable.freeObjects.filter((_, index) => index !== contact.index) }, chapter);
+  } else {
+    patchCell(map, ownerKey, { objects: editable.objects.filter((candidate) => candidate !== contact.object) }, chapter);
+  }
+}
+
+function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) {
   actor.safe = false;
   actor.inInk = false;
+  actor.inkVisionRange = null;
   const current = findCellContainingPoint(map, actor, chapter, origin);
   if (!current) return;
   const cell = current.cell;
   const coralClusterSafe = isActorNearEdgeAttachment(actor, map, chapter, origin, 'coralCluster');
   actor.safe = coralClusterSafe;
   actor.inInk = cell.overlays.includes('ink');
+  if (actor.inInk) actor.inkVisionRange = getFreeObjectSetting({ kind: 'ink' }, 'visibilityRadius');
   if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
   const contactObjects = [];
   Object.entries(map.cells).forEach(([key]) => {
     const objectCell = getActiveCell(map, key, chapter);
     const center = getHexCenter(objectCell, origin);
-    objectCell.objects.forEach((object) => contactObjects.push({ key, objectCell, object, position: center, hitRadius: object.hitRadius ?? 22 }));
+    objectCell.objects.forEach((object) => contactObjects.push({ key, objectCell, object, position: center, hitRadius: getFreeObjectHitRadius(object) }));
     (objectCell.freeObjects ?? []).forEach((object, index) => {
       const offset = object.offset ?? { x: 0, y: 0 };
       contactObjects.push({
@@ -383,7 +423,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
         objectCell,
         object,
         position: { x: center.x + offset.x, y: center.y + offset.y },
-        hitRadius: object.hitRadius ?? 9,
+        hitRadius: getFreeObjectHitRadius(object),
         free: true,
         index,
       });
@@ -393,6 +433,8 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
   contactObjects.forEach(({ key, ownerKey, objectCell, object, position, hitRadius, free, index }) => {
       if (object.kind === 'ink' && Math.hypot(actor.x - position.x, actor.y - position.y) <= actor.radius + hitRadius) {
         actor.inInk = true;
+        const range = getFreeObjectSetting(object, 'visibilityRadius');
+        actor.inkVisionRange = Math.min(actor.inkVisionRange ?? range, range);
       }
       const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
       if (distance > actor.radius + hitRadius) return;
@@ -402,41 +444,51 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
         const bounced = reflect({ x: actor.vx, y: actor.vy }, normal, 1.03);
         actor.vx = bounced.x;
         actor.vy = bounced.y;
-        const damage = actor.safe ? { applied: 0 } : applyDamage(actor, 24, 'deepSeaMine', 'contact');
+        const damage = actor.safe ? { applied: 0 } : applyDamage(actor, getFreeObjectSetting(object, 'damage'), 'deepSeaMine', 'contact');
         actor.cooldowns[`mine:${key}`] = 0.5;
         addEvent(events, 'mine', actor.safe ? '深海地雷：珊瑚群落保護範圍抵銷了傷害。' : `深海地雷：強力反彈並受到 ${Math.round(damage.applied)} 點傷害。`);
       }
       if (object.kind === 'weightStone' && !isOnCooldown(actor, `stone:${key}`)) {
         const impact = Math.hypot(actor.vx, actor.vy);
-        if (impact >= WEIGHT_STONE_BREAK_SPEED && mutateMap) {
-          const editable = getActiveCell(map, ownerKey ?? key, chapter);
-          if (free) {
-            patchCell(map, ownerKey, { freeObjects: editable.freeObjects.filter((candidate, candidateIndex) => candidateIndex !== index) }, chapter);
-          } else {
-            patchCell(map, key, { objects: editable.objects.filter((candidate) => candidate !== object) }, chapter);
-          }
+        if (impact >= getFreeObjectSetting(object, 'breakSpeed') && mutateMap) {
+          removeContactObject(map, { key, ownerKey, object, free, index }, chapter);
           actor.cooldowns[`stone:${key}`] = 0.5;
           addEvent(events, 'weightStone', '重石已被足夠的撞擊力擊碎。');
         } else {
           const normal = unitVector(position, actor);
           const bounced = reflect({ x: actor.vx, y: actor.vy }, normal, 0.55);
           actor.vx = bounced.x;
-          actor.vy = Math.abs(bounced.y) + 4;
+          actor.vy = Math.abs(bounced.y) + getFreeObjectSetting(object, 'weight');
           actor.cooldowns[`stone:${key}`] = 0.35;
           addEvent(events, 'weightStone', '重石壓下玩家：撞擊力不足以擊碎。');
         }
       }
-      if (object.kind === 'oxygen') {
-        actor.oxygen = maxOxygenFor(actor);
-        addEvent(events, 'oxygen', '氧氣來源：氧氣已補滿。');
+      if (object.kind === 'oxygen' && !isOnCooldown(actor, `oxygen:${key}`)) {
+        const impact = Math.hypot(actor.vx, actor.vy);
+        const requiredSpeed = getFreeObjectSetting(object, 'activationSpeed');
+        if (impact >= requiredSpeed) {
+          const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenAmount'), 'oxygenOre');
+          if (mutateMap) removeContactObject(map, { key, ownerKey, object, free, index }, chapter);
+          actor.cooldowns[`oxygen:${key}`] = 0.5;
+          addEvent(events, 'oxygen', `氧氣礦石：撞擊後釋放 ${Math.round(oxygen.recovered)} O₂。`);
+        } else {
+          actor.cooldowns[`oxygen:${key}`] = 0.25;
+          addEvent(events, 'oxygen', `氧氣礦石：需要 ${Math.round(requiredSpeed)} px/s 撞擊才會釋放氧氣。`);
+        }
       }
       if (object.kind === 'torricelli') {
-        actor.oxygen = Math.min(maxOxygenFor(actor), actor.oxygen + 20);
-        addEvent(events, 'torricelli', '托里切利空間：獲得短暫氧氣補給。');
+        const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenRecoveryPerSecond') * dt, 'torricelli');
+        if (oxygen.recovered > 0 && !isOnCooldown(actor, `torricelli:${key}`)) {
+          actor.cooldowns[`torricelli:${key}`] = 0.5;
+          addEvent(events, 'torricelli', `托里切利空間：以 ${getFreeObjectSetting(object, 'oxygenRecoveryPerSecond')} O₂/s 回復氧氣。`);
+        }
       }
       if (object.kind === 'bubble' && actor.gravityImmunity <= 0) {
-        actor.gravityImmunity = 2.5;
-        addEvent(events, 'bubble', '光合作用氣泡：暫時免疫水域重力，保留現有速度。');
+        const duration = getFreeObjectSetting(object, 'gravityImmunitySeconds');
+        const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenAmount'), 'photosynthesisBubble');
+        actor.gravityImmunity = duration;
+        actor.cooldowns[`bubble:${key}`] = Math.max(0.1, duration);
+        addEvent(events, 'bubble', `光合作用氣泡：+${Math.round(oxygen.recovered)} O₂，${duration} 秒免疫水域重力。`);
       }
       if (object.kind === 'checkpoint') {
         actor.spawn = { x: position.x, y: position.y };
@@ -486,7 +538,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   // Consume oxygen before contact rewards so Checkpoint and oxygen sources can
   // fulfill their documented promise of restoring the resource to its maximum.
   actor.oxygen = Math.max(0, actor.oxygen - (OXYGEN_DRAIN_PER_SECOND + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
-  processCellObjects(map, actor, chapter, origin, events, mutateMap);
+  processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
   if (Math.hypot(actor.vx, actor.vy) < 1) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);
   }

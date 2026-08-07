@@ -20,6 +20,7 @@ export const GRAVITY_LEVELS = Object.freeze({
 });
 
 export const GRAVITY_ORDER = Object.freeze(['L-1', 'L0', 'L1', 'L2', 'L3']);
+export const WATER_LAYERS = Object.freeze(['T1', 'T2']);
 export const TERRAIN_TYPES = Object.freeze(['water', 'blocked']);
 export const OVERLAY_TYPES = Object.freeze(['ink']);
 export const CELL_OBJECT_TYPES = Object.freeze([
@@ -31,10 +32,11 @@ export const CELL_OBJECT_TYPES = Object.freeze([
   'checkpoint',
   'bubble',
   'torricelli',
+  'razor',
 ]);
 // seaweed/coralCluster remain accepted in CELL_OBJECT_TYPES for existing saved
 // maps, but new authoring always places them as Edge attachments.
-export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster']);
+export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster', 'layerPortal']);
 export const ACTOR_TYPES = Object.freeze(['playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn']);
 
 export function cellKey(q, r) {
@@ -81,6 +83,7 @@ function makeCell(q, r) {
     r,
     terrain: 'water',
     gravityLevel: 'L1',
+    waterLayer: 'T1',
     overlays: [],
     objects: [],
     // Free-snap water objects are owned by the nearest Cell for persistence,
@@ -149,9 +152,9 @@ export function migrateMapToOddR(map) {
 export function getActiveCell(map, key, chapter = 'chapter1') {
   const base = map.cells[key];
   if (!base) return null;
-  if (chapter === 'chapter1') return base;
   const override = map.chapterStates?.[chapter]?.cells?.[key];
-  return override ? { ...base, ...clone(override) } : base;
+  const active = chapter === 'chapter1' ? base : (override ? { ...base, ...clone(override) } : base);
+  return active.waterLayer ? active : { ...active, waterLayer: 'T1' };
 }
 
 export function getEditableCell(map, key, chapter = 'chapter1') {
@@ -287,6 +290,7 @@ export function validateMap(map) {
     if (key !== coordinate) results.push({ level: 'error', message: `Cell key 與座標不一致：${key}` });
     if (!TERRAIN_TYPES.includes(cell.terrain)) results.push({ level: 'error', message: `${key} 的地形無效：${cell.terrain}` });
     if (!Object.hasOwn(GRAVITY_LEVELS, cell.gravityLevel)) results.push({ level: 'error', message: `${key} 的 gravityLevel 無效：${cell.gravityLevel}` });
+    if (!WATER_LAYERS.includes(cell.waterLayer ?? 'T1')) results.push({ level: 'error', message: `${key} 的 waterLayer 無效：${cell.waterLayer}` });
     if (cell.terrain === 'blocked' && cell.actors.some((actor) => actor.kind === 'playerStart')) {
       results.push({ level: 'error', message: `${key} 不可通行，不能放置玩家起點。` });
     }
@@ -332,6 +336,8 @@ export function createDemoMap() {
   Object.values(map.cells).forEach((cell) => {
     const levelIndex = Math.min(levels.length - 1, Math.floor((cell.r / Math.max(height - 1, 1)) * levels.length));
     cell.gravityLevel = levels[levelIndex];
+    const column = cell.q + Math.floor(cell.r / 2);
+    if (column >= Math.round(width * 0.58)) cell.waterLayer = 'T2';
   });
 
   const addOverlay = (key, kind) => map.cells[key].overlays.push(kind);

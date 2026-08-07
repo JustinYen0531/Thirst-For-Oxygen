@@ -109,6 +109,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Updated the palette instructions and every water-object info card to describe free placement and object-owned hitboxes.
 - Eraser preview now prioritizes a free object's silhouette before checking nearby Edges or Cells, and Cell fallback clearing also removes any free objects owned by that Cell.
 
+## 2026-08-08 — Step 17 in progress
+
+- Added independent water-layer data `T1` / `T2` to every Cell. The demo map includes a T2 region with a neutral dark veil, keeping the original L1/L2 gravity colour distinction intact.
+- Same-gravity Cells on different water layers now receive the stronger transition border used for different surfaces.
+- Added the `層間轉接門` Edge material. A T1↔T2 crossing without this Edge reflects the player like a blocked boundary; a valid portal crossing emits a transition event and allows passage. The palette only accepts the portal on a shared Edge whose two water Cells have different layers.
+- Static verification passed: `npm run check` (25/25 tests), `npm run build`, and `git diff --check`. Browser validation remains intentionally disabled per user instruction.
+- Remaining: scoped Git commit and push, then report the exact result to the user.
+
 ## 2026-08-08 — Step 16 in progress
 
 - Changed `水域上物件` from Cell-snapped placement to free-snap placement. The selected object follows the cursor with its own silhouette-shaped gold outline, and clicking anywhere on the Canvas adds an independent instance rather than toggling a Cell slot.
@@ -154,3 +162,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Made Lore a focused reading mode: opening `Lore 檔案` resets the preview to natural floating and hides the skill controls, health/move-speed/skill statistics, ecology introduction, and selected-skill panel.
 - Removed the redundant `再次點擊已選技能即可取消，回到自然漂浮` hint from every card.
 - Static verification passed: the old hint is absent, the Lore focus CSS rule covers all requested sections, `npm run check` passed (21/21 tests), `npm run build` passed, and `git diff --check` passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 20 complete
+
+- Added a shared official-settings contract for every Free Snap water object and editable Edge. New placements carry fixed official values, the Inspector can change one instance or restore that instance to the official defaults, and legacy Cell-centred objects remain selectable; selecting a legacy ink overlay promotes it to a configurable Free Snap object.
+- Water-object tuning now drives physics: ink visibility range, mine damage, weight-stone break speed and downward weight, oxygen-ore yield plus impact threshold, photosynthesis-bubble oxygen plus gravity-immunity time, and Torricelli oxygen recovery per second. Spring jelly bounce and spike damage are likewise Edge parameters; seaweed and coral expose size only.
+- Removed the selected-Cell neighbour connector lines. Fixed gravity levels remain explicit: L3 2.0G down, L2 1.5G down, L1 1.0G down, L0 0G, and L-1 1.0G up.
+- Static verification passed: `npm run check` (24/24 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited by user instruction.

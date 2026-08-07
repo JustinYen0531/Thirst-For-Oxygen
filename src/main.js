@@ -6,6 +6,7 @@ import {
   GRAVITY_ORDER,
   HEX_SIZE,
   OVERLAY_TYPES,
+  WATER_LAYERS,
   TERRAIN_TYPES,
   allMapEdges,
   createDemoMap,
@@ -44,6 +45,15 @@ import {
   stepPhysics,
   toggleSeaweedAttachment,
 } from './physics.js';
+import {
+  getEdgeFields,
+  getEdgeSetting,
+  getFreeObjectFields,
+  getFreeObjectHitRadius,
+  getFreeObjectSetting,
+  getOfficialEdgeState,
+  getOfficialFreeObjectState,
+} from './map-object-settings.js';
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -126,12 +136,12 @@ const edgeImagePaths = {
 };
 const paletteImagePaths = { ...waterTilePaths, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
-  water: '可通行水域', blocked: '不可通行',
+  water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
   ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
   checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
-  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流',
+  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
 };
 const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level, source]) => {
   const image = new Image();
@@ -167,6 +177,7 @@ const toolDefinitions = {
   select: { label: '選取', values: [] },
   terrain: { label: '地形', values: TERRAIN_TYPES },
   gravity: { label: '重力', values: GRAVITY_ORDER },
+  waterLayer: { label: '水域層級', values: WATER_LAYERS },
   overlay: { label: '環境效果', values: OVERLAY_TYPES },
   object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
   actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
@@ -214,6 +225,7 @@ const state = {
   tool: 'select',
   selectedCellKey: null,
   selectedEdgeKey: null,
+  selectedMapObject: null,
   dirty: false,
   dragging: null,
   events: [],
@@ -287,7 +299,7 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge', 'erase']);
+  const directPaletteTools = new Set(['terrain', 'gravity', 'waterLayer', 'overlay', 'object', 'actor', 'edge', 'erase']);
   Object.entries(toolDefinitions).filter(([key]) => !directPaletteTools.has(key)).forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -302,6 +314,7 @@ function createPalette() {
   const paletteGroups = {
     gravity: [
       { tool: 'gravity', values: GRAVITY_ORDER },
+      { tool: 'waterLayer', values: WATER_LAYERS },
       { tool: 'terrain', values: ['blocked'] },
     ],
     overlay: [
@@ -329,8 +342,9 @@ function createPalette() {
         visual.alt = '';
       } else {
         visual.className = 'palette-swatch';
-        visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? '↔' : value === 'blocked' ? '■' : '◇');
+        visual.textContent = tool === 'gravity' ? value : tool === 'waterLayer' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
         if (tool === 'gravity') visual.style.background = gravityColours[value];
+        if (tool === 'waterLayer') visual.style.background = value === 'T2' ? '#13213f' : '#284d73';
       }
       const label = document.createElement('span');
       label.className = 'palette-choice-label';
@@ -374,6 +388,8 @@ function getPaletteDescription(tool, value) {
       L3: '向下 2.0G：最強下沉水域。',
     })[value];
   }
+  if (tool === 'waterLayer' && value === 'T1') return '水域第一層：與 T2 分層存在；沒有層間轉接門時，不能直接穿越分界。';
+  if (tool === 'waterLayer' && value === 'T2') return '水域第二層：同一水域的較深層級；與 T1 的邊界需要層間轉接門才能通過。';
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
   if (tool === 'overlay' && value === 'ink') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
   if (tool === 'object' && value === 'mine') return '水域上物件：自由放置；物件自身輪廓是 hitbox，角色接觸時造成傷害。';
@@ -388,6 +404,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'edge' && value === 'spike') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'barrier') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
+  if (tool === 'edge' && value === 'layerPortal') return '層間轉接門：只能放在 T1 與 T2 相鄰的共享邊；玩家通過後即可進入另一個水域層。';
   if (tool === 'edge' && value === 'seaweed') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。物理測試按 E 可附著或離開。';
   if (tool === 'edge' && value === 'coralCluster') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。';
   return getPaletteNote(tool, value);
@@ -423,11 +440,7 @@ function drawText(text, x, y, options = {}) {
 }
 
 function freeObjectVisualSize(kind) {
-  return kind === 'ink' ? HEX_SIZE * 1.8 : HEX_SIZE * 1.45;
-}
-
-function freeObjectHitRadius(kind) {
-  return freeObjectVisualSize(kind) / 2;
+  return getFreeObjectSetting({ kind }, 'size');
 }
 
 function getFreeObjectPosition(cell, object) {
@@ -436,8 +449,7 @@ function getFreeObjectPosition(cell, object) {
   return { x: center.x + offset.x, y: center.y + offset.y };
 }
 
-function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96) {
-  const size = freeObjectVisualSize(kind);
+function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96, size = freeObjectVisualSize(kind)) {
   const image = objectImages[kind];
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -478,23 +490,31 @@ function findNearestCell(point) {
 
 function freeObjectAtPoint(point) {
   let closest = null;
-  Object.entries(state.map.cells).forEach(([key, baseCell]) => {
+  Object.entries(state.map.cells).forEach(([key]) => {
     const cell = getActiveCell(state.map, key, state.chapter);
     (cell.freeObjects ?? []).forEach((object, index) => {
       const position = getFreeObjectPosition(cell, object);
-      const radius = object.hitRadius ?? freeObjectHitRadius(object.kind);
+      const radius = getFreeObjectHitRadius(object);
       const distance = Math.hypot(point.x - position.x, point.y - position.y);
       if (distance <= radius && (!closest || distance < closest.distance)) {
-        closest = { key, index, object, cell, position, distance };
+        closest = { key, index, object, cell, position, distance, storage: 'free' };
       }
     });
-    // Legacy Cell objects remain erasable at their old center position.
-    cell.objects.forEach((object, index) => {
-      const center = getHexCenter(cell, state.origin);
-      const radius = object.hitRadius ?? HEX_SIZE * 1.1;
+    const center = getHexCenter(cell, state.origin);
+    // Existing Cell-centred overlays and objects remain editable after the
+    // switch to Free Snap. Editing an old overlay promotes it to a free item.
+    cell.overlays.forEach((kind, index) => {
+      const radius = getFreeObjectHitRadius({ kind });
       const distance = Math.hypot(point.x - center.x, point.y - center.y);
       if (distance <= radius && (!closest || distance < closest.distance)) {
-        closest = { key, index, object, cell, position: center, distance, legacy: true };
+        closest = { key, index, object: { kind }, cell, position: center, distance, storage: 'overlay' };
+      }
+    });
+    cell.objects.forEach((object, index) => {
+      const radius = getFreeObjectHitRadius(object);
+      const distance = Math.hypot(point.x - center.x, point.y - center.y);
+      if (distance <= radius && (!closest || distance < closest.distance)) {
+        closest = { key, index, object, cell, position: center, distance, storage: 'object' };
       }
     });
   });
@@ -515,6 +535,12 @@ function drawCell(key, cell) {
     const bleed = 1.12;
     ctx.drawImage(tile, center.x - HEX_SIZE * bleed, center.y - HEX_SIZE * bleed, HEX_SIZE * 2 * bleed, HEX_SIZE * 2 * bleed);
   }
+  if (cell.waterLayer === 'T2') {
+    // T2 is the same water family, only visually deeper; keep L1/L2 colour
+    // identity and add a neutral low-light veil instead of a hue shift.
+    ctx.fillStyle = 'rgba(3, 8, 20, 0.17)';
+    ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  }
   ctx.restore();
 
   cell.overlays.forEach((overlay) => drawCellAsset(overlay, center.x, center.y, HEX_SIZE * 1.8));
@@ -522,11 +548,11 @@ function drawCell(key, cell) {
     const angle = (index / Math.max(cell.objects.length, 1)) * Math.PI * 2;
     const x = center.x + Math.cos(angle) * 4;
     const y = center.y + Math.sin(angle) * 4;
-    drawCellAsset(object.kind, x, y, HEX_SIZE * 1.45);
+    drawCellAsset(object.kind, x, y, getFreeObjectSetting(object, 'size'));
   });
   (cell.freeObjects ?? []).forEach((object) => {
     const position = getFreeObjectPosition(cell, object);
-    drawCellAsset(object.kind, position.x, position.y, object.size ?? freeObjectVisualSize(object.kind));
+    drawCellAsset(object.kind, position.x, position.y, getFreeObjectSetting(object, 'size'));
   });
   cell.actors.forEach((actor, index) => {
     drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
@@ -560,7 +586,8 @@ function drawCellSide(cell, directionIndex, style) {
 
 function hasSameSurface(left, right) {
   if (left.terrain !== right.terrain) return false;
-  return left.terrain === 'blocked' || left.gravityLevel === right.gravityLevel;
+  return left.terrain === 'blocked'
+    || (left.gravityLevel === right.gravityLevel && (left.waterLayer ?? 'T1') === (right.waterLayer ?? 'T1'));
 }
 
 function drawTerrainBoundaries() {
@@ -594,10 +621,10 @@ function drawCellAsset(kind, x, y, size) {
   drawText(objectSymbols[kind] ?? kind[0]?.toUpperCase() ?? '?', x, y, { font: 'bold 8px system-ui', fill: '#f9e38c' });
 }
 
-function drawArrow(origin, vector, colour = '#ebff6b') {
-  const end = { x: origin.x + vector.x * 9, y: origin.y + vector.y * 9 };
-  const left = { x: end.x - vector.x * 4 - vector.y * 3, y: end.y - vector.y * 4 + vector.x * 3 };
-  const right = { x: end.x - vector.x * 4 + vector.y * 3, y: end.y - vector.y * 4 - vector.x * 3 };
+function drawArrow(origin, vector, colour = '#ebff6b', size = 1) {
+  const end = { x: origin.x + vector.x * 9 * size, y: origin.y + vector.y * 9 * size };
+  const left = { x: end.x - vector.x * 4 * size - vector.y * 3 * size, y: end.y - vector.y * 4 * size + vector.x * 3 * size };
+  const right = { x: end.x - vector.x * 4 * size + vector.y * 3 * size, y: end.y - vector.y * 4 * size - vector.x * 3 * size };
   ctx.save();
   ctx.strokeStyle = colour;
   ctx.fillStyle = colour;
@@ -626,6 +653,7 @@ function drawEdges() {
     const tangentAngle = edgeAngle + Math.PI / 2;
     const edgeLength = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
     const edgeImage = edgeImages[edge.type];
+    const size = getEdgeSetting(edge, 'size');
     const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(edge.type);
     const cellA = getActiveCell(state.map, a, state.chapter);
     const cellB = getActiveCell(state.map, b, state.chapter);
@@ -636,7 +664,7 @@ function drawEdges() {
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04);
+      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04) * size;
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
       drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
@@ -645,13 +673,14 @@ function drawEdges() {
     if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
-    if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection));
+    if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size);
+    if (edge.type === 'layerPortal') drawText('⇄', midpoint.x, midpoint.y, { font: 'bold 12px system-ui', fill: '#f6e66d' });
   });
 }
 
 function isCellPlacementValid(cell) {
   if (!cell) return false;
-  if (state.tool === 'gravity' || state.tool === 'terrain') return true;
+  if (state.tool === 'gravity' || state.tool === 'waterLayer' || state.tool === 'terrain') return true;
   if (state.tool === 'overlay' || state.tool === 'object' || state.tool === 'actor') return cell.terrain === 'water';
   return false;
 }
@@ -661,6 +690,11 @@ function isEdgePlacementValid(edgeTarget) {
   if (brushValue.value === 'none') return true;
   const cellA = getActiveCell(state.map, edgeTarget.a, state.chapter);
   const cellB = getActiveCell(state.map, edgeTarget.b, state.chapter);
+  if (brushValue.value === 'layerPortal') {
+    return cellA?.terrain === 'water'
+      && cellB?.terrain === 'water'
+      && (cellA.waterLayer ?? 'T1') !== (cellB.waterLayer ?? 'T1');
+  }
   return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
 }
 
@@ -688,7 +722,7 @@ function drawPlacementPreview() {
   if (state.tool === 'erase') {
     const objectTarget = freeObjectAtPoint(state.hoverPoint);
     if (objectTarget) {
-      drawFreeObjectOutline(objectTarget.object.kind, objectTarget.position, '#f6e66d', 0.96);
+      drawFreeObjectOutline(objectTarget.object.kind, objectTarget.position, '#f6e66d', 0.96, getFreeObjectSetting(objectTarget.object, 'size'));
       return;
     }
     const edgeTarget = edgeAtPoint(state.hoverPoint);
@@ -724,7 +758,7 @@ function drawPlacementPreview() {
     drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, state.hoverPoint, '#f6e66d', 0.82);
     return;
   }
-  const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
+  const cellTool = ['gravity', 'waterLayer', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
   const edgeTool = state.tool === 'edge';
   if (!cellTool && !edgeTool) return;
   const validColour = '#f6e66d';
@@ -786,27 +820,6 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, rece
   ctx.restore();
 }
 
-function drawSelectedCellNeighbours() {
-  if (!state.selectedCellKey) return;
-  const cell = getActiveCell(state.map, state.selectedCellKey, state.chapter);
-  if (!cell) return;
-  const center = getHexCenter(cell, state.origin);
-  ctx.save();
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 4]);
-  ctx.strokeStyle = '#d2ecff';
-  allMapEdges(state.map).forEach(({ a, b }) => {
-    const other = a === state.selectedCellKey ? b : b === state.selectedCellKey ? a : null;
-    if (!other) return;
-    const otherCenter = getHexCenter(getActiveCell(state.map, other, state.chapter), state.origin);
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.lineTo(otherCenter.x, otherCenter.y);
-    ctx.stroke();
-  });
-  ctx.restore();
-}
-
 function drawTrajectory() {
   if (!state.dragging || state.mode !== 'play' || state.actor.attached) return;
   const points = predictTrajectory({
@@ -855,7 +868,7 @@ function drawInkMask() {
   ctx.fillStyle = 'rgba(2, 3, 12, 0.78)';
   ctx.beginPath();
   ctx.rect(0, 0, canvas.width, canvas.height);
-  ctx.arc(state.actor.x, state.actor.y, 110, 0, Math.PI * 2);
+  ctx.arc(state.actor.x, state.actor.y, state.actor.inkVisionRange ?? getFreeObjectSetting({ kind: 'ink' }, 'visibilityRadius'), 0, Math.PI * 2);
   ctx.fill('evenodd');
   ctx.restore();
 }
@@ -881,23 +894,185 @@ function renderHud() {
   updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
 }
 
+function getSelectedMapObject() {
+  const selection = state.selectedMapObject;
+  if (!selection) return null;
+  const cell = getActiveCell(state.map, selection.key, state.chapter);
+  if (!cell) return null;
+  const objects = selection.storage === 'free' ? cell.freeObjects : cell.objects;
+  const object = objects?.[selection.index];
+  return object ? { ...selection, cell, object } : null;
+}
+
+function selectMapObject(target) {
+  if (target.storage === 'overlay') {
+    const editable = getEditableCell(state.map, target.key, state.chapter);
+    const kind = editable.overlays[target.index];
+    const freeObjects = [
+      ...(editable.freeObjects ?? []),
+      { kind, offset: { x: 0, y: 0 }, ...getOfficialFreeObjectState(kind) },
+    ];
+    patchCell(state.map, target.key, {
+      overlays: editable.overlays.filter((_, index) => index !== target.index),
+      freeObjects,
+    }, state.chapter);
+    target = { storage: 'free', key: target.key, index: freeObjects.length - 1, object: freeObjects.at(-1) };
+    markDirty(`已將既有${paletteLabels[kind] ?? kind}轉為可調整的 Free Snap 物件。`);
+  }
+  state.selectedMapObject = { storage: target.storage, key: target.key, index: target.index };
+  state.selectedCellKey = null;
+  state.selectedEdgeKey = null;
+  setStatus(`已選取${paletteLabels[target.object.kind] ?? target.object.kind}；可在右側調整參數。`);
+}
+
+function updateSelectedMapObject(values = {}, reset = false) {
+  const selected = getSelectedMapObject();
+  if (!selected) return;
+  const official = getOfficialFreeObjectState(selected.object.kind);
+  const fields = getFreeObjectFields(selected.object.kind);
+  const next = {
+    ...selected.object,
+    size: reset ? official.size : (values.size ?? getFreeObjectSetting(selected.object, 'size')),
+    params: { ...(selected.object.params ?? {}) },
+  };
+  fields.filter((field) => field.key !== 'size').forEach((field) => {
+    next.params[field.key] = reset ? official.params[field.key] : (values[field.key] ?? getFreeObjectSetting(selected.object, field.key));
+  });
+  const editable = getEditableCell(state.map, selected.key, state.chapter);
+  const property = selected.storage === 'free' ? 'freeObjects' : 'objects';
+  const items = editable[property].map((object, index) => index === selected.index ? next : object);
+  patchCell(state.map, selected.key, { [property]: items }, state.chapter);
+  markDirty(reset ? `已恢復${paletteLabels[next.kind] ?? next.kind}的官方預設。` : `已調整${paletteLabels[next.kind] ?? next.kind}參數。`);
+}
+
+function updateSelectedEdge(values = {}, reset = false) {
+  const key = state.selectedEdgeKey;
+  const edge = key && getActiveEdge(state.map, key, state.chapter);
+  if (!edge || edge.type === 'none') return;
+  const official = getOfficialEdgeState(edge.type);
+  const fields = getEdgeFields(edge.type);
+  const next = {
+    ...edge,
+    size: reset ? official.size : (values.size ?? getEdgeSetting(edge, 'size')),
+    params: { ...(edge.params ?? {}) },
+  };
+  fields.filter((field) => field.key !== 'size').forEach((field) => {
+    next.params[field.key] = reset ? official.params[field.key] : (values[field.key] ?? getEdgeSetting(edge, field.key));
+  });
+  const [a, b] = key.split('|');
+  patchEdge(state.map, a, b, next, state.chapter);
+  markDirty(reset ? `已恢復${paletteLabels[edge.type] ?? edge.type}的官方預設。` : `已調整${paletteLabels[edge.type] ?? edge.type}參數。`);
+}
+
+function setInspector(signature, build) {
+  if (inspector.dataset.signature === signature) return;
+  inspector.dataset.signature = signature;
+  inspector.replaceChildren();
+  build();
+}
+
+function appendInspectorHeader(title, note) {
+  const heading = document.createElement('h3');
+  heading.className = 'inspector-title';
+  heading.textContent = title;
+  const detail = document.createElement('p');
+  detail.className = 'inspector-note';
+  detail.textContent = note;
+  inspector.append(heading, detail);
+}
+
+function appendInspectorField(fields, field, value, onCommit) {
+  const row = document.createElement('div');
+  row.className = 'inspector-field';
+  const label = document.createElement('label');
+  const id = `inspector-${field.key}`;
+  label.htmlFor = id;
+  label.textContent = field.label;
+  const input = document.createElement('input');
+  input.id = id;
+  input.type = 'number';
+  input.min = String(field.min);
+  input.max = String(field.max);
+  input.step = String(field.step);
+  input.value = String(value);
+  input.addEventListener('change', () => {
+    const next = Number(input.value);
+    if (Number.isFinite(next)) onCommit(next);
+  });
+  const official = document.createElement('span');
+  official.className = 'inspector-default';
+  official.textContent = `官方預設：${field.defaultValue}${field.unit ? ` ${field.unit}` : ''}`;
+  row.append(label, input, official);
+  fields.append(row);
+}
+
+function appendResetButton(onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'inspector-reset';
+  button.textContent = '恢復官方預設';
+  button.addEventListener('click', onClick);
+  inspector.append(button);
+}
+
+function renderObjectInspector(selected) {
+  const object = selected.object;
+  const fields = getFreeObjectFields(object.kind);
+  const signature = JSON.stringify({ selection: state.selectedMapObject, object, chapter: state.chapter });
+  setInspector(signature, () => {
+    appendInspectorHeader(`${paletteLabels[object.kind] ?? object.kind}・可調參數`, '此物件已使用官方預設建立；改動只影響這一個實例。');
+    const fieldList = document.createElement('div');
+    fieldList.className = 'inspector-fields';
+    fields.forEach((field) => appendInspectorField(fieldList, field, getFreeObjectSetting(object, field.key), (value) => updateSelectedMapObject({ [field.key]: value })));
+    inspector.append(fieldList);
+    appendResetButton(() => updateSelectedMapObject({}, true));
+  });
+}
+
+function renderEdgeInspector(edge) {
+  const fields = getEdgeFields(edge.type);
+  const signature = JSON.stringify({ key: state.selectedEdgeKey, edge, chapter: state.chapter });
+  setInspector(signature, () => {
+    appendInspectorHeader(`${paletteLabels[edge.type] ?? edge.type}・可調參數`, '大小與效果值只影響這一條 Edge；可隨時回到官方預設。');
+    const fieldList = document.createElement('div');
+    fieldList.className = 'inspector-fields';
+    fields.forEach((field) => appendInspectorField(fieldList, field, getEdgeSetting(edge, field.key), (value) => updateSelectedEdge({ [field.key]: value })));
+    inspector.append(fieldList);
+    appendResetButton(() => updateSelectedEdge({}, true));
+  });
+}
+
+function renderInspectorJson(value, signature) {
+  setInspector(signature, () => {
+    const pre = document.createElement('pre');
+    pre.className = 'inspector-json';
+    pre.textContent = JSON.stringify(value, null, 2);
+    inspector.append(pre);
+  });
+}
+
 function renderInspector() {
+  const selectedObject = getSelectedMapObject();
+  if (state.selectedMapObject && !selectedObject) state.selectedMapObject = null;
+  if (selectedObject) {
+    renderObjectInspector(selectedObject);
+    return;
+  }
   if (state.selectedEdgeKey) {
     const edge = getActiveEdge(state.map, state.selectedEdgeKey, state.chapter);
-    inspector.textContent = JSON.stringify({
-      kind: 'Edge',
-      key: state.selectedEdgeKey,
-      chapter: state.chapter,
-      ...edge,
-    }, null, 2);
+    if (edge?.type && edge.type !== 'none') {
+      renderEdgeInspector(edge);
+      return;
+    }
+    renderInspectorJson({ kind: 'Edge', key: state.selectedEdgeKey, chapter: state.chapter, ...edge }, `edge:${state.selectedEdgeKey}:${JSON.stringify(edge)}`);
     return;
   }
   if (state.selectedCellKey) {
     const cell = getActiveCell(state.map, state.selectedCellKey, state.chapter);
-    inspector.textContent = JSON.stringify({ kind: 'Cell', key: state.selectedCellKey, chapter: state.chapter, ...cell }, null, 2);
+    renderInspectorJson({ kind: 'Cell', key: state.selectedCellKey, chapter: state.chapter, ...cell }, `cell:${state.selectedCellKey}:${JSON.stringify(cell)}`);
     return;
   }
-  inspector.textContent = '未選取 Cell 或 Edge。';
+  setInspector('empty', () => { inspector.textContent = '未選取 Cell、Edge 或水域上物件。'; });
 }
 
 function renderLists() {
@@ -926,7 +1101,6 @@ function render() {
   ctx.translate(-canvas.width / 2, -canvas.height / 2);
   Object.entries(state.map.cells).forEach(([key]) => drawCell(key, getActiveCell(state.map, key, state.chapter)));
   drawTerrainBoundaries();
-  drawSelectedCellNeighbours();
   drawEdges();
   drawPlacementPreview();
   drawTrajectory();
@@ -971,33 +1145,36 @@ function applyFreeObjectTool(point) {
   if (!nearest) return;
   const value = brushValue.value;
   const editable = getEditableCell(state.map, nearest.key, state.chapter);
-  const size = freeObjectVisualSize(value);
   const freeObjects = [
     ...(editable.freeObjects ?? []),
     {
       kind: value,
       offset: { x: point.x - nearest.center.x, y: point.y - nearest.center.y },
-      size,
-      hitRadius: freeObjectHitRadius(value),
+      ...getOfficialFreeObjectState(value),
     },
   ];
   patchCell(state.map, nearest.key, { freeObjects }, state.chapter);
-  state.selectedCellKey = nearest.key;
+  state.selectedMapObject = { storage: 'free', key: nearest.key, index: freeObjects.length - 1 };
+  state.selectedCellKey = null;
   state.selectedEdgeKey = null;
-  markDirty(`已自由放置${paletteLabels[value] ?? value}；可重複點擊增加碰撞範圍。`);
+  markDirty(`已自由放置${paletteLabels[value] ?? value}；右側 Inspector 可調整參數或回復官方預設。`);
 }
 
 function applyFreeObjectErase(target) {
   if (!target) return false;
-  if (target.legacy) {
+  if (target.storage === 'object') {
     const editable = getEditableCell(state.map, target.key, state.chapter);
     patchCell(state.map, target.key, { objects: editable.objects.filter((_, index) => index !== target.index) }, state.chapter);
+  } else if (target.storage === 'overlay') {
+    const editable = getEditableCell(state.map, target.key, state.chapter);
+    patchCell(state.map, target.key, { overlays: editable.overlays.filter((_, index) => index !== target.index) }, state.chapter);
   } else {
     const editable = getEditableCell(state.map, target.key, state.chapter);
     patchCell(state.map, target.key, { freeObjects: editable.freeObjects.filter((_, index) => index !== target.index) }, state.chapter);
   }
   state.selectedCellKey = target.key;
   state.selectedEdgeKey = null;
+  state.selectedMapObject = null;
   markDirty(`已清除${paletteLabels[target.object.kind] ?? target.object.kind}。`);
   return true;
 }
@@ -1007,6 +1184,7 @@ function applyCellTool(key) {
   const value = brushValue.value;
   state.selectedCellKey = key;
   state.selectedEdgeKey = null;
+  state.selectedMapObject = null;
   if (state.tool === 'select') {
     setStatus(`已選取 Cell ${key}`);
     return;
@@ -1021,6 +1199,7 @@ function applyCellTool(key) {
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
   if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
+  if (state.tool === 'waterLayer') patchCell(state.map, key, { terrain: 'water', waterLayer: value }, state.chapter);
   if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
     setStatus('水域上物件現在是自由放置，不會吸附到這個六角格。');
     return;
@@ -1051,6 +1230,7 @@ function applyCellTool(key) {
 function applyEdgeTool(edgeTarget) {
   state.selectedEdgeKey = edgeTarget.key;
   state.selectedCellKey = null;
+  state.selectedMapObject = null;
   const value = brushValue.value;
   if (state.tool === 'select') {
     setStatus(`已選取 Edge ${edgeTarget.key}`);
@@ -1071,6 +1251,7 @@ function applyEdgeTool(edgeTarget) {
       blocksPassage: isBlocking,
       currentDirection: Number(currentDirection.value),
       currentStrength: value === 'current' ? Number(currentStrength.value) : 0,
+      ...getOfficialEdgeState(value),
     }, state.chapter);
   }
   if (state.tool === 'erase') patchEdge(state.map, edgeTarget.a, edgeTarget.b, { type: 'none', blocksPassage: false, currentStrength: 0 }, state.chapter);
@@ -1143,8 +1324,16 @@ canvas.addEventListener('pointerdown', (event) => {
       return;
     }
   }
+  if (state.tool === 'select') {
+    const objectTarget = freeObjectAtPoint(point);
+    if (objectTarget) {
+      selectMapObject(objectTarget);
+      render();
+      return;
+    }
+  }
   const hitEdge = edgeAtPoint(point);
-  if ((state.tool === 'edge' || state.tool === 'erase') && hitEdge) {
+  if ((state.tool === 'select' || state.tool === 'edge' || state.tool === 'erase') && hitEdge) {
     applyEdgeTool(hitEdge);
     render();
     return;

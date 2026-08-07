@@ -5,6 +5,7 @@ import {
   createDemoMap,
   cellKeyFromColumn,
   getActiveCell,
+  findCellContainingPoint,
   getHexCenter,
   HEX_SIZE,
   migrateMapToOddR,
@@ -45,6 +46,12 @@ import {
   getWeaponStats,
   getWeaponUseCost,
 } from '../src/game-data.js';
+import {
+  getEdgeSetting,
+  getFreeObjectSetting,
+  getOfficialEdgeState,
+  getOfficialFreeObjectState,
+} from '../src/map-object-settings.js';
 
 const ORIGIN = { x: 76, y: 82 };
 
@@ -194,6 +201,32 @@ test('current applies horizontal acceleration from an Edge', () => {
   assert.ok(actor.vx > 0.1, 'eastward current should add positive x velocity at the slowed scale');
 });
 
+test('water layer boundaries block until a layer portal is installed', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0', waterLayer: 'T1' });
+  patchCell(map, '1,0', { gravityLevel: 'L0', waterLayer: 'T2' });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 140;
+  let events = [];
+  for (let index = 0; index < 30; index += 1) {
+    events = stepPhysics({ map, actor, origin: ORIGIN });
+    if (events.some((event) => event.type === 'layerBoundary')) break;
+  }
+  assert.ok(events.some((event) => event.type === 'layerBoundary'));
+  assert.equal(findCellContainingPoint(map, actor, 'chapter1', ORIGIN).key, '0,0');
+
+  patchEdge(map, '0,0', '1,0', { type: 'layerPortal', blocksPassage: false });
+  actor.x = getHexCenter(getActiveCell(map, '0,0'), ORIGIN).x;
+  actor.y = getHexCenter(getActiveCell(map, '0,0'), ORIGIN).y;
+  actor.vx = 140;
+  for (let index = 0; index < 30; index += 1) {
+    events = stepPhysics({ map, actor, origin: ORIGIN });
+    if (events.some((event) => event.type === 'layerPortal')) break;
+  }
+  assert.ok(events.some((event) => event.type === 'layerPortal'));
+  assert.equal(findCellContainingPoint(map, actor, 'chapter1', ORIGIN).key, '1,0');
+});
+
 test('free-snap water objects use their own position and hitbox', () => {
   const map = createEmptyMap({ width: 1, height: 1 });
   patchCell(map, '0,0', {
@@ -208,6 +241,77 @@ test('free-snap water objects use their own position and hitbox', () => {
   assert.ok(events.some((event) => event.type === 'mine'));
   assert.equal(actor.health, MAX_HEALTH - 24);
   assert.equal(validateMap(map).some((result) => result.level === 'error'), false);
+});
+
+test('official object and Edge settings stay explicit and resettable', () => {
+  assert.deepEqual(getOfficialFreeObjectState('ink'), { size: 22, params: { visibilityRadius: 110 } });
+  assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 17, params: { breakSpeed: 31, weight: 4 } });
+  assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 1, params: { bounceMultiplier: 1.08 } });
+  assert.equal(getFreeObjectSetting({ kind: 'mine', params: { damage: 37 } }, 'damage'), 37);
+  assert.equal(getEdgeSetting({ type: 'spike', params: { damage: 46 } }, 'damage'), 46);
+});
+
+test('free-object parameters drive oxygen, mine damage, and Torricelli recovery', () => {
+  const map = createEmptyMap({ width: 1, height: 1 });
+  patchCell(map, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{ kind: 'mine', offset: { x: 0, y: 0 }, size: 20, params: { damage: 37 } }],
+  });
+  const mineActor = actorIn(map, '0,0');
+  stepPhysics({ map, actor: mineActor, origin: ORIGIN });
+  assert.equal(mineActor.health, MAX_HEALTH - 37);
+
+  const oxygenMap = createEmptyMap({ width: 1, height: 1 });
+  patchCell(oxygenMap, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{ kind: 'oxygen', offset: { x: 0, y: 0 }, size: 20, params: { oxygenAmount: 35, activationSpeed: 10 } }],
+  });
+  const oxygenActor = actorIn(oxygenMap, '0,0');
+  oxygenActor.oxygen = 0;
+  oxygenActor.vx = 20;
+  stepPhysics({ map: oxygenMap, actor: oxygenActor, origin: ORIGIN });
+  assert.ok(oxygenActor.oxygen >= 34, 'custom oxygen amount should be granted after the configured impact speed');
+  assert.equal(getActiveCell(oxygenMap, '0,0').freeObjects.length, 0, 'spent oxygen ore should be removed');
+
+  const torricelliMap = createEmptyMap({ width: 1, height: 1 });
+  patchCell(torricelliMap, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{ kind: 'torricelli', offset: { x: 0, y: 0 }, size: 20, params: { oxygenRecoveryPerSecond: 25 } }],
+  });
+  const torricelliActor = actorIn(torricelliMap, '0,0');
+  torricelliActor.oxygen = 10;
+  stepPhysics({ map: torricelliMap, actor: torricelliActor, origin: ORIGIN, dt: 0.5 });
+  assert.ok(torricelliActor.oxygen > 22, 'Torricelli recovery should use the configured per-second rate');
+});
+
+test('custom edge parameters control spring force and spike damage', () => {
+  const springMap = createEmptyMap({ width: 2, height: 1 });
+  patchCell(springMap, '0,0', { gravityLevel: 'L0' });
+  patchCell(springMap, '1,0', { gravityLevel: 'L0' });
+  patchEdge(springMap, '0,0', '1,0', { type: 'springJelly', blocksPassage: true, params: { bounceMultiplier: 1.8 } });
+  const springActor = actorIn(springMap, '0,0');
+  springActor.vx = 140;
+  let springEvents = [];
+  for (let index = 0; index < 20; index += 1) {
+    springEvents = stepPhysics({ map: springMap, actor: springActor, origin: ORIGIN });
+    if (springEvents.some((event) => event.type === 'springJelly')) break;
+  }
+  assert.ok(springEvents.some((event) => event.type === 'springJelly'));
+  assert.ok(Math.abs(springActor.vx) > 100, 'custom spring force should preserve a stronger rebound');
+
+  const spikeMap = createEmptyMap({ width: 2, height: 1 });
+  patchCell(spikeMap, '0,0', { gravityLevel: 'L0' });
+  patchCell(spikeMap, '1,0', { gravityLevel: 'L0' });
+  patchEdge(spikeMap, '0,0', '1,0', { type: 'spike', blocksPassage: true, params: { damage: 46 } });
+  const spikeActor = actorIn(spikeMap, '0,0');
+  spikeActor.vx = 140;
+  let spikeEvents = [];
+  for (let index = 0; index < 20; index += 1) {
+    spikeEvents = stepPhysics({ map: spikeMap, actor: spikeActor, origin: ORIGIN });
+    if (spikeEvents.some((event) => event.type === 'spike')) break;
+  }
+  assert.ok(spikeEvents.some((event) => event.type === 'spike'));
+  assert.equal(spikeActor.health, MAX_HEALTH - 46);
 });
 
 test('edge-attached coral cluster protects a nearby player', () => {
