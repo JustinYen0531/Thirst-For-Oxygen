@@ -4,6 +4,7 @@ import {
   allMapEdges,
   findCellContainingPoint,
   getActiveCell,
+  getEditableCell,
   getDirectionVector,
   getEdgeBetween,
   getHexCenter,
@@ -44,9 +45,11 @@ const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
 const OXYGEN_DRAIN_PER_SECOND = 0.15;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
-// Dynamic micro-flow is deliberately only 10% of the explicit current force.
-// It adds motion without becoming a conveyor belt.
-export const MICROFLOW_ACCELERATION = CURRENT_ACCELERATION * 0.1;
+// The first pass was intentionally very quiet. Keep the curl/mean-subtraction
+// model, but raise its readable strength to five times that prototype so the
+// player can actually feel the water breathing without turning it into a belt.
+export const MICROFLOW_INTENSITY = 5;
+export const MICROFLOW_ACCELERATION = CURRENT_ACCELERATION * 0.1 * MICROFLOW_INTENSITY;
 const MICROFLOW_SPATIAL_SCALE = 0.045;
 const MICROFLOW_TIME_SCALE = 0.55;
 const MICROFLOW_VECTOR_SCALE = 18;
@@ -479,6 +482,37 @@ function removeContactObject(map, contact, chapter) {
   }
 }
 
+function openConditionalGate(map, gateKey, chapter, events, mutateMap) {
+  const gate = getActiveCell(map, gateKey, chapter);
+  if (!gate?.conditionalGate || gate.conditionalGate.opened) return false;
+  if (!mutateMap) return false;
+  const upperCells = [neighborKey(gateKey, 1), neighborKey(gateKey, 2)]
+    .map((key) => getActiveCell(map, key, chapter));
+  const canCopyGravity = upperCells.every((cell) => cell?.terrain === 'water')
+    && upperCells[0].gravityLevel === upperCells[1].gravityLevel;
+  if (!canCopyGravity) {
+    addEvent(events, 'buttonBlocked', `按鈕：${gateKey} 上方兩格的水域重力不一致或不是水域，門仍然關閉。`);
+    return false;
+  }
+  patchCell(map, gateKey, {
+    terrain: 'water',
+    gravityLevel: upperCells[0].gravityLevel,
+    conditionalGate: { ...gate.conditionalGate, opened: true },
+  }, chapter);
+  return true;
+}
+
+function markButtonPressed(map, contact, chapter) {
+  const ownerKey = contact.ownerKey ?? contact.key;
+  const editable = getEditableCell(map, ownerKey, chapter);
+  if (!editable) return;
+  const property = contact.free ? 'freeObjects' : 'objects';
+  const nextObjects = editable[property].map((object, index) => (
+    index === contact.index ? { ...object, pressed: true } : object
+  ));
+  patchCell(map, ownerKey, { [property]: nextObjects }, chapter);
+}
+
 function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) {
   actor.safe = false;
   actor.inInk = false;
@@ -495,7 +529,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   Object.entries(map.cells).forEach(([key]) => {
     const objectCell = getActiveCell(map, key, chapter);
     const center = getHexCenter(objectCell, origin);
-    objectCell.objects.forEach((object) => contactObjects.push({ key, objectCell, object, position: center, hitRadius: getFreeObjectHitRadius(object) }));
+    objectCell.objects.forEach((object, index) => contactObjects.push({ key: `${key}:object:${index}`, ownerKey: key, objectCell, object, position: center, hitRadius: getFreeObjectHitRadius(object), index, free: false }));
     (objectCell.freeObjects ?? []).forEach((object, index) => {
       const offset = object.offset ?? { x: 0, y: 0 };
       contactObjects.push({
@@ -519,6 +553,16 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
       }
       const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
       if (distance > actor.radius + hitRadius) return;
+
+      if (object.kind === 'button' && !object.pressed) {
+        const openedGates = mutateMap
+          ? (object.targetGates ?? []).filter((gateKey) => openConditionalGate(map, gateKey, chapter, events, mutateMap)).length
+          : 0;
+        if (mutateMap) markButtonPressed(map, { ownerKey, index, free }, chapter);
+        addEvent(events, 'button', openedGates > 0
+          ? `按鈕：已開啟 ${openedGates} 個條件通行門。`
+          : '按鈕：已按下，但沒有可開啟的條件通行門。');
+      }
 
       if (object.kind === 'razor' && !isOnCooldown(actor, `razor:${key}`)) {
         const direction = distance > 0.001 ? unitVector(position, actor) : { x: 0, y: -1 };

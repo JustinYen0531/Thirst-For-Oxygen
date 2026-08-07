@@ -123,6 +123,7 @@ const objectSymbols = {
   bubble: '○',
   torricelli: 'T',
   razor: '✦',
+  button: '⏺',
 };
 const objectImagePaths = {
   coralCluster: '/assets/editor/objects/coral-cluster.png',
@@ -152,7 +153,8 @@ const paletteLabels = {
   water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
   ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
-  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀',
+  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀', button: '一次性開門按鈕',
+  noGate: '不是條件通行門', buttonGate: '條件通行門',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
   none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
 };
@@ -499,6 +501,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'object' && value === 'bubble') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
   if (tool === 'object' && value === 'torricelli') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
   if (tool === 'object' && value === 'razor') return '水域上物件：可切換 Free Snap／六邊形中央；放置後可在右側 Inspector 選 1–4 個剃刀，刀片繞中心軸旋轉並造成接觸傷害。';
+  if (tool === 'object' && value === 'button') return '水域上物件：碰觸後只按下這一次，開啟右側 Inspector 指定的條件通行門。每個按鈕可以指定多個門。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
   if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
   if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
@@ -603,7 +606,31 @@ function drawFreeObject(object, position) {
     drawRazor(position, size, object);
     return;
   }
+  if (object.kind === 'button') {
+    drawButton(position, size, object.pressed);
+    return;
+  }
   drawCellAsset(object.kind, position.x, position.y, size);
+}
+
+function drawButton(position, size, pressed = false, alpha = 0.96) {
+  const radius = size * 0.42;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(11, 23, 38, 0.9)';
+  ctx.strokeStyle = '#c7efff';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect(position.x - size * 0.5, position.y - size * 0.23, size, size * 0.46, size * 0.12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = pressed ? '#6fd1c0' : '#f3b95f';
+  ctx.beginPath();
+  ctx.arc(position.x, position.y + (pressed ? size * 0.06 : -size * 0.01), radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = pressed ? '#d9fff6' : '#fff0b2';
+  ctx.stroke();
+  ctx.restore();
 }
 
 function getFreeObjectPosition(cell, object) {
@@ -620,6 +647,17 @@ function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96,
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(position.x, position.y, size / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  if (kind === 'button') {
+    drawButton(position, size, false, alpha);
+    ctx.save();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, size * 0.55, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
     return;
@@ -814,12 +852,16 @@ function drawCellSurface(cell) {
   }
   if (cell.terrain === 'water') drawWaterMotion(cell, center);
   ctx.restore();
+  if (cell.conditionalGate && !cell.conditionalGate.opened) {
+    drawText('▣', center.x, center.y, { font: 'bold 9px system-ui', fill: '#ffd477' });
+  }
 }
 
 function drawWaterMotion(cell, center) {
   const phase = cell.q * 1.71 + cell.r * 0.93;
   const time = state.animationTime;
   const pulse = 0.5 + Math.sin(time * 0.8 + phase) * 0.5;
+  const intensity = 5;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   // Short arcs rotate locally with different phases. They suggest movement
@@ -830,8 +872,8 @@ function drawWaterMotion(cell, center) {
     const radius = 3.2 + index * 2.2;
     const x = center.x + Math.cos(localPhase * 0.7 + time * 0.16) * 2.2;
     const y = center.y + Math.sin(localPhase * 0.8 - time * 0.14) * 2.2;
-    ctx.strokeStyle = `rgba(193, 235, 255, ${0.035 + pulse * 0.045})`;
-    ctx.lineWidth = 0.42;
+    ctx.strokeStyle = `rgba(193, 235, 255, ${(0.035 + pulse * 0.045) * intensity})`;
+    ctx.lineWidth = 0.42 * 1.7;
     ctx.beginPath();
     ctx.arc(x, y, radius, angle, angle + 0.95 + pulse * 0.18);
     ctx.stroke();
@@ -842,19 +884,19 @@ function drawWaterMotion(cell, center) {
     const particlePhase = phase + index * 3.1;
     const x = center.x + Math.sin(time * (0.28 + index * 0.05) + particlePhase) * 7.4;
     const y = center.y + Math.cos(time * (0.22 + index * 0.04) + particlePhase * 1.3) * 6.2;
-    ctx.fillStyle = `rgba(218, 247, 255, ${0.08 + pulse * 0.08})`;
+    ctx.fillStyle = `rgba(218, 247, 255, ${(0.08 + pulse * 0.08) * intensity})`;
     ctx.beginPath();
-    ctx.arc(x, y, 0.42 + pulse * 0.18, 0, Math.PI * 2);
+    ctx.arc(x, y, (0.42 + pulse * 0.18) * 1.45, 0, Math.PI * 2);
     ctx.fill();
   }
   // A slow brightness pulse makes the water feel alive even when no particle
   // happens to be near the player, without changing the Tile's gravity colour.
-  ctx.fillStyle = `rgba(181, 229, 255, ${0.012 + pulse * 0.018})`;
+  ctx.fillStyle = `rgba(181, 229, 255, ${(0.012 + pulse * 0.018) * intensity})`;
   ctx.beginPath();
   ctx.arc(
     center.x + Math.cos(time * 0.22 + phase) * 4.5,
     center.y + Math.sin(time * 0.19 + phase * 1.2) * 4.5,
-    4.5 + pulse * 2.5,
+    4.5 + pulse * 4.5,
     0,
     Math.PI * 2,
   );
@@ -1342,6 +1384,9 @@ function updateSelectedMapObject(values = {}, reset = false) {
   fields.filter((field) => field.key !== 'size').forEach((field) => {
     next.params[field.key] = reset ? official.params[field.key] : (values[field.key] ?? getFreeObjectSetting(selected.object, field.key));
   });
+  if (selected.object.kind === 'button') {
+    next.targetGates = reset ? [] : (values.targetGates ?? selected.object.targetGates ?? []);
+  }
   const editable = getEditableCell(state.map, selected.key, state.chapter);
   const property = selected.storage === 'free' ? 'freeObjects' : 'objects';
   const items = editable[property].map((object, index) => index === selected.index ? next : object);
@@ -1434,6 +1479,26 @@ function appendInspectorSelect(fields, field, value, onCommit) {
   fields.append(row);
 }
 
+function appendInspectorText(fields, field, value, onCommit) {
+  const row = document.createElement('div');
+  row.className = 'inspector-field';
+  const label = document.createElement('label');
+  const id = `inspector-${field.key}`;
+  label.htmlFor = id;
+  label.textContent = field.label;
+  const input = document.createElement('input');
+  input.id = id;
+  input.type = 'text';
+  input.value = value;
+  input.placeholder = field.placeholder ?? '';
+  input.addEventListener('change', () => onCommit(input.value));
+  const note = document.createElement('span');
+  note.className = 'inspector-default';
+  note.textContent = field.note ?? '';
+  row.append(label, input, note);
+  fields.append(row);
+}
+
 function appendResetButton(onClick) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -1448,17 +1513,28 @@ function updateSelectedCell(values = {}, reset = false) {
   const cell = key && getActiveCell(state.map, key, state.chapter);
   if (!cell) return;
   const nextLayer = reset ? 'T1' : (values.waterLayer ?? cell.waterLayer ?? 'T1');
-  patchCell(state.map, key, { waterLayer: nextLayer }, state.chapter);
-  markDirty(reset ? `${key} 已恢復水域層級官方預設。` : `${key} 已切換為 ${nextLayer}。`);
+  const gateType = reset ? 'noGate' : (values.gateType ?? (cell.conditionalGate ? 'buttonGate' : 'noGate'));
+  const gate = gateType === 'buttonGate'
+    ? { ...(cell.conditionalGate ?? {}), opened: Boolean(cell.conditionalGate?.opened) }
+    : null;
+  const patch = { waterLayer: nextLayer, conditionalGate: gate };
+  if (gateType === 'buttonGate' && !gate.opened) patch.terrain = 'blocked';
+  patchCell(state.map, key, patch, state.chapter);
+  markDirty(reset
+    ? `${key} 已恢復水域層級與條件通行設定官方預設。`
+    : gateType === 'buttonGate'
+      ? `${key} 已標記為條件通行門；按鈕可指定這個 Cell。`
+      : `${key} 已切換為 ${nextLayer}。`);
 }
 
 function renderCellInspector(cell) {
-  const signature = JSON.stringify({ key: state.selectedCellKey, gravity: cell.gravityLevel, waterLayer: cell.waterLayer, chapter: state.chapter });
+  const signature = JSON.stringify({ key: state.selectedCellKey, gravity: cell.gravityLevel, waterLayer: cell.waterLayer, conditionalGate: cell.conditionalGate, chapter: state.chapter });
   setInspector(signature, () => {
-    appendInspectorHeader(`${paletteLabels[cell.gravityLevel] ?? cell.gravityLevel}・可調參數`, '水域重力 Tile 放置後，可在這裡選擇它屬於 T1 或 T2。不同層級之間需要層間轉接門。');
+    appendInspectorHeader(`${paletteLabels[cell.gravityLevel] ?? cell.gravityLevel}・可調參數`, '可在這裡選擇水域層級，或把這格標成條件通行門。條件通行門會先保持不可通行，開啟後才複製上方兩格相同的水域重力。');
     const fieldList = document.createElement('div');
     fieldList.className = 'inspector-fields';
     appendInspectorSelect(fieldList, { key: 'waterLayer', label: '水域層級', options: WATER_LAYERS, defaultValue: 'T1' }, cell.waterLayer ?? 'T1', (value) => updateSelectedCell({ waterLayer: value }));
+    appendInspectorSelect(fieldList, { key: 'gateType', label: '通行狀態', options: ['noGate', 'buttonGate'], defaultValue: 'noGate' }, cell.conditionalGate ? 'buttonGate' : 'noGate', (value) => updateSelectedCell({ gateType: value }));
     inspector.append(fieldList);
     appendResetButton(() => updateSelectedCell({}, true));
   });
@@ -1473,6 +1549,17 @@ function renderObjectInspector(selected) {
     const fieldList = document.createElement('div');
     fieldList.className = 'inspector-fields';
     fields.forEach((field) => appendInspectorField(fieldList, field, getFreeObjectSetting(object, field.key), (value) => updateSelectedMapObject({ [field.key]: value })));
+    if (object.kind === 'button') {
+      appendInspectorText(fieldList, {
+        key: 'targetGates',
+        label: '要開啟的門',
+        placeholder: '例如：2,4; 3,4',
+        note: 'Cell 座標用分號分隔',
+      }, (object.targetGates ?? []).join('; '), (value) => {
+        const targetGates = [...new Set(value.split(';').map((part) => part.trim()).filter((part) => /^-?\d+\s*,\s*-?\d+$/.test(part)).map((part) => part.split(',').map((number) => Number(number.trim())).join(',')))];
+        updateSelectedMapObject({ targetGates });
+      });
+    }
     inspector.append(fieldList);
     appendResetButton(() => updateSelectedMapObject({}, true));
   });

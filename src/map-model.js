@@ -33,6 +33,7 @@ export const CELL_OBJECT_TYPES = Object.freeze([
   'bubble',
   'torricelli',
   'razor',
+  'button',
 ]);
 // seaweed/coralCluster remain accepted in CELL_OBJECT_TYPES for existing saved
 // maps, but new authoring always places them as Edge attachments.
@@ -84,6 +85,9 @@ function makeCell(q, r) {
     terrain: 'water',
     gravityLevel: 'L0',
     waterLayer: 'T1',
+    // A conditional passage starts locked as an impassable Cell. Its runtime
+    // state is opened once by a button and then remains a water Cell.
+    conditionalGate: null,
     overlays: [],
     objects: [],
     // Free-snap water objects are owned by the nearest Cell for persistence,
@@ -343,6 +347,15 @@ export function validateMap(map) {
     if (!TERRAIN_TYPES.includes(cell.terrain)) results.push({ level: 'error', message: `${key} 的地形無效：${cell.terrain}` });
     if (!Object.hasOwn(GRAVITY_LEVELS, cell.gravityLevel)) results.push({ level: 'error', message: `${key} 的 gravityLevel 無效：${cell.gravityLevel}` });
     if (!WATER_LAYERS.includes(cell.waterLayer ?? 'T1')) results.push({ level: 'error', message: `${key} 的 waterLayer 無效：${cell.waterLayer}` });
+    if (cell.conditionalGate != null && (typeof cell.conditionalGate !== 'object' || Array.isArray(cell.conditionalGate))) {
+      results.push({ level: 'error', message: `${key} 的條件通行門資料無效。` });
+    }
+    if (cell.conditionalGate?.opened && cell.terrain !== 'water') {
+      results.push({ level: 'error', message: `${key} 條件通行門已開啟，但地形仍不是可通行水域。` });
+    }
+    if (cell.conditionalGate && !cell.conditionalGate.opened && cell.terrain !== 'blocked') {
+      results.push({ level: 'error', message: `${key} 條件通行門尚未開啟，但地形不是不可通行。` });
+    }
     if (cell.terrain === 'blocked' && cell.actors.some((actor) => actor.kind === 'playerStart')) {
       results.push({ level: 'error', message: `${key} 不可通行，不能放置玩家起點。` });
     }
@@ -352,6 +365,13 @@ export function validateMap(map) {
     });
     cell.objects.forEach((object) => {
       if (!CELL_OBJECT_TYPES.includes(object.kind)) results.push({ level: 'error', message: `${key} 有未知物件：${object.kind}` });
+      if (object.kind === 'button') {
+        if (!Array.isArray(object.targetGates)) results.push({ level: 'error', message: `${key} 的按鈕沒有指定條件通行門。` });
+        else object.targetGates.forEach((gateKey) => {
+          if (!map.cells[gateKey]) results.push({ level: 'error', message: `${key} 的按鈕指定了不存在的門：${gateKey}。` });
+          else if (!map.cells[gateKey].conditionalGate) results.push({ level: 'error', message: `${key} 的按鈕目標 ${gateKey} 尚未標成條件通行門。` });
+        });
+      }
     });
     (cell.freeObjects ?? []).forEach((object) => {
       if (![...OVERLAY_TYPES, ...CELL_OBJECT_TYPES].includes(object.kind)) {
@@ -359,6 +379,16 @@ export function validateMap(map) {
       }
       if (!object.offset || !Number.isFinite(object.offset.x) || !Number.isFinite(object.offset.y)) {
         results.push({ level: 'error', message: `${key} 的自由物件缺少有效位置：${object.kind}` });
+      }
+      if (object.kind === 'button') {
+        if (!Array.isArray(object.targetGates)) {
+          results.push({ level: 'error', message: `${key} 的按鈕沒有指定條件通行門。` });
+        } else {
+          object.targetGates.forEach((gateKey) => {
+            if (!map.cells[gateKey]) results.push({ level: 'error', message: `${key} 的按鈕指定了不存在的門：${gateKey}。` });
+            else if (!map.cells[gateKey].conditionalGate) results.push({ level: 'error', message: `${key} 的按鈕目標 ${gateKey} 尚未標成條件通行門。` });
+          });
+        }
       }
     });
   });

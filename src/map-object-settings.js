@@ -19,6 +19,9 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
     { key: 'knockbackSpeed', label: '強制位移', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 58 },
     { key: 'rotationSpeed', label: '旋轉速度', unit: '度/s', min: 0, max: 720, step: 1, defaultValue: 180 },
   ]),
+  button: freezeFields([
+    { key: 'size', label: '大小', unit: 'px', min: 12, max: 72, step: 1, defaultValue: 24 },
+  ]),
   weightStone: freezeFields([
     { key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 },
     { key: 'breakSpeed', label: '破壞所需速度', unit: 'px/s', min: 1, max: 140, step: 1, defaultValue: 31 },

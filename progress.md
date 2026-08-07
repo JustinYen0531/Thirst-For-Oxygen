@@ -279,9 +279,22 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added subtle per-Cell water arcs, particles, and brightness pulses for the visual motion layer. Player physics receives only 10% of the explicit current acceleration, while gravity and existing horizontal damping remain unchanged.
 - Static verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
 
+## 2026-08-08 — Step 36 complete
+
+- Increased the microflow and water-motion presentation to 5x the original prototype strength while preserving curl flow, connected-region mean subtraction, and separate T1/T2 fields.
+- Static verification is pending for this tuning pass.
+
 ## 2026-08-08 — Step 35 complete
 
 - Added a right-side Inspector field for Razor water objects: each placed Razor can now use 1–4 blades, with the saved count driving the rotating visual while keeping the existing hitbox and damage contract.
 - Made downward authoring explicit: clicking a dashed continuation Cell with a gravity or terrain brush extends only within the visible four-row buffer, preserves the map's screen anchor, and keeps the next four dashed rows available.
 - Newly created continuation rows inherit each column's previous bottom-row gravity and water layer instead of resetting blindly to L0; the guide tint follows that same bottom-row gravity and the palette hint explains the direct placement action.
 - Static verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 36 complete
+
+- Added a Free Snap one-time water button with a procedural visual, official size setting, pressed state, and Inspector field for one or more target Cell coordinates.
+- Added conditional passage Cells. A closed gate is impassable; when its assigned button is touched, it checks the two upper NE/NW Cells, copies their matching water gravity, changes to passable water, and stays open.
+- Added map validation for missing buttons, missing target Cells, non-gate targets, and invalid gate terrain/state, plus a physics regression test for one-time activation and gravity copying.
+- Documented the button/gate authoring flow in the map-element and Tile Editor GDD files.
+- Static-only verification passed: `npm run check` (31/31 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

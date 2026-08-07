@@ -315,6 +315,7 @@ test('free-snap water objects use their own position and hitbox', () => {
 test('official object and Edge settings stay explicit and resettable', () => {
   assert.deepEqual(getOfficialFreeObjectState('ink'), { size: 22, params: { visibilityRadius: 110 } });
   assert.deepEqual(getOfficialFreeObjectState('razor'), { size: 48, params: { count: 1, damage: 20, knockbackSpeed: 58, rotationSpeed: 180 } });
+  assert.deepEqual(getOfficialFreeObjectState('button'), { size: 24, params: {} });
   assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 17, params: { breakSpeed: 31, weight: 4 } });
   assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 1, params: { bounceMultiplier: 1.08 } });
   assert.equal(getFreeObjectSetting({ kind: 'mine', params: { damage: 37 } }, 'damage'), 37);
@@ -456,6 +457,27 @@ test('razor free object damages and forcibly displaces the actor', () => {
   assert.ok(events.some((event) => event.type === 'razor'));
   assert.equal(actor.health, beforeHealth - 20);
   assert.ok(Math.hypot(actor.vx, actor.vy) >= 58);
+});
+
+test('a button opens its explicitly assigned gate once and copies the two upper gravities', () => {
+  const map = createEmptyMap({ width: 3, height: 2 });
+  const gateKey = cellKeyFromColumn(1, 1);
+  patchCell(map, '1,0', { gravityLevel: 'L2' });
+  patchCell(map, '2,0', { gravityLevel: 'L2' });
+  patchCell(map, gateKey, { terrain: 'blocked', conditionalGate: { opened: false } });
+  patchCell(map, '0,0', {
+    freeObjects: [{ kind: 'button', offset: { x: 0, y: 0 }, targetGates: [gateKey] }],
+  });
+  const actor = actorIn(map, '0,0');
+  const firstEvents = stepPhysics({ map, actor, origin: ORIGIN });
+  assert.equal(getActiveCell(map, gateKey).terrain, 'water');
+  assert.equal(getActiveCell(map, gateKey).gravityLevel, 'L2');
+  assert.equal(getActiveCell(map, gateKey).conditionalGate.opened, true);
+  assert.equal(getActiveCell(map, '0,0').freeObjects[0].pressed, true);
+  assert.ok(firstEvents.some((event) => event.type === 'button'));
+
+  const secondEvents = stepPhysics({ map, actor, origin: ORIGIN });
+  assert.equal(secondEvents.some((event) => event.type === 'button'), false, 'a pressed button must not trigger again');
 });
 
 test('health is 0-100 and losing all health permanently consumes one life', () => {
