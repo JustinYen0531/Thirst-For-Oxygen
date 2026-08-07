@@ -1133,6 +1133,19 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
+  if (state.tool === 'overlay' || state.tool === 'object') {
+    applyFreeObjectTool(point);
+    render();
+    return;
+  }
+  if (state.tool === 'erase') {
+    const objectTarget = freeObjectAtPoint(point);
+    if (objectTarget) {
+      applyFreeObjectErase(objectTarget);
+      render();
+      return;
+    }
+  }
   const hitEdge = edgeAtPoint(point);
   if ((state.tool === 'edge' || state.tool === 'erase') && hitEdge) {
     applyEdgeTool(hitEdge);
