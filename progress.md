@@ -41,3 +41,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - User requested category Tabs for the direct-placement palette so one large, readable asset category is visible at a time, and removal of visible L-level text because the authored Tiles already communicate the water level by color.
 - Palette categories now map to water gravity, environment effects, Cell objects, Actor/spawns, Edge interactions, and other terrain. Gravity Tile buttons and map Cells render without L-1/L0/L1/L2/L3 text.
 - Static verification passed: 14/14 tests and Vite production build. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 7 in progress
+
+- User requested that adjoining same-type Tiles read as one continuous field, while a change of gravity level or terrain remains visibly separated. Cell rendering now lets same-water Tile rims bleed past the Cell clip and draws only a very faint shared boundary; gravity/terrain transitions and the map perimeter receive a clear dark boundary.
+- Audited all seven authored non-passable prototypes. Every source version contained one or more connector spokes/nodes; no clean unconnected version existed. Created a project runtime Tile by precisely removing only the central spoke and two nodes from the user-provided source while preserving its dark stone hex and outer rim. It is stored at `public/assets/editor/terrain/blocked-dark-stone.png` and is selectable under the water-gravity Tab; the terrain Tab retains only passable-water restoration.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.

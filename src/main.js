@@ -1,6 +1,7 @@
 import {
   ACTOR_TYPES,
   CELL_OBJECT_TYPES,
+  DIRECTIONS,
   EDGE_TYPES,
   GRAVITY_ORDER,
   HEX_SIZE,
@@ -17,6 +18,7 @@ import {
   getHexVertices,
   getDirectionVector,
   migrateMapToOddR,
+  neighborKey,
   patchCell,
   patchEdge,
   screenPointToWorldPoint,
@@ -71,6 +73,9 @@ const waterTilePaths = {
   L2: '/assets/editor/water/L2.png',
   L3: '/assets/editor/water/L3.png',
 };
+const terrainImagePaths = {
+  blocked: '/assets/editor/terrain/blocked-dark-stone.png',
+};
 const objectSymbols = {
   coralCluster: '✿',
   mine: '✹',
@@ -98,7 +103,7 @@ const edgeImagePaths = {
   spike: '/assets/editor/edges/edge-spike-barrier.png',
   barrier: '/assets/editor/edges/edge-spike-barrier.png',
 };
-const paletteImagePaths = { ...waterTilePaths, ...objectImagePaths, ...edgeImagePaths };
+const paletteImagePaths = { ...waterTilePaths, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行',
   coral: '珊瑚安全區', ink: '墨水區', coralCluster: '珊瑚群落',
@@ -112,6 +117,11 @@ const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level
   image.src = source;
   return [level, image];
 }));
+const terrainImages = Object.fromEntries(Object.entries(terrainImagePaths).map(([kind, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [kind, image];
+}));
 const objectImages = Object.fromEntries(Object.entries(objectImagePaths).map(([kind, source]) => {
   const image = new Image();
   image.src = source;
@@ -123,6 +133,7 @@ const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind,
   return [kind, image];
 }));
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
+Object.values(terrainImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(edgeImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
@@ -218,7 +229,7 @@ function setPaletteTab(tab) {
   });
 }
 
-function setTool(tool, preferredValue = null) {
+function setTool(tool, preferredValue = null, paletteTab = null) {
   state.tool = tool;
   brushValue.innerHTML = '';
   const values = toolDefinitions[tool].values;
@@ -230,7 +241,8 @@ function setTool(tool, preferredValue = null) {
   });
   if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
   brushValue.disabled = values.length === 0;
-  if (paletteRoots[tool]) setPaletteTab(tool);
+  if (paletteTab) setPaletteTab(paletteTab);
+  else if (paletteRoots[tool]) setPaletteTab(tool);
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
   setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
   updatePaletteSelection();
@@ -262,11 +274,23 @@ function createToolButtons() {
 }
 
 function createPalette() {
-  Object.entries(paletteRoots).forEach(([tool, root]) => {
-    toolDefinitions[tool].values.forEach((value) => {
+  const paletteGroups = {
+    gravity: [
+      { tool: 'gravity', values: GRAVITY_ORDER },
+      { tool: 'terrain', values: ['blocked'] },
+    ],
+    overlay: [{ tool: 'overlay', values: OVERLAY_TYPES }],
+    object: [{ tool: 'object', values: CELL_OBJECT_TYPES }],
+    actor: [{ tool: 'actor', values: ACTOR_TYPES }],
+    edge: [{ tool: 'edge', values: EDGE_TYPES }],
+    terrain: [{ tool: 'terrain', values: ['water'] }],
+  };
+  Object.entries(paletteGroups).forEach(([group, entries]) => {
+    const root = paletteRoots[group];
+    entries.forEach(({ tool, values }) => values.forEach((value) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `palette-item palette-${tool}`;
+      button.className = `palette-item palette-${tool} palette-in-${group}`;
       button.dataset.paletteTool = tool;
       button.dataset.paletteValue = value;
       const visual = document.createElement(paletteImagePaths[value] ? 'img' : 'span');
@@ -287,9 +311,9 @@ function createPalette() {
         label.textContent = paletteLabels[value] ?? value;
         button.append(visual, label);
       }
-      button.addEventListener('click', () => setTool(tool, value));
+      button.addEventListener('click', () => setTool(tool, value, group));
       root.append(button);
-    });
+    }));
   });
 }
 
@@ -327,17 +351,16 @@ function drawCell(key, cell) {
   ctx.save();
   pathHex(cell);
   ctx.clip();
-  ctx.fillStyle = cell.terrain === 'blocked' ? '#3e4249' : gravityColours[cell.gravityLevel];
+  ctx.fillStyle = cell.terrain === 'blocked' ? '#0b111b' : gravityColours[cell.gravityLevel];
   ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
-  const waterTile = waterTiles[cell.gravityLevel];
-  if (cell.terrain === 'water' && waterTile?.complete && waterTile.naturalWidth > 0) {
-    ctx.drawImage(waterTile, center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  const tile = cell.terrain === 'blocked' ? terrainImages.blocked : waterTiles[cell.gravityLevel];
+  if (tile?.complete && tile.naturalWidth > 0) {
+    // Bleed authored Tile rims beyond the clip. Shared same-type sides then read
+    // as one continuous field rather than a hard outlined hex grid.
+    const bleed = 1.12;
+    ctx.drawImage(tile, center.x - HEX_SIZE * bleed, center.y - HEX_SIZE * bleed, HEX_SIZE * 2 * bleed, HEX_SIZE * 2 * bleed);
   }
   ctx.restore();
-  pathHex(cell);
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#0c1c36';
-  ctx.stroke();
 
   cell.overlays.forEach((overlay) => drawCellAsset(overlay, center.x, center.y, HEX_SIZE * 1.8));
   cell.objects.forEach((object, index) => {
@@ -358,6 +381,55 @@ function drawCell(key, cell) {
     ctx.stroke();
     ctx.setLineDash([]);
   }
+}
+
+const sideVertexIndexes = [
+  [0, 1], // E
+  [5, 0], // NE
+  [4, 5], // NW
+  [3, 4], // W
+  [2, 3], // SW
+  [1, 2], // SE
+];
+
+function drawCellSide(cell, directionIndex, style) {
+  const vertices = getHexVertices(cell, state.origin);
+  const [startIndex, endIndex] = sideVertexIndexes[directionIndex];
+  const start = vertices[startIndex];
+  const end = vertices[endIndex];
+  ctx.save();
+  ctx.lineWidth = style.width;
+  ctx.strokeStyle = style.colour;
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function hasSameSurface(left, right) {
+  if (left.terrain !== right.terrain) return false;
+  return left.terrain === 'blocked' || left.gravityLevel === right.gravityLevel;
+}
+
+function drawTerrainBoundaries() {
+  const faintSharedBorder = { width: 0.35, colour: 'rgba(4, 16, 33, 0.12)' };
+  const clearTransitionBorder = { width: 1.8, colour: 'rgba(2, 12, 27, 0.96)' };
+  const outerBorder = { width: 1.45, colour: 'rgba(4, 17, 35, 0.92)' };
+  Object.entries(state.map.cells).forEach(([key]) => {
+    const cell = getActiveCell(state.map, key, state.chapter);
+    DIRECTIONS.forEach((_, directionIndex) => {
+      const adjacentKey = neighborKey(key, directionIndex);
+      const adjacent = state.map.cells[adjacentKey] ? getActiveCell(state.map, adjacentKey, state.chapter) : null;
+      if (!adjacent) {
+        drawCellSide(cell, directionIndex, outerBorder);
+        return;
+      }
+      // Each shared side is painted once; directions 0..2 are E, NE, NW.
+      if (directionIndex > 2) return;
+      drawCellSide(cell, directionIndex, hasSameSurface(cell, adjacent) ? faintSharedBorder : clearTransitionBorder);
+    });
+  });
 }
 
 function drawCellAsset(kind, x, y, size) {
@@ -545,6 +617,7 @@ function render() {
   ctx.scale(state.zoom, state.zoom);
   ctx.translate(-canvas.width / 2, -canvas.height / 2);
   Object.entries(state.map.cells).forEach(([key]) => drawCell(key, getActiveCell(state.map, key, state.chapter)));
+  drawTerrainBoundaries();
   drawSelectedCellNeighbours();
   drawEdges();
   drawTrajectory();
