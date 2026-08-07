@@ -19,6 +19,10 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .back-link:hover { border-color: #8feeff; background: #1b5075; }
 .guide-note { display: flex; gap: 14px; align-items: baseline; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #2b6079; border-radius: 7px; background: rgba(10, 40, 61, .72); color: #a9cbe0; font-size: 13px; line-height: 1.45; }
 .guide-note strong { color: #8df1e7; white-space: nowrap; }
+.afterimage-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; padding: 9px 12px; border: 1px solid #355d79; border-radius: 6px; color: #a7c2d4; background: rgba(11, 32, 50, .8); font-size: 12px; }
+.afterimage-toggle { display: inline-flex; align-items: center; gap: 7px; color: #e7fbff; font-weight: 700; cursor: pointer; }
+.afterimage-toggle input { width: 15px; height: 15px; margin: 0; accent-color: #73e2ed; }
+.afterimage-controls strong { color: #73e2ed; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .tier-filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
 .tier-filters button, .action-button { border: 1px solid #395c7d; border-radius: 4px; padding: 7px 10px; color: #d4e8f8; background: #10263e; }
 .tier-filters button:hover, .tier-filters button.is-active, .action-button:hover, .action-button.is-active { border-color: #8ee7ff; background: #1e5b80; }
@@ -49,4 +53,3 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .skill-values span { display: inline-flex; gap: 4px; }
 .skill-values b { color: #7faabd; font-weight: 500; }
 @media (max-width: 720px) { body { min-width: 0; } .encyclopedia-shell { padding: 20px 12px 40px; } .encyclopedia-header { align-items: start; flex-direction: column; } .guide-note { display: block; } .guide-note span { display: block; margin-top: 5px; } .enemy-grid { grid-template-columns: 1fr; } }
-

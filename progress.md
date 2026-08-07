@@ -116,3 +116,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Removed connected opaque matte backgrounds from all enemy animation GIFs while preserving the original sprite pixels and existing alpha information. The remover keys each frame from its border colour, so both pure black and the dark-blue juvenile seahorse matte are handled.
 - Updated both app assets (`public/assets/enemies`, 89 GIFs) and GDD source previews (86 GIFs): 175 GIFs / 1362 frames total. Static alpha validation reports 0 corner errors across both trees.
 - Added the repeatable `scripts/remove-gif-black-background.py` utility. `npm run check` passed (20/20 tests), `npm run build` passed, and Python syntax validation passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 16 complete
+
+- Added the shared `src/afterimage.js` profile: four historical samples, nearest opacity 28%, exponential decay 0.58, and a 3 px per-sample drift so older ghosts visibly separate from the current sprite.
+- Added a repeatable `scripts/create-gif-afterimage.py` generator and produced 89 transparent animated WebP previews under `public/assets/enemies-afterimage`. The encyclopedia now defaults to the formal trail and provides a switch to compare clean animation versus afterimage.
+- Static validation passed: 89 WebP files / 690 frames, 3,158,586 partial-alpha pixels, 0 transparent-corner errors; all 19 enemy catalog mappings resolve. `npm run check` passed (20/20 tests), `npm run build` passed, and Python syntax validation passed. Browser validation remains prohibited by user instruction.

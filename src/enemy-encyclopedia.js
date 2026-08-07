@@ -2,6 +2,8 @@ import { ENEMY_DEFINITIONS, ENEMY_ORDER } from './game-data.js';
 
 const gif = (slug) => `reconstructed-preview__${slug}.gif`;
 const root = (id) => `/assets/enemies/${id}`;
+const afterimageRoot = (id) => `/assets/enemies-afterimage/${id}`;
+const toAfterimagePath = (id, file) => `${afterimageRoot(id)}/${file.replace(/\.gif$/i, '.webp')}`;
 
 // The asset folders use the authored enemy ids after being copied into public/.
 // Keeping this mapping separate from numerical combat data lets animation work
@@ -42,6 +44,8 @@ export const ENEMY_ENCYCLOPEDIA = Object.freeze(ENEMY_ORDER.map((id) => {
     visuals: visuals ? Object.freeze({
       idle: `${root(id)}/${visuals.idle}`,
       actions: Object.freeze(Object.fromEntries(Object.entries(visuals.actions).map(([attackId, file]) => [attackId, `${root(id)}/${file}`]))),
+      afterimageIdle: toAfterimagePath(id, visuals.idle),
+      afterimageActions: Object.freeze(Object.fromEntries(Object.entries(visuals.actions).map(([attackId, file]) => [attackId, toAfterimagePath(id, file)]))),
     }) : null,
   });
 }));
@@ -67,4 +71,3 @@ export function formatAttackValue(key, value) {
   if (typeof value === 'number') return `${value}${['cooldown', 'telegraph', 'castTime', 'duration'].includes(key) ? ' 秒' : ''}`;
   return String(value);
 }
-
