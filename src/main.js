@@ -546,7 +546,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'edge' && value === 'barrier') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
   if (tool === 'edge' && value === 'layerPortal') return '層間轉接門：只能放在 T1 與 T2 相鄰的共享邊；玩家通過後即可進入另一個水域層。';
-  if (tool === 'edge' && value === 'multiPortal') return '多邊傳送門：按住滑鼠拖過貼著黑色不可通行六角形的連續邊，可畫出一整端；再畫另一端，從右側 Inspector 開始拖曳連線，兩端會逐段一對一傳送。';
+  if (tool === 'edge' && value === 'multiPortal') return '多邊傳送門：按住滑鼠拖過貼著黑色不可通行六角形的連續邊，可畫出一整端；再畫另一端，從右側 Inspector 開始拖曳連線，畫面只顯示一條大範圍總線，兩端仍會逐段一對一傳送。';
   if (tool === 'edge' && value === 'seaweed') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。物理測試按 E 可附著或離開。';
   if (tool === 'edge' && value === 'coralCluster') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。';
   return getPaletteNote(tool, value);
@@ -1098,30 +1098,20 @@ function drawButtonConnections() {
   });
 }
 
-function portalEdgeMidpoint(entry) {
-  const centerA = getHexCenter(getActiveCell(state.map, entry.a, state.chapter), state.origin);
-  const centerB = getHexCenter(getActiveCell(state.map, entry.b, state.chapter), state.origin);
-  return { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
-}
-
-function drawPortalGroupRail(groupId) {
-  const entries = getPortalGroupEdges(state.map, groupId, state.chapter);
-  if (entries.length < 2) return;
-  const points = entries.map(portalEdgeMidpoint);
+function drawPortalConnectionLine(start, end, active = false) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.5) return;
   ctx.save();
   ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(4, 9, 24, 0.94)';
-  ctx.lineWidth = 5.2;
+  ctx.globalAlpha = active ? 0.95 : 0.82;
+  ctx.strokeStyle = active ? '#f6e66d' : '#cf8bff';
+  ctx.lineWidth = active ? 2.8 : 2.4;
+  ctx.setLineDash(active ? [5, 4] : []);
   ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(109, 223, 255, 0.58)';
-  ctx.lineWidth = 2.1;
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
   ctx.stroke();
   ctx.restore();
 }
@@ -1132,6 +1122,7 @@ function drawPortalConnections() {
   Object.values(state.map.edges).forEach((edge) => {
     if (edge.type === MULTI_PORTAL_EDGE_TYPE && edge.portalGroupId) groups.add(edge.portalGroupId);
   });
+  const links = [];
   groups.forEach((groupId) => {
     const entries = getPortalGroupEdges(state.map, groupId, state.chapter);
     const targetKey = entries.find((entry) => entry.edge.portalTargetKey)?.edge.portalTargetKey;
@@ -1140,14 +1131,35 @@ function drawPortalConnections() {
     if (!targetGroupId || groupId > targetGroupId) return;
     const start = getPortalGroupAnchor(state.map, groupId, state.chapter, state.origin);
     const end = getPortalGroupAnchor(state.map, targetGroupId, state.chapter, state.origin);
-    if (start && end) {
-      drawButtonConnectionLine(start, end, '#cf8bff');
-      drawButtonConnectionLine(end, start, '#cf8bff');
+    if (start && end) links.push({ start, end });
+  });
+  // Several strokes can describe one broad portal end. Collapse nearby
+  // paired anchors into one visual link instead of drawing parallel arrows.
+  const clusters = [];
+  const clusterDistance = HEX_SIZE * 3;
+  links.forEach((link) => {
+    const cluster = clusters.find((candidate) => (
+      Math.hypot(candidate.start.x - link.start.x, candidate.start.y - link.start.y) <= clusterDistance
+      && Math.hypot(candidate.end.x - link.end.x, candidate.end.y - link.end.y) <= clusterDistance
+    ));
+    if (cluster) {
+      cluster.links.push(link);
+      cluster.start = cluster.links.reduce((sum, item) => ({
+        x: sum.x + item.start.x / cluster.links.length,
+        y: sum.y + item.start.y / cluster.links.length,
+      }), { x: 0, y: 0 });
+      cluster.end = cluster.links.reduce((sum, item) => ({
+        x: sum.x + item.end.x / cluster.links.length,
+        y: sum.y + item.end.y / cluster.links.length,
+      }), { x: 0, y: 0 });
+    } else {
+      clusters.push({ links: [link], start: link.start, end: link.end });
     }
   });
+  clusters.forEach(({ start, end }) => drawPortalConnectionLine(start, end));
   if (state.portalConnection?.pointerId !== null && state.portalConnection?.targetPoint) {
     const start = getPortalGroupAnchor(state.map, state.portalConnection.sourceGroupId, state.chapter, state.origin);
-    if (start) drawButtonConnectionLine(start, state.portalConnection.targetPoint, '#f6e66d', true);
+    if (start) drawPortalConnectionLine(start, state.portalConnection.targetPoint, true);
   }
 }
 
@@ -1275,7 +1287,6 @@ function drawArrow(origin, vector, colour = '#ebff6b', size = 1) {
 }
 
 function drawEdges() {
-  const drawnPortalGroups = new Set();
   allMapEdges(state.map).forEach(({ key, a, b }) => {
     const edge = getActiveEdge(state.map, key, state.chapter);
     if (!edge || edge.type === 'none') return;
@@ -1294,10 +1305,6 @@ function drawEdges() {
     if (edge.type === 'layerPortal' && shared) {
       drawLayerPortal(shared, centerA, centerB, cellA, cellB, size);
       return;
-    }
-    if (edge.type === MULTI_PORTAL_EDGE_TYPE && edge.portalGroupId && !drawnPortalGroups.has(edge.portalGroupId)) {
-      drawnPortalGroups.add(edge.portalGroupId);
-      drawPortalGroupRail(edge.portalGroupId);
     }
     const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
     const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
