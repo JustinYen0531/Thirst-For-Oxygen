@@ -459,19 +459,19 @@ test('razor free object damages and forcibly displaces the actor', () => {
   assert.ok(Math.hypot(actor.vx, actor.vy) >= 58);
 });
 
-test('a button opens its explicitly assigned gate once and copies the two upper gravities', () => {
+test('a button opens its explicitly assigned gate once and keeps the gate at L1', () => {
   const map = createEmptyMap({ width: 3, height: 2 });
   const gateKey = cellKeyFromColumn(1, 1);
-  patchCell(map, '1,0', { gravityLevel: 'L2' });
-  patchCell(map, '2,0', { gravityLevel: 'L2' });
-  patchCell(map, gateKey, { terrain: 'blocked', conditionalGate: { opened: false } });
+  patchCell(map, '1,0', { gravityLevel: 'L3' });
+  patchCell(map, '2,0', { gravityLevel: 'L-1' });
+  patchCell(map, gateKey, { terrain: 'blocked', gravityLevel: 'L1', conditionalGate: { opened: false } });
   patchCell(map, '0,0', {
     freeObjects: [{ kind: 'button', offset: { x: 0, y: 0 }, targetGates: [gateKey] }],
   });
   const actor = actorIn(map, '0,0');
   const firstEvents = stepPhysics({ map, actor, origin: ORIGIN });
   assert.equal(getActiveCell(map, gateKey).terrain, 'water');
-  assert.equal(getActiveCell(map, gateKey).gravityLevel, 'L2');
+  assert.equal(getActiveCell(map, gateKey).gravityLevel, 'L1');
   assert.equal(getActiveCell(map, gateKey).conditionalGate.opened, true);
   assert.equal(getActiveCell(map, '0,0').freeObjects[0].pressed, true);
   assert.ok(firstEvents.some((event) => event.type === 'button'));

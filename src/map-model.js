@@ -353,6 +353,9 @@ export function validateMap(map) {
     if (cell.conditionalGate?.opened && cell.terrain !== 'water') {
       results.push({ level: 'error', message: `${key} 條件通行門已開啟，但地形仍不是可通行水域。` });
     }
+    if (cell.conditionalGate && cell.gravityLevel !== 'L1') {
+      results.push({ level: 'error', message: `${key} 條件通行門必須固定使用 L1 水域重力。` });
+    }
     if (cell.conditionalGate && !cell.conditionalGate.opened && cell.terrain !== 'blocked') {
       results.push({ level: 'error', message: `${key} 條件通行門尚未開啟，但地形不是不可通行。` });
     }

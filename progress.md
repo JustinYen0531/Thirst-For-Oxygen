@@ -298,3 +298,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added map validation for missing buttons, missing target Cells, non-gate targets, and invalid gate terrain/state, plus a physics regression test for one-time activation and gravity copying.
 - Documented the button/gate authoring flow in the map-element and Tile Editor GDD files.
 - Static-only verification passed: `npm run check` (31/31 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 37 complete
+
+- Reworked conditional passage gates as a new full-Cell gravity Tile type, alongside L-1/L0/L1/L2/L3, with a fixed `L1` gravity level.
+- Generated and integrated `conditional-L1.png`: the closed state is an L1 water tile sealed by crossed chains; the open state uses the brighter regular L1 water tile and keeps the same L1 gravity.
+- Removed the previous incorrect behavior that copied gravity from the two Cells above the gate. The palette now places the conditional gate directly as a gravity Cell tool, and Inspector designation also forces L1.
+- Removed the generated image's black surround with the chroma-key helper and verified transparent corners (`RGBA`, alpha `0`).
+- Static-only verification passed: `npm run check` (31/31 tests), `npm run build`, `git diff --check`, and the conditional gate alpha check. Browser and Playwright checks remain prohibited by user instruction.

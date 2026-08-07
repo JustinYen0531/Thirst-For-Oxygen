@@ -110,6 +110,7 @@ const waterTilePaths = {
   L2: '/assets/editor/water/L2.png',
   L3: '/assets/editor/water/L3.png',
 };
+const conditionalGatePath = '/assets/editor/water/conditional-L1.png';
 const terrainImagePaths = {
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
 };
@@ -148,12 +149,13 @@ const edgeImagePaths = {
   seaweed: '/assets/editor/objects/sea-grass.png',
   coralCluster: '/assets/editor/objects/coral-cluster.png',
 };
-const paletteImagePaths = { ...waterTilePaths, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
+const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
   ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
   checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀', button: '一次性開門按鈕',
+  conditionalGate: '條件通行門（L1）',
   noGate: '不是條件通行門', buttonGate: '條件通行門',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
   none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
@@ -163,6 +165,8 @@ const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level
   image.src = source;
   return [level, image];
 }));
+const conditionalGateImage = new Image();
+conditionalGateImage.src = conditionalGatePath;
 const terrainImages = Object.fromEntries(Object.entries(terrainImagePaths).map(([kind, source]) => {
   const image = new Image();
   image.src = source;
@@ -184,6 +188,7 @@ const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind,
   return [kind, image];
 }));
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
+conditionalGateImage.addEventListener('load', () => render());
 Object.values(terrainImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(componentImages).forEach((image) => image.addEventListener('load', () => render()));
@@ -197,7 +202,7 @@ const actorSymbols = {
 const toolDefinitions = {
   select: { label: '選取', values: [] },
   terrain: { label: '地形', values: TERRAIN_TYPES },
-  gravity: { label: '重力', values: GRAVITY_ORDER },
+  gravity: { label: '重力', values: [...GRAVITY_ORDER, 'conditionalGate'] },
   overlay: { label: '環境效果', values: OVERLAY_TYPES },
   object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
   actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
@@ -397,7 +402,7 @@ function createToolButtons() {
 function createPalette() {
   const paletteGroups = {
     gravity: [
-      { tool: 'gravity', values: GRAVITY_ORDER },
+      { tool: 'gravity', values: [...GRAVITY_ORDER, 'conditionalGate'] },
       { tool: 'terrain', values: ['blocked'] },
     ],
     overlay: [
@@ -484,6 +489,7 @@ function createPaletteVisual(tool, value) {
 
 function getPaletteDescription(tool, value) {
   if (tool === 'gravity') {
+    if (value === 'conditionalGate') return '整格水域重力 Tile：固定為 L1。關閉時由鎖鏈交叉封住且不可通行；按鈕開啟後解除鎖鏈，顯示較亮的 L1 水域，不會複製其他格子的重力。';
     return ({
       'L-1': '向上 1.0G：把角色往上推。',
       L0: '零重力：保留慣性，不產生垂直加速度。',
@@ -835,14 +841,20 @@ function drawCellSurface(cell) {
   ctx.save();
   pathHex(cell);
   ctx.clip();
-  ctx.fillStyle = cell.terrain === 'blocked' ? '#0b111b' : gravityColours[cell.gravityLevel];
+  const isGate = Boolean(cell.conditionalGate);
+  const isClosedGate = isGate && !cell.conditionalGate.opened;
+  ctx.fillStyle = isClosedGate ? gravityColours.L1 : (cell.terrain === 'blocked' ? '#0b111b' : gravityColours[cell.gravityLevel]);
   ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
-  const tile = cell.terrain === 'blocked' ? terrainImages.blocked : waterTiles[cell.gravityLevel];
+  const tile = isClosedGate ? conditionalGateImage : (cell.terrain === 'blocked' ? terrainImages.blocked : waterTiles[cell.gravityLevel]);
   if (tile?.complete && tile.naturalWidth > 0) {
     // Bleed authored Tile rims beyond the clip. Shared same-type sides then read
     // as one continuous field rather than a hard outlined hex grid.
     const bleed = 1.12;
     ctx.drawImage(tile, center.x - HEX_SIZE * bleed, center.y - HEX_SIZE * bleed, HEX_SIZE * 2 * bleed, HEX_SIZE * 2 * bleed);
+  }
+  if (isGate) {
+    ctx.fillStyle = isClosedGate ? 'rgba(4, 12, 28, 0.24)' : 'rgba(214, 250, 255, 0.18)';
+    ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
   if (cell.waterLayer === 'T2') {
     // T2 is the same water family, only visually deeper; keep L1/L2 colour
@@ -852,9 +864,6 @@ function drawCellSurface(cell) {
   }
   if (cell.terrain === 'water') drawWaterMotion(cell, center);
   ctx.restore();
-  if (cell.conditionalGate && !cell.conditionalGate.opened) {
-    drawText('▣', center.x, center.y, { font: 'bold 9px system-ui', fill: '#ffd477' });
-  }
 }
 
 function drawWaterMotion(cell, center) {
@@ -1518,7 +1527,10 @@ function updateSelectedCell(values = {}, reset = false) {
     ? { ...(cell.conditionalGate ?? {}), opened: Boolean(cell.conditionalGate?.opened) }
     : null;
   const patch = { waterLayer: nextLayer, conditionalGate: gate };
-  if (gateType === 'buttonGate' && !gate.opened) patch.terrain = 'blocked';
+  if (gateType === 'buttonGate') {
+    patch.gravityLevel = 'L1';
+    if (!gate.opened) patch.terrain = 'blocked';
+  }
   patchCell(state.map, key, patch, state.chapter);
   markDirty(reset
     ? `${key} 已恢復水域層級與條件通行設定官方預設。`
@@ -1530,7 +1542,7 @@ function updateSelectedCell(values = {}, reset = false) {
 function renderCellInspector(cell) {
   const signature = JSON.stringify({ key: state.selectedCellKey, gravity: cell.gravityLevel, waterLayer: cell.waterLayer, conditionalGate: cell.conditionalGate, chapter: state.chapter });
   setInspector(signature, () => {
-    appendInspectorHeader(`${paletteLabels[cell.gravityLevel] ?? cell.gravityLevel}・可調參數`, '可在這裡選擇水域層級，或把這格標成條件通行門。條件通行門會先保持不可通行，開啟後才複製上方兩格相同的水域重力。');
+    appendInspectorHeader(`${cell.conditionalGate ? '條件通行門（L1）' : (paletteLabels[cell.gravityLevel] ?? cell.gravityLevel)}・可調參數`, '條件通行門是整格水域重力 Tile，固定為 L1。關閉時鎖鏈封住且不可通行；開啟後只會變亮並恢復 L1 水域效果。');
     const fieldList = document.createElement('div');
     fieldList.className = 'inspector-fields';
     appendInspectorSelect(fieldList, { key: 'waterLayer', label: '水域層級', options: WATER_LAYERS, defaultValue: 'T1' }, cell.waterLayer ?? 'T1', (value) => updateSelectedCell({ waterLayer: value }));
@@ -1793,7 +1805,11 @@ function applyCellTool(key) {
     return;
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
-  if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
+  if (state.tool === 'gravity') {
+    patchCell(state.map, key, value === 'conditionalGate'
+      ? { terrain: 'blocked', gravityLevel: 'L1', conditionalGate: { opened: false } }
+      : { terrain: 'water', gravityLevel: value, conditionalGate: null }, state.chapter);
+  }
   if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
     setStatus('水域上物件現在是自由放置，不會吸附到這個六角格。');
     return;
@@ -1833,7 +1849,11 @@ function paintCell(key) {
   state.selectedCellKey = key;
   state.selectedEdgeKey = null;
   state.selectedMapObject = null;
-  if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: brushValue.value }, state.chapter);
+  if (state.tool === 'gravity') {
+    patchCell(state.map, key, brushValue.value === 'conditionalGate'
+      ? { terrain: 'blocked', gravityLevel: 'L1', conditionalGate: { opened: false } }
+      : { terrain: 'water', gravityLevel: brushValue.value, conditionalGate: null }, state.chapter);
+  }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: brushValue.value }, state.chapter);
   return true;
 }

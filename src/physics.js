@@ -486,17 +486,9 @@ function openConditionalGate(map, gateKey, chapter, events, mutateMap) {
   const gate = getActiveCell(map, gateKey, chapter);
   if (!gate?.conditionalGate || gate.conditionalGate.opened) return false;
   if (!mutateMap) return false;
-  const upperCells = [neighborKey(gateKey, 1), neighborKey(gateKey, 2)]
-    .map((key) => getActiveCell(map, key, chapter));
-  const canCopyGravity = upperCells.every((cell) => cell?.terrain === 'water')
-    && upperCells[0].gravityLevel === upperCells[1].gravityLevel;
-  if (!canCopyGravity) {
-    addEvent(events, 'buttonBlocked', `按鈕：${gateKey} 上方兩格的水域重力不一致或不是水域，門仍然關閉。`);
-    return false;
-  }
   patchCell(map, gateKey, {
     terrain: 'water',
-    gravityLevel: upperCells[0].gravityLevel,
+    gravityLevel: 'L1',
     conditionalGate: { ...gate.conditionalGate, opened: true },
   }, chapter);
   return true;
