@@ -215,3 +215,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the object-filled demo map with a blank 24×17 authoring map: every Cell is passable `L0`/`T1` water, with no overlays, water objects, Actors, Edges, or chapter overrides.
 - Retired the previous browser-local `v1` demo storage key and moved authored persistence to `v2`; the first refresh clears the old demo once, while later deliberate saves continue to persist normally.
 - Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 26 complete
+
+- Fixed Free Snap placement crash: the placement path now calculates the target Cell centre explicitly instead of reading a missing `nearest.center` value.
+- Added a visible water-object positioning selector with `自由放置` and `六邊形中央`; clicks in narrow geometric gaps resolve to the nearest water Cell, while blocked Cells remain rejected.
+- Reworked the side clip to process each odd-r row independently, so both left and right outer Cells lose the same protruding half-Cell instead of alternating between a half and a full Cell.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

@@ -28,7 +28,12 @@
           <div id="tool-buttons" class="button-stack"></div>
           <label for="brush-value">目前筆刷</label>
           <select id="brush-value"></select>
-          <p class="hint">水域上物件直接點可通行水域格；邊緣沾黏物件請點兩格中間的六角邊。</p>
+          <label for="object-placement-mode">水域物件定位</label>
+          <select id="object-placement-mode">
+            <option value="free">自由放置</option>
+            <option value="center">六邊形中央</option>
+          </select>
+          <p class="hint">水域上物件可選自由放置或六邊形中央；邊緣沾黏物件請點兩格中間的六角邊。</p>
 
           <h2>地圖</h2>
           <label for="chapter-select">章節狀態</label>

@@ -64,6 +64,7 @@ const canvasViewport = document.querySelector('#map-viewport');
 const statusLine = document.querySelector('#status-line');
 const toolButtons = document.querySelector('#tool-buttons');
 const brushValue = document.querySelector('#brush-value');
+const objectPlacementMode = document.querySelector('#object-placement-mode');
 const chapterSelect = document.querySelector('#chapter-select');
 const currentDirection = document.querySelector('#current-direction');
 const currentStrength = document.querySelector('#current-strength');
@@ -318,6 +319,7 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   });
   if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
   brushValue.disabled = values.length === 0;
+  objectPlacementMode.disabled = !['overlay', 'object'].includes(tool);
   if (paletteTab) setPaletteTab(paletteTab);
   else if (paletteRoots[tool]) setPaletteTab(tool);
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
@@ -493,10 +495,25 @@ function getMapRenderBounds() {
 
 function clipToMapSideBoundaries(bounds) {
   ctx.beginPath();
-  // Only straighten the alternating left/right half-Cell tips. Clipping the
-  // vertical range would erase valid water rows when an imported map has an
-  // unexpected extent, which is exactly the opposite of a visual trim.
-  ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
+  // Each odd-r row has a different horizontal offset. A single global rect
+  // therefore makes one side retain a full outer Cell on alternating rows.
+  // Clip every row between its outer Cell centres instead: both sides lose
+  // exactly the protruding half-Cell, while the row intervals overlap so no
+  // authored water band is removed vertically.
+  const rows = new Map();
+  Object.values(state.map.cells).forEach((cell) => {
+    const center = getHexCenter(cell, state.origin);
+    const row = Number(cell.r);
+    const current = rows.get(row) ?? { y: center.y, left: center.x, right: center.x };
+    current.left = Math.min(current.left, center.x);
+    current.right = Math.max(current.right, center.x);
+    rows.set(row, current);
+  });
+  if (!rows.size) {
+    ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
+  } else {
+    rows.forEach(({ y, left, right }) => ctx.rect(left, y - HEX_SIZE, Math.max(1, right - left), HEX_SIZE * 2));
+  }
   ctx.clip();
 }
 
@@ -646,6 +663,31 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
   syncCanvasGeometry(state.map, state.zoom);
   state.origin = calculateMapOrigin(state.map, state.zoom);
   return findCellContainingPoint(state.map, point, state.chapter, state.origin);
+}
+
+function getWaterObjectCellAtPoint(point, allowExtend = false) {
+  const hit = allowExtend
+    ? getOrExtendCellAtPoint(point, true)
+    : findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  if (hit) return hit;
+
+  // A click on a thin geometric gap between two pointy-top hexagons should
+  // still resolve to the nearest existing water Cell. This keeps Free Snap
+  // usable without weakening the map's width boundary.
+  const nearest = findNearestCell(point);
+  const bounds = getMapRenderBounds();
+  const insideEditorWidth = point.x >= bounds.left - HEX_SIZE
+    && point.x <= bounds.right + HEX_SIZE;
+  const insideEditorHeight = point.y >= bounds.top - HEX_SIZE
+    && point.y <= bounds.bottom + MAP_ROW_STEP;
+  if (!nearest || !insideEditorWidth || !insideEditorHeight) return null;
+  return { key: nearest.key, cell: nearest.cell };
+}
+
+function getFreeObjectPlacementPoint(point) {
+  if (objectPlacementMode.value !== 'center') return point;
+  const target = getWaterObjectCellAtPoint(point, false);
+  return target ? getHexCenter(target.cell, state.origin) : point;
 }
 
 function getCellPreviewAtPoint(point) {
@@ -1022,7 +1064,8 @@ function drawPlacementPreview() {
     return;
   }
   if (state.tool === 'overlay' || state.tool === 'object') {
-    drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, state.hoverPoint, '#f6e66d', 0.82);
+    const previewPoint = getFreeObjectPlacementPoint(state.hoverPoint);
+    drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, previewPoint, '#f6e66d', 0.82);
     return;
   }
   const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
@@ -1456,18 +1499,24 @@ function addOrRemove(values, value) {
 }
 
 function applyFreeObjectTool(point) {
-  const nearest = getOrExtendCellAtPoint(point, true);
+  const nearest = getWaterObjectCellAtPoint(point, true);
   if (!nearest) {
     setStatus('請在地圖寬度內放置素材；地圖可以向下繼續延伸。');
     return;
   }
+  if (nearest.cell.terrain !== 'water') {
+    setStatus('水域上物件只能放在水域格。');
+    return;
+  }
   const value = brushValue.value;
   const editable = getEditableCell(state.map, nearest.key, state.chapter);
+  const center = getHexCenter(nearest.cell, state.origin);
+  const placementPoint = objectPlacementMode.value === 'center' ? center : point;
   const freeObjects = [
     ...(editable.freeObjects ?? []),
     {
       kind: value,
-      offset: { x: point.x - nearest.center.x, y: point.y - nearest.center.y },
+      offset: { x: placementPoint.x - center.x, y: placementPoint.y - center.y },
       ...getOfficialFreeObjectState(value),
     },
   ];
@@ -1475,7 +1524,8 @@ function applyFreeObjectTool(point) {
   state.selectedMapObject = { storage: 'free', key: nearest.key, index: freeObjects.length - 1 };
   state.selectedCellKey = null;
   state.selectedEdgeKey = null;
-  markDirty(`已自由放置${paletteLabels[value] ?? value}；右側 Inspector 可調整參數或回復官方預設。`);
+  const placementLabel = objectPlacementMode.value === 'center' ? '中央放置' : '自由放置';
+  markDirty(`已${placementLabel}${paletteLabels[value] ?? value}；右側 Inspector 可調整參數或回復官方預設。`);
 }
 
 function applyFreeObjectErase(target) {
@@ -1845,5 +1895,5 @@ createPalette();
 setPaletteTab('gravity');
 setTool('select');
 state.validation = validateMap(state.map);
-dirtyIndicator.textContent = '示範地圖已載入；可直接修改或匯入自己的 JSON。';
+dirtyIndicator.textContent = '編輯器已就緒；新地圖從空白 L0 水域開始，儲存後刷新會保留本機版本。';
 requestAnimationFrame(animationFrame);
