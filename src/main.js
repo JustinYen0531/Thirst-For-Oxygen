@@ -35,7 +35,10 @@ import {
   MAX_HEALTH,
   MAX_OXYGEN,
   predictTrajectory,
+  registerPlayerDeath,
+  respawnActor,
   resetTestActor,
+  startTestRun,
   stepPhysics,
   toggleSeaweedAttachment,
 } from './physics.js';
@@ -57,6 +60,8 @@ const playerHud = document.querySelector('#player-hud');
 const hudMode = document.querySelector('#hud-mode');
 const hudHealth = document.querySelector('#hud-health');
 const hudHealthValue = document.querySelector('#hud-health-value');
+const hudLives = document.querySelector('#hud-lives');
+const hudLivesValue = document.querySelector('#hud-lives-value');
 const hudOxygen = document.querySelector('#hud-oxygen');
 const hudOxygenValue = document.querySelector('#hud-oxygen-value');
 const hudEnergy = document.querySelector('#hud-energy');
@@ -647,9 +652,11 @@ function renderHud() {
   const actor = state.actor;
   const preview = state.mode !== 'play';
   playerHud.classList.toggle('is-preview', preview);
-  hudMode.textContent = preview ? 'HUD 預覽' : '測試玩家';
-  hudHealth.textContent = `${'♥'.repeat(actor.health)}${'♡'.repeat(MAX_HEALTH - actor.health)}`;
-  hudHealthValue.textContent = `${actor.health}/${MAX_HEALTH}`;
+  playerHud.classList.toggle('is-game-over', actor.gameOver);
+  hudMode.textContent = actor.gameOver ? '永久死亡：請重新開始測試' : (preview ? 'HUD 預覽' : '測試玩家');
+  updateHudBar(hudHealth, hudHealthValue, actor.health, MAX_HEALTH);
+  hudLives.textContent = `${'●'.repeat(actor.lives)}${'○'.repeat(actor.maxLives - actor.lives)}`;
+  hudLivesValue.textContent = `${actor.lives}/${actor.maxLives}`;
   updateHudBar(hudOxygen, hudOxygenValue, actor.oxygen, MAX_OXYGEN);
   updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
 }
@@ -804,7 +811,7 @@ function recordEvents(events) {
 }
 
 function stepGame() {
-  if (state.mode !== 'play') return;
+  if (state.mode !== 'play' || state.actor.gameOver) return;
   if (state.dragging) {
     drainAimEnergy(state.actor, FIXED_STEP);
     if (state.actor.energy <= 0) {
@@ -815,9 +822,13 @@ function stepGame() {
   const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS });
   if (state.actor.health <= 0 || state.actor.oxygen <= 0) {
     const cause = state.actor.health <= 0 ? '生命歸零' : '氧氣歸零';
-    const spawn = state.actor.spawn;
-    Object.assign(state.actor, createTestActor(spawn));
-    recordEvents([{ type: 'respawn', message: `${cause}：已回到最近 Checkpoint。` }]);
+    const death = registerPlayerDeath(state.actor, cause);
+    if (death.gameOver) {
+      recordEvents([{ type: 'gameOver', message: `${cause}：最後一條命已失去，永久死亡；請重新開始物理測試。` }]);
+    } else {
+      respawnActor(state.actor, state.actor.spawn);
+      recordEvents([{ type: 'respawn', message: `${cause}：失去 1 條命，剩餘 ${death.livesRemaining} 條命，已回到最近 Checkpoint。` }]);
+    }
   }
   recordEvents(events);
 }
@@ -883,7 +894,7 @@ function setMode(mode) {
   state.dragging = null;
   state.accumulator = 0;
   if (mode === 'play') {
-    resetTestActor(state.actor, state.map, state.chapter, state.origin);
+    startTestRun(state.actor, state.map, state.chapter, state.origin);
     setStatus('物理測試已開始：拖曳玩家並放開以彈射。');
   } else setStatus('回到編輯模式。');
   render();
@@ -996,8 +1007,10 @@ window.render_game_to_text = () => {
     player: {
       x: formatNumber(state.actor.x), y: formatNumber(state.actor.y),
       vx: formatNumber(state.actor.vx), vy: formatNumber(state.actor.vy),
-      cell: actorCell, health: state.actor.health, oxygen: formatNumber(state.actor.oxygen),
+      cell: actorCell, health: formatNumber(state.actor.health), healthMax: MAX_HEALTH,
+      oxygen: formatNumber(state.actor.oxygen), oxygenMax: MAX_OXYGEN,
       energy: formatNumber(state.actor.energy), attached: state.actor.attached,
+      lives: state.actor.lives, maxLives: state.actor.maxLives, gameOver: state.actor.gameOver,
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },

@@ -1,0 +1,239 @@
+// Central numerical contracts for the player build, weapons, and hostile roster.
+// These are initial balance values: the structure is fixed, while numbers remain
+// intentionally easy to tune once authored sprites and playtest data arrive.
+
+export const RESOURCE_LIMITS = Object.freeze({
+  health: 100,
+  oxygen: 100,
+  energy: 100,
+  lives: 3,
+});
+
+export const PLAYER_BASE_STATS = Object.freeze({
+  launchOxygenCostMultiplier: 1,
+  launchEnergyCostMultiplier: 1,
+  weaponEnergyCostMultiplier: 1,
+  aimEnergyCostMultiplier: 1,
+  maxOxygenMultiplier: 1,
+  damageMultiplier: 1,
+  rangedDamageTakenMultiplier: 1,
+  lowOxygenDamageTakenMultiplier: 1,
+  killEnergyRecoveryRatio: 0,
+  killOxygenRecoveryRatio: 0,
+  resourceRecoveryHealthRatio: 0,
+  shieldThresholdRatio: 0,
+  shieldDuration: 0,
+  shieldCooldown: 0,
+  highOxygenDamageMultiplier: 1,
+});
+
+export const PASSIVE_ABILITIES = Object.freeze({
+  oxygenCirculator: {
+    id: 'oxygenCirculator',
+    name: '氧循環器',
+    maxLevel: 3,
+    levels: {
+      1: { launchOxygenCostMultiplier: 0.9 },
+      2: { maxOxygenMultiplier: 1.2 },
+      3: { launchEnergyCostMultiplier: 0.7, weaponEnergyCostMultiplier: 0.7, lowOxygenDamageTakenMultiplier: 0.85 },
+    },
+  },
+  pressureStabilizer: {
+    id: 'pressureStabilizer',
+    name: '潮壓穩定器',
+    maxLevel: 3,
+    levels: {
+      1: { aimEnergyCostMultiplier: 0.9, launchEnergyCostMultiplier: 0.9, weaponEnergyCostMultiplier: 0.9 },
+      2: { aimEnergyCostMultiplier: 0.8, launchEnergyCostMultiplier: 0.8, weaponEnergyCostMultiplier: 0.8, killEnergyRecoveryRatio: 0.05 },
+      3: { aimEnergyCostMultiplier: 0.7, launchEnergyCostMultiplier: 0.7, weaponEnergyCostMultiplier: 0.7, killEnergyRecoveryRatio: 0.08, killOxygenRecoveryRatio: 0.04 },
+    },
+  },
+  ecologicalCarapace: {
+    id: 'ecologicalCarapace',
+    name: '生態甲殼',
+    maxLevel: 3,
+    levels: {
+      1: { rangedDamageTakenMultiplier: 0.8 },
+      2: { rangedDamageTakenMultiplier: 0.8, shieldThresholdRatio: 0.2, shieldDuration: 2, shieldCooldown: 8 },
+      3: { rangedDamageTakenMultiplier: 0.8, shieldThresholdRatio: 0.2, shieldDuration: 2, shieldCooldown: 8, resourceRecoveryHealthRatio: 0.5 },
+    },
+  },
+  abyssalAmplifier: {
+    id: 'abyssalAmplifier',
+    name: '深淵增幅器',
+    maxLevel: 3,
+    levels: {
+      1: { damageMultiplier: 1.1 },
+      2: { damageMultiplier: 1.2 },
+      3: { damageMultiplier: 1.3, highOxygenDamageMultiplier: 1.15 },
+    },
+  },
+});
+
+export const WEAPONS = Object.freeze({
+  knife: {
+    id: 'knife', name: '小刀', type: 'melee', maxLevel: 3,
+    levels: {
+      1: { damage: 18, range: 42, cooldown: 0.45, energyCost: 4, hitArcDegrees: 70 },
+      2: { damage: 24, range: 46, cooldown: 0.4, energyCost: 4, hitArcDegrees: 78 },
+      3: { damage: 32, range: 50, cooldown: 0.34, energyCost: 4, hitArcDegrees: 86 },
+    },
+  },
+  katana: {
+    id: 'katana', name: '武士刀', type: 'melee', maxLevel: 3,
+    levels: {
+      1: { damage: 28, range: 58, cooldown: 0.75, energyCost: 8, hitArcDegrees: 105 },
+      2: { damage: 38, range: 64, cooldown: 0.68, energyCost: 8, hitArcDegrees: 115 },
+      3: { damage: 52, range: 70, cooldown: 0.58, energyCost: 8, hitArcDegrees: 125 },
+    },
+  },
+  trident: {
+    id: 'trident', name: '三叉戟', type: 'projectile', maxLevel: 3,
+    levels: {
+      1: { damage: 20, projectileSpeed: 300, range: 360, cooldown: 0.7, energyCost: 6, projectileCount: 1 },
+      2: { damage: 27, projectileSpeed: 330, range: 390, cooldown: 0.62, energyCost: 6, projectileCount: 1 },
+      3: { damage: 36, projectileSpeed: 360, range: 420, cooldown: 0.54, energyCost: 6, projectileCount: 3, spreadDegrees: 12 },
+    },
+  },
+  lightMachineGun: {
+    id: 'lightMachineGun', name: '輕量機槍', type: 'projectile', maxLevel: 3,
+    levels: {
+      1: { damage: 8, projectileSpeed: 430, range: 420, cooldown: 0.14, energyCost: 2, projectileCount: 1, spreadDegrees: 4 },
+      2: { damage: 11, projectileSpeed: 460, range: 450, cooldown: 0.12, energyCost: 2, projectileCount: 1, spreadDegrees: 5 },
+      3: { damage: 14, projectileSpeed: 490, range: 480, cooldown: 0.1, energyCost: 2, projectileCount: 2, spreadDegrees: 8 },
+    },
+  },
+});
+
+const attack = (id, name, type, values) => Object.freeze({ id, name, type, damage: 0, cooldown: 0, ...values });
+
+export const ENEMY_DEFINITIONS = Object.freeze({
+  explodingLanternfish: {
+    id: 'explodingLanternfish', name: '爆腹燈籠魚', tier: 1, role: 'suicideMelee', maxHealth: 70, moveSpeed: 82,
+    attacks: [attack('contactExplosion', '接觸爆炸', 'contact', { damage: 28, radius: 52, telegraph: 0.35, cooldown: 0 })],
+  },
+  juvenileSeahorseCaller: {
+    id: 'juvenileSeahorseCaller', name: '求援幼年海馬', tier: 1, role: 'support', maxHealth: 45, moveSpeed: 0,
+    attacks: [attack('callForHelp', '求援呼叫', 'summon', { damage: 0, castTime: 6, cooldown: 12, summonRadius: 190, summonCount: 2 })],
+  },
+  crabGuard: {
+    id: 'crabGuard', name: '螃蟹守衛', tier: 2, role: 'melee', maxHealth: 150, moveSpeed: 52,
+    attacks: [attack('clawSwipe', '巨螯揮擊', 'melee', { damage: 16, range: 46, cooldown: 1.1 }), attack('dashClamp', '衝刺夾擊', 'dash', { damage: 28, range: 150, telegraph: 0.65, cooldown: 3.8 })],
+  },
+  lobsterSoldier: {
+    id: 'lobsterSoldier', name: '龍蝦士兵', tier: 2, role: 'hybrid', maxHealth: 125, moveSpeed: 58,
+    attacks: [attack('longClawStab', '長螯刺擊', 'melee', { damage: 18, range: 60, cooldown: 1.2 }), attack('spearThrow', '投擲長矛／珊瑚刺', 'projectile', { damage: 24, projectileSpeed: 260, range: 320, cooldown: 2.6 })],
+  },
+  lionfishGunner: {
+    id: 'lionfishGunner', name: '獅子魚砲手', tier: 2, role: 'ranged', maxHealth: 95, moveSpeed: 28,
+    attacks: [attack('venomStraightShot', '毒刺直射', 'projectile', { damage: 14, projectileSpeed: 380, range: 440, cooldown: 1.35, applies: 'venom', duration: 3 }), attack('spineScatter', '棘刺散射', 'spread', { damage: 10, projectileSpeed: 250, range: 270, projectileCount: 5, spreadDegrees: 42, cooldown: 3.4 })],
+  },
+  squidAssassin: {
+    id: 'squidAssassin', name: '魷魚刺客', tier: 2, role: 'ambush', maxHealth: 115, moveSpeed: 74,
+    attacks: [attack('inkShadowSlash', '墨影瞬移斬', 'teleportMelee', { damage: 26, range: 56, telegraph: 0.7, cooldown: 3.2, inkDuration: 2 }), attack('inkGunSnipe', '墨槍狙擊', 'projectile', { damage: 22, projectileSpeed: 520, range: 520, telegraph: 1, cooldown: 4.5 })],
+  },
+  splitLanternfish: {
+    id: 'splitLanternfish', name: '裂殖燈籠魚', tier: 3, role: 'splitSuicide', maxHealth: 100, moveSpeed: 100,
+    attacks: [attack('splitRush', '裂殖衝撞', 'contact', { damage: 24, radius: 48, telegraph: 0.3, cooldown: 0 }), attack('splitOnDeath', '死亡分裂', 'split', { damage: 0, childCount: 2, childHealth: 28, childSpeed: 122, childExplosionDamage: 16, childExplosionRadius: 34 })],
+  },
+  coralBackSeahorse: {
+    id: 'coralBackSeahorse', name: '珊瑚背海馬', tier: 3, role: 'linkedSupport', maxHealth: 180, moveSpeed: 0,
+    attacks: [attack('lifeLink', '生命連結', 'link', { damage: 0, linkRange: 180, healPerSecondRatio: 0.03, linkedInvulnerable: true }), attack('coralPulse', '珊瑚脈衝', 'supportPulse', { damage: 0, cooldown: 5, healRatio: 0.08, radius: 110 })],
+  },
+  mantisShrimpBrute: {
+    id: 'mantisShrimpBrute', name: '蝦蛄戰將', tier: 3, role: 'meleeElite', maxHealth: 360, moveSpeed: 62,
+    attacks: [attack('punch', '拳甲蓄力／拳擊', 'melee', { damage: 26, range: 54, telegraph: 0.45, cooldown: 1.05 }), attack('groundSmash', '震海重擊', 'areaStun', { damage: 32, radius: 96, stun: 1.2, telegraph: 0.8, cooldown: 4.8 }), attack('beaconAssault', '信標突襲', 'teleportMelee', { damage: 38, telegraph: 0.8, cooldown: 5.5 })],
+  },
+  nautilusOracle: {
+    id: 'nautilusOracle', name: '鸚鵡螺祭司', tier: 3, role: 'rangedElite', maxHealth: 260, moveSpeed: 22,
+    attacks: [attack('shortThrust', '前方短距離刺擊', 'melee', { damage: 14, range: 42, cooldown: 1.3 }), attack('coralMortar', '迫擊珊瑚彈', 'lobbed', { damage: 30, radius: 56, telegraph: 1.1, cooldown: 3.8 }), attack('dualCoreMagic', '雙核魔彈', 'projectile', { damage: 11, projectileCount: 2, projectileSpeed: 300, range: 380, cooldown: 2.4 })],
+  },
+  arcTideRay: {
+    id: 'arcTideRay', name: '弧潮獵鰩', tier: 3, role: 'antiCoverArtillery', maxHealth: 300, moveSpeed: 34,
+    attacks: [attack('wingRam', '翼刃撞擊', 'contact', { damage: 20, radius: 32, cooldown: 1.4 }), attack('arcTideBombardment', '弧潮投射', 'lobbed', { damage: 36, radius: 64, telegraph: 1.35, cooldown: 4.2, ignoresCover: true, locksTargetAtCast: true })],
+  },
+  mutantMantisShrimp: {
+    id: 'mutantMantisShrimp', name: '變異蝦蛄戰將', tier: 4, role: 'mutantMeleeElite', maxHealth: 500, moveSpeed: 76,
+    attacks: [attack('mutantPunch', '變異拳甲蓄力／拳擊', 'melee', { damage: 36, range: 60, telegraph: 0.35, cooldown: 0.8 }), attack('mutantGroundSmash', '震海重擊（強化）', 'areaStun', { damage: 44, radius: 124, stun: 1.6, telegraph: 0.65, cooldown: 3.6 }), attack('mutantBeaconAssault', '信標突襲（強化）', 'teleportMelee', { damage: 52, telegraph: 0.6, cooldown: 4.2 })],
+  },
+  mutantNautilusOracle: {
+    id: 'mutantNautilusOracle', name: '變異鸚鵡螺祭司', tier: 4, role: 'stationaryRangedElite', maxHealth: 390, moveSpeed: 0,
+    attacks: [attack('mutantCoralMortar', '迫擊珊瑚彈（強化）', 'lobbed', { damage: 42, radius: 70, telegraph: 0.95, cooldown: 2.8 }), attack('mutantDualCoreMagic', '雙核魔彈（強化）', 'projectile', { damage: 15, projectileCount: 2, projectileSpeed: 350, range: 430, cooldown: 1.6 }), attack('persistentCoreVolley', '持續雙核魔彈', 'projectile', { damage: 8, projectileCount: 1, projectileSpeed: 270, range: 360, cooldown: 0.9, persistent: true })],
+  },
+  mutantArcTideRay: {
+    id: 'mutantArcTideRay', name: '變異弧潮獵鰩', tier: 4, role: 'mutantAntiCoverArtillery', maxHealth: 430, moveSpeed: 40,
+    attacks: [attack('mutantWingRam', '翼刃撞擊（強化）', 'contact', { damage: 28, radius: 36, cooldown: 1.1 }), attack('mutantArcTideBombardment', '弧潮投射（強化）', 'lobbed', { damage: 40, radius: 70, telegraph: 1.15, cooldown: 3.4, ignoresCover: true, locksTargetAtCast: true, aftermathDamage: 18, aftermathDelay: 1.8, aftermathRadius: 48 })],
+  },
+  prismCrabGuardian: {
+    id: 'prismCrabGuardian', name: '稜鏡巨蟹', tier: 'miniBoss', role: 'areaControl', maxHealth: 1200, moveSpeed: 38,
+    passive: { id: 'deepSeaCarapace', name: '深海甲殼', damageTakenMultiplier: 0.75 },
+    attacks: [attack('tidalGathering', '潮汐召集', 'summonResourceDrain', { damage: 12, cooldown: 7, summonCount: 3, energyDrain: 18, oxygenDrain: 12 }), attack('refractedLaser', '折射雷射', 'reflectedBeam', { damagePerSecond: 24, duration: 3, cooldown: 8, maxReflections: 4 }), attack('deepSeaGravityField', '深海重力場', 'gravityField', { damage: 20, radius: 150, duration: 2.5, cooldown: 7, stun: 0.8, gravityMultiplier: 2.5 })],
+  },
+  tideLawNautilus: {
+    id: 'tideLawNautilus', name: '潮律鸚鵡螺', tier: 'miniBoss', role: 'patternControl', maxHealth: 1350, moveSpeed: 42,
+    passive: { id: 'tidalShield', name: '潮汐護盾', invulnerableDuration: 7, damageMultiplier: 1.3, phaseCount: 5 },
+    attacks: [attack('deepSeaSummoning', '深海召令', 'summon', { damage: 18, cooldown: 9, summonCount: 4 }), attack('returningBuckshot', '迴潮散彈', 'boomerangSpread', { damage: 16, projectileCount: 7, projectileSpeed: 260, cooldown: 6.5, returnDelay: 1.4 }), attack('tidalLaw', '潮汐法則', 'ruleChange', { damage: 0, cooldown: 10, duration: 4, gravityModes: ['reverse', 'low', 'horizontal', 'currentShift'] })],
+  },
+  abyssalSpermWhale: {
+    id: 'abyssalSpermWhale', name: '深淵抹香鯨', tier: 'finalBoss', role: 'battlefieldController', maxHealth: 5000, moveSpeed: 46,
+    passive: { id: 'abyssAwakening', name: '深淵覺醒', moveSpeedMultiplier: 1.2, projectileSpeedMultiplier: 1.2, cooldownMultiplier: 0.8, thornsDamage: 18 },
+    attacks: [attack('abyssalSummoning', '深海召令', 'sacrificeSummon', { damage: 24, cooldown: 12, summonCount: 6, healRatioPerSacrifice: 0.025, damageStackPerSacrifice: 0.03 }), attack('ancientReconstruction', '遺跡重現', 'rebuildArena', { damage: 0, cooldown: 18, duration: 8, healPerSecondRatio: 0.02 }), attack('abyssEcho', '深淵化身', 'cloneBarrage', { damage: 18, projectileCount: 3, projectileSpeed: 170, cooldown: 8, cloneHealthRatio: 0.18 }), attack('miniatureForm', '深淵幼體', 'speedForm', { damageTakenMultiplier: 1.2, moveSpeedMultiplier: 1.7, cooldownMultiplier: 0.5, duration: 7, sludgeDuration: 8 }), attack('gravityDominion', '重力支配', 'gravityRule', { damage: 16, cooldown: 14, duration: 5, gravityLevelShift: 1 }), attack('corruptedOxygen', '氧氣侵蝕', 'corruptOxygen', { damage: 26, cooldown: 11, bubbleLifetime: 4, explosionRadius: 96, oxygenDrain: 35, oxygenZoneDuration: 10 })],
+  },
+});
+
+export const ENEMY_ORDER = Object.freeze(Object.keys(ENEMY_DEFINITIONS));
+
+export function getPassiveModifiers(loadout = []) {
+  const modifiers = { ...PLAYER_BASE_STATS };
+  loadout.forEach(({ id, level = 1 }) => {
+    const ability = PASSIVE_ABILITIES[id];
+    if (!ability) return;
+    const cumulative = {};
+    for (let currentLevel = 1; currentLevel <= Math.min(level, ability.maxLevel); currentLevel += 1) {
+      Object.assign(cumulative, ability.levels[currentLevel]);
+    }
+    Object.entries(cumulative).forEach(([key, value]) => {
+      if (key.includes('Multiplier')) modifiers[key] *= value;
+      else modifiers[key] = Math.max(modifiers[key], value);
+    });
+  });
+  return modifiers;
+}
+
+export function getWeaponStats(weaponId = 'knife', level = 1) {
+  const weapon = WEAPONS[weaponId] ?? WEAPONS.knife;
+  return { ...weapon.levels[Math.min(Math.max(level, 1), weapon.maxLevel)] };
+}
+
+export function getWeaponUseCost(weaponId = 'knife', level = 1, loadout = []) {
+  const stats = getWeaponStats(weaponId, level);
+  const modifiers = getPassiveModifiers(loadout);
+  return stats.energyCost * modifiers.weaponEnergyCostMultiplier;
+}
+
+export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxygen) {
+  const modifiers = getPassiveModifiers(loadout);
+  const maxOxygen = RESOURCE_LIMITS.oxygen * modifiers.maxOxygenMultiplier;
+  return {
+    ...modifiers,
+    maxOxygen,
+    currentDamageMultiplier: modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
+  };
+}
+
+export function calculateWeaponDamage(weaponId, level, { oxygen = RESOURCE_LIMITS.oxygen, loadout = [] } = {}) {
+  const stats = getWeaponStats(weaponId, level);
+  return stats.damage * getPlayerDerivedStats(loadout, oxygen).currentDamageMultiplier;
+}
+
+export function createEnemyState(enemyId) {
+  const definition = ENEMY_DEFINITIONS[enemyId];
+  if (!definition) throw new Error(`Unknown enemy definition: ${enemyId}`);
+  return {
+    id: definition.id,
+    health: definition.maxHealth,
+    maxHealth: definition.maxHealth,
+    cooldowns: {},
+    activeEffects: {},
+  };
+}

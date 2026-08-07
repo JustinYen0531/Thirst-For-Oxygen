@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npx vite --host 127.0.0.1",
     "build": "vite build",
-    "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --test tests/physics.test.mjs"
+    "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --check src/game-data.js && node --test tests/physics.test.mjs"
   },
   "devDependencies": {
     "vite": "^7.3.1"

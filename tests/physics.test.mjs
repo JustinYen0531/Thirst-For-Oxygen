@@ -17,15 +17,33 @@ import {
   FIXED_STEP,
   GAME_GRAVITY,
   GRAVITY_SCALE,
+  MAX_HEALTH,
+  MAX_LIVES,
   MAX_SPEED,
   SIMULATION_SPEED_SCALE,
   createTestActor,
   drainAimEnergy,
   getLaunchCosts,
   launchActor,
+  applyDamage,
+  applyEnemyDefeatRewards,
+  recoverPlayerResource,
+  registerPlayerDeath,
+  respawnActor,
   stepPhysics,
   toggleSeaweedAttachment,
 } from '../src/physics.js';
+import {
+  ENEMY_DEFINITIONS,
+  ENEMY_ORDER,
+  PASSIVE_ABILITIES,
+  WEAPONS,
+  calculateWeaponDamage,
+  createEnemyState,
+  getPassiveModifiers,
+  getWeaponStats,
+  getWeaponUseCost,
+} from '../src/game-data.js';
 
 const ORIGIN = { x: 76, y: 82 };
 
@@ -176,7 +194,7 @@ test('coral safety prevents a mine from dealing damage', () => {
   actor.vx = 100;
   const events = stepPhysics({ map, actor, origin: ORIGIN });
   assert.ok(events.some((event) => event.type === 'mine'));
-  assert.equal(actor.health, 3);
+  assert.equal(actor.health, MAX_HEALTH);
   assert.equal(actor.safe, true);
 });
 
@@ -196,7 +214,7 @@ test('high-speed impact breaks a weight stone and checkpoint restores resources'
   visitor.energy = 5;
   const checkpointEvents = stepPhysics({ map, actor: visitor, origin: ORIGIN });
   assert.ok(checkpointEvents.some((event) => event.type === 'checkpoint'));
-  assert.equal(visitor.health, 3);
+  assert.equal(visitor.health, MAX_HEALTH);
   assert.equal(visitor.oxygen, 100);
   assert.equal(visitor.energy, 100);
 });
@@ -219,3 +237,82 @@ test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   assert.equal(seaweedActor.vy, 0);
   assert.ok(seaweedActor.energy > 100 - 0.01);
 });
+
+test('health is 0-100 and losing all health permanently consumes one life', () => {
+  const actor = createTestActor({ x: 200, y: 200 });
+  assert.equal(actor.health, 100);
+  assert.equal(actor.lives, MAX_LIVES);
+  const hit = applyDamage(actor, 100, 'test', 'generic');
+  assert.equal(hit.defeated, true);
+  const death = registerPlayerDeath(actor, 'damage');
+  assert.equal(death.livesRemaining, MAX_LIVES - 1);
+  assert.equal(actor.health, 0);
+  assert.equal(respawnActor(actor, { x: 240, y: 240 }), true);
+  assert.equal(actor.health, MAX_HEALTH);
+  assert.equal(actor.lives, MAX_LIVES - 1);
+});
+
+test('the last life enters permanent game over and cannot respawn', () => {
+  const actor = createTestActor();
+  actor.lives = 1;
+  actor.health = 0;
+  const death = registerPlayerDeath(actor, 'damage');
+  assert.equal(death.gameOver, true);
+  assert.equal(actor.lives, 0);
+  assert.equal(respawnActor(actor, { x: 1, y: 1 }), false);
+});
+
+test('all defined weapons, passive abilities, and enemy attack contracts are numeric', () => {
+  assert.deepEqual(Object.keys(WEAPONS), ['knife', 'katana', 'trident', 'lightMachineGun']);
+  Object.values(WEAPONS).forEach((weapon) => {
+    [1, 2, 3].forEach((level) => {
+      const stats = getWeaponStats(weapon.id, level);
+      assert.ok(stats.damage > 0);
+      assert.ok(stats.cooldown > 0);
+      assert.ok(calculateWeaponDamage(weapon.id, level) > 0);
+    });
+  });
+  assert.deepEqual(Object.keys(PASSIVE_ABILITIES), ['oxygenCirculator', 'pressureStabilizer', 'ecologicalCarapace', 'abyssalAmplifier']);
+  assert.equal(getPassiveModifiers([{ id: 'oxygenCirculator', level: 3 }]).maxOxygenMultiplier, 1.2);
+  assert.equal(getPassiveModifiers([{ id: 'pressureStabilizer', level: 3 }]).launchEnergyCostMultiplier, 0.7);
+  assert.equal(getWeaponUseCost('knife', 1, [{ id: 'pressureStabilizer', level: 3 }]), 2.8);
+
+  assert.equal(ENEMY_ORDER.length, 17);
+  ENEMY_ORDER.forEach((enemyId) => {
+    const definition = ENEMY_DEFINITIONS[enemyId];
+    const state = createEnemyState(enemyId);
+    assert.equal(state.health, definition.maxHealth);
+    assert.ok(definition.attacks.length > 0, `${enemyId} should expose attack or support skills`);
+    definition.attacks.forEach((skill) => {
+      assert.equal(typeof skill.id, 'string');
+      assert.ok(skill.cooldown >= 0);
+      assert.ok(skill.damage >= 0);
+    });
+  });
+});
+
+test('passive recovery and shield thresholds are numerical gameplay rules', () => {
+  const actor = createTestActor();
+  setPlayerLoadoutForTest(actor);
+  actor.energy = 50;
+  actor.oxygen = 50;
+  const rewards = applyEnemyDefeatRewards(actor);
+  assert.equal(rewards.energy.recovered, 4);
+  assert.equal(rewards.oxygen.recovered, 4);
+  actor.health = 80;
+  assert.equal(recoverPlayerResource(actor, 'health', 20).recovered, 20);
+  actor.derivedStats.shieldThresholdRatio = 0.2;
+  actor.derivedStats.shieldDuration = 2;
+  actor.derivedStats.shieldCooldown = 8;
+  applyDamage(actor, 20, 'test', 'generic');
+  assert.ok(actor.shieldTimer > 0);
+  assert.equal(applyDamage(actor, 20, 'test', 'generic').blocked, true);
+});
+
+function setPlayerLoadoutForTest(actor) {
+  actor.derivedStats = {
+    ...actor.derivedStats,
+    killEnergyRecoveryRatio: 0.04,
+    killOxygenRecoveryRatio: 0.04,
+  };
+}

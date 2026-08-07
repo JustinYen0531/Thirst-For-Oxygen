@@ -65,3 +65,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Reclassified map materials by placement/attachment rather than by the prior technical data buckets: `水域上物件` combines overlays and Cell objects and may only be placed directly on passable water Cells; `邊緣沾黏` contains all Edge interactions and is placed only by clicking a shared hex edge, typically beside a blocked obstacle. Actor/spawn remains separate because it is not a map object attachment mode.
 - Removed the duplicate category tool buttons so direct placement is the single place to select any material. Updated every information-card explanation to state the relevant placement mode.
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 11 in progress
+
+- Replaced the previous 3/3 health representation with a 0–100 `health` bar plus a separate permanent `lives` counter. Reaching zero health or oxygen consumes exactly one life; Checkpoint respawn restores resources but never restores lives; the final life produces a permanent game-over state until a new test run starts.
+- Added `src/game-data.js` as the central numerical contract for player resources, the four passive abilities, the four weapons, and all 17 authored enemy / Mini Boss / Final Boss definitions. Every hostile entry exposes numeric health and attack/support skill data, including cooldown, damage, telegraph, range, projectile, area, status, or control values where applicable.
+- Wired numerical helpers for derived passive modifiers, weapon damage and energy cost, player damage / shield / resource recovery, enemy-defeat resource rewards, and test-run respawn semantics. Static verification passed: `npm run check` (19/19 tests) and `npm run build`. Browser validation remains prohibited by user instruction.

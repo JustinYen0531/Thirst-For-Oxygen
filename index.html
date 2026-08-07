@@ -61,10 +61,15 @@
             <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
             <section id="player-hud" class="player-hud" aria-label="測試玩家狀態">
               <p id="hud-mode" class="hud-mode">HUD 預覽</p>
-              <div class="hud-row hud-health-row">
-                <span class="hud-label">生命</span>
-                <span id="hud-health" class="hud-hearts" aria-label="生命"></span>
-                <output id="hud-health-value" class="hud-value">3/3</output>
+              <div class="hud-row">
+                <span class="hud-label">生命值</span>
+                <div id="hud-health" class="hud-bar hud-health" role="progressbar" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
+                <output id="hud-health-value" class="hud-value">100%</output>
+              </div>
+              <div class="hud-row hud-lives-row">
+                <span class="hud-label">命數</span>
+                <span id="hud-lives" class="hud-lives" aria-label="剩餘命數"></span>
+                <output id="hud-lives-value" class="hud-value">3/3</output>
               </div>
               <div class="hud-row">
                 <span class="hud-label">氧氣</span>
