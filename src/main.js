@@ -553,14 +553,7 @@ function drawEdges() {
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
       const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04);
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
-      drawEdgeAttachmentFrame(midpoint, tangentAngle, width, isAnchoredPlant ? 5 : height + 4, selected, edge.type);
-      ctx.save();
-      ctx.translate(midpoint.x, midpoint.y);
-      ctx.rotate(attachmentAngle);
-      ctx.globalAlpha = selected ? 1 : 0.92;
-      if (isAnchoredPlant) ctx.drawImage(edgeImage, -width / 2, -height, width, height);
-      else ctx.drawImage(edgeImage, -width / 2, -height / 2, width, height);
-      ctx.restore();
+      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, isAnchoredPlant, selected);
     }
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
     if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
@@ -571,19 +564,28 @@ function drawEdges() {
   });
 }
 
-function drawEdgeAttachmentFrame(midpoint, angle, width, height, selected, type) {
-  const colour = ({ springJelly: '#e37bff', spike: '#ff6f68', barrier: '#abb5c5', seaweed: '#86f0d0', coralCluster: '#ff9bca' }[type] ?? '#d9ff68');
-  const radius = Math.min(4, height / 2);
+function drawOutlinedEdgeImage(image, midpoint, angle, width, height, isAnchoredPlant, selected) {
+  const imageX = -width / 2;
+  const imageY = isAnchoredPlant ? -height : -height / 2;
+  const outlineColour = selected ? '#f6e66d' : 'rgba(3, 13, 28, 0.95)';
   ctx.save();
   ctx.translate(midpoint.x, midpoint.y);
   ctx.rotate(angle);
-  ctx.fillStyle = 'rgba(3, 12, 26, 0.72)';
-  ctx.strokeStyle = selected ? '#f6e66d' : colour;
-  ctx.lineWidth = selected ? 2 : 1.15;
-  ctx.beginPath();
-  ctx.roundRect(-width / 2 - 2, -height / 2 - 2, width + 4, height + 4, radius);
-  ctx.fill();
-  ctx.stroke();
+  // Canvas shadows follow only non-transparent pixels. Repeating a one-pixel
+  // shadow creates a silhouette outline, never an image-bounds rectangle.
+  ctx.shadowColor = outlineColour;
+  ctx.shadowBlur = 0;
+  const outlineRadius = selected ? 1.4 : 0.8;
+  [[-outlineRadius, 0], [outlineRadius, 0], [0, -outlineRadius], [0, outlineRadius], [-outlineRadius, -outlineRadius], [outlineRadius, -outlineRadius], [-outlineRadius, outlineRadius], [outlineRadius, outlineRadius]].forEach(([x, y]) => {
+    ctx.shadowOffsetX = x;
+    ctx.shadowOffsetY = y;
+    ctx.drawImage(image, imageX, imageY, width, height);
+  });
+  ctx.shadowColor = 'transparent';
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.globalAlpha = selected ? 1 : 0.92;
+  ctx.drawImage(image, imageX, imageY, width, height);
   ctx.restore();
 }
 

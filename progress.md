@@ -72,6 +72,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Reclassified water grass and coral cluster as new edge types. They are removed from the direct-water palette and now use an edge-attached anchor; if one adjacent Cell is blocked, their base faces the obstacle and their art extends into the passable-water side. Seaweed attachment physics now locates the nearest seaweed Edge, with a legacy Cell-object fallback only for older saved maps.
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
 
+## 2026-08-07 — Step 12 in progress
+
+- Correcting the Step 11 visual mistake: removed the rectangular neon mounting frame completely. Edge art now gets only a thin alpha-silhouette outline derived from the opaque pixels of its own PNG, so the separation follows the jellyfish/plant shape rather than the image bounds.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
 ## 2026-08-07 — Step 11 in progress
 
 - Replaced the previous 3/3 health representation with a 0–100 `health` bar plus a separate permanent `lives` counter. Reaching zero health or oxygen consumes exactly one life; Checkpoint respawn restores resources but never restores lives; the final life produces a permanent game-over state until a new test run starts.
