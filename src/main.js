@@ -229,9 +229,12 @@ function syncCanvasGeometry(map, zoom = DEFAULT_ZOOM) {
 
 function calculateMapOrigin(map, zoom = DEFAULT_ZOOM, pan = { x: 0, y: 0 }) {
   const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
+  const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
+  const renderLeft = bounds.left - halfWidth;
+  const renderRight = bounds.right - halfWidth;
   const topSource = canvas.height / 2 + (MAP_TOP_SCREEN_PADDING - canvas.height / 2) / zoom;
   return {
-    x: (canvas.width - (bounds.right - bounds.left)) / 2 - bounds.left + pan.x,
+    x: (canvas.width - (renderRight - renderLeft)) / 2 - renderLeft + pan.x,
     y: topSource - bounds.top + pan.y,
   };
 }
@@ -507,14 +510,22 @@ function pathHex(cell) {
 }
 
 function getMapRenderBounds() {
-  return getOddRRectangularBounds(state.map, state.origin);
+  const bounds = getOddRRectangularBounds(state.map, state.origin);
+  const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
+  // The left perimeter keeps the full outer Cell. On the right, shift the
+  // silhouette by one half-Cell so the narrow protruding odd-r edge Cell is
+  // excluded instead of leaving a clipped sliver.
+  return {
+    ...bounds,
+    left: bounds.left - halfWidth,
+    right: bounds.right - halfWidth,
+  };
 }
 
 function clipToMapSideBoundaries(bounds) {
   ctx.beginPath();
-  // Keep the original single silhouette clip. The row-by-row clip made the
-  // boundary look stepped and was intentionally removed after visual review.
-  // This only trims the alternating side tips and never clips map height.
+  // Use one shifted silhouette: the left edge includes the full outer Cell,
+  // while the narrow protruding Cell at the right edge is removed entirely.
   ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
   ctx.clip();
 }
@@ -769,29 +780,6 @@ function drawCellSurface(cell) {
     ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
   ctx.restore();
-}
-
-function drawMapBoundaryMasks() {
-  const mapWidth = Number(state.map.layout?.width) || 0;
-  if (!mapWidth) return;
-  Object.values(state.map.cells).forEach((cell) => {
-    const row = Number(cell.r);
-    const column = cell.q + Math.floor(row / 2);
-    const center = getHexCenter(cell, state.origin);
-    const maskOuterHalf = (column === 0 && row % 2 === 1) || (column === mapWidth - 1 && row % 2 === 0);
-    if (!maskOuterHalf) return;
-    ctx.save();
-    ctx.fillStyle = '#091423';
-    pathHex(cell);
-    ctx.clip();
-    ctx.fillRect(
-      center.x + (column === 0 ? -HEX_SIZE : 0),
-      center.y - HEX_SIZE,
-      HEX_SIZE,
-      HEX_SIZE * 2,
-    );
-    ctx.restore();
-  });
 }
 
 function drawContinuationGuide() {
@@ -1488,7 +1476,6 @@ function render() {
   drawTrajectory();
   drawTestActor();
   drawInkMask();
-  drawMapBoundaryMasks();
   ctx.restore();
   ctx.restore();
   renderInspector();

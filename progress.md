@@ -242,3 +242,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Replaced the surface-only outer-cell trim with a final perimeter mask applied after surfaces, objects, edges, actor art, and ink overlays. Any alternating outer Cell that would have remained whole now loses its outer half at the same final visual layer, keeping the left and right perimeter treatment symmetric.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 29 complete
+
+- Removed the final perimeter mask that was creating dark triangular notches.
+- Shifted the single render silhouette by half a Cell: the left edge now includes the previously clipped outer Cell, while the narrow protruding right-edge Cell is excluded from the render boundary.
+- Re-centred the map origin against the shifted silhouette so the filled left edge stays inside the canvas.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
