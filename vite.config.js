@@ -7,8 +7,8 @@ export default defineConfig({
       input: {
         editor: resolve(process.cwd(), 'index.html'),
         encyclopedia: resolve(process.cwd(), 'enemy-encyclopedia.html'),
+        sandbox: resolve(process.cwd(), 'sandbox.html'),
       },
     },
   },
 });
-

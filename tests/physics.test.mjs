@@ -52,6 +52,15 @@ import {
   getWeaponUseCost,
 } from '../src/game-data.js';
 import {
+  createSandboxState,
+  executeEnemySkill,
+  getSandboxEnemyIds,
+  playerAttack,
+  setSandboxBuild,
+  spawnSandboxEnemy,
+  stepSandbox,
+} from '../src/sandbox-sim.js';
+import {
   getEdgeSetting,
   getFreeObjectSetting,
   getOfficialEdgeState,
@@ -549,6 +558,45 @@ test('passive recovery and shield thresholds are numerical gameplay rules', () =
   applyDamage(actor, 20, 'test', 'generic');
   assert.ok(actor.shieldTimer > 0);
   assert.equal(applyDamage(actor, 20, 'test', 'generic').blocked, true);
+});
+
+test('sandbox can run every defined enemy skill without a missing implementation', () => {
+  const state = createSandboxState();
+  getSandboxEnemyIds().forEach((enemyId, index) => {
+    const enemy = spawnSandboxEnemy(state, enemyId, { x: 600 + (index % 4) * 70, y: 120 + (index % 5) * 70 });
+    ENEMY_DEFINITIONS[enemyId].attacks.forEach((skill) => {
+      const result = executeEnemySkill(state, enemy.instanceId, skill.id);
+      assert.equal(result.ok, true, `${enemyId}/${skill.id} should be executable in the sandbox`);
+      enemy.cooldowns[skill.id] = 0;
+    });
+  });
+  assert.ok(state.logs.length > getSandboxEnemyIds().length, 'sandbox should record skill events for inspection');
+});
+
+test('sandbox build customization and invincibility preserve weapon/passive behavior', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weaponId: 'trident',
+    weaponLevel: 3,
+    passives: [{ id: 'abyssalAmplifier', level: 3 }, { id: 'pressureStabilizer', level: 2 }],
+  });
+  assert.deepEqual(state.actor.activeWeapon, { id: 'trident', level: 3 });
+  assert.equal(state.actor.abilities.length, 2);
+  assert.ok(state.actor.derivedStats.damageMultiplier > 1);
+  state.invincible = true;
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 20, y: state.actor.y });
+  executeEnemySkill(state, enemy.instanceId, 'clawSwipe');
+  assert.equal(state.actor.health, MAX_HEALTH);
+});
+
+test('sandbox player projectile attack reaches a placed enemy', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'trident', weaponLevel: 3 });
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 120, y: state.actor.y });
+  state.selectedEnemyInstanceId = enemy.instanceId;
+  assert.equal(playerAttack(state).ok, true);
+  for (let index = 0; index < 120; index += 1) stepSandbox(state);
+  assert.ok(enemy.health < enemy.maxHealth, 'a sandbox projectile should damage the selected enemy');
 });
 
 function setPlayerLoadoutForTest(actor) {

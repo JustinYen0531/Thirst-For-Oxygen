@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thirst for Oxygen — 敵人沙盒</title>
+    <link rel="stylesheet" href="/src/sandbox.css" />
+  </head>
+  <body>
+    <main class="sandbox-shell">
+      <header class="sandbox-header">
+        <div>
+          <p class="eyebrow">THIRST FOR OXYGEN / COMBAT LAB</p>
+          <h1>敵人驗收沙盒</h1>
+          <p class="lede">放置敵人、逐一觸發技能，檢查攻擊前搖、命中、資源變化與玩家 Build。</p>
+        </div>
+        <nav class="sandbox-nav">
+          <a href="/">返回地圖編輯器</a>
+          <a href="/enemy-encyclopedia.html">敵人圖鑑</a>
+        </nav>
+      </header>
+
+      <section class="sandbox-layout">
+        <aside class="sandbox-panel controls-panel">
+          <section class="control-section">
+            <h2>放置敵人</h2>
+            <label for="enemy-select">敵人</label>
+            <select id="enemy-select"></select>
+            <button id="place-enemy" type="button">點擊場地放置</button>
+            <button id="clear-enemies" type="button" class="secondary">清除全部敵人</button>
+            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。</p>
+          </section>
+
+          <section class="control-section">
+            <h2>玩家 Build</h2>
+            <label for="weapon-select">武器</label>
+            <select id="weapon-select"></select>
+            <label for="weapon-level">武器等級</label>
+            <select id="weapon-level"><option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option></select>
+            <div id="passive-list" class="passive-list"></div>
+            <button id="apply-build" type="button">套用 Build</button>
+          </section>
+
+          <section class="control-section">
+            <h2>測試開關</h2>
+            <label class="toggle"><input id="invincible-toggle" type="checkbox" /> 無敵模式</label>
+            <label class="toggle"><input id="infinite-toggle" type="checkbox" /> 無限氧氣／能量</label>
+            <label class="toggle"><input id="auto-toggle" type="checkbox" /> 敵人自動循環技能</label>
+            <button id="reset-player" type="button" class="secondary">重置玩家與資源</button>
+            <button id="pause-toggle" type="button" class="secondary">暫停</button>
+          </section>
+        </aside>
+
+        <section class="sandbox-main">
+          <div id="sandbox-stage" class="sandbox-stage" aria-label="敵人驗收場地">
+            <canvas id="sandbox-canvas" width="960" height="560"></canvas>
+            <div id="sandbox-sprites" class="sandbox-sprites" aria-hidden="true"></div>
+            <div id="player-marker" class="player-marker" aria-label="玩家位置">P</div>
+          </div>
+          <div class="arena-toolbar">
+            <span id="sandbox-status">沙盒已準備。</span>
+            <button id="player-attack" type="button">玩家攻擊選中敵人</button>
+            <button id="test-skill" type="button">立即施放技能</button>
+          </div>
+          <section class="selected-enemy-card">
+            <div>
+              <span class="eyebrow">SELECTED TARGET</span>
+              <h2 id="selected-enemy-name">尚未選取敵人</h2>
+              <p id="selected-enemy-stats">點擊場上的敵人後，在這裡選擇要驗收的技能。</p>
+            </div>
+            <div class="skill-picker">
+              <label for="skill-select">技能</label>
+              <select id="skill-select" disabled></select>
+              <p id="skill-description" class="skill-description"></p>
+            </div>
+          </section>
+        </section>
+
+        <aside class="sandbox-panel telemetry-panel">
+          <section class="telemetry-section">
+            <h2>玩家狀態</h2>
+            <dl id="player-stats" class="stat-grid"></dl>
+          </section>
+          <section class="telemetry-section">
+            <h2>技能事件</h2>
+            <ol id="sandbox-log" class="sandbox-log"></ol>
+          </section>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/src/sandbox-page.js"></script>
+  </body>
+</html>

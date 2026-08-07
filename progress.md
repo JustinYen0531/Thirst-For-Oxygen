@@ -311,3 +311,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Fixed downward authoring and Free Snap placement target resolution: after extending the map, the editor now returns the resolved continuation Cell directly instead of re-running a boundary-sensitive geometric hit test.
 - Static verification passed for this regression fix: `npm run check` (31/31 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
+
+## 2026-08-08 — Step 39 in progress
+
+- Added a standalone `sandbox.html` combat lab with click-to-place enemy instances, selected-enemy skill controls, automatic skill cycling, player attack testing, and a readable event/telemetry panel.
+- Added `sandbox-sim.js`: all 19 enemy definitions can be spawned, every current attack type has a sandbox execution path, and effects cover contact/melee, projectiles, lobbed zones, summons, support/link, beams, split, clones, rule changes, gravity fields, and oxygen corruption.
+- Added customizable weapon/level selection, all passive ability levels, invincibility, infinite oxygen/energy, pause/reset controls, animated enemy GIF reuse, and procedural fallback markers for enemies without authored GIFs.
+- Static verification passed for this sandbox pass: `npm run check` (34/34 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
