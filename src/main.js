@@ -55,7 +55,7 @@ const zoomSlider = document.querySelector('#zoom-slider');
 const zoomValue = document.querySelector('#zoom-value');
 const paletteTabs = [...document.querySelectorAll('[data-palette-tab]')];
 const palettePanels = [...document.querySelectorAll('[data-palette-panel]')];
-const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge', 'terrain']
+const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge']
   .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
 const STORAGE_KEY = 'thirst-for-oxygen.map-editor.v1';
@@ -263,7 +263,7 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  Object.entries(toolDefinitions).forEach(([key, definition]) => {
+  Object.entries(toolDefinitions).filter(([key]) => key !== 'terrain').forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.tool = key;
@@ -283,16 +283,19 @@ function createPalette() {
     object: [{ tool: 'object', values: CELL_OBJECT_TYPES }],
     actor: [{ tool: 'actor', values: ACTOR_TYPES }],
     edge: [{ tool: 'edge', values: EDGE_TYPES }],
-    terrain: [{ tool: 'terrain', values: ['water'] }],
   };
   Object.entries(paletteGroups).forEach(([group, entries]) => {
     const root = paletteRoots[group];
     entries.forEach(({ tool, values }) => values.forEach((value) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `palette-item palette-${tool} palette-in-${group}`;
-      button.dataset.paletteTool = tool;
-      button.dataset.paletteValue = value;
+      const card = document.createElement('article');
+      card.className = `palette-item palette-${tool} palette-in-${group}`;
+      const choice = document.createElement('button');
+      choice.type = 'button';
+      choice.className = 'palette-choice palette-face palette-front';
+      choice.dataset.paletteTool = tool;
+      choice.dataset.paletteValue = value;
+      choice.title = '選擇此素材';
+      choice.setAttribute('aria-label', `選擇${paletteLabels[value] ?? value}`);
       const visual = document.createElement(paletteImagePaths[value] ? 'img' : 'span');
       if (visual.tagName === 'IMG') {
         visual.src = paletteImagePaths[value];
@@ -302,19 +305,63 @@ function createPalette() {
         visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? '↔' : value === 'blocked' ? '■' : '◇');
         if (tool === 'gravity') visual.style.background = gravityColours[value];
       }
-      const label = document.createElement('span');
-      button.title = getPaletteNote(tool, value);
-      if (tool === 'gravity') {
-        button.setAttribute('aria-label', `水域 Tile ${value}`);
-        button.append(visual);
-      } else {
-        label.textContent = paletteLabels[value] ?? value;
-        button.append(visual, label);
-      }
-      button.addEventListener('click', () => setTool(tool, value, group));
-      root.append(button);
+      choice.append(visual);
+      choice.addEventListener('click', () => setTool(tool, value, group));
+
+      const info = document.createElement('button');
+      info.type = 'button';
+      info.className = 'palette-info';
+      info.textContent = 'i';
+      info.title = '查看素材用途';
+      info.setAttribute('aria-label', `查看${paletteLabels[value] ?? value}用途`);
+      info.addEventListener('click', () => card.classList.toggle('is-flipped'));
+
+      const back = document.createElement('section');
+      back.className = 'palette-back palette-face';
+      const title = document.createElement('strong');
+      title.textContent = paletteLabels[value] ?? value;
+      const description = document.createElement('p');
+      description.textContent = getPaletteDescription(tool, value);
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'palette-back-close';
+      close.textContent = '返回';
+      close.addEventListener('click', () => card.classList.remove('is-flipped'));
+      back.append(title, description, close);
+      card.append(choice, info, back);
+      root.append(card);
     }));
   });
+}
+
+function getPaletteDescription(tool, value) {
+  if (tool === 'gravity') {
+    return ({
+      'L-1': '向上 1.0G：把角色往上推。',
+      L0: '零重力：保留慣性，不產生垂直加速度。',
+      L1: '向下 1.0G：標準水域重力。',
+      L2: '向下 1.5G：下沉更快。',
+      L3: '向下 2.0G：最強下沉水域。',
+    })[value];
+  }
+  if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
+  if (tool === 'overlay' && value === 'coral') return '珊瑚安全區：在此格中免於地雷傷害。';
+  if (tool === 'overlay' && value === 'ink') return '墨水區：物理測試時遮蔽角色周圍以外的視野。';
+  if (tool === 'object' && value === 'coralCluster') return '珊瑚群落：可直接放置的場景物件。';
+  if (tool === 'object' && value === 'mine') return '深海地雷：角色接觸時造成傷害；珊瑚安全區內不生效。';
+  if (tool === 'object' && value === 'weightStone') return '重石：高速撞擊可破壞它。';
+  if (tool === 'object' && value === 'seaweed') return '水草：物理測試按 E 可附著或離開，附著時暫停重力。';
+  if (tool === 'object' && value === 'oxygen') return '氧氣礦石：目前作為可放置關卡物件。';
+  if (tool === 'object' && value === 'checkpoint') return 'Checkpoint：更新重生位置並恢復資源。';
+  if (tool === 'object' && value === 'bubble') return '光合作用氣泡：短暫免疫重力。';
+  if (tool === 'object' && value === 'torricelli') return '托里切利空間：目前作為可放置關卡物件。';
+  if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
+  if (tool === 'edge' && value === 'none') return '清除兩格之間既有的 Edge 互動。';
+  if (tool === 'edge' && value === 'springJelly') return '彈簧水母：角色越過此 Edge 時反彈。';
+  if (tool === 'edge' && value === 'spike') return '尖刺邊界：阻擋角色通過。';
+  if (tool === 'edge' && value === 'barrier') return '通用邊界：阻擋角色通過。';
+  if (tool === 'edge' && value === 'current') return '潮流：依左側設定的方向與強度推動角色。';
+  return getPaletteNote(tool, value);
 }
 
 function getPaletteNote(tool, value) {
@@ -666,7 +713,7 @@ function applyCellTool(key) {
     return;
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
-  if (state.tool === 'gravity') patchCell(state.map, key, { gravityLevel: value }, state.chapter);
+  if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
   if (state.tool === 'overlay') patchCell(state.map, key, { overlays: addOrRemove(cell.overlays, value) }, state.chapter);
   if (state.tool === 'object') {
     const existing = cell.objects.some((object) => object.kind === value);

@@ -47,3 +47,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - User requested that adjoining same-type Tiles read as one continuous field, while a change of gravity level or terrain remains visibly separated. Cell rendering now lets same-water Tile rims bleed past the Cell clip and draws only a very faint shared boundary; gravity/terrain transitions and the map perimeter receive a clear dark boundary.
 - Audited all seven authored non-passable prototypes. Every source version contained one or more connector spokes/nodes; no clean unconnected version existed. Created a project runtime Tile by precisely removing only the central spoke and two nodes from the user-provided source while preserving its dark stone hex and outer rim. It is stored at `public/assets/editor/terrain/blocked-dark-stone.png` and is selectable under the water-gravity Tab; the terrain Tab retains only passable-water restoration.
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 8 in progress
+
+- Correcting the Step 7 blocked-Tile presentation mistake: the generated chroma-green background is removed to alpha, the visible “不可通行” label is removed, and the redundant “其他” Tab is removed. Selecting any water-gravity Tile now also restores that Cell to passable water, so no separate passable-water palette card is necessary.
+- Every direct-placement material card now has a right-top `i` control. It flips the card to a purpose description and has a separate return control; opening this explanation never selects a brush or changes the map.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
