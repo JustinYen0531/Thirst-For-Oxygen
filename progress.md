@@ -254,3 +254,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Added the final left-perimeter mask requested by the latest visual review, removing the remaining inward-facing outer-half fragments while preserving the right-side narrow-cell exclusion.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 31 complete
+
+- Reverted the left-perimeter mask after visual review showed it created oversized dark triangular gaps. The rest of the perimeter and editor interaction changes remain unchanged.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

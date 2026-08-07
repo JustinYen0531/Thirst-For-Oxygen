@@ -782,21 +782,6 @@ function drawCellSurface(cell) {
   ctx.restore();
 }
 
-function drawLeftPerimeterMasks() {
-  Object.values(state.map.cells).forEach((cell) => {
-    const row = Number(cell.r);
-    const column = cell.q + Math.floor(row / 2);
-    if (column !== 0) return;
-    const center = getHexCenter(cell, state.origin);
-    ctx.save();
-    ctx.fillStyle = '#091423';
-    pathHex(cell);
-    ctx.clip();
-    ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE, HEX_SIZE * 2);
-    ctx.restore();
-  });
-}
-
 function drawContinuationGuide() {
   const width = Number(state.map.layout?.width) || 0;
   const firstRow = Number(state.map.layout?.height) || 0;
@@ -1491,7 +1476,6 @@ function render() {
   drawTrajectory();
   drawTestActor();
   drawInkMask();
-  drawLeftPerimeterMasks();
   ctx.restore();
   ctx.restore();
   renderInspector();
