@@ -198,6 +198,19 @@ test('coral safety prevents a mine from dealing damage', () => {
   assert.equal(actor.safe, true);
 });
 
+test('edge-attached coral cluster protects a nearby player', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0', objects: [{ kind: 'mine' }] });
+  patchCell(map, '1,0', { gravityLevel: 'L0' });
+  patchEdge(map, '0,0', '1,0', { type: 'coralCluster', blocksPassage: false });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 100;
+  const events = stepPhysics({ map, actor, origin: ORIGIN });
+  assert.ok(events.some((event) => event.type === 'coralCluster'));
+  assert.equal(actor.safe, true);
+  assert.equal(actor.health, MAX_HEALTH);
+});
+
 test('high-speed impact breaks a weight stone and checkpoint restores resources', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L0', objects: [{ kind: 'weightStone' }] });

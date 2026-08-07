@@ -26,10 +26,12 @@ import {
 } from './map-model.js';
 import {
   FIXED_STEP,
+  EDGE_ATTACHMENT_HELP_RADIUS,
   WORLD_BOUNDS,
   createTestActor,
   drainAimEnergy,
   findPlayerStart,
+  isActorNearEdgeAttachment,
   launchActor,
   MAX_ENERGY,
   MAX_HEALTH,
@@ -482,8 +484,8 @@ function hasSameSurface(left, right) {
 }
 
 function drawTerrainBoundaries() {
-  const faintSharedBorder = { width: 0.35, colour: 'rgba(4, 16, 33, 0.12)' };
-  const clearTransitionBorder = { width: 1.8, colour: 'rgba(2, 12, 27, 0.96)' };
+  const faintSharedBorder = { width: 0.5, colour: 'rgba(4, 16, 33, 0.23)' };
+  const clearTransitionBorder = { width: 1.25, colour: 'rgba(2, 12, 27, 0.78)' };
   const outerBorder = { width: 1.45, colour: 'rgba(4, 17, 35, 0.92)' };
   Object.entries(state.map.cells).forEach(([key]) => {
     const cell = getActiveCell(state.map, key, state.chapter);
@@ -540,7 +542,6 @@ function drawEdges() {
     const centerA = getHexCenter(getActiveCell(state.map, a, state.chapter), state.origin);
     const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), state.origin);
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
-    const selected = state.selectedEdgeKey === key;
     const edgeAngle = Math.atan2(centerB.y - centerA.y, centerB.x - centerA.x);
     const tangentAngle = edgeAngle + Math.PI / 2;
     const edgeLength = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
@@ -550,10 +551,14 @@ function drawEdges() {
     const cellB = getActiveCell(state.map, b, state.chapter);
     const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
     const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
+    const receivesHelp = state.mode === 'play' && (
+      (edge.type === 'coralCluster' && isActorNearEdgeAttachment(state.actor, state.map, state.chapter, state.origin, 'coralCluster'))
+      || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
+    );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
       const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04);
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
-      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, isAnchoredPlant, selected);
+      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
     if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
@@ -564,10 +569,12 @@ function drawEdges() {
   });
 }
 
-function drawOutlinedEdgeImage(image, midpoint, angle, width, height, isAnchoredPlant, selected) {
+function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, receivesHelp) {
+  const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(type);
   const imageX = -width / 2;
-  const imageY = isAnchoredPlant ? -height : -height / 2;
-  const outlineColour = selected ? '#f6e66d' : 'rgba(3, 13, 28, 0.95)';
+  const transparentBottomPadding = { seaweed: 0.08, coralCluster: 0.123 }[type] ?? 0;
+  const imageY = isAnchoredPlant ? -height + height * transparentBottomPadding : -height / 2;
+  const outlineColour = receivesHelp ? 'rgba(246, 215, 110, 0.96)' : 'rgba(244, 250, 255, 0.28)';
   ctx.save();
   ctx.translate(midpoint.x, midpoint.y);
   ctx.rotate(angle);
@@ -575,7 +582,7 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, isAnchored
   // shadow creates a silhouette outline, never an image-bounds rectangle.
   ctx.shadowColor = outlineColour;
   ctx.shadowBlur = 0;
-  const outlineRadius = selected ? 1.4 : 0.8;
+  const outlineRadius = receivesHelp ? 0.9 : 0.28;
   [[-outlineRadius, 0], [outlineRadius, 0], [0, -outlineRadius], [0, outlineRadius], [-outlineRadius, -outlineRadius], [outlineRadius, -outlineRadius], [-outlineRadius, outlineRadius], [outlineRadius, outlineRadius]].forEach(([x, y]) => {
     ctx.shadowOffsetX = x;
     ctx.shadowOffsetY = y;
@@ -584,7 +591,7 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, isAnchored
   ctx.shadowColor = 'transparent';
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
-  ctx.globalAlpha = selected ? 1 : 0.92;
+  ctx.globalAlpha = 0.92;
   ctx.drawImage(image, imageX, imageY, width, height);
   ctx.restore();
 }

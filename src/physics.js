@@ -24,6 +24,7 @@ export const MAX_HEALTH = RESOURCE_LIMITS.health;
 export const MAX_OXYGEN = RESOURCE_LIMITS.oxygen;
 export const MAX_ENERGY = RESOURCE_LIMITS.energy;
 export const MAX_LIVES = RESOURCE_LIMITS.lives;
+export const EDGE_ATTACHMENT_HELP_RADIUS = 18;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const LAUNCH_OXYGEN_BASE_COST = 2;
 const LAUNCH_OXYGEN_COST_PER_PIXEL = 0.055;
@@ -275,6 +276,17 @@ export function toggleSeaweedAttachment(actor, map, chapter, origin) {
   return { changed: false, attached: false, message: '附近沒有可附著的水草。' };
 }
 
+export function isActorNearEdgeAttachment(actor, map, chapter, origin, type, radius = EDGE_ATTACHMENT_HELP_RADIUS) {
+  return allMapEdges(map).some(({ a, b }) => {
+    const edge = getEdgeBetween(map, a, b, chapter);
+    if (edge.type !== type) return false;
+    const centerA = getHexCenter(getActiveCell(map, a, chapter), origin);
+    const centerB = getHexCenter(getActiveCell(map, b, chapter), origin);
+    const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
+    return Math.hypot(actor.x - midpoint.x, actor.y - midpoint.y) <= actor.radius + radius;
+  });
+}
+
 function applyCurrentAcceleration(map, cellKey, chapter) {
   if (!cellKey) return { x: 0, y: 0 };
   let x = 0;
@@ -343,9 +355,11 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
   const current = findCellContainingPoint(map, actor, chapter, origin);
   if (!current) return;
   const cell = current.cell;
-  actor.safe = cell.overlays.includes('coral');
+  const coralClusterSafe = isActorNearEdgeAttachment(actor, map, chapter, origin, 'coralCluster');
+  actor.safe = cell.overlays.includes('coral') || coralClusterSafe;
   actor.inInk = cell.overlays.includes('ink');
   if (cell.overlays.includes('coral')) addEvent(events, 'coral', '珊瑚安全區：玩家處於安全狀態。');
+  if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
   if (cell.overlays.includes('ink')) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 
   Object.entries(map.cells).forEach(([key]) => {

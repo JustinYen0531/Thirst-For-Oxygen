@@ -77,6 +77,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Correcting the Step 11 visual mistake: removed the rectangular neon mounting frame completely. Edge art now gets only a thin alpha-silhouette outline derived from the opaque pixels of its own PNG, so the separation follows the jellyfish/plant shape rather than the image bounds.
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
 
+## 2026-08-07 — Step 13 in progress
+
+- Corrected the remaining edge-art spacing from the measured transparent bottom padding in the water-grass and coral source sprites, so their opaque pixels now meet the hex Edge instead of visually floating above it.
+- Edge attachments now always keep a very faint white silhouette outline. In physics test mode it becomes gold only while the player actually receives that attachment's benefit: within the new coral-cluster safety radius or attached to that seaweed Edge. Coral cluster now provides the corresponding safety effect in physics.
+- Rebalanced Cell borders as requested: same-surface shared borders are slightly more visible, while gravity/terrain transitions are thinner and softer.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
+
 ## 2026-08-07 — Step 11 in progress
 
 - Replaced the previous 3/3 health representation with a 0–100 `health` bar plus a separate permanent `lives` counter. Reaching zero health or oxygen consumes exactly one life; Checkpoint respawn restores resources but never restores lives; the final life produces a permanent game-over state until a new test run starts.
