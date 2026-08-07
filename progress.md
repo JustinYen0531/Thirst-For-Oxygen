@@ -197,3 +197,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - The stair extends toward the T2 side from that contact line; the T1/T2 direction flip is preserved, so the low landing remains on T2 while the attached diagonal edge stays aligned to the boundary.
 - Static verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
 - Remaining: scoped commit and push; unrelated enemy preview changes in the working tree remain untouched.
+
+## 2026-08-08 — Step 23 complete
+
+- Correcting Step 21's rendering mistake: the map trim now clips only the alternating left/right half-Cell tips. It no longer clips map height, so every authored water row remains visible and is merely trimmed at the two side boundaries.
+- Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

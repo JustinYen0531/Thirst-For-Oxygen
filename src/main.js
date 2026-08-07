@@ -456,9 +456,12 @@ function getMapRenderBounds() {
   return getOddRRectangularBounds(state.map, state.origin);
 }
 
-function clipToMapRectangle(bounds) {
+function clipToMapSideBoundaries(bounds) {
   ctx.beginPath();
-  ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+  // Only straighten the alternating left/right half-Cell tips. Clipping the
+  // vertical range would erase valid water rows when an imported map has an
+  // unexpected extent, which is exactly the opposite of a visual trim.
+  ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
   ctx.clip();
 }
 
@@ -1308,7 +1311,7 @@ function render() {
   ctx.translate(-canvas.width / 2, -canvas.height / 2);
   const mapBounds = getMapRenderBounds();
   ctx.save();
-  clipToMapRectangle(mapBounds);
+  clipToMapSideBoundaries(mapBounds);
   drawMapBackplate(mapBounds);
   const cells = Object.entries(state.map.cells).map(([key]) => getActiveCell(state.map, key, state.chapter));
   cells.forEach((cell) => drawCellSurface(cell));
