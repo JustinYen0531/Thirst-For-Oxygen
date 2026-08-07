@@ -140,11 +140,17 @@ test('compact editor uses a rectangular odd-r grid with one-Cell player diameter
 
 test('odd-r authoring maps can grow downward without changing their column width', () => {
   const map = createEmptyMap({ width: 3, height: 2 });
+  patchCell(map, cellKeyFromColumn(0, 1), { gravityLevel: 'L3', waterLayer: 'T2' });
+  patchCell(map, cellKeyFromColumn(1, 1), { gravityLevel: 'L1', waterLayer: 'T1' });
   ensureOddRRows(map, 5);
   assert.equal(map.layout.width, 3);
   assert.equal(map.layout.height, 6);
   assert.ok(map.cells[cellKeyFromColumn(0, 5)]);
   assert.ok(map.cells[cellKeyFromColumn(2, 5)]);
+  assert.equal(map.cells[cellKeyFromColumn(0, 5)].gravityLevel, 'L3');
+  assert.equal(map.cells[cellKeyFromColumn(0, 5)].waterLayer, 'T2');
+  assert.equal(map.cells[cellKeyFromColumn(1, 5)].gravityLevel, 'L1');
+  assert.equal(map.cells[cellKeyFromColumn(1, 5)].waterLayer, 'T1');
   assert.equal(Object.keys(map.cells).length, 18);
   ensureOddRRows(map, 3);
   assert.equal(map.layout.height, 6);
@@ -282,9 +288,11 @@ test('free-snap water objects use their own position and hitbox', () => {
 
 test('official object and Edge settings stay explicit and resettable', () => {
   assert.deepEqual(getOfficialFreeObjectState('ink'), { size: 22, params: { visibilityRadius: 110 } });
+  assert.deepEqual(getOfficialFreeObjectState('razor'), { size: 48, params: { count: 1, damage: 20, knockbackSpeed: 58, rotationSpeed: 180 } });
   assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 17, params: { breakSpeed: 31, weight: 4 } });
   assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 1, params: { bounceMultiplier: 1.08 } });
   assert.equal(getFreeObjectSetting({ kind: 'mine', params: { damage: 37 } }, 'damage'), 37);
+  assert.equal(getFreeObjectSetting({ kind: 'razor', params: { count: 4 } }, 'count'), 4);
   assert.equal(getEdgeSetting({ type: 'spike', params: { damage: 46 } }, 'damage'), 46);
 });
 

@@ -14,6 +14,7 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
   ]),
   razor: freezeFields([
     { key: 'size', label: '大小', unit: 'px', min: 20, max: 180, step: 1, defaultValue: 48 },
+    { key: 'count', label: '剃刀數量', unit: '個', min: 1, max: 4, step: 1, defaultValue: 1 },
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 20 },
     { key: 'knockbackSpeed', label: '強制位移', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 58 },
     { key: 'rotationSpeed', label: '旋轉速度', unit: '度/s', min: 0, max: 720, step: 1, defaultValue: 180 },

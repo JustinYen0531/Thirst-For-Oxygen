@@ -271,3 +271,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Moved the water-object placement switch directly below the palette Eraser button as requested; it is no longer in the left tools panel.
 - Replaced the DOM-only select with explicit `Free Snap` and `六邊形中央` buttons backed by `state.objectPlacementMode`. Preview placement, saved offsets, status text, and `render_game_to_text` now use the same mode value.
 - Static-only verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 35 complete
+
+- Added a right-side Inspector field for Razor water objects: each placed Razor can now use 1–4 blades, with the saved count driving the rotating visual while keeping the existing hitbox and damage contract.
+- Made downward authoring explicit: clicking a dashed continuation Cell with a gravity or terrain brush extends only within the visible four-row buffer, preserves the map's screen anchor, and keeps the next four dashed rows available.
+- Newly created continuation rows inherit each column's previous bottom-row gravity and water layer instead of resetting blindly to L0; the guide tint follows that same bottom-row gravity and the palette hint explains the direct placement action.
+- Static verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

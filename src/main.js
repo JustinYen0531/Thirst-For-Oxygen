@@ -498,7 +498,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'object' && value === 'checkpoint') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可更新重生位置並恢復資源。';
   if (tool === 'object' && value === 'bubble') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
   if (tool === 'object' && value === 'torricelli') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
-  if (tool === 'object' && value === 'razor') return '水域上物件：可切換 Free Snap／六邊形中央；刀片繞中心軸持續旋轉，接觸時造成傷害並把角色向外推開。';
+  if (tool === 'object' && value === 'razor') return '水域上物件：可切換 Free Snap／六邊形中央；放置後可在右側 Inspector 選 1–4 個剃刀，刀片繞中心軸旋轉並造成接觸傷害。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
   if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
   if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
@@ -579,15 +579,20 @@ function drawRazor(position, size, object = null, alpha = 0.96) {
     return;
   }
   const rotationSpeed = getFreeObjectSetting(object ?? { kind: 'razor' }, 'rotationSpeed') ?? 180;
+  const count = Math.max(1, Math.min(4, Math.round(getFreeObjectSetting(object ?? { kind: 'razor' }, 'count') ?? 1)));
   const rotation = (state.animationTime * rotationSpeed * Math.PI) / 180;
   const bladeSize = size * 2;
   const axisSize = size * 0.52;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(position.x, position.y);
-  ctx.rotate(rotation);
-  // The blade artwork places its pivot on the left, so it rotates around the axis.
-  drawImageWithSilhouetteOutline(blade, -bladeSize * 0.08, -bladeSize / 2, bladeSize, bladeSize, { alpha });
+  for (let index = 0; index < count; index += 1) {
+    ctx.save();
+    ctx.rotate(rotation + (index * Math.PI * 2) / count);
+    // The blade artwork places its pivot on the left, so it rotates around the axis.
+    drawImageWithSilhouetteOutline(blade, -bladeSize * 0.08, -bladeSize / 2, bladeSize, bladeSize, { alpha });
+    ctx.restore();
+  }
   ctx.restore();
   drawImageWithSilhouetteOutline(axis, position.x - axisSize / 2, position.y - axisSize / 2, axisSize, axisSize, { alpha });
 }
@@ -690,12 +695,17 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
   const candidate = estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
-  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height || candidate.row >= height + MAP_VERTICAL_BUFFER_ROWS) return null;
 
+  const previousOrigin = { ...state.origin };
   ensureOddRRows(state.map, candidate.row);
   syncCanvasGeometry(state.map, state.zoom);
+  const resizedOrigin = calculateMapOrigin(state.map, state.zoom, state.pan);
+  state.pan.x += previousOrigin.x - resizedOrigin.x;
+  state.pan.y += previousOrigin.y - resizedOrigin.y;
   state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
-  return findCellContainingPoint(state.map, point, state.chapter, state.origin);
+  return findCellContainingPoint(state.map, point, state.chapter, state.origin)
+    ?? { key: candidate.key, cell: getActiveCell(state.map, candidate.key, state.chapter) };
 }
 
 function getWaterObjectCellAtPoint(point, allowExtend = false) {
@@ -729,15 +739,15 @@ function getCellPreviewAtPoint(point) {
   const candidate = estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
-  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height || candidate.row >= height + MAP_VERTICAL_BUFFER_ROWS) return null;
   return {
     key: candidate.key,
     cell: {
       q: candidate.column - Math.floor(candidate.row / 2),
       r: candidate.row,
       terrain: 'water',
-      gravityLevel: 'L0',
-      waterLayer: 'T1',
+      gravityLevel: getContinuationGuideCell(candidate.column, height - 1)?.gravityLevel ?? 'L0',
+      waterLayer: getContinuationGuideCell(candidate.column, height - 1)?.waterLayer ?? 'T1',
       overlays: [],
       objects: [],
       freeObjects: [],
@@ -806,19 +816,28 @@ function drawContinuationGuide() {
   const width = Number(state.map.layout?.width) || 0;
   const firstRow = Number(state.map.layout?.height) || 0;
   ctx.save();
-  ctx.fillStyle = 'rgba(33, 84, 116, 0.2)';
   ctx.strokeStyle = 'rgba(123, 195, 224, 0.42)';
   ctx.lineWidth = 0.7;
   ctx.setLineDash([2.5, 3.5]);
   for (let row = firstRow; row < firstRow + MAP_VERTICAL_BUFFER_ROWS; row += 1) {
     for (let column = 0; column < width; column += 1) {
       const cell = { q: column - Math.floor(row / 2), r: row };
+      const template = getContinuationGuideCell(column, firstRow - 1);
       pathHex(cell);
+      ctx.fillStyle = gravityColours[template?.gravityLevel ?? 'L0'] ?? gravityColours.L0;
+      ctx.globalAlpha = 0.14;
       ctx.fill();
+      ctx.globalAlpha = 1;
       ctx.stroke();
     }
   }
   ctx.restore();
+}
+
+function getContinuationGuideCell(column, row) {
+  if (row < 0) return null;
+  const key = cellKeyFromColumn(column, row);
+  return getActiveCell(state.map, key, state.chapter);
 }
 
 function drawCellObjects(cell) {

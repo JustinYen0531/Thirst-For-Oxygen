@@ -119,7 +119,8 @@ export function createEmptyMap({ width = 24, height = 17 } = {}) {
 
 // The editor keeps a stable column width but may grow the map downward while
 // authoring. New rows use the same odd-r coordinates as the original grid and
-// start as ordinary passable water Cells.
+// continue each column's bottom-row gravity/layer, while starting as ordinary
+// passable water Cells.
 export function ensureOddRRows(map, throughRow) {
   const width = Math.max(1, Number(map.layout?.width) || 1);
   const currentHeight = Math.max(
@@ -127,11 +128,26 @@ export function ensureOddRRows(map, throughRow) {
     ...Object.values(map.cells ?? {}).map((cell) => cell.r + 1),
   );
   const targetHeight = Math.max(currentHeight, Math.floor(Number(throughRow)) + 1);
+  const bottomRow = currentHeight - 1;
+  const columnTemplates = Array.from({ length: width }, (_, column) => {
+    const sourceKey = cellKeyFromColumn(column, bottomRow);
+    const source = map.cells[sourceKey];
+    return {
+      gravityLevel: source?.gravityLevel ?? 'L0',
+      waterLayer: source?.waterLayer ?? 'T1',
+      region: source?.region ?? 'default',
+    };
+  });
   for (let row = currentHeight; row < targetHeight; row += 1) {
     for (let column = 0; column < width; column += 1) {
       const q = column - Math.floor(row / 2);
       const key = cellKey(q, row);
-      if (!map.cells[key]) map.cells[key] = makeCell(q, row);
+      if (!map.cells[key]) {
+        map.cells[key] = {
+          ...makeCell(q, row),
+          ...columnTemplates[column],
+        };
+      }
     }
   }
   map.layout.height = targetHeight;
