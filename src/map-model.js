@@ -1,4 +1,7 @@
-export const HEX_SIZE = 38;
+// A Cell is intentionally tiny: its point-to-point size is 24 px while the
+// playtest player is 72 px across. This gives authors the requested 1:3
+// tile-to-player editing precision.
+export const HEX_SIZE = 12;
 
 export const DIRECTIONS = Object.freeze([
   { name: 'E', q: 1, r: 0 },
@@ -77,7 +80,7 @@ function makeCell(q, r) {
   };
 }
 
-export function createEmptyMap({ width = 10, height = 8 } = {}) {
+export function createEmptyMap({ width = 36, height = 25 } = {}) {
   const cells = {};
   for (let r = 0; r < height; r += 1) {
     for (let q = 0; q < width; q += 1) {
@@ -259,30 +262,32 @@ export function validateMap(map) {
 
 export function createDemoMap() {
   const map = createEmptyMap();
-  const levels = ['L-1', 'L0', 'L1', 'L1', 'L2', 'L2', 'L3', 'L3'];
+  const levels = ['L-1', 'L0', 'L1', 'L2', 'L3'];
+  const { width, height } = map.layout;
   Object.values(map.cells).forEach((cell) => {
-    cell.gravityLevel = levels[cell.r];
+    const levelIndex = Math.min(levels.length - 1, Math.floor((cell.r / Math.max(height - 1, 1)) * levels.length));
+    cell.gravityLevel = levels[levelIndex];
   });
 
   const addOverlay = (key, kind) => map.cells[key].overlays.push(kind);
   const addObject = (key, kind) => map.cells[key].objects.push({ kind });
   const addActor = (key, kind) => map.cells[key].actors.push({ kind });
-  addActor('2,2', 'playerStart');
-  addActor('7,3', 'enemySpawn');
-  addActor('8,5', 'miniBossSpawn');
-  addActor('9,7', 'bossSpawn');
-  addOverlay('1,1', 'coral');
-  addOverlay('8,2', 'ink');
-  addObject('5,3', 'mine');
-  addObject('6,3', 'weightStone');
-  addObject('2,4', 'seaweed');
-  addObject('3,5', 'oxygen');
-  addObject('4,6', 'checkpoint');
-  addObject('7,1', 'bubble');
-  addObject('1,5', 'torricelli');
-  patchEdge(map, '4,3', '5,3', { type: 'springJelly', blocksPassage: true });
-  patchEdge(map, '4,5', '5,5', { type: 'spike', blocksPassage: true });
-  patchEdge(map, '6,5', '7,5', { type: 'barrier', blocksPassage: true });
-  patchEdge(map, '2,3', '3,3', { type: 'current', currentDirection: 0, currentStrength: 1.5 });
+  addActor(cellKey(4, 5), 'playerStart');
+  addActor(cellKey(22, 8), 'enemySpawn');
+  addActor(cellKey(27, 15), 'miniBossSpawn');
+  addActor(cellKey(width - 3, height - 3), 'bossSpawn');
+  addOverlay(cellKey(8, 3), 'coral');
+  addOverlay(cellKey(25, 5), 'ink');
+  addObject(cellKey(15, 8), 'mine');
+  addObject(cellKey(18, 8), 'weightStone');
+  addObject(cellKey(7, 11), 'seaweed');
+  addObject(cellKey(12, 15), 'oxygen');
+  addObject(cellKey(19, 18), 'checkpoint');
+  addObject(cellKey(28, 4), 'bubble');
+  addObject(cellKey(4, 17), 'torricelli');
+  patchEdge(map, cellKey(14, 8), cellKey(15, 8), { type: 'springJelly', blocksPassage: true });
+  patchEdge(map, cellKey(14, 15), cellKey(15, 15), { type: 'spike', blocksPassage: true });
+  patchEdge(map, cellKey(23, 15), cellKey(24, 15), { type: 'barrier', blocksPassage: true });
+  patchEdge(map, cellKey(9, 10), cellKey(10, 10), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
   return map;
 }

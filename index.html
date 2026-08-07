@@ -57,8 +57,24 @@
         </aside>
 
         <section class="canvas-wrap">
-          <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
-          <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；E 附著／離開水草；R 重設。</p>
+          <div class="canvas-stage">
+            <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
+            <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；E 附著／離開水草；R 重設。</p>
+          </div>
+          <section class="asset-palette" aria-label="地圖素材調色盤">
+            <div class="palette-heading">
+              <h2>直接放置素材</h2>
+              <p>先點下面的素材，再直接點格子；不需要先選格子再到 Inspector 改設定。</p>
+            </div>
+            <div class="palette-groups">
+              <section class="palette-group"><h3>水域重力</h3><div id="palette-gravity" class="palette-items"></div></section>
+              <section class="palette-group"><h3>環境效果</h3><div id="palette-overlay" class="palette-items"></div></section>
+              <section class="palette-group"><h3>Cell 物件</h3><div id="palette-object" class="palette-items"></div></section>
+              <section class="palette-group"><h3>Actor／出生點</h3><div id="palette-actor" class="palette-items"></div></section>
+              <section class="palette-group"><h3>Edge 互動</h3><div id="palette-edge" class="palette-items"></div></section>
+              <section class="palette-group"><h3>其他</h3><div id="palette-terrain" class="palette-items"></div></section>
+            </div>
+          </section>
         </section>
 
         <aside class="panel inspector-panel">

@@ -4,11 +4,15 @@ import {
   createEmptyMap,
   getActiveCell,
   getHexCenter,
+  HEX_SIZE,
   patchCell,
   patchEdge,
 } from '../src/map-model.js';
 import {
   FIXED_STEP,
+  GAME_GRAVITY,
+  MAX_SPEED,
+  SIMULATION_SPEED_SCALE,
   createTestActor,
   launchActor,
   stepPhysics,
@@ -39,11 +43,11 @@ test('L-1 accelerates upward and L0 preserves inertia', () => {
   patchCell(map, '1,0', { gravityLevel: 'L0' });
   const upward = actorIn(map, '0,0');
   const neutral = actorIn(map, '1,0');
-  neutral.vx = 200;
+  neutral.vx = 40;
   stepPhysics({ map, actor: upward, origin: ORIGIN });
   stepPhysics({ map, actor: neutral, origin: ORIGIN });
   assert.ok(upward.vy < 0);
-  assert.ok(neutral.vx > 190, 'L0 should not clear horizontal velocity');
+  assert.ok(neutral.vx > 39, 'L0 should not clear horizontal velocity');
   assert.ok(Math.abs(neutral.vy) < 0.01, 'L0 should add no vertical gravity');
 });
 
@@ -53,6 +57,20 @@ test('launch velocity is opposite the pull direction', () => {
   assert.ok(speed > 0);
   assert.ok(actor.vx > 0);
   assert.equal(actor.vy, 0);
+  assert.ok(speed < 30, 'launch speed should use the 0.1 simulation scale');
+});
+
+test('all primary motion limits use the 0.1 simulation scale', () => {
+  assert.equal(SIMULATION_SPEED_SCALE, 0.1);
+  assert.equal(GAME_GRAVITY, 23);
+  assert.equal(MAX_SPEED, 56);
+});
+
+test('precision editor defaults to three Cells across one player diameter', () => {
+  const map = createEmptyMap();
+  const actor = createTestActor();
+  assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', width: 36, height: 25 });
+  assert.equal(HEX_SIZE * 2 * 3, actor.radius * 2);
 });
 
 test('spring jelly reflects a crossing player', () => {
@@ -77,7 +95,7 @@ test('current applies horizontal acceleration from an Edge', () => {
   patchEdge(map, '0,0', '1,0', { type: 'current', currentDirection: 0, currentStrength: 1.5 });
   const actor = actorIn(map, '0,0');
   stepPhysics({ map, actor, origin: ORIGIN });
-  assert.ok(actor.vx > 1, 'eastward current should add positive x velocity');
+  assert.ok(actor.vx > 0.1, 'eastward current should add positive x velocity at the slowed scale');
 });
 
 test('coral safety prevents a mine from dealing damage', () => {

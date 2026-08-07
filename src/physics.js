@@ -12,8 +12,12 @@ import {
 } from './map-model.js';
 
 export const FIXED_STEP = 1 / 60;
-export const GAME_GRAVITY = 230;
-export const MAX_SPEED = 560;
+export const SIMULATION_SPEED_SCALE = 0.1;
+export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE;
+export const MAX_SPEED = 560 * SIMULATION_SPEED_SCALE;
+const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
+const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
+const WEIGHT_STONE_BREAK_SPEED = 310 * SIMULATION_SPEED_SCALE;
 export const WORLD_BOUNDS = Object.freeze({ minX: 24, maxX: 976, minY: 24, maxY: 656 });
 
 function clamp(value, min, max) {
@@ -49,7 +53,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     y: position.y,
     vx: 0,
     vy: 0,
-    radius: 13,
+    radius: 36,
     health: 3,
     oxygen: 100,
     stamina: 100,
@@ -85,7 +89,7 @@ export function launchActor(actor, pointer) {
   const distance = clamp(Math.hypot(pull.x, pull.y), 0, 170);
   if (distance < 5) return 0;
   const direction = unitVector(pointer, actor);
-  const speed = 2.9 * distance;
+  const speed = LAUNCH_SPEED_PER_PIXEL * distance;
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
   actor.stamina = clamp(actor.stamina - distance * 0.08, 0, 100);
@@ -123,7 +127,7 @@ function applyCurrentAcceleration(map, cellKey, chapter) {
     const edge = getEdgeBetween(map, cellKey, adjacent, chapter);
     if (edge.type !== 'current' || edge.currentStrength <= 0) return;
     const vector = getDirectionVector(edge.currentDirection);
-    const magnitude = 74 * edge.currentStrength;
+    const magnitude = CURRENT_ACCELERATION * edge.currentStrength;
     x += vector.x * magnitude;
     y += vector.y * magnitude;
   });
@@ -204,7 +208,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
       }
       if (object.kind === 'weightStone' && !isOnCooldown(actor, `stone:${key}`)) {
         const impact = Math.hypot(actor.vx, actor.vy);
-        if (impact >= 310 && mutateMap) {
+        if (impact >= WEIGHT_STONE_BREAK_SPEED && mutateMap) {
           const editable = getActiveCell(map, key, chapter);
           patchCell(map, key, { objects: editable.objects.filter((candidate) => candidate !== object) }, chapter);
           actor.cooldowns[`stone:${key}`] = 0.5;
@@ -213,7 +217,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
           const normal = unitVector(position, actor);
           const bounced = reflect({ x: actor.vx, y: actor.vy }, normal, 0.55);
           actor.vx = bounced.x;
-          actor.vy = Math.abs(bounced.y) + 40;
+          actor.vy = Math.abs(bounced.y) + 4;
           actor.cooldowns[`stone:${key}`] = 0.35;
           addEvent(events, 'weightStone', '重石壓下玩家：撞擊力不足以擊碎。');
         }

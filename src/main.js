@@ -47,8 +47,9 @@ const dirtyIndicator = document.querySelector('#dirty-indicator');
 const playHelp = document.querySelector('#play-help');
 const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
+const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge', 'terrain']
+  .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
-const ORIGIN = { x: 76, y: 82 };
 const STORAGE_KEY = 'thirst-for-oxygen.map-editor.v1';
 const gravityColours = {
   'L-1': '#a9ecf2',
@@ -66,6 +67,34 @@ const objectSymbols = {
   bubble: '○',
   torricelli: 'T',
 };
+const objectImagePaths = {
+  coral: '/assets/editor/objects/coral-safe-zone-overlay.png',
+  ink: '/assets/editor/objects/ink-zone-overlay.png',
+  mine: '/assets/editor/objects/deep-sea-mine.png',
+  weightStone: '/assets/editor/objects/heavy-stone.png',
+  seaweed: '/assets/editor/objects/sea-grass.png',
+  oxygen: '/assets/editor/objects/oxygen-ore.png',
+  checkpoint: '/assets/editor/objects/checkpoint.png',
+  bubble: '/assets/editor/objects/photosynthesis-bubble.png',
+  torricelli: '/assets/editor/objects/torricelli-space.png',
+};
+const paletteLabels = {
+  water: '可通行水域', blocked: '不可通行',
+  coral: '珊瑚安全區', ink: '墨水區',
+  mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
+  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間',
+  playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
+  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺', barrier: '障礙', current: '潮流',
+};
+const cellTexture = new Image();
+cellTexture.src = '/assets/editor/cell-base.png';
+const objectImages = Object.fromEntries(Object.entries(objectImagePaths).map(([kind, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [kind, image];
+}));
+cellTexture.addEventListener('load', () => render());
+Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
   playerStart: 'P',
   enemySpawn: 'E',
@@ -83,6 +112,16 @@ const toolDefinitions = {
   erase: { label: '清除該層', values: [] },
 };
 
+function calculateMapOrigin(map) {
+  const { width, height } = map.layout;
+  const gridWidth = HEX_SIZE * Math.sqrt(3) * ((width - 1) + (height - 1) / 2) + HEX_SIZE * Math.sqrt(3);
+  const gridHeight = HEX_SIZE * 1.5 * (height - 1) + HEX_SIZE * 2;
+  return {
+    x: (canvas.width - gridWidth) / 2 + (Math.sqrt(3) * HEX_SIZE) / 2,
+    y: (canvas.height - gridHeight) / 2 + HEX_SIZE,
+  };
+}
+
 function loadMap() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -96,8 +135,11 @@ function loadMap() {
   return createDemoMap();
 }
 
+const initialMap = loadMap();
+const initialOrigin = calculateMapOrigin(initialMap);
 const state = {
-  map: loadMap(),
+  map: initialMap,
+  origin: initialOrigin,
   chapter: 'chapter1',
   mode: 'edit',
   tool: 'select',
@@ -107,7 +149,7 @@ const state = {
   dragging: null,
   events: [],
   validation: [],
-  actor: createTestActor(findPlayerStart(loadMap(), 'chapter1', ORIGIN)),
+  actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
 };
 
@@ -119,7 +161,13 @@ function formatNumber(value) {
   return Math.round(value * 10) / 10;
 }
 
-function setTool(tool) {
+function updatePaletteSelection() {
+  document.querySelectorAll('[data-palette-tool]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.paletteTool === state.tool && button.dataset.paletteValue === brushValue.value);
+  });
+}
+
+function setTool(tool, preferredValue = null) {
   state.tool = tool;
   brushValue.innerHTML = '';
   const values = toolDefinitions[tool].values;
@@ -129,9 +177,11 @@ function setTool(tool) {
     option.textContent = value;
     brushValue.append(option);
   });
+  if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
   brushValue.disabled = values.length === 0;
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
   setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
+  updatePaletteSelection();
   render();
 }
 
@@ -159,8 +209,34 @@ function createToolButtons() {
   });
 }
 
+function createPalette() {
+  Object.entries(paletteRoots).forEach(([tool, root]) => {
+    toolDefinitions[tool].values.forEach((value) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `palette-item palette-${tool}`;
+      button.dataset.paletteTool = tool;
+      button.dataset.paletteValue = value;
+      const visual = document.createElement(objectImagePaths[value] ? 'img' : 'span');
+      if (visual.tagName === 'IMG') {
+        visual.src = objectImagePaths[value];
+        visual.alt = '';
+      } else {
+        visual.className = 'palette-swatch';
+        visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? '↔' : value === 'blocked' ? '■' : '◇');
+        if (tool === 'gravity') visual.style.background = gravityColours[value];
+      }
+      const label = document.createElement('span');
+      label.textContent = paletteLabels[value] ?? value;
+      button.append(visual, label);
+      button.addEventListener('click', () => setTool(tool, value));
+      root.append(button);
+    });
+  });
+}
+
 function pathHex(cell) {
-  const vertices = getHexVertices(cell, ORIGIN);
+  const vertices = getHexVertices(cell, state.origin);
   ctx.beginPath();
   vertices.forEach((point, index) => {
     if (index === 0) ctx.moveTo(point.x, point.y);
@@ -180,38 +256,33 @@ function drawText(text, x, y, options = {}) {
 }
 
 function drawCell(key, cell) {
-  const center = getHexCenter(cell, ORIGIN);
+  const center = getHexCenter(cell, state.origin);
+  ctx.save();
   pathHex(cell);
+  ctx.clip();
   ctx.fillStyle = cell.terrain === 'blocked' ? '#3e4249' : gravityColours[cell.gravityLevel];
-  ctx.fill();
+  ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  if (cellTexture.complete && cellTexture.naturalWidth > 0) {
+    ctx.globalAlpha = 0.48;
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.drawImage(cellTexture, center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  }
+  ctx.restore();
+  pathHex(cell);
   ctx.lineWidth = 1;
   ctx.strokeStyle = '#0c1c36';
   ctx.stroke();
 
-  if (cell.overlays.includes('coral')) {
-    ctx.fillStyle = 'rgba(255, 163, 104, 0.65)';
-    ctx.beginPath();
-    ctx.arc(center.x - 14, center.y - 13, 13, 0, Math.PI * 2);
-    ctx.fill();
-    drawText('C', center.x - 14, center.y - 13, { font: 'bold 11px system-ui', fill: '#2c1323' });
-  }
-  if (cell.overlays.includes('ink')) {
-    ctx.fillStyle = 'rgba(16, 8, 35, 0.54)';
-    ctx.beginPath();
-    ctx.arc(center.x + 14, center.y - 13, 13, 0, Math.PI * 2);
-    ctx.fill();
-    drawText('I', center.x + 14, center.y - 13, { font: 'bold 11px system-ui' });
-  }
-
-  drawText(cell.gravityLevel, center.x, center.y - 3, { font: 'bold 12px ui-monospace, monospace' });
+  cell.overlays.forEach((overlay) => drawCellAsset(overlay, center.x, center.y, HEX_SIZE * 1.8));
+  drawText(cell.gravityLevel, center.x, center.y, { font: 'bold 7px ui-monospace, monospace' });
   cell.objects.forEach((object, index) => {
     const angle = (index / Math.max(cell.objects.length, 1)) * Math.PI * 2;
-    const x = center.x + Math.cos(angle) * 16;
-    const y = center.y + 17 + Math.sin(angle) * 7;
-    drawText(objectSymbols[object.kind] ?? '?', x, y, { font: 'bold 13px system-ui', fill: '#f9e38c' });
+    const x = center.x + Math.cos(angle) * 4;
+    const y = center.y + Math.sin(angle) * 4;
+    drawCellAsset(object.kind, x, y, HEX_SIZE * 1.45);
   });
   cell.actors.forEach((actor, index) => {
-    drawText(actorSymbols[actor.kind] ?? '?', center.x - 17 + index * 11, center.y + 17, { font: 'bold 11px system-ui', fill: '#ffdde4' });
+    drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
   });
 
   if (state.selectedCellKey === key) {
@@ -224,14 +295,25 @@ function drawCell(key, cell) {
   }
 }
 
+function drawCellAsset(kind, x, y, size) {
+  const image = objectImages[kind];
+  if (image?.complete && image.naturalWidth > 0) {
+    ctx.save();
+    ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+    ctx.restore();
+    return;
+  }
+  drawText(objectSymbols[kind] ?? kind[0]?.toUpperCase() ?? '?', x, y, { font: 'bold 8px system-ui', fill: '#f9e38c' });
+}
+
 function drawArrow(origin, vector, colour = '#ebff6b') {
-  const end = { x: origin.x + vector.x * 22, y: origin.y + vector.y * 22 };
-  const left = { x: end.x - vector.x * 7 - vector.y * 5, y: end.y - vector.y * 7 + vector.x * 5 };
-  const right = { x: end.x - vector.x * 7 + vector.y * 5, y: end.y - vector.y * 7 - vector.x * 5 };
+  const end = { x: origin.x + vector.x * 9, y: origin.y + vector.y * 9 };
+  const left = { x: end.x - vector.x * 4 - vector.y * 3, y: end.y - vector.y * 4 + vector.x * 3 };
+  const right = { x: end.x - vector.x * 4 + vector.y * 3, y: end.y - vector.y * 4 - vector.x * 3 };
   ctx.save();
   ctx.strokeStyle = colour;
   ctx.fillStyle = colour;
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(origin.x, origin.y);
   ctx.lineTo(end.x, end.y);
@@ -249,20 +331,20 @@ function drawEdges() {
   allMapEdges(state.map).forEach(({ key, a, b }) => {
     const edge = getActiveEdge(state.map, key, state.chapter);
     if (!edge || edge.type === 'none') return;
-    const centerA = getHexCenter(getActiveCell(state.map, a, state.chapter), ORIGIN);
-    const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), ORIGIN);
+    const centerA = getHexCenter(getActiveCell(state.map, a, state.chapter), state.origin);
+    const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), state.origin);
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
     const selected = state.selectedEdgeKey === key;
     ctx.save();
-    ctx.lineWidth = selected ? 7 : 5;
+    ctx.lineWidth = selected ? 3 : 2;
     ctx.strokeStyle = selected ? '#f6e66d' : ({ springJelly: '#e37bff', spike: '#ff6f68', barrier: '#abb5c5', current: '#d9ff68' }[edge.type]);
     ctx.beginPath();
-    ctx.arc(midpoint.x, midpoint.y, selected ? 15 : 11, 0, Math.PI * 2);
+    ctx.arc(midpoint.x, midpoint.y, selected ? 6 : 4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
-    if (edge.type === 'springJelly') drawText('J', midpoint.x, midpoint.y, { font: 'bold 12px system-ui' });
-    if (edge.type === 'spike') drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 13px system-ui', fill: '#ffb5aa' });
-    if (edge.type === 'barrier') drawText('▌', midpoint.x, midpoint.y, { font: 'bold 16px system-ui' });
+    if (edge.type === 'springJelly') drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
+    if (edge.type === 'spike') drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
+    if (edge.type === 'barrier') drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection));
   });
 }
@@ -271,7 +353,7 @@ function drawSelectedCellNeighbours() {
   if (!state.selectedCellKey) return;
   const cell = getActiveCell(state.map, state.selectedCellKey, state.chapter);
   if (!cell) return;
-  const center = getHexCenter(cell, ORIGIN);
+  const center = getHexCenter(cell, state.origin);
   ctx.save();
   ctx.lineWidth = 1;
   ctx.setLineDash([3, 4]);
@@ -279,7 +361,7 @@ function drawSelectedCellNeighbours() {
   allMapEdges(state.map).forEach(({ a, b }) => {
     const other = a === state.selectedCellKey ? b : b === state.selectedCellKey ? a : null;
     if (!other) return;
-    const otherCenter = getHexCenter(getActiveCell(state.map, other, state.chapter), ORIGIN);
+    const otherCenter = getHexCenter(getActiveCell(state.map, other, state.chapter), state.origin);
     ctx.beginPath();
     ctx.moveTo(center.x, center.y);
     ctx.lineTo(otherCenter.x, otherCenter.y);
@@ -295,7 +377,7 @@ function drawTrajectory() {
     chapter: state.chapter,
     actor: state.actor,
     pointer: state.dragging.pointer,
-    origin: ORIGIN,
+    origin: state.origin,
     steps: 96,
   });
   ctx.save();
@@ -326,7 +408,7 @@ function drawTestActor() {
   ctx.arc(actor.x, actor.y, actor.radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  drawText(actor.attached ? 'A' : 'P', actor.x, actor.y, { font: 'bold 12px system-ui', fill: '#16202d' });
+  drawText(actor.attached ? 'A' : 'P', actor.x, actor.y, { font: 'bold 20px system-ui', fill: '#16202d' });
   ctx.restore();
 }
 
@@ -404,11 +486,11 @@ function eventPoint(event) {
 function edgeAtPoint(point) {
   let closest = null;
   allMapEdges(state.map).forEach(({ key, a, b }) => {
-    const centerA = getHexCenter(getActiveCell(state.map, a, state.chapter), ORIGIN);
-    const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), ORIGIN);
+    const centerA = getHexCenter(getActiveCell(state.map, a, state.chapter), state.origin);
+    const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), state.origin);
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
     const distance = Math.hypot(point.x - midpoint.x, point.y - midpoint.y);
-    if (distance < 20 && (!closest || distance < closest.distance)) closest = { key, a, b, distance };
+    if (distance < 7 && (!closest || distance < closest.distance)) closest = { key, a, b, distance };
   });
   return closest;
 }
@@ -480,7 +562,7 @@ function recordEvents(events) {
 
 function stepGame() {
   if (state.mode !== 'play') return;
-  const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: ORIGIN, bounds: WORLD_BOUNDS });
+  const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS });
   if (state.actor.health <= 0 || state.actor.oxygen <= 0) {
     const cause = state.actor.health <= 0 ? '生命歸零' : '氧氣歸零';
     const spawn = state.actor.spawn;
@@ -519,7 +601,7 @@ canvas.addEventListener('pointerdown', (event) => {
     render();
     return;
   }
-  const hitCell = findCellContainingPoint(state.map, point, state.chapter, ORIGIN);
+  const hitCell = findCellContainingPoint(state.map, point, state.chapter, state.origin);
   if (hitCell) applyCellTool(hitCell.key);
   render();
 });
@@ -543,7 +625,7 @@ function setMode(mode) {
   state.dragging = null;
   state.accumulator = 0;
   if (mode === 'play') {
-    resetTestActor(state.actor, state.map, state.chapter, ORIGIN);
+    resetTestActor(state.actor, state.map, state.chapter, state.origin);
     setStatus('物理測試已開始：拖曳玩家並放開以彈射。');
   } else setStatus('回到編輯模式。');
   render();
@@ -552,7 +634,7 @@ function setMode(mode) {
 editorModeButton.addEventListener('click', () => setMode('edit'));
 playModeButton.addEventListener('click', () => setMode('play'));
 document.querySelector('#reset-player').addEventListener('click', () => {
-  resetTestActor(state.actor, state.map, state.chapter, ORIGIN);
+  resetTestActor(state.actor, state.map, state.chapter, state.origin);
   recordEvents([{ type: 'reset', message: '測試玩家已回到玩家起點。' }]);
   render();
 });
@@ -562,6 +644,7 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 });
 document.querySelector('#demo-map').addEventListener('click', () => {
   state.map = createDemoMap();
+  state.origin = calculateMapOrigin(state.map);
   state.chapter = 'chapter1';
   chapterSelect.value = state.chapter;
   state.selectedCellKey = null;
@@ -593,6 +676,7 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
     state.map = parsed;
+    state.origin = calculateMapOrigin(state.map);
     state.selectedCellKey = null;
     state.selectedEdgeKey = null;
     state.validation = validateMap(state.map);
@@ -605,18 +689,18 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
 });
 chapterSelect.addEventListener('change', () => {
   state.chapter = chapterSelect.value;
-  resetTestActor(state.actor, state.map, state.chapter, ORIGIN);
+  resetTestActor(state.actor, state.map, state.chapter, state.origin);
   setStatus(`已切換為${chapterSelect.options[chapterSelect.selectedIndex].text}。`);
   render();
 });
 
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'r') {
-    resetTestActor(state.actor, state.map, state.chapter, ORIGIN);
+    resetTestActor(state.actor, state.map, state.chapter, state.origin);
     recordEvents([{ type: 'reset', message: '測試玩家已重設。' }]);
   }
   if (event.key.toLowerCase() === 'e' && state.mode === 'play') {
-    const result = toggleSeaweedAttachment(state.actor, state.map, state.chapter, ORIGIN);
+    const result = toggleSeaweedAttachment(state.actor, state.map, state.chapter, state.origin);
     recordEvents([{ type: 'seaweed', message: result.message }]);
   }
   if (event.key === ' ' && state.mode === 'play') {
@@ -632,7 +716,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.render_game_to_text = () => {
-  const actorCell = findCellContainingPoint(state.map, state.actor, state.chapter, ORIGIN)?.key ?? null;
+  const actorCell = findCellContainingPoint(state.map, state.actor, state.chapter, state.origin)?.key ?? null;
   const configuredEdges = Object.values(state.map.edges).filter((edge) => edge.type !== 'none').length;
   return JSON.stringify({
     coordinateSystem: 'canvas origin top-left; x right, y down; map cells use pointy-top axial q,r',
@@ -657,7 +741,9 @@ window.advanceTime = (milliseconds) => {
   return window.render_game_to_text();
 };
 
+brushValue.addEventListener('change', updatePaletteSelection);
 createToolButtons();
+createPalette();
 setTool('select');
 state.validation = validateMap(state.map);
 dirtyIndicator.textContent = '示範地圖已載入；可直接修改或匯入自己的 JSON。';

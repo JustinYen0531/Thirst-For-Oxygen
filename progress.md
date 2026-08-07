@@ -8,3 +8,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run build` (Vite production build) and `npm run check` (8/8 physics tests). Browser validation was deliberately not run per user instruction.
 - Remaining: commit and push this first playable map-editor implementation. Next implementation choice after this milestone: persistence format refinement, first real chapter map data, or game-runtime integration.
 - Per user instruction, do not run browser/Playwright/screenshot validation. Use static code checks and pure Node tests only.
+
+## 2026-08-07 — Step 2 in progress
+
+- User asked for fine-grained Cells approximately one third of the player diameter, a direct palette beneath the map, and use of their generated Cell/object art.
+- Editor now uses 24 px point-to-point Cells, a 72 px-diameter test player, a 36×25 default precision map, direct material palette, and copied runtime-safe asset files under `public/assets/editor/`.
+- All motion-related constants are scaled to 0.1× together: launch, gravity, current, max speed, and weight-stone threshold. Static verification and scoped Git push remain to be completed.
+- Static verification passed: Vite production build, 9 physics/model tests, and whitespace validation. Browser validation remains intentionally disabled per user direction.
