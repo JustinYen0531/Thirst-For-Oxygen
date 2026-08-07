@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createEmptyMap,
-  createDemoMap,
+  createBlankMap,
   cellKeyFromColumn,
   getActiveCell,
   findCellContainingPoint,
@@ -170,11 +170,22 @@ test('zoomed screen coordinates map back to the intended world Cell', () => {
   assert.deepEqual(worldPoint, { x: 600, y: 390 });
 });
 
-test('compact demo map keeps all objects and Edges inside the new bounds', () => {
-  const map = createDemoMap();
+test('new authoring map is empty and every water Cell starts at L0', () => {
+  const map = createBlankMap();
   const errors = validateMap(map).filter((result) => result.level === 'error');
   assert.equal(map.layout.width, 24);
   assert.equal(map.layout.height, 17);
+  Object.values(map.cells).forEach((cell) => {
+    assert.equal(cell.terrain, 'water');
+    assert.equal(cell.gravityLevel, 'L0');
+    assert.equal(cell.waterLayer, 'T1');
+    assert.deepEqual(cell.overlays, []);
+    assert.deepEqual(cell.objects, []);
+    assert.deepEqual(cell.freeObjects, []);
+    assert.deepEqual(cell.actors, []);
+  });
+  assert.deepEqual(map.edges, {});
+  assert.deepEqual(map.chapterStates, { chapter1: { cells: {}, edges: {} }, chapter2: { cells: {}, edges: {} } });
   assert.equal(errors.length, 0, errors.map((result) => result.message).join('; '));
 });
 

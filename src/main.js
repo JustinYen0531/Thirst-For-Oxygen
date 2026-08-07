@@ -9,7 +9,7 @@ import {
   WATER_LAYERS,
   TERRAIN_TYPES,
   allMapEdges,
-  createDemoMap,
+  createBlankMap,
   edgeKey,
   findCellContainingPoint,
   getActiveCell,
@@ -89,7 +89,8 @@ const palettePanels = [...document.querySelectorAll('[data-palette-panel]')];
 const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'actor', 'edge']
   .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
-const STORAGE_KEY = 'thirst-for-oxygen.map-editor.v1';
+const STORAGE_KEY = 'thirst-for-oxygen.map-editor.v2';
+const RETIRED_DEMO_STORAGE_KEY = 'thirst-for-oxygen.map-editor.v1';
 const gravityColours = {
   'L-1': '#a9ecf2',
   L0: '#aab7c7',
@@ -219,7 +220,11 @@ function loadMap() {
   } catch (error) {
     console.warn('Unable to load saved map', error);
   }
-  return createDemoMap();
+  // v1 was a demo map with authored objects and gravity bands. Retire it once
+  // so refreshing starts from a genuinely blank map, while v2 preserves every
+  // later map the author explicitly saves.
+  localStorage.removeItem(RETIRED_DEMO_STORAGE_KEY);
+  return createBlankMap();
 }
 
 const initialMap = loadMap();
@@ -1619,7 +1624,7 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
   else await canvas.requestFullscreen();
 });
 document.querySelector('#demo-map').addEventListener('click', () => {
-  state.map = createDemoMap();
+  state.map = createBlankMap();
   state.origin = calculateMapOrigin(state.map);
   state.zoom = 1.5;
   zoomSlider.value = String(state.zoom);
@@ -1628,7 +1633,7 @@ document.querySelector('#demo-map').addEventListener('click', () => {
   chapterSelect.value = state.chapter;
   state.selectedCellKey = null;
   state.selectedEdgeKey = null;
-  markDirty('已載入 24×17 示範地圖；它含五級水域、物件與 Edge 互動。');
+  markDirty('已重設為空白 24×17 地圖：全水域為 L0，沒有物件、Actor 或 Edge。');
   render();
 });
 document.querySelector('#save-local').addEventListener('click', saveLocal);

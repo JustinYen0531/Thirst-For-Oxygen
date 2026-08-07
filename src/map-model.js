@@ -82,7 +82,7 @@ function makeCell(q, r) {
     q,
     r,
     terrain: 'water',
-    gravityLevel: 'L1',
+    gravityLevel: 'L0',
     waterLayer: 'T1',
     overlays: [],
     objects: [],
@@ -115,6 +115,27 @@ export function createEmptyMap({ width = 24, height = 17 } = {}) {
       chapter2: { cells: {}, edges: {} },
     },
   };
+}
+
+// The editor keeps a stable column width but may grow the map downward while
+// authoring. New rows use the same odd-r coordinates as the original grid and
+// start as ordinary passable water Cells.
+export function ensureOddRRows(map, throughRow) {
+  const width = Math.max(1, Number(map.layout?.width) || 1);
+  const currentHeight = Math.max(
+    Number(map.layout?.height) || 0,
+    ...Object.values(map.cells ?? {}).map((cell) => cell.r + 1),
+  );
+  const targetHeight = Math.max(currentHeight, Math.floor(Number(throughRow)) + 1);
+  for (let row = currentHeight; row < targetHeight; row += 1) {
+    for (let column = 0; column < width; column += 1) {
+      const q = column - Math.floor(row / 2);
+      const key = cellKey(q, row);
+      if (!map.cells[key]) map.cells[key] = makeCell(q, row);
+    }
+  }
+  map.layout.height = targetHeight;
+  return map;
 }
 
 export function migrateMapToOddR(map) {
@@ -339,47 +360,8 @@ export function validateMap(map) {
   return results;
 }
 
-export function createDemoMap() {
-  const map = createEmptyMap();
-  const levels = ['L-1', 'L0', 'L1', 'L2', 'L3'];
-  const { width, height } = map.layout;
-  const at = (column, row) => cellKeyFromColumn(column, row);
-  const point = (columnRatio, rowRatio) => at(
-    Math.round((width - 1) * columnRatio),
-    Math.round((height - 1) * rowRatio),
-  );
-  Object.values(map.cells).forEach((cell) => {
-    const levelIndex = Math.min(levels.length - 1, Math.floor((cell.r / Math.max(height - 1, 1)) * levels.length));
-    cell.gravityLevel = levels[levelIndex];
-    const column = cell.q + Math.floor(cell.r / 2);
-    if (column >= Math.round(width * 0.58)) cell.waterLayer = 'T2';
-  });
-
-  const addOverlay = (key, kind) => map.cells[key].overlays.push(kind);
-  const addObject = (key, kind) => map.cells[key].objects.push({ kind });
-  const addActor = (key, kind) => map.cells[key].actors.push({ kind });
-  addActor(point(0.12, 0.2), 'playerStart');
-  addActor(point(0.62, 0.34), 'enemySpawn');
-  addActor(point(0.76, 0.64), 'miniBossSpawn');
-  addActor(at(width - 3, height - 3), 'bossSpawn');
-  addOverlay(point(0.72, 0.2), 'ink');
-  addObject(point(0.42, 0.34), 'mine');
-  addObject(point(0.5, 0.34), 'weightStone');
-  addObject(point(0.34, 0.62), 'oxygen');
-  addObject(point(0.54, 0.74), 'checkpoint');
-  addObject(point(0.8, 0.16), 'bubble');
-  addObject(point(0.1, 0.7), 'torricelli');
-  const springColumn = Math.round((width - 1) * 0.4);
-  const spikeColumn = Math.round((width - 1) * 0.42);
-  const barrierColumn = Math.round((width - 1) * 0.65);
-  const currentColumn = Math.round((width - 1) * 0.26);
-  const seaweedColumn = Math.round((width - 1) * 0.2);
-  const coralClusterColumn = Math.round((width - 1) * 0.74);
-  patchEdge(map, at(springColumn, Math.round((height - 1) * 0.34)), at(springColumn + 1, Math.round((height - 1) * 0.34)), { type: 'springJelly', blocksPassage: true });
-  patchEdge(map, at(spikeColumn, Math.round((height - 1) * 0.62)), at(spikeColumn + 1, Math.round((height - 1) * 0.62)), { type: 'spike', blocksPassage: true });
-  patchEdge(map, at(barrierColumn, Math.round((height - 1) * 0.62)), at(barrierColumn + 1, Math.round((height - 1) * 0.62)), { type: 'barrier', blocksPassage: true });
-  patchEdge(map, at(currentColumn, Math.round((height - 1) * 0.46)), at(currentColumn + 1, Math.round((height - 1) * 0.46)), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
-  patchEdge(map, at(seaweedColumn, Math.round((height - 1) * 0.46)), at(seaweedColumn + 1, Math.round((height - 1) * 0.46)), { type: 'seaweed', blocksPassage: false });
-  patchEdge(map, at(coralClusterColumn, Math.round((height - 1) * 0.2)), at(coralClusterColumn + 1, Math.round((height - 1) * 0.2)), { type: 'coralCluster', blocksPassage: false });
-  return map;
+export function createBlankMap() {
+  // A map author always starts with a clean, neutral water field. Objects,
+  // actors, Edges, and non-zero gravity are authored deliberately afterward.
+  return createEmptyMap();
 }

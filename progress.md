@@ -202,3 +202,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Correcting Step 21's rendering mistake: the map trim now clips only the alternating left/right half-Cell tips. It no longer clips map height, so every authored water row remains visible and is merely trimmed at the two side boundaries.
 - Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 24 complete
+
+- Replaced the object-filled demo map with a blank 24×17 authoring map: every Cell is passable `L0`/`T1` water, with no overlays, water objects, Actors, Edges, or chapter overrides.
+- Retired the previous browser-local `v1` demo storage key and moved authored persistence to `v2`; the first refresh clears the old demo once, while later deliberate saves continue to persist normally.
+- Static-only verification passed: `npm run check` (27/27 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
