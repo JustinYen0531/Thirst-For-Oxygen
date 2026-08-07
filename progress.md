@@ -282,7 +282,7 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 ## 2026-08-08 — Step 36 complete
 
 - Increased the microflow and water-motion presentation to 5x the original prototype strength while preserving curl flow, connected-region mean subtraction, and separate T1/T2 fields.
-- Static verification is pending for this tuning pass.
+- Static verification passed for this tuning pass: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
 
 ## 2026-08-08 — Step 35 complete
 
