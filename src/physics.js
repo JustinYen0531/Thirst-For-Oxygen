@@ -370,15 +370,33 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
   actor.safe = coralClusterSafe;
   actor.inInk = cell.overlays.includes('ink');
   if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
-  if (cell.overlays.includes('ink')) addEvent(events, 'ink', '墨水區：預覽視野受限。');
-
+  const contactObjects = [];
   Object.entries(map.cells).forEach(([key]) => {
     const objectCell = getActiveCell(map, key, chapter);
-    const position = getHexCenter(objectCell, origin);
-    const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
-    if (distance > actor.radius + 22) return;
+    const center = getHexCenter(objectCell, origin);
+    objectCell.objects.forEach((object) => contactObjects.push({ key, objectCell, object, position: center, hitRadius: object.hitRadius ?? 22 }));
+    (objectCell.freeObjects ?? []).forEach((object, index) => {
+      const offset = object.offset ?? { x: 0, y: 0 };
+      contactObjects.push({
+        key: `${key}:free:${index}`,
+        ownerKey: key,
+        objectCell,
+        object,
+        position: { x: center.x + offset.x, y: center.y + offset.y },
+        hitRadius: object.hitRadius ?? 9,
+        free: true,
+        index,
+      });
+    });
+  });
 
-    objectCell.objects.forEach((object) => {
+  contactObjects.forEach(({ key, ownerKey, objectCell, object, position, hitRadius, free, index }) => {
+      if (object.kind === 'ink' && Math.hypot(actor.x - position.x, actor.y - position.y) <= actor.radius + hitRadius) {
+        actor.inInk = true;
+      }
+      const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
+      if (distance > actor.radius + hitRadius) return;
+
       if (object.kind === 'mine' && !isOnCooldown(actor, `mine:${key}`)) {
         const normal = unitVector(position, actor);
         const bounced = reflect({ x: actor.vx, y: actor.vy }, normal, 1.03);
@@ -391,8 +409,12 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
       if (object.kind === 'weightStone' && !isOnCooldown(actor, `stone:${key}`)) {
         const impact = Math.hypot(actor.vx, actor.vy);
         if (impact >= WEIGHT_STONE_BREAK_SPEED && mutateMap) {
-          const editable = getActiveCell(map, key, chapter);
-          patchCell(map, key, { objects: editable.objects.filter((candidate) => candidate !== object) }, chapter);
+          const editable = getActiveCell(map, ownerKey ?? key, chapter);
+          if (free) {
+            patchCell(map, ownerKey, { freeObjects: editable.freeObjects.filter((candidate, candidateIndex) => candidateIndex !== index) }, chapter);
+          } else {
+            patchCell(map, key, { objects: editable.objects.filter((candidate) => candidate !== object) }, chapter);
+          }
           actor.cooldowns[`stone:${key}`] = 0.5;
           addEvent(events, 'weightStone', '重石已被足夠的撞擊力擊碎。');
         } else {
@@ -423,8 +445,8 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
         actor.energy = MAX_ENERGY;
         addEvent(events, 'checkpoint', 'Checkpoint：已更新重生點並回滿資源。');
       }
-    });
   });
+  if (actor.inInk) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 }
 
 export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true }) {

@@ -83,6 +83,10 @@ function makeCell(q, r) {
     gravityLevel: 'L1',
     overlays: [],
     objects: [],
+    // Free-snap water objects are owned by the nearest Cell for persistence,
+    // but their offset keeps their actual world position independent of the
+    // Cell grid.
+    freeObjects: [],
     actors: [],
     region: 'default',
   };
@@ -292,6 +296,14 @@ export function validateMap(map) {
     });
     cell.objects.forEach((object) => {
       if (!CELL_OBJECT_TYPES.includes(object.kind)) results.push({ level: 'error', message: `${key} 有未知物件：${object.kind}` });
+    });
+    (cell.freeObjects ?? []).forEach((object) => {
+      if (![...OVERLAY_TYPES, ...CELL_OBJECT_TYPES].includes(object.kind)) {
+        results.push({ level: 'error', message: `${key} 有未知自由物件：${object.kind}` });
+      }
+      if (!object.offset || !Number.isFinite(object.offset.x) || !Number.isFinite(object.offset.y)) {
+        results.push({ level: 'error', message: `${key} 的自由物件缺少有效位置：${object.kind}` });
+      }
     });
   });
 

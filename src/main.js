@@ -422,6 +422,85 @@ function drawText(text, x, y, options = {}) {
   ctx.restore();
 }
 
+function freeObjectVisualSize(kind) {
+  return kind === 'ink' ? HEX_SIZE * 1.8 : HEX_SIZE * 1.45;
+}
+
+function freeObjectHitRadius(kind) {
+  return freeObjectVisualSize(kind) / 2;
+}
+
+function getFreeObjectPosition(cell, object) {
+  const center = getHexCenter(cell, state.origin);
+  const offset = object.offset ?? { x: 0, y: 0 };
+  return { x: center.x + offset.x, y: center.y + offset.y };
+}
+
+function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96) {
+  const size = freeObjectVisualSize(kind);
+  const image = objectImages[kind];
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (image?.complete && image.naturalWidth > 0) {
+    ctx.shadowColor = colour;
+    ctx.shadowBlur = 0;
+    [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([x, y]) => {
+      ctx.shadowOffsetX = x;
+      ctx.shadowOffsetY = y;
+      ctx.drawImage(image, position.x - size / 2, position.y - size / 2, size, size);
+    });
+    ctx.shadowColor = 'transparent';
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(image, position.x - size / 2, position.y - size / 2, size, size);
+  } else {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, size / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    drawCellAsset(kind, position.x, position.y, size * 0.72);
+  }
+  ctx.restore();
+}
+
+function findNearestCell(point) {
+  let nearest = null;
+  Object.keys(state.map.cells).forEach((key) => {
+    const cell = getActiveCell(state.map, key, state.chapter);
+    const center = getHexCenter(cell, state.origin);
+    const distance = Math.hypot(point.x - center.x, point.y - center.y);
+    if (!nearest || distance < nearest.distance) nearest = { key, cell, center, distance };
+  });
+  return nearest;
+}
+
+function freeObjectAtPoint(point) {
+  let closest = null;
+  Object.entries(state.map.cells).forEach(([key, baseCell]) => {
+    const cell = getActiveCell(state.map, key, state.chapter);
+    (cell.freeObjects ?? []).forEach((object, index) => {
+      const position = getFreeObjectPosition(cell, object);
+      const radius = object.hitRadius ?? freeObjectHitRadius(object.kind);
+      const distance = Math.hypot(point.x - position.x, point.y - position.y);
+      if (distance <= radius && (!closest || distance < closest.distance)) {
+        closest = { key, index, object, cell, position, distance };
+      }
+    });
+    // Legacy Cell objects remain erasable at their old center position.
+    cell.objects.forEach((object, index) => {
+      const center = getHexCenter(cell, state.origin);
+      const radius = object.hitRadius ?? HEX_SIZE * 1.1;
+      const distance = Math.hypot(point.x - center.x, point.y - center.y);
+      if (distance <= radius && (!closest || distance < closest.distance)) {
+        closest = { key, index, object, cell, position: center, distance, legacy: true };
+      }
+    });
+  });
+  return closest;
+}
+
 function drawCell(key, cell) {
   const center = getHexCenter(cell, state.origin);
   ctx.save();
@@ -444,6 +523,10 @@ function drawCell(key, cell) {
     const x = center.x + Math.cos(angle) * 4;
     const y = center.y + Math.sin(angle) * 4;
     drawCellAsset(object.kind, x, y, HEX_SIZE * 1.45);
+  });
+  (cell.freeObjects ?? []).forEach((object) => {
+    const position = getFreeObjectPosition(cell, object);
+    drawCellAsset(object.kind, position.x, position.y, object.size ?? freeObjectVisualSize(object.kind));
   });
   cell.actors.forEach((actor, index) => {
     drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
@@ -638,6 +721,10 @@ function drawPlacementPreview() {
     ctx.strokeStyle = valid ? '#f6e66d' : '#ff6f68';
     ctx.stroke();
     ctx.restore();
+    return;
+  }
+  if (state.tool === 'overlay' || state.tool === 'object') {
+    drawFreeObjectOutline(state.tool === 'overlay' ? brushValue.value : brushValue.value, state.hoverPoint, '#f6e66d', 0.82);
     return;
   }
   const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
@@ -880,6 +967,42 @@ function edgeAtPoint(point) {
 
 function addOrRemove(values, value) {
   return values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value];
+}
+
+function applyFreeObjectTool(point) {
+  const nearest = findNearestCell(point);
+  if (!nearest) return;
+  const value = brushValue.value;
+  const editable = getEditableCell(state.map, nearest.key, state.chapter);
+  const size = freeObjectVisualSize(value);
+  const freeObjects = [
+    ...(editable.freeObjects ?? []),
+    {
+      kind: value,
+      offset: { x: point.x - nearest.center.x, y: point.y - nearest.center.y },
+      size,
+      hitRadius: freeObjectHitRadius(value),
+    },
+  ];
+  patchCell(state.map, nearest.key, { freeObjects }, state.chapter);
+  state.selectedCellKey = nearest.key;
+  state.selectedEdgeKey = null;
+  markDirty(`已自由放置${paletteLabels[value] ?? value}；可重複點擊增加碰撞範圍。`);
+}
+
+function applyFreeObjectErase(target) {
+  if (!target) return false;
+  if (target.legacy) {
+    const editable = getEditableCell(state.map, target.key, state.chapter);
+    patchCell(state.map, target.key, { objects: editable.objects.filter((_, index) => index !== target.index) }, state.chapter);
+  } else {
+    const editable = getEditableCell(state.map, target.key, state.chapter);
+    patchCell(state.map, target.key, { freeObjects: editable.freeObjects.filter((_, index) => index !== target.index) }, state.chapter);
+  }
+  state.selectedCellKey = target.key;
+  state.selectedEdgeKey = null;
+  markDirty(`已清除${paletteLabels[target.object.kind] ?? target.object.kind}。`);
+  return true;
 }
 
 function applyCellTool(key) {
