@@ -375,13 +375,13 @@ function getPaletteDescription(tool, value) {
     })[value];
   }
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
-  if (tool === 'overlay' && value === 'ink') return '水域上物件：直接覆蓋可通行水域格；物理測試時遮蔽角色周圍以外的視野。';
-  if (tool === 'object' && value === 'mine') return '水域上物件：直接覆蓋可通行水域格；角色接觸時造成傷害。';
-  if (tool === 'object' && value === 'weightStone') return '水域上物件：直接覆蓋可通行水域格；高速撞擊可破壞它。';
-  if (tool === 'object' && value === 'oxygen') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
-  if (tool === 'object' && value === 'checkpoint') return '水域上物件：直接覆蓋可通行水域格；更新重生位置並恢復資源。';
-  if (tool === 'object' && value === 'bubble') return '水域上物件：直接覆蓋可通行水域格；短暫免疫重力。';
-  if (tool === 'object' && value === 'torricelli') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
+  if (tool === 'overlay' && value === 'ink') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
+  if (tool === 'object' && value === 'mine') return '水域上物件：自由放置；物件自身輪廓是 hitbox，角色接觸時造成傷害。';
+  if (tool === 'object' && value === 'weightStone') return '水域上物件：自由放置；物件自身輪廓是 hitbox，高速撞擊可破壞它。';
+  if (tool === 'object' && value === 'oxygen') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可補給。';
+  if (tool === 'object' && value === 'checkpoint') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可更新重生位置並恢復資源。';
+  if (tool === 'object' && value === 'bubble') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
+  if (tool === 'object' && value === 'torricelli') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
   if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
   if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
@@ -532,14 +532,6 @@ function drawCell(key, cell) {
     drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
   });
 
-  if (state.selectedCellKey === key) {
-    pathHex(cell);
-    ctx.setLineDash([5, 3]);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#f6e66d';
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
 }
 
 const sideVertexIndexes = [
@@ -673,7 +665,7 @@ function isEdgePlacementValid(edgeTarget) {
 }
 
 function isCellEraseValid(cell) {
-  return Boolean(cell && (cell.overlays.length || cell.objects.length || cell.actors.length));
+  return Boolean(cell && (cell.overlays.length || cell.objects.length || cell.freeObjects?.length || cell.actors.length));
 }
 
 function isEdgeEraseValid(edgeTarget) {
@@ -694,6 +686,11 @@ function getSharedEdgePoints(edgeTarget) {
 function drawPlacementPreview() {
   if (state.mode !== 'edit' || !state.hoverPoint) return;
   if (state.tool === 'erase') {
+    const objectTarget = freeObjectAtPoint(state.hoverPoint);
+    if (objectTarget) {
+      drawFreeObjectOutline(objectTarget.object.kind, objectTarget.position, '#f6e66d', 0.96);
+      return;
+    }
     const edgeTarget = edgeAtPoint(state.hoverPoint);
     const shared = edgeTarget && getSharedEdgePoints(edgeTarget);
     if (shared) {
@@ -1025,7 +1022,7 @@ function applyCellTool(key) {
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
   if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
   if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
-    setStatus('水域上物件只能直接覆蓋在可通行水域格；請先選水域重力把這格還原為水域。');
+    setStatus('水域上物件現在是自由放置，不會吸附到這個六角格。');
     return;
   }
   if (state.tool === 'overlay') patchCell(state.map, key, { overlays: addOrRemove(cell.overlays, value) }, state.chapter);
@@ -1047,7 +1044,7 @@ function applyCellTool(key) {
     const exists = editable.actors.some((actor) => actor.kind === value);
     patchCell(state.map, key, { actors: exists ? editable.actors.filter((actor) => actor.kind !== value) : [...editable.actors, { kind: value }] }, state.chapter);
   }
-  if (state.tool === 'erase') patchCell(state.map, key, { overlays: [], objects: [], actors: [] }, state.chapter);
+  if (state.tool === 'erase') patchCell(state.map, key, { overlays: [], objects: [], freeObjects: [], actors: [] }, state.chapter);
   markDirty(`${key} 已套用 ${toolDefinitions[state.tool].label}${value ? `：${value}` : ''}。`);
 }
 

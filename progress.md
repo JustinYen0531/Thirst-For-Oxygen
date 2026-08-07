@@ -104,6 +104,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
 
+## 2026-08-08 — Step 16 refinement
+
+- Updated the palette instructions and every water-object info card to describe free placement and object-owned hitboxes.
+- Eraser preview now prioritizes a free object's silhouette before checking nearby Edges or Cells, and Cell fallback clearing also removes any free objects owned by that Cell.
+
 ## 2026-08-08 — Step 16 in progress
 
 - Changed `水域上物件` from Cell-snapped placement to free-snap placement. The selected object follows the cursor with its own silhouette-shaped gold outline, and clicking anywhere on the Canvas adds an independent instance rather than toggling a Cell slot.
