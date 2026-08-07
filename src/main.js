@@ -227,12 +227,12 @@ function syncCanvasGeometry(map, zoom = DEFAULT_ZOOM) {
   }
 }
 
-function calculateMapOrigin(map, zoom = DEFAULT_ZOOM) {
+function calculateMapOrigin(map, zoom = DEFAULT_ZOOM, pan = { x: 0, y: 0 }) {
   const bounds = getOddRRectangularBounds(map, { x: 0, y: 0 });
   const topSource = canvas.height / 2 + (MAP_TOP_SCREEN_PADDING - canvas.height / 2) / zoom;
   return {
-    x: (canvas.width - (bounds.right - bounds.left)) / 2 - bounds.left,
-    y: topSource - bounds.top,
+    x: (canvas.width - (bounds.right - bounds.left)) / 2 - bounds.left + pan.x,
+    y: topSource - bounds.top + pan.y,
   };
 }
 
@@ -259,7 +259,8 @@ function loadMap() {
 
 const initialMap = loadMap();
 syncCanvasGeometry(initialMap, DEFAULT_ZOOM);
-const initialOrigin = calculateMapOrigin(initialMap, DEFAULT_ZOOM);
+const initialPan = { x: 0, y: 0 };
+const initialOrigin = calculateMapOrigin(initialMap, DEFAULT_ZOOM, initialPan);
 const state = {
   map: initialMap,
   origin: initialOrigin,
@@ -277,6 +278,9 @@ const state = {
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
   zoom: DEFAULT_ZOOM,
+  pan: initialPan,
+  viewDrag: null,
+  lastPointerClient: null,
   paletteTab: 'gravity',
   hoverPoint: null,
   animationTime: 0,
@@ -294,6 +298,12 @@ function updatePaletteSelection() {
   document.querySelectorAll('[data-palette-tool]').forEach((button) => {
     button.classList.toggle('is-active', button.dataset.paletteTool === state.tool && button.dataset.paletteValue === brushValue.value);
   });
+}
+
+function updateCanvasCursor() {
+  const canPan = state.mode === 'edit' && state.tool === 'select' && !state.viewDrag;
+  canvas.classList.toggle('is-pan-ready', canPan);
+  canvas.classList.toggle('is-panning', Boolean(state.viewDrag));
 }
 
 function setPaletteTab(tab) {
@@ -329,6 +339,7 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   eraserButton.setAttribute('aria-pressed', String(tool === 'erase'));
   setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
   updatePaletteSelection();
+  updateCanvasCursor();
   render();
 }
 
@@ -387,7 +398,11 @@ function createPalette() {
       label.className = 'palette-choice-label';
       label.textContent = paletteLabels[value] ?? value;
       choice.append(visual, label);
-      choice.addEventListener('click', () => setTool(tool, value, group));
+      choice.addEventListener('click', () => {
+        const isSameSelection = state.tool === tool && brushValue.value === value;
+        setTool(isSameSelection ? 'select' : tool, isSameSelection ? null : value, isSameSelection ? null : group);
+        if (isSameSelection) setStatus('已取消素材選取；可拖曳地圖，游標移到畫布會變成抓取手勢。');
+      });
 
       const info = document.createElement('button');
       info.type = 'button';
@@ -497,25 +512,10 @@ function getMapRenderBounds() {
 
 function clipToMapSideBoundaries(bounds) {
   ctx.beginPath();
-  // Each odd-r row has a different horizontal offset. A single global rect
-  // therefore makes one side retain a full outer Cell on alternating rows.
-  // Clip every row between its outer Cell centres instead: both sides lose
-  // exactly the protruding half-Cell, while the row intervals overlap so no
-  // authored water band is removed vertically.
-  const rows = new Map();
-  Object.values(state.map.cells).forEach((cell) => {
-    const center = getHexCenter(cell, state.origin);
-    const row = Number(cell.r);
-    const current = rows.get(row) ?? { y: center.y, left: center.x, right: center.x };
-    current.left = Math.min(current.left, center.x);
-    current.right = Math.max(current.right, center.x);
-    rows.set(row, current);
-  });
-  if (!rows.size) {
-    ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
-  } else {
-    rows.forEach(({ y, left, right }) => ctx.rect(left, y - HEX_SIZE, Math.max(1, right - left), HEX_SIZE * 2));
-  }
+  // Keep the original single silhouette clip. The row-by-row clip made the
+  // boundary look stepped and was intentionally removed after visual review.
+  // This only trims the alternating side tips and never clips map height.
+  ctx.rect(bounds.left, -canvas.height * 2, bounds.right - bounds.left, canvas.height * 5);
   ctx.clip();
 }
 
@@ -663,7 +663,7 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
 
   ensureOddRRows(state.map, candidate.row);
   syncCanvasGeometry(state.map, state.zoom);
-  state.origin = calculateMapOrigin(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
   return findCellContainingPoint(state.map, point, state.chapter, state.origin);
 }
 
@@ -752,7 +752,22 @@ function drawCellSurface(cell) {
   const center = getHexCenter(cell, state.origin);
   ctx.save();
   pathHex(cell);
+  const row = Number(cell.r);
+  const column = cell.q + Math.floor(row / 2);
+  const mapWidth = Number(state.map.layout?.width) || 0;
+  // Keep the global rectangular silhouette, then trim only the alternating
+  // outer Cells that would otherwise remain whole. This makes both sides of
+  // a row show the same half-Cell without introducing stepped row bands.
   ctx.clip();
+  if (column === 0 && row % 2 === 1) {
+    ctx.beginPath();
+    ctx.rect(center.x, center.y - HEX_SIZE, HEX_SIZE, HEX_SIZE * 2);
+    ctx.clip();
+  } else if (column === mapWidth - 1 && row % 2 === 0) {
+    ctx.beginPath();
+    ctx.rect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE, HEX_SIZE * 2);
+    ctx.clip();
+  }
   ctx.fillStyle = cell.terrain === 'blocked' ? '#0b111b' : gravityColours[cell.gravityLevel];
   ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   const tile = cell.terrain === 'blocked' ? terrainImages.blocked : waterTiles[cell.gravityLevel];
@@ -1475,13 +1490,50 @@ function render() {
   renderHud();
 }
 
-function eventPoint(event) {
-  const rect = canvas.getBoundingClientRect();
-  const screenPoint = {
-    x: (event.clientX - rect.left) * (canvas.width / rect.width),
-    y: (event.clientY - rect.top) * (canvas.height / rect.height),
+function canvasScreenPoint(clientX, clientY, rect = canvas.getBoundingClientRect()) {
+  return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height),
   };
+}
+
+function eventPoint(event) {
+  const screenPoint = canvasScreenPoint(event.clientX, event.clientY);
+  state.lastPointerClient = { x: event.clientX, y: event.clientY };
   return screenPointToWorldPoint(screenPoint, { x: canvas.width / 2, y: canvas.height / 2 }, state.zoom);
+}
+
+function setZoomAroundClient(nextZoom, clientPoint = state.lastPointerClient) {
+  const clampedZoom = Math.min(4, Math.max(0.5, Number(nextZoom) || DEFAULT_ZOOM));
+  const previousZoom = state.zoom;
+  if (clampedZoom === previousZoom) return;
+  const previousRect = canvas.getBoundingClientRect();
+  const anchorClient = clientPoint ?? {
+    x: previousRect.left + previousRect.width / 2,
+    y: previousRect.top + previousRect.height / 2,
+  };
+  const previousScreen = canvasScreenPoint(anchorClient.x, anchorClient.y, previousRect);
+  const previousWorld = screenPointToWorldPoint(
+    previousScreen,
+    { x: canvas.width / 2, y: canvas.height / 2 },
+    previousZoom,
+  );
+
+  state.zoom = clampedZoom;
+  syncCanvasGeometry(state.map, state.zoom);
+  const nextRect = canvas.getBoundingClientRect();
+  const nextScreen = canvasScreenPoint(anchorClient.x, anchorClient.y, nextRect);
+  const nextWorld = screenPointToWorldPoint(
+    nextScreen,
+    { x: canvas.width / 2, y: canvas.height / 2 },
+    state.zoom,
+  );
+  state.pan.x += nextWorld.x - previousWorld.x;
+  state.pan.y += nextWorld.y - previousWorld.y;
+  state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
+  zoomSlider.value = String(state.zoom);
+  zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
+  render();
 }
 
 function edgeAtPoint(point) {
@@ -1668,6 +1720,21 @@ function applyEdgeTool(edgeTarget) {
   markDirty(`${edgeTarget.key} 已套用 Edge 設定。`);
 }
 
+function applySelectAtPoint(point) {
+  const objectTarget = freeObjectAtPoint(point);
+  if (objectTarget) {
+    selectMapObject(objectTarget);
+    return;
+  }
+  const hitEdge = edgeAtPoint(point);
+  if (hitEdge) {
+    applyEdgeTool(hitEdge);
+    return;
+  }
+  const hitCell = getOrExtendCellAtPoint(point, false);
+  if (hitCell) applyCellTool(hitCell.key);
+}
+
 function recordEvents(events) {
   if (!events.length) return;
   state.events = [...events, ...state.events].slice(0, 8);
@@ -1722,6 +1789,12 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
+  if (state.tool === 'select') {
+    state.viewDrag = { pointerId: event.pointerId, startPoint: point, lastPoint: point, moved: false };
+    canvas.setPointerCapture(event.pointerId);
+    updateCanvasCursor();
+    return;
+  }
   if (isCellPaintTool()) {
     state.painting = { pointerId: event.pointerId, lastPoint: point, visited: new Set(), statusShown: false };
     canvas.setPointerCapture(event.pointerId);
@@ -1742,16 +1815,8 @@ canvas.addEventListener('pointerdown', (event) => {
       return;
     }
   }
-  if (state.tool === 'select') {
-    const objectTarget = freeObjectAtPoint(point);
-    if (objectTarget) {
-      selectMapObject(objectTarget);
-      render();
-      return;
-    }
-  }
   const hitEdge = edgeAtPoint(point);
-  if ((state.tool === 'select' || state.tool === 'edge' || state.tool === 'erase') && hitEdge) {
+  if ((state.tool === 'edge' || state.tool === 'erase') && hitEdge) {
     applyEdgeTool(hitEdge);
     render();
     return;
@@ -1766,6 +1831,20 @@ canvas.addEventListener('pointermove', (event) => {
   const point = eventPoint(event);
   state.hoverPoint = point;
   if (state.dragging) state.dragging.pointer = point;
+  if (state.viewDrag?.pointerId === event.pointerId) {
+    const drag = state.viewDrag;
+    const delta = { x: point.x - drag.lastPoint.x, y: point.y - drag.lastPoint.y };
+    if (!drag.moved && Math.hypot(point.x - drag.startPoint.x, point.y - drag.startPoint.y) > 1.5) drag.moved = true;
+    if (drag.moved) {
+      state.pan.x += delta.x;
+      state.pan.y += delta.y;
+      state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
+    }
+    drag.lastPoint = point;
+    updateCanvasCursor();
+    render();
+    return;
+  }
   if (state.painting?.pointerId === event.pointerId) paintCellsAlongPath(point);
   if (state.mode === 'edit') render();
 });
@@ -1776,6 +1855,15 @@ canvas.addEventListener('pointerleave', () => {
 });
 
 canvas.addEventListener('pointerup', (event) => {
+  if (state.viewDrag?.pointerId === event.pointerId) {
+    const drag = state.viewDrag;
+    state.viewDrag = null;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    updateCanvasCursor();
+    if (!drag.moved) applySelectAtPoint(eventPoint(event));
+    render();
+    return;
+  }
   if (state.painting?.pointerId === event.pointerId) {
     state.painting = null;
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
@@ -1801,14 +1889,18 @@ canvas.addEventListener('pointerup', (event) => {
 canvas.addEventListener('pointercancel', (event) => {
   if (state.painting?.pointerId === event.pointerId) state.painting = null;
   if (state.dragging) state.dragging = null;
+  if (state.viewDrag?.pointerId === event.pointerId) state.viewDrag = null;
   if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  updateCanvasCursor();
 });
 
 function setMode(mode) {
   state.mode = mode;
   state.dragging = null;
   state.painting = null;
+  state.viewDrag = null;
   state.accumulator = 0;
+  updateCanvasCursor();
   if (mode === 'play') {
     startTestRun(state.actor, state.map, state.chapter, state.origin);
     setStatus('物理測試已開始：拖曳玩家並放開以彈射。');
@@ -1829,9 +1921,10 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 });
 document.querySelector('#demo-map').addEventListener('click', () => {
   state.map = createBlankMap();
+  state.pan = { x: 0, y: 0 };
   state.zoom = DEFAULT_ZOOM;
   syncCanvasGeometry(state.map, state.zoom);
-  state.origin = calculateMapOrigin(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
   zoomSlider.value = String(state.zoom);
   zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
   state.chapter = 'chapter1';
@@ -1865,8 +1958,9 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
     state.map = migrateMapToOddR(parsed);
+    state.pan = { x: 0, y: 0 };
     syncCanvasGeometry(state.map, state.zoom);
-    state.origin = calculateMapOrigin(state.map, state.zoom);
+    state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
     state.selectedCellKey = null;
     state.selectedEdgeKey = null;
     state.validation = validateMap(state.map);
@@ -1884,12 +1978,16 @@ chapterSelect.addEventListener('change', () => {
   render();
 });
 zoomSlider.addEventListener('input', () => {
-  state.zoom = Number(zoomSlider.value);
-  syncCanvasGeometry(state.map, state.zoom);
-  state.origin = calculateMapOrigin(state.map, state.zoom);
-  zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
-  render();
+  setZoomAroundClient(Number(zoomSlider.value));
 });
+
+canvas.addEventListener('wheel', (event) => {
+  if (state.mode !== 'edit') return;
+  event.preventDefault();
+  state.lastPointerClient = { x: event.clientX, y: event.clientY };
+  const direction = event.deltaY < 0 ? 0.1 : -0.1;
+  setZoomAroundClient(Math.round((state.zoom + direction) * 10) / 10, state.lastPointerClient);
+}, { passive: false });
 
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'r') {
@@ -1936,6 +2034,8 @@ window.render_game_to_text = () => {
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
     viewport: {
       zoom: state.zoom,
+      pan: { x: formatNumber(state.pan.x), y: formatNumber(state.pan.y) },
+      canPan: state.mode === 'edit' && state.tool === 'select',
       scrollTop: Math.round(canvasViewport?.scrollTop ?? 0),
       scrollHeight: Math.round(canvasViewport?.scrollHeight ?? canvas.height),
     },

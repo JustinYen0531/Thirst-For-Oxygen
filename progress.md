@@ -230,3 +230,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added a visible water-object positioning selector with `自由放置` and `六邊形中央`; clicks in narrow geometric gaps resolve to the nearest water Cell, while blocked Cells remain rejected.
 - Reworked the side clip to process each odd-r row independently, so both left and right outer Cells lose the same protruding half-Cell instead of alternating between a half and a full Cell.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 27 complete
+
+- Clicking the already-active palette asset now cancels the gold selection frame and returns to Select mode with a grab cursor; dragging the canvas pans the map, including touch pointer input.
+- Zooming from the slider or canvas wheel keeps the last pointed canvas location anchored by compensating the map pan before re-rendering.
+- Reverted the row-by-row side clip after visual review. The global silhouette clip remains, while only the alternating full outer Cell surfaces are trimmed to their inner half so each row's two sides use matching half-Cell treatment.
+- Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
