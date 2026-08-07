@@ -439,6 +439,18 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
       const distance = Math.hypot(actor.x - position.x, actor.y - position.y);
       if (distance > actor.radius + hitRadius) return;
 
+      if (object.kind === 'razor' && !isOnCooldown(actor, `razor:${key}`)) {
+        const direction = distance > 0.001 ? unitVector(position, actor) : { x: 0, y: -1 };
+        const knockbackSpeed = getFreeObjectSetting(object, 'knockbackSpeed') ?? 58;
+        actor.vx = direction.x * knockbackSpeed;
+        actor.vy = direction.y * knockbackSpeed;
+        const damageAmount = getFreeObjectSetting(object, 'damage') ?? 20;
+        const damage = actor.safe ? { applied: 0 } : applyDamage(actor, damageAmount, 'razor', 'contact');
+        actor.cooldowns[`razor:${key}`] = 0.35;
+        addEvent(events, 'razor', actor.safe
+          ? '剃刀：碰觸後被強制推開；珊瑚保護範圍抵銷了傷害。'
+          : `剃刀：碰觸後被強制推開並受到 ${Math.round(damage.applied)} 點傷害。`);
+      }
       if (object.kind === 'mine' && !isOnCooldown(actor, `mine:${key}`)) {
         const normal = unitVector(position, actor);
         const bounced = reflect({ x: actor.vx, y: actor.vy }, normal, 1.03);

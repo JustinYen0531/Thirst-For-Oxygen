@@ -98,7 +98,7 @@ Edge 需要保存：
 - 塗刷基礎地形。
 - 以 Cell Snap 設定 `gravityLevel`：`L-1`、`L0`、`L1`、`L2` 或 `L3`。
 - 以 Free Snap 放置珊瑚與墨水區。
-- 以 Free Snap 放置氧氣來源、地雷、重石、水草與 Checkpoint。
+- 以 Free Snap 放置氧氣來源、地雷、重石、水草、Checkpoint 與剃刀。
 
 ### Edge 工具
 

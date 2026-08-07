@@ -368,6 +368,25 @@ test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   assert.ok(seaweedActor.energy > 100 - 0.01);
 });
 
+test('razor free object damages and forcibly displaces the actor', () => {
+  const map = createEmptyMap({ width: 1, height: 1 });
+  patchCell(map, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{
+      kind: 'razor',
+      offset: { x: 0, y: 0 },
+      size: 48,
+      params: { damage: 20, knockbackSpeed: 58, rotationSpeed: 180 },
+    }],
+  });
+  const actor = actorIn(map, '0,0');
+  const beforeHealth = actor.health;
+  const events = stepPhysics({ map, actor, origin: ORIGIN });
+  assert.ok(events.some((event) => event.type === 'razor'));
+  assert.equal(actor.health, beforeHealth - 20);
+  assert.ok(Math.hypot(actor.vx, actor.vy) >= 58);
+});
+
 test('health is 0-100 and losing all health permanently consumes one life', () => {
   const actor = createTestActor({ x: 200, y: 200 });
   assert.equal(actor.health, 100);

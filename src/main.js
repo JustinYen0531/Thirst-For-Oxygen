@@ -115,6 +115,7 @@ const objectSymbols = {
   checkpoint: '⚑',
   bubble: '○',
   torricelli: 'T',
+  razor: '✦',
 };
 const objectImagePaths = {
   coralCluster: '/assets/editor/objects/coral-cluster.png',
@@ -126,6 +127,10 @@ const objectImagePaths = {
   checkpoint: '/assets/editor/objects/checkpoint.png',
   bubble: '/assets/editor/objects/photosynthesis-bubble.png',
   torricelli: '/assets/editor/objects/torricelli-space.png',
+  razor: '/assets/editor/objects/razor-blade.png',
+};
+const componentImagePaths = {
+  razorAxis: '/assets/editor/objects/razor-axis.png',
 };
 const edgeImagePaths = {
   springJelly: '/assets/editor/edges/spring-jellyfish.png',
@@ -139,7 +144,7 @@ const paletteLabels = {
   water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
   ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
-  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間',
+  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
   none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
 };
@@ -158,6 +163,11 @@ const objectImages = Object.fromEntries(Object.entries(objectImagePaths).map(([k
   image.src = source;
   return [kind, image];
 }));
+const componentImages = Object.fromEntries(Object.entries(componentImagePaths).map(([kind, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [kind, image];
+}));
 const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind, source]) => {
   const image = new Image();
   image.src = source;
@@ -166,6 +176,7 @@ const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind,
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(terrainImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
+Object.values(componentImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(edgeImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
   playerStart: 'P',
@@ -235,6 +246,7 @@ const state = {
   zoom: 1.5,
   paletteTab: 'gravity',
   hoverPoint: null,
+  animationTime: 0,
 };
 
 function setStatus(message) {
@@ -336,16 +348,7 @@ function createPalette() {
       choice.dataset.paletteValue = value;
       choice.title = '選擇此素材';
       choice.setAttribute('aria-label', `選擇${paletteLabels[value] ?? value}`);
-      const visual = document.createElement(paletteImagePaths[value] ? 'img' : 'span');
-      if (visual.tagName === 'IMG') {
-        visual.src = paletteImagePaths[value];
-        visual.alt = '';
-      } else {
-        visual.className = 'palette-swatch';
-        visual.textContent = tool === 'gravity' ? value : tool === 'waterLayer' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
-        if (tool === 'gravity') visual.style.background = gravityColours[value];
-        if (tool === 'waterLayer') visual.style.background = value === 'T2' ? '#13213f' : '#284d73';
-      }
+      const visual = createPaletteVisual(tool, value);
       const label = document.createElement('span');
       label.className = 'palette-choice-label';
       label.textContent = paletteLabels[value] ?? value;
@@ -378,6 +381,33 @@ function createPalette() {
   });
 }
 
+function createPaletteVisual(tool, value) {
+  if (value === 'razor') {
+    const composite = document.createElement('span');
+    composite.className = 'palette-composite';
+    const blade = document.createElement('img');
+    blade.src = objectImagePaths.razor;
+    blade.alt = '';
+    const axis = document.createElement('img');
+    axis.src = componentImagePaths.razorAxis;
+    axis.alt = '';
+    axis.className = 'palette-composite-axis';
+    composite.append(blade, axis);
+    return composite;
+  }
+  const visual = document.createElement(paletteImagePaths[value] ? 'img' : 'span');
+  if (visual.tagName === 'IMG') {
+    visual.src = paletteImagePaths[value];
+    visual.alt = '';
+  } else {
+    visual.className = 'palette-swatch';
+    visual.textContent = tool === 'gravity' ? value : tool === 'waterLayer' ? value : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
+    if (tool === 'gravity') visual.style.background = gravityColours[value];
+    if (tool === 'waterLayer') visual.style.background = value === 'T2' ? '#13213f' : '#284d73';
+  }
+  return visual;
+}
+
 function getPaletteDescription(tool, value) {
   if (tool === 'gravity') {
     return ({
@@ -398,6 +428,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'object' && value === 'checkpoint') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可更新重生位置並恢復資源。';
   if (tool === 'object' && value === 'bubble') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
   if (tool === 'object' && value === 'torricelli') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
+  if (tool === 'object' && value === 'razor') return '水域上物件：自由放置；刀片繞中心軸持續旋轉，接觸時造成傷害並把角色向外推開。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
   if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
   if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
@@ -443,6 +474,36 @@ function freeObjectVisualSize(kind) {
   return getFreeObjectSetting({ kind }, 'size');
 }
 
+function drawRazor(position, size, object = null, alpha = 0.96) {
+  const blade = objectImages.razor;
+  const axis = componentImages.razorAxis;
+  if (!blade?.complete || !blade.naturalWidth || !axis?.complete || !axis.naturalWidth) {
+    drawCellAsset('razor', position.x, position.y, size);
+    return;
+  }
+  const rotationSpeed = getFreeObjectSetting(object ?? { kind: 'razor' }, 'rotationSpeed') ?? 180;
+  const rotation = (state.animationTime * rotationSpeed * Math.PI) / 180;
+  const bladeSize = size * 2;
+  const axisSize = size * 0.52;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(position.x, position.y);
+  ctx.rotate(rotation);
+  // The blade artwork places its pivot on the left, so it rotates around the axis.
+  ctx.drawImage(blade, -bladeSize * 0.08, -bladeSize / 2, bladeSize, bladeSize);
+  ctx.restore();
+  ctx.drawImage(axis, position.x - axisSize / 2, position.y - axisSize / 2, axisSize, axisSize);
+}
+
+function drawFreeObject(object, position) {
+  const size = object.size ?? getFreeObjectSetting(object, 'size');
+  if (object.kind === 'razor') {
+    drawRazor(position, size, object);
+    return;
+  }
+  drawCellAsset(object.kind, position.x, position.y, size);
+}
+
 function getFreeObjectPosition(cell, object) {
   const center = getHexCenter(cell, state.origin);
   const offset = object.offset ?? { x: 0, y: 0 };
@@ -450,6 +511,17 @@ function getFreeObjectPosition(cell, object) {
 }
 
 function drawFreeObjectOutline(kind, position, colour = '#f6e66d', alpha = 0.96, size = freeObjectVisualSize(kind)) {
+  if (kind === 'razor') {
+    drawRazor(position, size, null, alpha);
+    ctx.save();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, size / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   const image = objectImages[kind];
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -552,7 +624,7 @@ function drawCell(key, cell) {
   });
   (cell.freeObjects ?? []).forEach((object) => {
     const position = getFreeObjectPosition(cell, object);
-    drawCellAsset(object.kind, position.x, position.y, getFreeObjectSetting(object, 'size'));
+    drawFreeObject(object, position);
   });
   cell.actors.forEach((actor, index) => {
     drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
@@ -1292,6 +1364,7 @@ function stepGame() {
 function animationFrame(now) {
   const elapsed = Math.min((now - (animationFrame.last ?? now)) / 1000, 0.1);
   animationFrame.last = now;
+  state.animationTime += elapsed;
   if (state.mode === 'play') {
     state.accumulator += elapsed;
     while (state.accumulator >= FIXED_STEP) {

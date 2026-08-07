@@ -38,6 +38,8 @@
 - [x] [photosynthesis-bubble.png](TileEditor素材/cell-objects/photosynthesis-bubble.png)
 - [x] [oxygen-ore.png](TileEditor素材/cell-objects/oxygen-ore.png)
 - [x] [checkpoint.png](TileEditor素材/cell-objects/checkpoint.png)
+- [x] [razor-axis.png](TileEditor素材/cell-objects/razor-axis.png)
+- [x] [razor-blade.png](TileEditor素材/cell-objects/razor-blade.png)
 
 每一張 Cell Object 都必須：
 
@@ -46,6 +48,7 @@
 - [x] 符合古文明工程草圖、深海石雕、幾何仿生與海水侵蝕風格。
 - [x] 沒有角色、文字、Logo、水印或固定章節標籤。
 - [x] 縮小到 Cell 尺寸後仍能辨認用途。
+- [x] 剃刀由中心軸與獨立刀片組成，交由 Free Snap 疊合與旋轉。
 
 ## 第二批：Edge Object
 
@@ -88,6 +91,6 @@
 | --- | ---: | --- |
 | 既有水域底圖 | 5 | 已完成 |
 | Cell Overlay | 2 | 已完成 |
-| Cell Object | 8 | 已完成 |
+| Cell Object | 9（剃刀含 2 張組件圖） | 已完成 |
 | Edge Object | 2 | 已完成 |
 | CSS／SVG／程式狀態 | 不生成 bitmap | 由 Editor 實作 |
