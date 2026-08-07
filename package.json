@@ -1,0 +1,14 @@
+{
+  "name": "thirst-for-oxygen-map-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx vite --host 127.0.0.1",
+    "build": "vite build",
+    "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --test tests/physics.test.mjs"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  }
+}

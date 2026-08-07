@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thirst for Oxygen — Map Editor</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Thirst for Oxygen — 地圖編輯器</h1>
+          <p id="status-line">準備建立地圖。</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="editor-mode" class="is-active">編輯</button>
+          <button id="play-mode">物理測試</button>
+          <button id="reset-player">重設測試玩家 (R)</button>
+          <button id="fullscreen">全螢幕 (F)</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="panel tools-panel">
+          <h2>工具</h2>
+          <div id="tool-buttons" class="button-stack"></div>
+          <label for="brush-value">目前筆刷</label>
+          <select id="brush-value"></select>
+          <p class="hint">編輯：點 Cell 塗刷；Edge 工具請點兩格中間的邊。</p>
+
+          <h2>地圖</h2>
+          <label for="chapter-select">章節狀態</label>
+          <select id="chapter-select">
+            <option value="chapter1">第一章：下沉篇</option>
+            <option value="chapter2">第二章：上浮篇</option>
+          </select>
+          <label for="current-direction">潮流方向</label>
+          <select id="current-direction">
+            <option value="0">東</option>
+            <option value="1">東北</option>
+            <option value="2">西北</option>
+            <option value="3">西</option>
+            <option value="4">西南</option>
+            <option value="5">東南</option>
+          </select>
+          <label for="current-strength">潮流強度</label>
+          <input id="current-strength" type="number" min="0" max="3" step="0.25" value="1.5" />
+          <div class="button-stack spaced">
+            <button id="demo-map">載入示範地圖</button>
+            <button id="save-local">儲存到本機</button>
+            <button id="export-map">匯出 JSON</button>
+            <label class="file-button">匯入 JSON<input id="import-map" type="file" accept="application/json" /></label>
+            <button id="validate-map">驗證地圖</button>
+          </div>
+          <p id="dirty-indicator" class="hint"></p>
+        </aside>
+
+        <section class="canvas-wrap">
+          <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
+          <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；E 附著／離開水草；R 重設。</p>
+        </section>
+
+        <aside class="panel inspector-panel">
+          <h2>Inspector</h2>
+          <pre id="inspector">未選取 Cell 或 Edge。</pre>
+          <h2>驗證結果</h2>
+          <ul id="validation-list" class="validation-list"><li>尚未執行。</li></ul>
+          <h2>測試事件</h2>
+          <ul id="event-list" class="event-list"><li>尚無事件。</li></ul>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
