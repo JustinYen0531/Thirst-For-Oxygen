@@ -142,3 +142,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Removed the fake `自然漂浮` skill tab. Skill buttons now toggle: selecting a skill opens its animation and detailed description; clicking the same skill again cancels it and restores the natural-floating state.
 - Added complete ecology descriptions for all 19 enemies and detailed descriptions for all 48 authored attacks. Natural-floating cards show `生態觀察`; skill selection replaces it with the selected attack's explanation and numerical details.
 - Static verification passed: all 89 afterimage WebP loops retain transparent corners and first-frame history, all catalog descriptions have no fallback text, `npm run check` passed (21/21 tests), and `npm run build` passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 18 complete
+
+- Added a top-right `Lore 檔案` button to every enemy encyclopedia card. It opens a contextual Lore panel without disturbing the selected skill or natural-floating preview.
+- Connected all 19 enemies to the existing `敵人圖鑑.md` creature references: real-world biological reference, identification features, and visual setting. The panel also states that these references provide silhouette/part/motion inspiration rather than a realistic copy.
+- Kept Lore data separate from numerical combat contracts and skill descriptions. Static verification confirmed 19/19 enemies have all three Lore fields; `npm run check` passed (21/21 tests), `npm run build` passed, and `git diff --check` passed. Browser validation remains prohibited by user instruction.

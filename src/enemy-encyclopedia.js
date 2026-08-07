@@ -57,6 +57,106 @@ const ENEMY_DESCRIPTIONS = Object.freeze({
   abyssalSpermWhale: '深淵抹香鯨是整片海域的戰場控制者，會召喚、重建、改變重力與侵蝕氧氣，迫使玩家管理每一寸空間。',
 });
 
+// Lore is sourced from GDD/05_內容/敵人/敵人圖鑑.md. It stays separate from
+// combat data so the encyclopedia can explain visual identity without changing balance contracts.
+const ENEMY_LORE = Object.freeze({
+  explodingLanternfish: {
+    scientificReference: '燈籠魚科（Myctophidae）的幼體；參考其小型身體與腹部發光器官。',
+    identification: '圓鼓腹囊、小型發光器官、短小魚體、前衝姿態。',
+    visualSetting: '小型石質燈籠魚，腹部像不穩定的壓力囊，青藍裂紋集中在腹部與頭部；避免做成人形炸彈或穿戴裝備的角色。',
+  },
+  juvenileSeahorseCaller: {
+    scientificReference: '幼年海馬屬（Hippocampus）；參考海馬的直立身形、捲曲尾巴與管狀吻部。',
+    identification: '頭部比例偏大、短小身體、捲曲尾巴、頭頂音波器官。',
+    visualSetting: '膽怯而可愛的幼年石質海馬，身體小、尾巴短，青藍裂紋集中在喉部與頭頂；音波圈是外部特效，不是額外武器。',
+  },
+  crabGuard: {
+    scientificReference: '螃蟹目（Brachyura）；參考寬扁甲殼、側向移動與雙螯。',
+    identification: '寬甲殼、巨大雙螯、低重心、六足側移。',
+    visualSetting: '厚重盾牌型石質甲殼，雙螯比身體更醒目；輪廓讀取優先於裝飾，不做成人形士兵。',
+  },
+  lobsterSoldier: {
+    scientificReference: '螯龍蝦科（Nephropidae）；參考長螯、分節腹部與觸鬚。',
+    identification: '長螯、分節身體、長觸鬚、厚重背甲。',
+    visualSetting: '高大的石質龍蝦，長螯與腹節保持動物比例；珊瑚長矛是戰鬥道具，不把整體設計成人類士兵。',
+  },
+  lionfishGunner: {
+    scientificReference: '獅子魚屬（Pterois）；參考扇狀毒棘與張口捕食姿態。',
+    identification: '放射狀背鰭、扇形毒棘、寬口器官、原地蓄力。',
+    visualSetting: '身體保持魚形，毒棘形成清楚的輪廓扇面；砲擊效果從口器與棘刺產生，不添加人類槍械。',
+  },
+  squidAssassin: {
+    scientificReference: '魷魚目（Teuthida）；參考流線身體、觸腕、噴水推進與墨囊。',
+    identification: '細長身體、集中觸腕、墨色煙霧囊、突然改變位置。',
+    visualSetting: '以頭足類輪廓為主，觸手維持可讀分組；隱匿感來自墨霧與消失，不使用人形刺客服裝。',
+  },
+  splitLanternfish: {
+    scientificReference: '燈籠魚科（Myctophidae）；是爆腹燈籠魚的失控裂殖型，保留同一類魚形與發光器官。',
+    identification: '魚體裂縫、外露青藍核心、分裂後體型縮小、數量快速增加。',
+    visualSetting: '石質魚體像從內部裂開，裂紋沿腹部與側線分布；每一階段仍保持燈籠魚輪廓，不做成抽象能量團。',
+  },
+  coralBackSeahorse: {
+    scientificReference: '成年海馬屬（Hippocampus）；參考直立身形、捲曲尾巴、骨環與雄海馬育幼袋。',
+    identification: '粗大的捲尾、成年海馬頭部、背部珊瑚增生、背負幼體的育幼區。',
+    visualSetting: '仍然是海馬，不是人類保育者；成年石質身體被珊瑚包覆，尾部變粗，幼體附著在背部，低頻共鳴以能量線表現。',
+  },
+  mantisShrimpBrute: {
+    scientificReference: '蝦蛄目（Stomatopoda）；參考折疊捕捉肢、分節甲殼與快速出拳。',
+    identification: '巨大拳甲、分節身體、低伏姿態、可爆發跳躍的尾部。',
+    visualSetting: '厚重石質蝦蛄，拳甲是最大視覺焦點；保留多足與甲殼節奏，不以人形戰將盔甲取代動物輪廓。',
+  },
+  nautilusOracle: {
+    scientificReference: '鸚鵡螺屬（Nautilus）；參考外捲螺旋殼、觸手與噴水推進。',
+    identification: '大型螺旋殼、前方觸手、殼口法器、緩慢漂浮的砲擊姿態。',
+    visualSetting: '祭司是戰鬥職能，不是人類服裝；身體必須以鸚鵡螺殼與觸手為主，珊瑚法杖與雙核心魔球從殼口延伸。',
+  },
+  arcTideRay: {
+    scientificReference: '鰩魚類（Batoidea）；參考扁平翼狀身體、胸鰭與尾部推進。',
+    identification: '寬扁翼狀輪廓、弧形胸鰭、尾部穩定器、背部弧形石質骨板。',
+    visualSetting: '保持鰩魚的扁平身體與翼狀輪廓；背部骨板像展開的活體投石器，弧線與水流能量用於讀取拋物線攻擊，不改成人形砲台。',
+  },
+  mutantMantisShrimp: {
+    scientificReference: '蝦蛄目（Stomatopoda），沿用 Lv.3 蝦蛄戰將。',
+    identification: '拳甲、分節甲殼與多足輪廓不變；黑色深海結晶從肩甲、拳甲與背部長出。',
+    visualSetting: '同一隻蝦蛄的失控變異型，裝甲裂開、青藍能量外洩，拳甲與殘影的攻擊方向要清楚。',
+  },
+  mutantNautilusOracle: {
+    scientificReference: '鸚鵡螺屬（Nautilus），沿用 Lv.3 鸚鵡螺祭司。',
+    identification: '螺旋殼與觸手仍是主輪廓；殼體裂開，兩座永續魔核固定在殼口兩側。',
+    visualSetting: '變異集中在殼體與法器系統，不添加人類長袍或臉部；360 度散射與持續魔核用環繞殼體的能量軌跡表現。',
+  },
+  mutantArcTideRay: {
+    scientificReference: '鰩魚類（Batoidea），沿用 Lv.3 弧潮獵鰩。',
+    identification: '扁平翼狀身體與弧形骨板不變；骨板出現裂紋，腹側與尾部形成潮壓印記。',
+    visualSetting: '仍以鰩魚為主體，變異集中在背部骨板、尾部穩定器與潮壓能量；不要把牠畫成懸浮砲塔或飛行器。',
+  },
+  prismCrabGuardian: {
+    scientificReference: '大型蟹類，主要參考蜘蛛蟹與深海蟹的寬甲殼、長足與低重心防守姿態。',
+    identification: '巨大雙螯、厚重背甲、背部雷射稜鏡、固定砲台般的防守姿勢。',
+    visualSetting: '牠不是穿著重甲的人類，而是整隻被古文明石甲包覆的巨型螃蟹；稜鏡固定在背甲中央，雙螯負責守住身體兩側，重力光球像從甲殼下方釋放的深海器官。',
+  },
+  mutantPrismCrabGuardian: {
+    scientificReference: '大型蟹類，沿用稜鏡巨蟹的螃蟹原型。',
+    identification: '背甲裂開、雷射稜鏡分裂、副雷射交錯、重力光球從無敵核心變成可破壞目標。',
+    visualSetting: '保留螃蟹的寬甲殼、雙螯與多足輪廓；變異集中在背部稜鏡與甲殼裂縫，不增加人形變身比例。',
+  },
+  tideLawNautilus: {
+    scientificReference: '大型鸚鵡螺屬（Nautilus）；參考分室螺旋殼、觸手與噴水推進。',
+    identification: '巨大完整螺旋殼、殼口觸手、潮汐法球、以殼體為中心展開的規則能量環。',
+    visualSetting: '祭司是戰鬥職能，不使用人類長袍與人臉；角色主體是漂浮的鸚鵡螺，護盾像半透明潮汐層包覆螺旋殼，散彈回收像被潮流重新吸回殼口。',
+  },
+  mutantTideLawNautilus: {
+    scientificReference: '大型鸚鵡螺屬，沿用潮律鸚鵡螺的螺旋殼與觸手原型。',
+    identification: '螺旋殼裂縫、護盾增生、散彈凝結成殼外屏障、兩種潮汐法則同時運行。',
+    visualSetting: '殼體像被兩股潮流從內部撐裂，護盾沿殼室一層層長出；雙重法則以兩組方向相反的能量環表現，觸手與螺旋殼仍然是第一輪廓。',
+  },
+  abyssalSpermWhale: {
+    scientificReference: '抹香鯨（Physeter macrocephalus）；參考其深海潛行、巨大方形額頭、深潛耐受、下顎與回聲感知。',
+    identification: '巨大的方形額頭、長而厚重的身體、強壯尾鰭、明顯噴氣孔、沿背部排列的古文明遺跡構造。',
+    visualSetting: '深淵抹香鯨是一個「帶著遺跡游動的深海生物」，不是穿王冠的人形 Boss。額頭是重力與回聲控制的核心，背部遺跡像沉沒神殿，噴氣孔散出腐化氧氣霧，縮小型態仍保留鯨魚額頭、尾鰭與流線身體。',
+  },
+});
+
 const ATTACK_DESCRIPTIONS = Object.freeze({
   contactExplosion: '靠近目標後引爆腹部，爆炸半徑內會受到一次高額傷害；前搖期間可以看見牠的自爆意圖。',
   callForHelp: '停在原地發出求援訊號，施法完成後在範圍內召來兩名援軍；打斷牠能避免戰線擴大。',
@@ -114,6 +214,11 @@ export const ENEMY_ENCYCLOPEDIA = Object.freeze(ENEMY_ORDER.map((id) => {
   return Object.freeze({
     ...definition,
     description: ENEMY_DESCRIPTIONS[id] ?? '這名敵人的生態描述仍在整理中。',
+    lore: Object.freeze(ENEMY_LORE[id] ?? {
+      scientificReference: '資料仍在整理中。',
+      identification: '資料仍在整理中。',
+      visualSetting: '資料仍在整理中。',
+    }),
     attacks: Object.freeze(definition.attacks.map((attack) => Object.freeze({
       ...attack,
       description: ATTACK_DESCRIPTIONS[attack.id] ?? `${attack.name}：依照${attack.type}型態發動攻擊，請觀察前搖與落點。`,

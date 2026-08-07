@@ -22,6 +22,18 @@ function attackValues(attack) {
     .join('');
 }
 
+function lorePanel(lore) {
+  return `<section class="lore-panel" data-lore-panel hidden>
+    <div class="lore-panel-heading"><h3>LORE / 生物檔案</h3><span>視覺與原型參考</span></div>
+    <dl class="lore-grid">
+      <div><dt>現實生物參考</dt><dd>${escapeHtml(lore.scientificReference)}</dd></div>
+      <div><dt>識別特徵</dt><dd>${escapeHtml(lore.identification)}</dd></div>
+      <div><dt>視覺設定</dt><dd>${escapeHtml(lore.visualSetting)}</dd></div>
+    </dl>
+    <p class="lore-note">這些參考提供輪廓、部位與動作靈感，不代表現實生物的寫實複製。</p>
+  </section>`;
+}
+
 function enemyCard(enemy) {
   const hasIdle = Boolean(enemy.visuals?.idle);
   const previewSource = enemy.visuals?.afterimageIdle ?? enemy.visuals?.idle;
@@ -35,13 +47,14 @@ function enemyCard(enemy) {
   return `<article class="enemy-card" data-tier="${escapeHtml(enemy.tier)}" data-enemy-id="${escapeHtml(enemy.id)}" data-selected-action="idle">
     <div class="enemy-card-heading">
       <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
-      <span class="role-label">${escapeHtml(enemy.role)}</span>
+      <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">Lore 檔案</button></div>
     </div>
     <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? '自然漂浮 · 正式殘影' : '目前沒有 GIF 預覽素材'}</p></div>
     <div class="preview-actions">${actions}<span class="action-hint">再次點擊已選技能即可取消，回到自然漂浮</span></div>
     <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
     <section class="enemy-description" data-enemy-description><h3>生態觀察</h3><p>${escapeHtml(enemy.description)}</p></section>
     <section class="selected-skill-panel" data-skill-panel hidden></section>
+    ${lorePanel(enemy.lore)}
   </article>`;
 }
 
@@ -100,6 +113,17 @@ afterimageToggle.addEventListener('change', () => {
 });
 
 enemyGrid.addEventListener('click', (event) => {
+  const loreButton = event.target.closest('[data-lore-toggle]');
+  if (loreButton) {
+    const card = loreButton.closest('.enemy-card');
+    const panel = card?.querySelector('[data-lore-panel]');
+    if (!card || !panel) return;
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    loreButton.setAttribute('aria-expanded', String(!isOpen));
+    panel.classList.toggle('is-open', !isOpen);
+    return;
+  }
   const button = event.target.closest('[data-action-id]');
   if (!button) return;
   const card = button.closest('.enemy-card');

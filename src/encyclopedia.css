@@ -31,7 +31,10 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .enemy-card-heading { display: flex; justify-content: space-between; gap: 10px; align-items: start; padding: 14px 14px 10px; }
 .enemy-card-heading h2 { margin-top: 7px; font-size: 20px; }
 .tier-chip { display: inline-block; padding: 3px 6px; border: 1px solid #4e829c; border-radius: 3px; color: #83e4ee; font: 700 10px/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.enemy-heading-meta { display: grid; justify-items: end; gap: 7px; }
 .role-label { max-width: 125px; color: #8faac0; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; word-break: break-word; }
+.lore-button { border: 1px solid #477f93; border-radius: 4px; padding: 5px 8px; color: #a9f4ef; background: #12384e; font-size: 11px; white-space: nowrap; }
+.lore-button:hover, .lore-button[aria-expanded="true"] { border-color: #8ee7ff; color: #e7fbff; background: #1e5b80; }
 .enemy-preview { position: relative; display: grid; place-items: center; min-height: 190px; margin: 0 14px; overflow: hidden; border: 1px solid #315c7e; border-radius: 6px; background: radial-gradient(circle, #153b5b, #0a1b2c 72%); }
 .enemy-preview::after { position: absolute; inset: 0; content: ''; pointer-events: none; background: linear-gradient(transparent 48%, rgba(74, 184, 211, .08) 50%, transparent 52%); background-size: 100% 11px; }
 .enemy-preview-image { width: 100%; height: 188px; object-fit: contain; image-rendering: auto; }
@@ -55,4 +58,13 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .skill-values { display: flex; flex-wrap: wrap; gap: 5px 11px; margin-top: 6px; color: #b9d0df; font-size: 11px; }
 .skill-values span { display: inline-flex; gap: 4px; }
 .skill-values b { color: #7faabd; font-weight: 500; }
+.lore-panel { border-top: 1px solid #31566f; padding: 12px 14px 15px; background: rgba(31, 68, 83, .2); }
+.lore-panel-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lore-panel-heading h3 { color: #e5f6ff; font-size: 14px; letter-spacing: .04em; }
+.lore-panel-heading span { color: #6e9bb2; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.lore-grid { display: grid; gap: 8px; margin: 10px 0 0; }
+.lore-grid div { display: grid; gap: 3px; }
+.lore-grid dt { color: #7fdce7; font-size: 11px; font-weight: 700; }
+.lore-grid dd { margin: 0; color: #c0d4df; font-size: 12px; line-height: 1.55; }
+.lore-note { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(76, 127, 149, .45); color: #7895a9; font-size: 10px; line-height: 1.5; }
 @media (max-width: 720px) { body { min-width: 0; } .encyclopedia-shell { padding: 20px 12px 40px; } .encyclopedia-header { align-items: start; flex-direction: column; } .guide-note { display: block; } .guide-note span { display: block; margin-top: 5px; } .enemy-grid { grid-template-columns: 1fr; } }
