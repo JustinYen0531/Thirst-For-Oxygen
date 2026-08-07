@@ -759,6 +759,42 @@ function findNearestCell(point) {
   return nearest;
 }
 
+// The dashed continuation cells are an authoring affordance, not a precision
+// target.  Resolve a generous band around every visible guide hex first so a
+// click/touch on a dashed edge, a vertex, or the small gap between two guides
+// still chooses the nearest row and column.
+function getContinuationGuideTargetAtPoint(point) {
+  const width = Number(state.map.layout?.width) || 0;
+  const firstRow = Number(state.map.layout?.height) || 0;
+  if (!width || firstRow < 0) return null;
+
+  const guides = [];
+  for (let row = firstRow; row < firstRow + MAP_VERTICAL_BUFFER_ROWS; row += 1) {
+    for (let column = 0; column < width; column += 1) {
+      const cell = { q: column - Math.floor(row / 2), r: row };
+      guides.push({ column, row, center: getHexCenter(cell, state.origin) });
+    }
+  }
+  if (!guides.length) return null;
+
+  const bounds = getMapRenderBounds();
+  const minX = Math.min(...guides.map((guide) => guide.center.x));
+  const maxX = Math.max(...guides.map((guide) => guide.center.x));
+  const minY = Math.min(...guides.map((guide) => guide.center.y));
+  const maxY = Math.max(...guides.map((guide) => guide.center.y));
+  const touchPadding = 8;
+  const left = Math.max(minX - HEX_SIZE - touchPadding, bounds.left - touchPadding);
+  const right = Math.min(maxX + HEX_SIZE + touchPadding, bounds.right + touchPadding);
+  const top = minY - HEX_SIZE - touchPadding;
+  const bottom = maxY + HEX_SIZE + touchPadding;
+  if (point.x < left || point.x > right || point.y < top || point.y > bottom) return null;
+
+  return guides.reduce((nearest, guide) => {
+    const distance = Math.hypot(point.x - guide.center.x, point.y - guide.center.y);
+    return !nearest || distance < nearest.distance ? { ...guide, distance } : nearest;
+  }, null);
+}
+
 function estimateCellGridPosition(point) {
   const row = Math.max(0, Math.floor((point.y - state.origin.y + HEX_SIZE) / MAP_ROW_STEP));
   const column = Math.round((point.x - state.origin.x) / (HEX_SIZE * Math.sqrt(3)) - row / 2);
@@ -769,7 +805,7 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
   const existing = findCellContainingPoint(state.map, point, state.chapter, state.origin);
   if (existing || !allowExtend) return existing;
 
-  const candidate = estimateCellGridPosition(point);
+  const candidate = getContinuationGuideTargetAtPoint(point) ?? estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
   if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
@@ -819,7 +855,7 @@ function getFreeObjectPlacementPoint(point) {
 function getCellPreviewAtPoint(point) {
   const existing = findCellContainingPoint(state.map, point, state.chapter, state.origin);
   if (existing) return existing;
-  const candidate = estimateCellGridPosition(point);
+  const candidate = getContinuationGuideTargetAtPoint(point) ?? estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
   if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
@@ -2494,6 +2530,21 @@ canvas.addEventListener('pointerdown', (event) => {
     return;
   }
   if (state.tool === 'select') {
+    // Selection is also the default state after cancelling a palette card.
+    // Touching the dashed continuation band must still grow the map instead
+    // of silently starting a pan gesture.
+    if (getContinuationGuideTargetAtPoint(point)) {
+      const previousHeight = Number(state.map.layout?.height) || 0;
+      const hitCell = getOrExtendCellAtPoint(point, true);
+      if (hitCell && Number(state.map.layout?.height) > previousHeight) {
+        state.selectedCellKey = hitCell.key;
+        state.selectedEdgeKey = null;
+        state.selectedMapObject = null;
+        markDirty(`已從虛線框向下擴充地圖至 ${state.map.layout.height} 列。`);
+        render();
+        return;
+      }
+    }
     state.viewDrag = { pointerId: event.pointerId, startPoint: point, lastPoint: point, moved: false };
     canvas.setPointerCapture(event.pointerId);
     updateCanvasCursor();
