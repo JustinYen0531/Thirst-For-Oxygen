@@ -15,3 +15,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Editor now uses 24 px point-to-point Cells, a 72 px-diameter test player, a 36×25 default precision map, direct material palette, and copied runtime-safe asset files under `public/assets/editor/`.
 - All motion-related constants are scaled to 0.1× together: launch, gravity, current, max speed, and weight-stone threshold. Static verification and scoped Git push remain to be completed.
 - Static verification passed: Vite production build, 9 physics/model tests, and whitespace validation. Browser validation remains intentionally disabled per user direction.
+
+## 2026-08-07 — Step 3 in progress
+
+- User rejected the axial parallelogram view. The map generator now writes a visually rectangular odd-r grid (uniform columns per row, alternating hex tips at the left/right edge) while retaining axial coordinates for physics and Edges.
+- Added a 50%–400% zoom slider directly below the map. Canvas rendering and pointer hit-testing use the same viewport transform so selecting/placing and playtest dragging remain aligned at every zoom level.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by the user.
+- Legacy locally saved parallelogram maps now migrate automatically to the rectangular odd-r layout while preserving Cell, Edge, and chapter-override data.
+- Added a pure viewport-coordinate test so pointer placement is verified against the same 50%–400% zoom transform used by Canvas rendering.

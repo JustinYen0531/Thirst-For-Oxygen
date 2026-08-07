@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createEmptyMap,
+  cellKeyFromColumn,
   getActiveCell,
   getHexCenter,
   HEX_SIZE,
+  migrateMapToOddR,
+  screenPointToWorldPoint,
   patchCell,
   patchEdge,
 } from '../src/map-model.js';
@@ -66,11 +69,37 @@ test('all primary motion limits use the 0.1 simulation scale', () => {
   assert.equal(MAX_SPEED, 56);
 });
 
-test('precision editor defaults to three Cells across one player diameter', () => {
+test('precision editor uses a rectangular odd-r grid at three Cells across one player diameter', () => {
   const map = createEmptyMap();
   const actor = createTestActor();
-  assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', width: 36, height: 25 });
+  assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width: 36, height: 25 });
   assert.equal(HEX_SIZE * 2 * 3, actor.radius * 2);
+  assert.ok(map.cells[cellKeyFromColumn(0, 0)]);
+  assert.ok(map.cells[cellKeyFromColumn(0, 24)]);
+  assert.ok(map.cells[cellKeyFromColumn(35, 24)]);
+  assert.equal(Object.keys(map.cells).length, 36 * 25);
+});
+
+test('legacy axial-parallelogram maps migrate without losing Cell content', () => {
+  const rectangular = createEmptyMap({ width: 3, height: 3 });
+  const legacy = JSON.parse(JSON.stringify(rectangular));
+  legacy.layout = { orientation: 'pointy', coordinateSystem: 'axial', width: 3, height: 3 };
+  legacy.cells = Object.fromEntries(Object.values(rectangular.cells).map((cell) => {
+    const column = cell.q + Math.floor(cell.r / 2);
+    const oldKey = `${column},${cell.r}`;
+    return [oldKey, { ...cell, q: column }];
+  }));
+  legacy.cells['0,2'].objects = [{ kind: 'mine' }];
+  const migrated = migrateMapToOddR(legacy);
+  const lowerLeft = cellKeyFromColumn(0, 2);
+  assert.equal(migrated.layout.rowLayout, 'odd-r rectangle');
+  assert.deepEqual(migrated.cells[lowerLeft].objects, [{ kind: 'mine' }]);
+  assert.equal(Object.keys(migrated.cells).length, 9);
+});
+
+test('zoomed screen coordinates map back to the intended world Cell', () => {
+  const worldPoint = screenPointToWorldPoint({ x: 700, y: 440 }, { x: 500, y: 340 }, 2);
+  assert.deepEqual(worldPoint, { x: 600, y: 390 });
 });
 
 test('spring jelly reflects a crossing player', () => {

@@ -39,6 +39,12 @@ export function cellKey(q, r) {
   return `${q},${r}`;
 }
 
+// Store a visually rectangular, odd-r offset grid as axial coordinates. Each
+// screen row has the same column count; only its left/right hex tips alternate.
+export function cellKeyFromColumn(column, row) {
+  return cellKey(column - Math.floor(row / 2), row);
+}
+
 export function parseCellKey(key) {
   const [q, r] = key.split(',').map(Number);
   return { q, r };
@@ -83,7 +89,8 @@ function makeCell(q, r) {
 export function createEmptyMap({ width = 36, height = 25 } = {}) {
   const cells = {};
   for (let r = 0; r < height; r += 1) {
-    for (let q = 0; q < width; q += 1) {
+    for (let column = 0; column < width; column += 1) {
+      const q = column - Math.floor(r / 2);
       const key = cellKey(q, r);
       cells[key] = makeCell(q, r);
     }
@@ -91,7 +98,7 @@ export function createEmptyMap({ width = 36, height = 25 } = {}) {
 
   return {
     version: 1,
-    layout: { orientation: 'pointy', coordinateSystem: 'axial', width, height },
+    layout: { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width, height },
     cells,
     edges: {},
     chapterStates: {
@@ -99,6 +106,38 @@ export function createEmptyMap({ width = 36, height = 25 } = {}) {
       chapter2: { cells: {}, edges: {} },
     },
   };
+}
+
+export function migrateMapToOddR(map) {
+  if (map.layout?.rowLayout === 'odd-r rectangle') return map;
+  const migrated = clone(map);
+  const keyMap = new Map();
+  Object.entries(migrated.cells).forEach(([oldKey, cell]) => {
+    // Legacy maps used q directly as the visual column. Preserve that column
+    // while rewriting only the underlying axial coordinate.
+    keyMap.set(oldKey, cellKeyFromColumn(cell.q, cell.r));
+  });
+  const remapCells = (cells) => Object.fromEntries(Object.entries(cells ?? {}).map(([oldKey, cell]) => {
+    const newKey = keyMap.get(oldKey) ?? oldKey;
+    const { q, r } = parseCellKey(newKey);
+    return [newKey, { ...clone(cell), q, r }];
+  }));
+  const remapEdges = (edges) => Object.fromEntries(Object.entries(edges ?? {}).map(([oldKey, edge]) => {
+    const { a, b } = parseEdgeKey(oldKey);
+    const nextA = keyMap.get(a) ?? a;
+    const nextB = keyMap.get(b) ?? b;
+    return [edgeKey(nextA, nextB), { ...clone(edge), cells: [nextA, nextB] }];
+  }));
+
+  migrated.cells = remapCells(migrated.cells);
+  migrated.edges = remapEdges(migrated.edges);
+  Object.values(migrated.chapterStates ?? {}).forEach((chapterState) => {
+    chapterState.cells = remapCells(chapterState.cells);
+    chapterState.edges = remapEdges(chapterState.edges);
+  });
+  migrated.layout = { ...migrated.layout, orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle' };
+  migrated.version = Math.max(migrated.version ?? 1, 2);
+  return migrated;
 }
 
 export function getActiveCell(map, key, chapter = 'chapter1') {
@@ -187,6 +226,13 @@ export function getDirectionVector(directionIndex) {
   return { x: x / length, y: y / length };
 }
 
+export function screenPointToWorldPoint(point, viewportCenter, zoom) {
+  return {
+    x: (point.x - viewportCenter.x) / zoom + viewportCenter.x,
+    y: (point.y - viewportCenter.y) / zoom + viewportCenter.y,
+  };
+}
+
 export function allMapEdges(map) {
   const result = new Map();
   Object.keys(map.cells).forEach((key) => {
@@ -264,6 +310,7 @@ export function createDemoMap() {
   const map = createEmptyMap();
   const levels = ['L-1', 'L0', 'L1', 'L2', 'L3'];
   const { width, height } = map.layout;
+  const at = (column, row) => cellKeyFromColumn(column, row);
   Object.values(map.cells).forEach((cell) => {
     const levelIndex = Math.min(levels.length - 1, Math.floor((cell.r / Math.max(height - 1, 1)) * levels.length));
     cell.gravityLevel = levels[levelIndex];
@@ -272,22 +319,22 @@ export function createDemoMap() {
   const addOverlay = (key, kind) => map.cells[key].overlays.push(kind);
   const addObject = (key, kind) => map.cells[key].objects.push({ kind });
   const addActor = (key, kind) => map.cells[key].actors.push({ kind });
-  addActor(cellKey(4, 5), 'playerStart');
-  addActor(cellKey(22, 8), 'enemySpawn');
-  addActor(cellKey(27, 15), 'miniBossSpawn');
-  addActor(cellKey(width - 3, height - 3), 'bossSpawn');
-  addOverlay(cellKey(8, 3), 'coral');
-  addOverlay(cellKey(25, 5), 'ink');
-  addObject(cellKey(15, 8), 'mine');
-  addObject(cellKey(18, 8), 'weightStone');
-  addObject(cellKey(7, 11), 'seaweed');
-  addObject(cellKey(12, 15), 'oxygen');
-  addObject(cellKey(19, 18), 'checkpoint');
-  addObject(cellKey(28, 4), 'bubble');
-  addObject(cellKey(4, 17), 'torricelli');
-  patchEdge(map, cellKey(14, 8), cellKey(15, 8), { type: 'springJelly', blocksPassage: true });
-  patchEdge(map, cellKey(14, 15), cellKey(15, 15), { type: 'spike', blocksPassage: true });
-  patchEdge(map, cellKey(23, 15), cellKey(24, 15), { type: 'barrier', blocksPassage: true });
-  patchEdge(map, cellKey(9, 10), cellKey(10, 10), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
+  addActor(at(4, 5), 'playerStart');
+  addActor(at(22, 8), 'enemySpawn');
+  addActor(at(27, 15), 'miniBossSpawn');
+  addActor(at(width - 3, height - 3), 'bossSpawn');
+  addOverlay(at(8, 3), 'coral');
+  addOverlay(at(25, 5), 'ink');
+  addObject(at(15, 8), 'mine');
+  addObject(at(18, 8), 'weightStone');
+  addObject(at(7, 11), 'seaweed');
+  addObject(at(12, 15), 'oxygen');
+  addObject(at(19, 18), 'checkpoint');
+  addObject(at(28, 4), 'bubble');
+  addObject(at(4, 17), 'torricelli');
+  patchEdge(map, at(14, 8), at(15, 8), { type: 'springJelly', blocksPassage: true });
+  patchEdge(map, at(14, 15), at(15, 15), { type: 'spike', blocksPassage: true });
+  patchEdge(map, at(23, 15), at(24, 15), { type: 'barrier', blocksPassage: true });
+  patchEdge(map, at(9, 10), at(10, 10), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
   return map;
 }

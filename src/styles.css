@@ -35,6 +35,9 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .canvas-wrap { width: 100%; }
 .canvas-stage { position: relative; }
 canvas { display: block; width: 100%; height: auto; border: 1px solid #385a81; border-radius: 6px; cursor: crosshair; background: #091423; }
+.zoom-control { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; margin: 8px 0 0; padding: 7px 9px; border: 1px solid #385a81; border-radius: 6px; color: #c6d9eb; font-size: 12px; }
+.zoom-control input { padding: 0; accent-color: #8cdcff; }
+.zoom-control output { min-width: 38px; color: #f6e66d; text-align: right; }
 .button-stack { display: grid; gap: 6px; }
 .button-stack.spaced { margin-top: 8px; }
 .hint { margin-top: 9px; color: #8ea7c2; font-size: 12px; line-height: 1.45; }

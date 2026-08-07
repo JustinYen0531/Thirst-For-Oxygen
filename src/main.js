@@ -16,8 +16,10 @@ import {
   getHexCenter,
   getHexVertices,
   getDirectionVector,
+  migrateMapToOddR,
   patchCell,
   patchEdge,
+  screenPointToWorldPoint,
   validateMap,
 } from './map-model.js';
 import {
@@ -47,6 +49,8 @@ const dirtyIndicator = document.querySelector('#dirty-indicator');
 const playHelp = document.querySelector('#play-help');
 const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
+const zoomSlider = document.querySelector('#zoom-slider');
+const zoomValue = document.querySelector('#zoom-value');
 const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge', 'terrain']
   .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
@@ -113,12 +117,15 @@ const toolDefinitions = {
 };
 
 function calculateMapOrigin(map) {
-  const { width, height } = map.layout;
-  const gridWidth = HEX_SIZE * Math.sqrt(3) * ((width - 1) + (height - 1) / 2) + HEX_SIZE * Math.sqrt(3);
-  const gridHeight = HEX_SIZE * 1.5 * (height - 1) + HEX_SIZE * 2;
+  const centers = Object.values(map.cells).map((cell) => getHexCenter(cell, { x: 0, y: 0 }));
+  const halfWidth = (Math.sqrt(3) * HEX_SIZE) / 2;
+  const minX = Math.min(...centers.map((center) => center.x)) - halfWidth;
+  const maxX = Math.max(...centers.map((center) => center.x)) + halfWidth;
+  const minY = Math.min(...centers.map((center) => center.y)) - HEX_SIZE;
+  const maxY = Math.max(...centers.map((center) => center.y)) + HEX_SIZE;
   return {
-    x: (canvas.width - gridWidth) / 2 + (Math.sqrt(3) * HEX_SIZE) / 2,
-    y: (canvas.height - gridHeight) / 2 + HEX_SIZE,
+    x: (canvas.width - (maxX - minX)) / 2 - minX,
+    y: (canvas.height - (maxY - minY)) / 2 - minY,
   };
 }
 
@@ -127,7 +134,11 @@ function loadMap() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed?.cells && parsed?.edges && parsed?.chapterStates) return parsed;
+      if (parsed?.cells && parsed?.edges && parsed?.chapterStates) {
+        const migrated = migrateMapToOddR(parsed);
+        if (migrated !== parsed) localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
     }
   } catch (error) {
     console.warn('Unable to load saved map', error);
@@ -151,6 +162,7 @@ const state = {
   validation: [],
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
+  zoom: 1,
 };
 
 function setStatus(message) {
@@ -462,12 +474,17 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#091423';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(state.zoom, state.zoom);
+  ctx.translate(-canvas.width / 2, -canvas.height / 2);
   Object.entries(state.map.cells).forEach(([key]) => drawCell(key, getActiveCell(state.map, key, state.chapter)));
   drawSelectedCellNeighbours();
   drawEdges();
   drawTrajectory();
   drawTestActor();
   drawInkMask();
+  ctx.restore();
   renderInspector();
   renderLists();
   editorModeButton.classList.toggle('is-active', state.mode === 'edit');
@@ -477,10 +494,11 @@ function render() {
 
 function eventPoint(event) {
   const rect = canvas.getBoundingClientRect();
-  return {
+  const screenPoint = {
     x: (event.clientX - rect.left) * (canvas.width / rect.width),
     y: (event.clientY - rect.top) * (canvas.height / rect.height),
   };
+  return screenPointToWorldPoint(screenPoint, { x: canvas.width / 2, y: canvas.height / 2 }, state.zoom);
 }
 
 function edgeAtPoint(point) {
@@ -675,7 +693,7 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
   try {
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
-    state.map = parsed;
+    state.map = migrateMapToOddR(parsed);
     state.origin = calculateMapOrigin(state.map);
     state.selectedCellKey = null;
     state.selectedEdgeKey = null;
@@ -691,6 +709,11 @@ chapterSelect.addEventListener('change', () => {
   state.chapter = chapterSelect.value;
   resetTestActor(state.actor, state.map, state.chapter, state.origin);
   setStatus(`已切換為${chapterSelect.options[chapterSelect.selectedIndex].text}。`);
+  render();
+});
+zoomSlider.addEventListener('input', () => {
+  state.zoom = Number(zoomSlider.value);
+  zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
   render();
 });
 
@@ -731,6 +754,7 @@ window.render_game_to_text = () => {
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
+    viewport: { zoom: state.zoom },
   });
 };
 
