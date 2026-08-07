@@ -28,12 +28,7 @@
           <div id="tool-buttons" class="button-stack"></div>
           <label for="brush-value">目前筆刷</label>
           <select id="brush-value"></select>
-          <label for="object-placement-mode">水域物件定位</label>
-          <select id="object-placement-mode">
-            <option value="free">自由放置</option>
-            <option value="center">六邊形中央</option>
-          </select>
-          <p class="hint">水域上物件可選自由放置或六邊形中央；邊緣沾黏物件請點兩格中間的六角邊。</p>
+          <p class="hint">水域上物件的定位切換在下方素材調色盤的橡皮擦按鈕下面；邊緣沾黏物件請點兩格中間的六角邊。</p>
 
           <h2>地圖</h2>
           <label for="chapter-select">章節狀態</label>
@@ -103,7 +98,16 @@
                 <h2>直接放置素材</h2>
                 <p>先點素材，再在畫布放置；格子素材按住拖曳可連續塗色，水域上物件仍以自身輪廓作為 hitbox。</p>
               </div>
-              <button id="palette-eraser" class="palette-eraser" type="button" aria-pressed="false" title="清除游標附近的素材或 Edge">⌫ 橡皮擦</button>
+              <div class="palette-heading-actions">
+                <button id="palette-eraser" class="palette-eraser" type="button" aria-pressed="false" title="清除游標附近的素材或 Edge">⌫ 橡皮擦</button>
+                <fieldset id="object-placement-control" class="placement-control" disabled>
+                  <legend>水域上物件定位</legend>
+                  <div class="placement-options" role="group" aria-label="水域上物件定位模式">
+                    <button type="button" data-object-placement="free" aria-pressed="true">Free Snap</button>
+                    <button type="button" data-object-placement="center" aria-pressed="false">六邊形中央</button>
+                  </div>
+                </fieldset>
+              </div>
             </div>
             <div class="palette-tabs" role="tablist" aria-label="素材分類">
               <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity">水域重力・整格</button>

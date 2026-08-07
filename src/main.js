@@ -64,7 +64,8 @@ const canvasViewport = document.querySelector('#map-viewport');
 const statusLine = document.querySelector('#status-line');
 const toolButtons = document.querySelector('#tool-buttons');
 const brushValue = document.querySelector('#brush-value');
-const objectPlacementMode = document.querySelector('#object-placement-mode');
+const objectPlacementControl = document.querySelector('#object-placement-control');
+const objectPlacementButtons = [...document.querySelectorAll('[data-object-placement]')];
 const chapterSelect = document.querySelector('#chapter-select');
 const currentDirection = document.querySelector('#current-direction');
 const currentStrength = document.querySelector('#current-strength');
@@ -281,6 +282,7 @@ const state = {
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
   zoom: DEFAULT_ZOOM,
+  objectPlacementMode: 'free',
   pan: initialPan,
   viewDrag: null,
   lastPointerClient: null,
@@ -309,6 +311,25 @@ function updateCanvasCursor() {
   canvas.classList.toggle('is-panning', Boolean(state.viewDrag));
 }
 
+function updateObjectPlacementControl() {
+  const enabled = ['overlay', 'object'].includes(state.tool);
+  objectPlacementControl.disabled = !enabled;
+  objectPlacementButtons.forEach((button) => {
+    const active = button.dataset.objectPlacement === state.objectPlacementMode;
+    button.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function setObjectPlacementMode(mode) {
+  if (!['free', 'center'].includes(mode)) return;
+  state.objectPlacementMode = mode;
+  updateObjectPlacementControl();
+  if (['overlay', 'object'].includes(state.tool)) {
+    setStatus(mode === 'center' ? '水域物件將放在六邊形正中央。' : '水域物件使用 Free Snap，可放在游標位置。');
+  }
+  render();
+}
+
 function setPaletteTab(tab) {
   state.paletteTab = tab;
   paletteTabs.forEach((button) => {
@@ -334,7 +355,7 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   });
   if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
   brushValue.disabled = values.length === 0;
-  objectPlacementMode.disabled = !['overlay', 'object'].includes(tool);
+  updateObjectPlacementControl();
   if (paletteTab) setPaletteTab(paletteTab);
   else if (paletteRoots[tool]) setPaletteTab(tool);
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
@@ -470,14 +491,14 @@ function getPaletteDescription(tool, value) {
     })[value];
   }
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
-  if (tool === 'overlay' && value === 'ink') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
-  if (tool === 'object' && value === 'mine') return '水域上物件：自由放置；物件自身輪廓是 hitbox，角色接觸時造成傷害。';
-  if (tool === 'object' && value === 'weightStone') return '水域上物件：自由放置；物件自身輪廓是 hitbox，高速撞擊可破壞它。';
-  if (tool === 'object' && value === 'oxygen') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可補給。';
-  if (tool === 'object' && value === 'checkpoint') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可更新重生位置並恢復資源。';
-  if (tool === 'object' && value === 'bubble') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
-  if (tool === 'object' && value === 'torricelli') return '水域上物件：自由放置；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
-  if (tool === 'object' && value === 'razor') return '水域上物件：自由放置；刀片繞中心軸持續旋轉，接觸時造成傷害並把角色向外推開。';
+  if (tool === 'overlay' && value === 'ink') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸時遮蔽角色周圍以外的視野。';
+  if (tool === 'object' && value === 'mine') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，角色接觸時造成傷害。';
+  if (tool === 'object' && value === 'weightStone') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，高速撞擊可破壞它。';
+  if (tool === 'object' && value === 'oxygen') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可補給。';
+  if (tool === 'object' && value === 'checkpoint') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可更新重生位置並恢復資源。';
+  if (tool === 'object' && value === 'bubble') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸可暫時免疫重力。';
+  if (tool === 'object' && value === 'torricelli') return '水域上物件：可切換 Free Snap／六邊形中央；物件自身輪廓是 hitbox，接觸即可獲得氧氣補給。';
+  if (tool === 'object' && value === 'razor') return '水域上物件：可切換 Free Snap／六邊形中央；刀片繞中心軸持續旋轉，接觸時造成傷害並把角色向外推開。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
   if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
   if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
@@ -697,7 +718,7 @@ function getWaterObjectCellAtPoint(point, allowExtend = false) {
 }
 
 function getFreeObjectPlacementPoint(point) {
-  if (objectPlacementMode.value !== 'center') return point;
+  if (state.objectPlacementMode !== 'center') return point;
   const target = getWaterObjectCellAtPoint(point, false);
   return target ? getHexCenter(target.cell, state.origin) : point;
 }
@@ -1560,7 +1581,7 @@ function applyFreeObjectTool(point) {
   const value = brushValue.value;
   const editable = getEditableCell(state.map, nearest.key, state.chapter);
   const center = getHexCenter(nearest.cell, state.origin);
-  const placementPoint = objectPlacementMode.value === 'center' ? center : point;
+  const placementPoint = state.objectPlacementMode === 'center' ? center : point;
   const freeObjects = [
     ...(editable.freeObjects ?? []),
     {
@@ -1573,7 +1594,7 @@ function applyFreeObjectTool(point) {
   state.selectedMapObject = { storage: 'free', key: nearest.key, index: freeObjects.length - 1 };
   state.selectedCellKey = null;
   state.selectedEdgeKey = null;
-  const placementLabel = objectPlacementMode.value === 'center' ? '中央放置' : '自由放置';
+  const placementLabel = state.objectPlacementMode === 'center' ? '中央放置' : '自由放置';
   markDirty(`已${placementLabel}${paletteLabels[value] ?? value}；右側 Inspector 可調整參數或回復官方預設。`);
 }
 
@@ -2031,6 +2052,7 @@ window.render_game_to_text = () => {
       zoom: state.zoom,
       pan: { x: formatNumber(state.pan.x), y: formatNumber(state.pan.y) },
       canPan: state.mode === 'edit' && state.tool === 'select',
+      objectPlacementMode: state.objectPlacementMode,
       scrollTop: Math.round(canvasViewport?.scrollTop ?? 0),
       scrollHeight: Math.round(canvasViewport?.scrollHeight ?? canvas.height),
     },
@@ -2045,6 +2067,7 @@ window.advanceTime = (milliseconds) => {
 };
 
 brushValue.addEventListener('change', updatePaletteSelection);
+objectPlacementButtons.forEach((button) => button.addEventListener('click', () => setObjectPlacementMode(button.dataset.objectPlacement)));
 paletteTabs.forEach((button) => button.addEventListener('click', () => setPaletteTab(button.dataset.paletteTab)));
 eraserButton.addEventListener('click', () => setTool(state.tool === 'erase' ? 'select' : 'erase'));
 createToolButtons();

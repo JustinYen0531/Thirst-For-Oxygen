@@ -265,3 +265,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the mixed perimeter behavior with one global rectangular clip for the completed map. Both left and right sides use the same half-Cell inset; no per-Cell or per-row perimeter masks remain.
 - Re-centred map-origin calculation against that full-map rectangle so the crop is a single symmetric viewport boundary rather than a collection of Cell edits.
 - Static-only verification passed: `npm run check` (28/28 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 33 complete
+
+- Moved the water-object placement switch directly below the palette Eraser button as requested; it is no longer in the left tools panel.
+- Replaced the DOM-only select with explicit `Free Snap` and `六邊形中央` buttons backed by `state.objectPlacementMode`. Preview placement, saved offsets, status text, and `render_game_to_text` now use the same mode value.
+- Static-only verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

@@ -59,6 +59,12 @@ canvas.is-panning { cursor: grabbing; }
 .button-stack { display: grid; gap: 6px; }
 .button-stack.spaced { margin-top: 8px; }
 .hint { margin-top: 9px; color: #8ea7c2; font-size: 12px; line-height: 1.45; }
+.placement-control { min-width: 0; margin: 0; padding: 7px; border: 1px solid #385a81; border-radius: 5px; }
+.placement-control:disabled { opacity: 0.48; }
+.placement-control legend { padding: 0 4px; color: #adbed2; font-size: 12px; }
+.placement-options { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.placement-options button { padding: 6px 5px; color: #b9d1e7; font-size: 11px; }
+.placement-options button[aria-pressed="true"] { border-color: #f6e66d; background: #5b4a1d; color: #fff4ae; box-shadow: 0 0 0 1px rgba(246, 230, 109, 0.24); }
 .file-button { display: block; text-align: center; font-size: 13px; }
 .file-button input { display: none; }
 .play-help { position: absolute; left: 12px; right: 12px; bottom: 12px; margin: 0; padding: 7px 9px; background: rgba(7, 15, 27, 0.86); border: 1px solid #486d95; border-radius: 4px; color: #d7ebff; font-size: 12px; }
@@ -67,6 +73,7 @@ canvas.is-panning { cursor: grabbing; }
 .palette-heading > div:first-child { min-width: 0; }
 .palette-heading h2 { margin: 0; font-size: 14px; }
 .palette-heading p { color: #9bb2c8; font-size: 11px; }
+.palette-heading-actions { display: grid; justify-items: end; gap: 6px; flex: 0 0 auto; }
 .palette-eraser { width: auto; flex: 0 0 auto; padding: 6px 10px; border-color: #8d6b35; background: #322b1c; color: #f6e66d; font-size: 12px; }
 .palette-eraser:hover, .palette-eraser.is-active { border-color: #f6e66d; background: #574719; color: #fff5b2; }
 .palette-tabs { display: flex; gap: 6px; margin-bottom: 9px; overflow-x: auto; }
