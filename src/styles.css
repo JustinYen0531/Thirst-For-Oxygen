@@ -61,8 +61,11 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid #385a81; b
 .play-help { position: absolute; left: 12px; right: 12px; bottom: 12px; margin: 0; padding: 7px 9px; background: rgba(7, 15, 27, 0.86); border: 1px solid #486d95; border-radius: 4px; color: #d7ebff; font-size: 12px; }
 .asset-palette { margin-top: 10px; padding: 10px; border: 1px solid #385a81; border-radius: 6px; background: #0d1b2c; }
 .palette-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+.palette-heading > div:first-child { min-width: 0; }
 .palette-heading h2 { margin: 0; font-size: 14px; }
 .palette-heading p { color: #9bb2c8; font-size: 11px; }
+.palette-eraser { width: auto; flex: 0 0 auto; padding: 6px 10px; border-color: #8d6b35; background: #322b1c; color: #f6e66d; font-size: 12px; }
+.palette-eraser:hover, .palette-eraser.is-active { border-color: #f6e66d; background: #574719; color: #fff5b2; }
 .palette-tabs { display: flex; gap: 6px; margin-bottom: 9px; overflow-x: auto; }
 .palette-tab { width: auto; flex: 0 0 auto; padding: 7px 12px; color: #b9d1e7; font-size: 12px; }
 .palette-tab.is-active { background: #2d668d; border-color: #9bdefc; color: #fff; }

@@ -72,6 +72,7 @@ const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
 const zoomSlider = document.querySelector('#zoom-slider');
 const zoomValue = document.querySelector('#zoom-value');
+const eraserButton = document.querySelector('#palette-eraser');
 const paletteTabs = [...document.querySelectorAll('[data-palette-tab]')];
 const palettePanels = [...document.querySelectorAll('[data-palette-panel]')];
 const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'actor', 'edge']
@@ -169,8 +170,8 @@ const toolDefinitions = {
   overlay: { label: '環境效果', values: OVERLAY_TYPES },
   object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
   actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
-  edge: { label: 'Edge 互動', values: EDGE_TYPES },
-  erase: { label: '清除該層', values: [] },
+  edge: { label: 'Edge 互動', values: EDGE_TYPES.filter((value) => value !== 'none') },
+  erase: { label: '橡皮擦', values: [] },
 };
 
 function calculateMapOrigin(map) {
@@ -265,6 +266,8 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   if (paletteTab) setPaletteTab(paletteTab);
   else if (paletteRoots[tool]) setPaletteTab(tool);
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
+  eraserButton.classList.toggle('is-active', tool === 'erase');
+  eraserButton.setAttribute('aria-pressed', String(tool === 'erase'));
   setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
   updatePaletteSelection();
   render();
@@ -284,7 +287,7 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge']);
+  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge', 'erase']);
   Object.entries(toolDefinitions).filter(([key]) => !directPaletteTools.has(key)).forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
@@ -306,7 +309,7 @@ function createPalette() {
       { tool: 'object', values: CELL_OBJECT_TYPES.filter((value) => !['seaweed', 'coralCluster'].includes(value)) },
     ],
     actor: [{ tool: 'actor', values: ACTOR_TYPES }],
-    edge: [{ tool: 'edge', values: EDGE_TYPES }],
+    edge: [{ tool: 'edge', values: EDGE_TYPES.filter((value) => value !== 'none') }],
   };
   Object.entries(paletteGroups).forEach(([group, entries]) => {
     const root = paletteRoots[group];
@@ -586,6 +589,15 @@ function isEdgePlacementValid(edgeTarget) {
   return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
 }
 
+function isCellEraseValid(cell) {
+  return Boolean(cell && (cell.overlays.length || cell.objects.length || cell.actors.length));
+}
+
+function isEdgeEraseValid(edgeTarget) {
+  if (!edgeTarget) return false;
+  return getActiveEdge(state.map, edgeTarget.key, state.chapter)?.type !== 'none';
+}
+
 function getSharedEdgePoints(edgeTarget) {
   const cellA = getActiveCell(state.map, edgeTarget.a, state.chapter);
   const cellB = getActiveCell(state.map, edgeTarget.b, state.chapter);
@@ -598,6 +610,36 @@ function getSharedEdgePoints(edgeTarget) {
 
 function drawPlacementPreview() {
   if (state.mode !== 'edit' || !state.hoverPoint) return;
+  if (state.tool === 'erase') {
+    const edgeTarget = edgeAtPoint(state.hoverPoint);
+    const shared = edgeTarget && getSharedEdgePoints(edgeTarget);
+    if (shared) {
+      const valid = isEdgeEraseValid(edgeTarget);
+      ctx.save();
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = valid ? '#f6e66d' : '#ff6f68';
+      ctx.globalAlpha = 0.95;
+      ctx.beginPath();
+      ctx.moveTo(shared[0].x, shared[0].y);
+      ctx.lineTo(shared[1].x, shared[1].y);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    const hitCell = findCellContainingPoint(state.map, state.hoverPoint, state.chapter, state.origin);
+    if (!hitCell) return;
+    const valid = isCellEraseValid(hitCell.cell);
+    pathHex(hitCell.cell);
+    ctx.save();
+    ctx.fillStyle = valid ? 'rgba(246, 230, 109, 0.12)' : 'rgba(255, 111, 104, 0.16)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = valid ? '#f6e66d' : '#ff6f68';
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
   const edgeTool = state.tool === 'edge';
   if (!cellTool && !edgeTool) return;
@@ -849,6 +891,10 @@ function applyCellTool(key) {
     setStatus(`已選取 Cell ${key}`);
     return;
   }
+  if (state.tool === 'erase' && !isCellEraseValid(cell)) {
+    setStatus('這個六角形沒有可清除的素材。');
+    return;
+  }
   if (['overlay', 'object', 'actor'].includes(state.tool) && !isCellPlacementValid(cell)) {
     setStatus('這類素材只能放在可通行水域格。');
     return;
@@ -888,6 +934,10 @@ function applyEdgeTool(edgeTarget) {
   const value = brushValue.value;
   if (state.tool === 'select') {
     setStatus(`已選取 Edge ${edgeTarget.key}`);
+    return;
+  }
+  if (state.tool === 'erase' && !isEdgeEraseValid(edgeTarget)) {
+    setStatus('這條六角邊沒有可清除的 Edge。');
     return;
   }
   if (state.tool === 'edge') {
@@ -1138,6 +1188,7 @@ window.advanceTime = (milliseconds) => {
 
 brushValue.addEventListener('change', updatePaletteSelection);
 paletteTabs.forEach((button) => button.addEventListener('click', () => setPaletteTab(button.dataset.paletteTab)));
+eraserButton.addEventListener('click', () => setTool(state.tool === 'erase' ? 'select' : 'erase'));
 createToolButtons();
 createPalette();
 setPaletteTab('gravity');

@@ -92,8 +92,11 @@
           </label>
           <section class="asset-palette" aria-label="地圖素材調色盤">
             <div class="palette-heading">
-              <h2>直接放置素材</h2>
-              <p>先點下面的素材，再直接點格子；不需要先選格子再到 Inspector 改設定。</p>
+              <div>
+                <h2>直接放置素材</h2>
+                <p>先點下面的素材，再直接點格子；不需要先選格子再到 Inspector 改設定。</p>
+              </div>
+              <button id="palette-eraser" class="palette-eraser" type="button" aria-pressed="false" title="清除游標附近的素材或 Edge">⌫ 橡皮擦</button>
             </div>
             <div class="palette-tabs" role="tablist" aria-label="素材分類">
               <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity">水域重力</button>

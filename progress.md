@@ -104,6 +104,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
 - Remaining: scoped Git commit and push, then report the exact result to the user.
 
+## 2026-08-08 — Step 15 in progress
+
+- Replaced the old `清除 Edge` palette material with a dedicated `⌫ 橡皮擦` button in the upper-right of the material palette; the old left-side clear tool and Edge clear card are no longer exposed.
+- Eraser preview follows cursor proximity: a whole Cell gets a gold/red hex outline, while a nearby shared Edge gets a gold/red single-side outline. Gold is shown only when Cell contents or an Edge actually exists; empty targets stay red and clicks are rejected.
+- Static verification passed: `npm run check` (20/20 tests), `npm run build`, and `git diff --check`. Browser validation remains intentionally disabled per user instruction.
+- Remaining: scoped Git commit and push, then report the exact result to the user.
+
 ## 2026-08-07 — Step 15 complete
 
 - Removed connected opaque matte backgrounds from all enemy animation GIFs while preserving the original sprite pixels and existing alpha information. The remover keys each frame from its border colour, so both pure black and the dark-blue juvenile seahorse matte are handled.
