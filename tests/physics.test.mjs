@@ -24,6 +24,7 @@ import {
   createTestActor,
   drainAimEnergy,
   getLaunchCosts,
+  getLaunchSpeed,
   launchActor,
   applyDamage,
   applyEnemyDefeatRewards,
@@ -89,6 +90,12 @@ test('launch velocity is opposite the pull direction', () => {
   assert.ok(actor.energy < 100, 'launch should consume energy');
 });
 
+test('long launches gain extra speed while short launches keep the old scale', () => {
+  assert.equal(getLaunchSpeed(80), 23.2);
+  assert.ok(getLaunchSpeed(240) > getLaunchSpeed(80) * 2.5);
+  assert.ok(getLaunchSpeed(420) > getLaunchSpeed(240));
+});
+
 test('launch requires both oxygen and energy, while aiming consumes energy', () => {
   const actor = createTestActor({ x: 200, y: 200 });
   const costs = getLaunchCosts(80);
@@ -108,7 +115,7 @@ test('all primary motion limits use the 0.1 simulation scale', () => {
   assert.equal(SIMULATION_SPEED_SCALE, 0.1);
   assert.equal(GRAVITY_SCALE, 0.5);
   assert.equal(GAME_GRAVITY, 11.5);
-  assert.equal(MAX_SPEED, 56);
+  assert.equal(MAX_SPEED, 140);
 });
 
 test('compact editor uses a rectangular odd-r grid with one-Cell player diameter', () => {
@@ -185,17 +192,6 @@ test('current applies horizontal acceleration from an Edge', () => {
   const actor = actorIn(map, '0,0');
   stepPhysics({ map, actor, origin: ORIGIN });
   assert.ok(actor.vx > 0.1, 'eastward current should add positive x velocity at the slowed scale');
-});
-
-test('coral safety prevents a mine from dealing damage', () => {
-  const map = createEmptyMap({ width: 1, height: 1 });
-  patchCell(map, '0,0', { gravityLevel: 'L0', overlays: ['coral'], objects: [{ kind: 'mine' }] });
-  const actor = actorIn(map, '0,0');
-  actor.vx = 100;
-  const events = stepPhysics({ map, actor, origin: ORIGIN });
-  assert.ok(events.some((event) => event.type === 'mine'));
-  assert.equal(actor.health, MAX_HEALTH);
-  assert.equal(actor.safe, true);
 });
 
 test('edge-attached coral cluster protects a nearby player', () => {

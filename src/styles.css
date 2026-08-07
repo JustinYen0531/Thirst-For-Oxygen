@@ -74,6 +74,7 @@ canvas { display: block; width: 100%; height: auto; border: 1px solid #385a81; b
 .palette-choice:hover, .palette-choice.is-active { background: #27658d; border-color: #8cdcff; }
 .palette-choice.is-active { outline: 2px solid #f6e66d; border-color: #f6e66d; background: #295978; }
 .palette-choice img, .palette-swatch { width: 78px; height: 78px; flex: 0 0 78px; object-fit: contain; }
+.palette-choice-label { max-width: 100%; margin-top: 4px; color: #edf7ff; font-size: 12px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
 .palette-item.palette-in-gravity { min-height: 112px; }
 .palette-item.palette-in-gravity .palette-choice img { width: 88px; height: 88px; flex-basis: 88px; }
 .palette-swatch { display: grid; place-items: center; border: 1px solid #6f95ba; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); color: #eff8ff; font-weight: 700; font-size: 8px; }

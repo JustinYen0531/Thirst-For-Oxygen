@@ -107,7 +107,6 @@ const objectSymbols = {
 };
 const objectImagePaths = {
   coralCluster: '/assets/editor/objects/coral-cluster.png',
-  coral: '/assets/editor/objects/coral-safe-zone-overlay.png',
   ink: '/assets/editor/objects/ink-zone-overlay.png',
   mine: '/assets/editor/objects/deep-sea-mine.png',
   weightStone: '/assets/editor/objects/heavy-stone.png',
@@ -127,7 +126,7 @@ const edgeImagePaths = {
 const paletteImagePaths = { ...waterTilePaths, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行',
-  coral: '珊瑚安全區', ink: '墨水區', coralCluster: '珊瑚群落',
+  ink: '墨水區', coralCluster: '珊瑚群落',
   mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
   checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
@@ -222,6 +221,7 @@ const state = {
   accumulator: 0,
   zoom: 1.5,
   paletteTab: 'gravity',
+  hoverPoint: null,
 };
 
 function setStatus(message) {
@@ -329,7 +329,10 @@ function createPalette() {
         visual.textContent = tool === 'gravity' ? value : actorSymbols[value] ?? (tool === 'edge' ? '↔' : value === 'blocked' ? '■' : '◇');
         if (tool === 'gravity') visual.style.background = gravityColours[value];
       }
-      choice.append(visual);
+      const label = document.createElement('span');
+      label.className = 'palette-choice-label';
+      label.textContent = paletteLabels[value] ?? value;
+      choice.append(visual, label);
       choice.addEventListener('click', () => setTool(tool, value, group));
 
       const info = document.createElement('button');
@@ -369,9 +372,8 @@ function getPaletteDescription(tool, value) {
     })[value];
   }
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
-  if (tool === 'overlay' && value === 'coral') return '水域上物件：直接覆蓋可通行水域格；在此格中免於地雷傷害。';
   if (tool === 'overlay' && value === 'ink') return '水域上物件：直接覆蓋可通行水域格；物理測試時遮蔽角色周圍以外的視野。';
-  if (tool === 'object' && value === 'mine') return '水域上物件：直接覆蓋可通行水域格；角色接觸時造成傷害，珊瑚安全區內不生效。';
+  if (tool === 'object' && value === 'mine') return '水域上物件：直接覆蓋可通行水域格；角色接觸時造成傷害。';
   if (tool === 'object' && value === 'weightStone') return '水域上物件：直接覆蓋可通行水域格；高速撞擊可破壞它。';
   if (tool === 'object' && value === 'oxygen') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
   if (tool === 'object' && value === 'checkpoint') return '水域上物件：直接覆蓋可通行水域格；更新重生位置並恢復資源。';
@@ -569,6 +571,68 @@ function drawEdges() {
   });
 }
 
+function isCellPlacementValid(cell) {
+  if (!cell) return false;
+  if (state.tool === 'gravity' || state.tool === 'terrain') return true;
+  if (state.tool === 'overlay' || state.tool === 'object' || state.tool === 'actor') return cell.terrain === 'water';
+  return false;
+}
+
+function isEdgePlacementValid(edgeTarget) {
+  if (!edgeTarget || state.tool !== 'edge') return false;
+  if (brushValue.value === 'none') return true;
+  const cellA = getActiveCell(state.map, edgeTarget.a, state.chapter);
+  const cellB = getActiveCell(state.map, edgeTarget.b, state.chapter);
+  return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
+}
+
+function getSharedEdgePoints(edgeTarget) {
+  const cellA = getActiveCell(state.map, edgeTarget.a, state.chapter);
+  const cellB = getActiveCell(state.map, edgeTarget.b, state.chapter);
+  if (!cellA || !cellB) return null;
+  const verticesA = getHexVertices(cellA, state.origin);
+  const verticesB = getHexVertices(cellB, state.origin);
+  const shared = verticesA.filter((pointA) => verticesB.some((pointB) => Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y) < 0.2));
+  return shared.length === 2 ? shared : null;
+}
+
+function drawPlacementPreview() {
+  if (state.mode !== 'edit' || !state.hoverPoint) return;
+  const cellTool = ['gravity', 'terrain', 'overlay', 'object', 'actor'].includes(state.tool);
+  const edgeTool = state.tool === 'edge';
+  if (!cellTool && !edgeTool) return;
+  const validColour = '#f6e66d';
+  const invalidColour = '#ff6f68';
+  if (cellTool) {
+    const hitCell = findCellContainingPoint(state.map, state.hoverPoint, state.chapter, state.origin);
+    if (!hitCell) return;
+    const valid = isCellPlacementValid(hitCell.cell);
+    pathHex(hitCell.cell);
+    ctx.save();
+    ctx.fillStyle = valid ? 'rgba(246, 230, 109, 0.12)' : 'rgba(255, 111, 104, 0.16)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = valid ? validColour : invalidColour;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  const edgeTarget = edgeAtPoint(state.hoverPoint);
+  const shared = edgeTarget && getSharedEdgePoints(edgeTarget);
+  if (!shared) return;
+  const valid = isEdgePlacementValid(edgeTarget);
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = valid ? validColour : invalidColour;
+  ctx.globalAlpha = 0.95;
+  ctx.beginPath();
+  ctx.moveTo(shared[0].x, shared[0].y);
+  ctx.lineTo(shared[1].x, shared[1].y);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, receivesHelp) {
   const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(type);
   const imageX = -width / 2;
@@ -738,6 +802,7 @@ function render() {
   drawTerrainBoundaries();
   drawSelectedCellNeighbours();
   drawEdges();
+  drawPlacementPreview();
   drawTrajectory();
   drawTestActor();
   drawInkMask();
@@ -766,7 +831,7 @@ function edgeAtPoint(point) {
     const centerB = getHexCenter(getActiveCell(state.map, b, state.chapter), state.origin);
     const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
     const distance = Math.hypot(point.x - midpoint.x, point.y - midpoint.y);
-    if (distance < 7 && (!closest || distance < closest.distance)) closest = { key, a, b, distance };
+    if (distance < 9 && (!closest || distance < closest.distance)) closest = { key, a, b, distance };
   });
   return closest;
 }
@@ -782,6 +847,10 @@ function applyCellTool(key) {
   state.selectedEdgeKey = null;
   if (state.tool === 'select') {
     setStatus(`已選取 Cell ${key}`);
+    return;
+  }
+  if (['overlay', 'object', 'actor'].includes(state.tool) && !isCellPlacementValid(cell)) {
+    setStatus('這類素材只能放在可通行水域格。');
     return;
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
@@ -822,6 +891,10 @@ function applyEdgeTool(edgeTarget) {
     return;
   }
   if (state.tool === 'edge') {
+    if (!isEdgePlacementValid(edgeTarget)) {
+      setStatus('邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
+      return;
+    }
     const isBlocking = ['springJelly', 'spike', 'barrier'].includes(value);
     patchEdge(state.map, edgeTarget.a, edgeTarget.b, {
       type: value,
@@ -879,6 +952,7 @@ function animationFrame(now) {
 
 canvas.addEventListener('pointerdown', (event) => {
   const point = eventPoint(event);
+  state.hoverPoint = point;
   if (state.mode === 'play') {
     if (!state.actor.attached && Math.hypot(point.x - state.actor.x, point.y - state.actor.y) < 52) {
       state.dragging = { pointer: point };
@@ -898,8 +972,15 @@ canvas.addEventListener('pointerdown', (event) => {
 });
 
 canvas.addEventListener('pointermove', (event) => {
-  if (!state.dragging) return;
-  state.dragging.pointer = eventPoint(event);
+  const point = eventPoint(event);
+  state.hoverPoint = point;
+  if (state.dragging) state.dragging.pointer = point;
+  if (state.mode === 'edit') render();
+});
+
+canvas.addEventListener('pointerleave', () => {
+  state.hoverPoint = null;
+  if (state.mode === 'edit') render();
 });
 
 canvas.addEventListener('pointerup', (event) => {

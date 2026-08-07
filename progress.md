@@ -95,3 +95,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added the standalone enemy encyclopedia at `enemy-encyclopedia.html` and linked it from the map editor top bar. It renders all 19 numerical enemy contracts, filters by tier, shows health/move speed/skill count, and lists each skill's authored values.
 - The first preview state is each enemy's natural floating GIF. Skill buttons switch the preview to the mapped attack GIF; mutated variants reuse their prototype's floating loop until a dedicated idle asset exists. Four Boss / Mini Boss entries remain visible with honest `動畫素材待補` states instead of invented previews.
 - Copied 89 GIF files into `public/assets/enemies`, added the Vite multi-page input so production output includes `dist/enemy-encyclopedia.html`, and statically verified all mapped catalog paths resolve. `npm run check` passed (19/19 tests); `npm run build` passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-07 — Step 14 in progress
+
+- Reworked launch speed so pulls up to 90 px keep the existing 0.1× linear response, while excess distance adds a nonlinear long-launch boost. The pointer distance ceiling is now 420 px and the motion cap is 140 px/s, so long horizontal launches can travel materially farther.
+- Added live edit-mode placement previews: Cell materials show a full gold or red hex outline, while Edge materials show only the shared hex side. Edge placement is valid only when at least one adjacent Cell is an impassable obstacle; invalid clicks are rejected with an editor status message.
+- Every palette card now shows its material name below the image. Removed the Coral Safe Zone overlay from palette data, demo data, runtime safety logic, and its obsolete physics test; coral cluster remains as an Edge-attached protective object.
+- Static verification passed: `npm run check` (20/20 tests) and `npm run build`. Browser validation remains intentionally disabled per user instruction.
+- Remaining: scoped Git commit and push, then report the exact result to the user.

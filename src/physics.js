@@ -19,13 +19,17 @@ export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
 export const GRAVITY_SCALE = 0.5;
 export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE * GRAVITY_SCALE;
-export const MAX_SPEED = 560 * SIMULATION_SPEED_SCALE;
+// Preserve the familiar 0.1x feel for short pulls, while leaving headroom for
+// long launches to travel farther instead of hitting the old cap immediately.
+export const MAX_SPEED = 140;
 export const MAX_HEALTH = RESOURCE_LIMITS.health;
 export const MAX_OXYGEN = RESOURCE_LIMITS.oxygen;
 export const MAX_ENERGY = RESOURCE_LIMITS.energy;
 export const MAX_LIVES = RESOURCE_LIMITS.lives;
 export const EDGE_ATTACHMENT_HELP_RADIUS = 18;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
+const LAUNCH_LINEAR_DISTANCE = 90;
+const LAUNCH_LONG_DISTANCE_GAIN = 0.05;
 const LAUNCH_OXYGEN_BASE_COST = 2;
 const LAUNCH_OXYGEN_COST_PER_PIXEL = 0.055;
 const LAUNCH_ENERGY_BASE_COST = 3;
@@ -73,7 +77,14 @@ function addEvent(events, type, message) {
 }
 
 function launchDistance(actor, pointer) {
-  return clamp(Math.hypot(actor.x - pointer.x, actor.y - pointer.y), 0, 170);
+  return clamp(Math.hypot(actor.x - pointer.x, actor.y - pointer.y), 0, 420);
+}
+
+export function getLaunchSpeed(distance) {
+  const shortDistance = Math.min(Math.max(0, distance), LAUNCH_LINEAR_DISTANCE);
+  const excessDistance = Math.max(0, distance - LAUNCH_LINEAR_DISTANCE);
+  return LAUNCH_SPEED_PER_PIXEL * shortDistance
+    + LAUNCH_LONG_DISTANCE_GAIN * excessDistance ** 1.5;
 }
 
 export function getLaunchCosts(distance, actor = null) {
@@ -231,7 +242,7 @@ export function launchActor(actor, pointer) {
   if (actor.oxygen < costs.oxygen) return { launched: false, reason: 'oxygen', costs };
   if (actor.energy < costs.energy) return { launched: false, reason: 'energy', costs };
   const direction = unitVector(pointer, actor);
-  const speed = LAUNCH_SPEED_PER_PIXEL * distance;
+  const speed = getLaunchSpeed(distance);
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
   actor.oxygen = clamp(actor.oxygen - costs.oxygen, 0, maxOxygenFor(actor));
@@ -356,9 +367,8 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
   if (!current) return;
   const cell = current.cell;
   const coralClusterSafe = isActorNearEdgeAttachment(actor, map, chapter, origin, 'coralCluster');
-  actor.safe = cell.overlays.includes('coral') || coralClusterSafe;
+  actor.safe = coralClusterSafe;
   actor.inInk = cell.overlays.includes('ink');
-  if (cell.overlays.includes('coral')) addEvent(events, 'coral', '珊瑚安全區：玩家處於安全狀態。');
   if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
   if (cell.overlays.includes('ink')) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 
@@ -376,7 +386,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap) {
         actor.vy = bounced.y;
         const damage = actor.safe ? { applied: 0 } : applyDamage(actor, 24, 'deepSeaMine', 'contact');
         actor.cooldowns[`mine:${key}`] = 0.5;
-        addEvent(events, 'mine', actor.safe ? '深海地雷：珊瑚安全區抵銷了傷害。' : `深海地雷：強力反彈並受到 ${Math.round(damage.applied)} 點傷害。`);
+        addEvent(events, 'mine', actor.safe ? '深海地雷：珊瑚群落保護範圍抵銷了傷害。' : `深海地雷：強力反彈並受到 ${Math.round(damage.applied)} 點傷害。`);
       }
       if (object.kind === 'weightStone' && !isOnCooldown(actor, `stone:${key}`)) {
         const impact = Math.hypot(actor.vx, actor.vy);

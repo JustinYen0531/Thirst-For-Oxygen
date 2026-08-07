@@ -21,7 +21,7 @@ export const GRAVITY_LEVELS = Object.freeze({
 
 export const GRAVITY_ORDER = Object.freeze(['L-1', 'L0', 'L1', 'L2', 'L3']);
 export const TERRAIN_TYPES = Object.freeze(['water', 'blocked']);
-export const OVERLAY_TYPES = Object.freeze(['coral', 'ink']);
+export const OVERLAY_TYPES = Object.freeze(['ink']);
 export const CELL_OBJECT_TYPES = Object.freeze([
   'coralCluster',
   'mine',
@@ -329,7 +329,6 @@ export function createDemoMap() {
   addActor(point(0.62, 0.34), 'enemySpawn');
   addActor(point(0.76, 0.64), 'miniBossSpawn');
   addActor(at(width - 3, height - 3), 'bossSpawn');
-  addOverlay(point(0.22, 0.12), 'coral');
   addOverlay(point(0.72, 0.2), 'ink');
   addObject(point(0.42, 0.34), 'mine');
   addObject(point(0.5, 0.34), 'weightStone');
