@@ -8,12 +8,16 @@ import {
 } from './game-data.js';
 import {
   FIXED_STEP,
+  GAME_GRAVITY,
   MAX_ENERGY,
   MAX_HEALTH,
   MAX_OXYGEN,
+  MAX_SPEED,
   applyDamage,
   applyEnemyDefeatRewards,
   createTestActor,
+  getLaunchCosts,
+  getLaunchSpeed,
   setPlayerLoadout,
 } from './physics.js';
 
@@ -167,6 +171,8 @@ export function createSandboxState() {
     autoCycle: false,
     invincible: false,
     infiniteResources: false,
+    aiming: false,
+    aimPoint: null,
     selectedEnemyInstanceId: null,
     selectedSkillId: null,
     nextEnemyId: 1,
@@ -247,7 +253,61 @@ export function resetSandboxPlayer(state) {
   state.actor.dead = false;
   state.actor.gameOver = false;
   state.actor.activeEffects = {};
+  state.aiming = false;
+  state.aimPoint = null;
   logEvent(state, '玩家已重置。', 'safe');
+}
+
+export function beginSandboxAim(state, point) {
+  if (!point || state.actor.attached || state.actor.dead) return { ok: false, reason: 'unavailable' };
+  state.aiming = true;
+  state.aimPoint = { x: point.x, y: point.y };
+  state.actor.vx = 0;
+  state.actor.vy = 0;
+  return { ok: true };
+}
+
+export function updateSandboxAim(state, point) {
+  if (!state.aiming || !point) return { ok: false, reason: 'notAiming' };
+  state.aimPoint = {
+    x: clamp(point.x, 0, SANDBOX_WIDTH),
+    y: clamp(point.y, 0, SANDBOX_HEIGHT),
+  };
+  return { ok: true, distance: Math.hypot(state.actor.x - state.aimPoint.x, state.actor.y - state.aimPoint.y) };
+}
+
+export function releaseSandboxAim(state, point = state.aimPoint) {
+  if (!state.aiming) return { ok: false, reason: 'notAiming' };
+  updateSandboxAim(state, point);
+  const distance = Math.min(420, Math.hypot(state.actor.x - state.aimPoint.x, state.actor.y - state.aimPoint.y));
+  const costs = getLaunchCosts(distance, state.actor);
+  const result = { ok: false, launched: false, distance, costs };
+  if (distance < 5) {
+    result.reason = 'tooClose';
+  } else if (!state.infiniteResources && state.actor.oxygen < costs.oxygen) {
+    result.reason = 'oxygen';
+  } else if (!state.infiniteResources && state.actor.energy < costs.energy) {
+    result.reason = 'energy';
+  } else {
+    const directionX = (state.actor.x - state.aimPoint.x) / distance;
+    const directionY = (state.actor.y - state.aimPoint.y) / distance;
+    const speed = Math.min(MAX_SPEED, getLaunchSpeed(distance));
+    state.actor.vx = directionX * speed;
+    state.actor.vy = directionY * speed;
+    if (!state.infiniteResources) {
+      state.actor.oxygen = Math.max(0, state.actor.oxygen - costs.oxygen);
+      state.actor.energy = Math.max(0, state.actor.energy - costs.energy);
+    }
+    result.ok = true;
+    result.launched = true;
+    result.speed = speed;
+    addEffect(state, { type: 'launch', x: state.actor.x, y: state.actor.y, radius: 22, duration: 0.35, colour: '#f6e66d' });
+    logEvent(state, `玩家彈射：距離 ${Math.round(distance)}、初速 ${Math.round(speed)}。`, 'safe');
+  }
+  state.aiming = false;
+  state.aimPoint = null;
+  if (!result.launched) logEvent(state, `彈射失敗：${result.reason === 'tooClose' ? '蓄力距離太短' : result.reason === 'oxygen' ? '氧氣不足' : '能量不足'}。`, 'warning');
+  return result;
 }
 
 export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanceId, skillId = state.selectedSkillId) {
@@ -373,20 +433,23 @@ export function playerAttack(state) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
+  let hit = false;
   if (weapon.type === 'melee') {
-    if (distanceBetween(state.actor, target) <= weapon.range) damageEnemy(state, target, weapon.damage, WEAPONS[state.build.weaponId].name);
+    hit = distanceBetween(state.actor, target) <= weapon.range;
+    if (hit) damageEnemy(state, target, weapon.damage, WEAPONS[state.build.weaponId].name);
     addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.25, angle: angleBetween(state.actor, target), colour: '#f6e66d' });
+    if (!hit) logEvent(state, `${WEAPONS[state.build.weaponId].name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
     const angle = angleBetween(state.actor, target);
     for (let index = 0; index < count; index += 1) {
       const ratio = count === 1 ? 0 : index / (count - 1) - 0.5;
-      spawnProjectile(state, state.actor, { angle: angle + ratio * spread, speed: weapon.projectileSpeed, range: weapon.range, damage: weapon.damage * (state.actor.derivedStats?.currentDamageMultiplier ?? 1), source: 'player', damageType: 'player', colour: '#f6e66d' });
+      spawnProjectile(state, state.actor, { angle: angle + ratio * spread, speed: weapon.projectileSpeed, range: weapon.range, damage: weapon.damage, source: 'player', damageType: 'player', colour: '#f6e66d' });
     }
   }
   logEvent(state, `玩家使用 ${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}。`, 'safe');
-  return { ok: true };
+  return { ok: true, hit };
 }
 
 function updateProjectiles(state, dt) {
@@ -428,6 +491,63 @@ function updateZones(state, dt) {
   });
 }
 
+function updateSandboxActor(state, dt) {
+  const actor = state.actor;
+  if (state.aiming || actor.attached) return;
+  const horizontalDrag = Math.pow(0.96, dt * 60);
+  const verticalDrag = Math.pow(0.998, dt * 60);
+  actor.vx *= horizontalDrag;
+  actor.vy = (actor.vy + GAME_GRAVITY * dt) * verticalDrag;
+  if (Math.abs(actor.vx) < 0.15) actor.vx = 0;
+  const speed = Math.hypot(actor.vx, actor.vy);
+  if (speed > MAX_SPEED) {
+    actor.vx = (actor.vx / speed) * MAX_SPEED;
+    actor.vy = (actor.vy / speed) * MAX_SPEED;
+  }
+  actor.x += actor.vx * dt;
+  actor.y += actor.vy * dt;
+  const minX = actor.radius + 4;
+  const maxX = SANDBOX_WIDTH - actor.radius - 4;
+  const minY = actor.radius + 4;
+  const maxY = SANDBOX_HEIGHT - actor.radius - 4;
+  if (actor.x < minX) {
+    actor.x = minX;
+    actor.vx = Math.abs(actor.vx) * 0.55;
+  } else if (actor.x > maxX) {
+    actor.x = maxX;
+    actor.vx = -Math.abs(actor.vx) * 0.55;
+  }
+  if (actor.y < minY) {
+    actor.y = minY;
+    actor.vy = Math.abs(actor.vy) * 0.55;
+  } else if (actor.y > maxY) {
+    actor.y = maxY;
+    actor.vy = -Math.abs(actor.vy) * 0.42;
+  }
+}
+
+function processPlayerEnemyCollisions(state) {
+  const actor = state.actor;
+  const speed = Math.hypot(actor.vx, actor.vy);
+  if (speed < 18) return;
+  const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
+  activeEnemies(state).forEach((enemy) => {
+    if (distanceBetween(actor, enemy) > actor.radius + enemy.radius) return;
+    if (state.time < (enemy.playerHitCooldownUntil ?? 0)) return;
+    damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
+    enemy.playerHitCooldownUntil = state.time + 0.28;
+    const length = distanceBetween(actor, enemy) || 1;
+    const normalX = (actor.x - enemy.x) / length;
+    const normalY = (actor.y - enemy.y) / length;
+    const normalVelocity = actor.vx * normalX + actor.vy * normalY;
+    actor.vx = (actor.vx - 2 * normalVelocity * normalX) * 0.62;
+    actor.vy = (actor.vy - 2 * normalVelocity * normalY) * 0.62;
+    actor.x = enemy.x + normalX * (actor.radius + enemy.radius + 1);
+    actor.y = enemy.y + normalY * (actor.radius + enemy.radius + 1);
+    addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
+  });
+}
+
 function updateEnemies(state, dt) {
   activeEnemies(state).forEach((enemy) => {
     const definition = enemyDefinition(enemy);
@@ -466,7 +586,9 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.energy = MAX_ENERGY;
     state.actor.health = MAX_HEALTH;
   }
+  updateSandboxActor(state, dt);
   updateEnemies(state, dt);
+  processPlayerEnemyCollisions(state);
   updateProjectiles(state, dt);
   updateZones(state, dt);
   state.effects = state.effects.filter((effect) => {

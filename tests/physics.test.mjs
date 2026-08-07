@@ -52,13 +52,16 @@ import {
   getWeaponUseCost,
 } from '../src/game-data.js';
 import {
+  beginSandboxAim,
   createSandboxState,
   executeEnemySkill,
   getSandboxEnemyIds,
   playerAttack,
+  releaseSandboxAim,
   setSandboxBuild,
   spawnSandboxEnemy,
   stepSandbox,
+  updateSandboxAim,
 } from '../src/sandbox-sim.js';
 import {
   getEdgeSetting,
@@ -597,6 +600,30 @@ test('sandbox player projectile attack reaches a placed enemy', () => {
   assert.equal(playerAttack(state).ok, true);
   for (let index = 0; index < 120; index += 1) stepSandbox(state);
   assert.ok(enemy.health < enemy.maxHealth, 'a sandbox projectile should damage the selected enemy');
+});
+
+test('sandbox player uses L1 gravity and horizontal velocity settles', () => {
+  const state = createSandboxState();
+  state.actor.y = 120;
+  state.actor.vx = 40;
+  const startY = state.actor.y;
+  stepSandbox(state);
+  assert.ok(state.actor.y > startY, 'sandbox player should fall under L1 gravity');
+  assert.ok(state.actor.vy > 0, 'sandbox player should have downward velocity');
+  for (let index = 0; index < 120; index += 1) stepSandbox(state);
+  assert.ok(Math.abs(state.actor.vx) < 1, 'horizontal velocity should settle toward zero');
+});
+
+test('sandbox elastic launch moves the player and damages enemies on collision', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'juvenileSeahorseCaller', { x: state.actor.x + 20, y: state.actor.y });
+  assert.equal(beginSandboxAim(state, { x: state.actor.x, y: state.actor.y }).ok, true);
+  updateSandboxAim(state, { x: state.actor.x - 80, y: state.actor.y });
+  const launch = releaseSandboxAim(state);
+  assert.equal(launch.launched, true);
+  assert.ok(state.actor.vx > 0, 'pulling left should launch the player right');
+  for (let index = 0; index < 120; index += 1) stepSandbox(state);
+  assert.ok(enemy.health < enemy.maxHealth, 'elastic collision should use the equipped weapon damage');
 });
 
 function setPlayerLoadoutForTest(actor) {

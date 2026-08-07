@@ -28,7 +28,7 @@
             <select id="enemy-select"></select>
             <button id="place-enemy" type="button">點擊場地放置</button>
             <button id="clear-enemies" type="button" class="secondary">清除全部敵人</button>
-            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。</p>
+            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。點住玩家 P 拖曳，放手就會在 L1 重力下彈射。</p>
           </section>
 
           <section class="control-section">
@@ -59,7 +59,7 @@
           </div>
           <div class="arena-toolbar">
             <span id="sandbox-status">沙盒已準備。</span>
-            <button id="player-attack" type="button">玩家攻擊選中敵人</button>
+            <button id="player-attack" type="button">直接測試武器</button>
             <button id="test-skill" type="button">立即施放技能</button>
           </div>
           <section class="selected-enemy-card">
@@ -73,6 +73,14 @@
               <select id="skill-select" disabled></select>
               <p id="skill-description" class="skill-description"></p>
             </div>
+          </section>
+          <section class="placed-enemies-card">
+            <div>
+              <span class="eyebrow">PLACED ENEMIES / SKILL TEST</span>
+              <h2>場上敵人與技能</h2>
+              <p class="card-note">每一隻已放置的敵人都會列出自己的全部技能；點技能按鈕即可單獨施放。</p>
+            </div>
+            <div id="placed-enemy-list" class="placed-enemy-list" aria-live="polite"></div>
           </section>
         </section>
 

@@ -3,16 +3,19 @@ import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
 import {
   SANDBOX_HEIGHT,
   SANDBOX_WIDTH,
+  beginSandboxAim,
   clearSandboxEnemies,
   createSandboxState,
   executeEnemySkill,
   getSandboxEnemyIds,
   listSandboxSkills,
   playerAttack,
+  releaseSandboxAim,
   resetSandboxPlayer,
   setSandboxBuild,
   spawnSandboxEnemy,
   stepSandbox,
+  updateSandboxAim,
 } from './sandbox-sim.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
@@ -28,6 +31,7 @@ const skillSelect = document.querySelector('#skill-select');
 const skillDescription = document.querySelector('#skill-description');
 const selectedEnemyName = document.querySelector('#selected-enemy-name');
 const selectedEnemyStats = document.querySelector('#selected-enemy-stats');
+const placedEnemyList = document.querySelector('#placed-enemy-list');
 const playerStats = document.querySelector('#player-stats');
 const sandboxLog = document.querySelector('#sandbox-log');
 const status = document.querySelector('#sandbox-status');
@@ -78,7 +82,6 @@ function selectedEnemy() {
 
 function updateSkillPicker() {
   const enemy = selectedEnemy();
-  skillSelect.replaceChildren();
   if (!enemy) {
     skillSelect.disabled = true;
     skillDescription.textContent = '';
@@ -112,6 +115,51 @@ function updateSkillPicker() {
   skillDescription.textContent = encyclopedia?.attacks.find((skill) => skill.id === state.selectedSkillId)?.description ?? '';
 }
 
+function renderPlacedEnemyList() {
+  placedEnemyList.replaceChildren();
+  if (!state.enemies.length) {
+    const empty = document.createElement('p');
+    empty.className = 'placed-enemy-empty';
+    empty.textContent = '尚未放置敵人。先在上方選擇敵人，再點擊場地。';
+    placedEnemyList.append(empty);
+    return;
+  }
+  state.enemies.forEach((enemy) => {
+    const definition = ENEMY_DEFINITIONS[enemy.enemyId];
+    const row = document.createElement('div');
+    row.className = `placed-enemy-row${enemy.instanceId === state.selectedEnemyInstanceId ? ' selected' : ''}${enemy.defeated ? ' defeated' : ''}`;
+    const heading = document.createElement('div');
+    heading.className = 'placed-enemy-heading';
+    const selectButton = document.createElement('button');
+    selectButton.type = 'button';
+    selectButton.className = 'placed-enemy-select';
+    selectButton.dataset.selectEnemy = enemy.instanceId;
+    selectButton.textContent = `${definition.name} · ${Math.round(enemy.health)}/${enemy.maxHealth}`;
+    heading.append(selectButton);
+    const badge = document.createElement('span');
+    badge.className = 'placed-enemy-id';
+    badge.textContent = enemy.instanceId;
+    heading.append(badge);
+    row.append(heading);
+    const skills = document.createElement('div');
+    skills.className = 'placed-enemy-skills';
+    const encyclopedia = encyclopediaById[enemy.enemyId];
+    listSandboxSkills(enemy.enemyId).forEach((skill) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `placed-enemy-skill${skill.id === state.selectedSkillId && enemy.instanceId === state.selectedEnemyInstanceId ? ' active' : ''}`;
+      button.dataset.sandboxSkill = skill.id;
+      button.dataset.instanceId = enemy.instanceId;
+      button.title = encyclopedia?.attacks.find((entry) => entry.id === skill.id)?.description ?? skill.name;
+      button.disabled = enemy.defeated;
+      button.textContent = skill.name;
+      skills.append(button);
+    });
+    row.append(skills);
+    placedEnemyList.append(row);
+  });
+}
+
 function applyBuild() {
   const passives = [...passiveList.querySelectorAll('select[data-passive-id]')]
     .map((select) => ({ id: select.dataset.passiveId, level: Number(select.value) }))
@@ -130,6 +178,13 @@ function canvasPoint(event) {
 
 function selectOrPlace(event) {
   const point = canvasPoint(event);
+  if (Math.hypot(point.x - state.actor.x, point.y - state.actor.y) <= 26) {
+    beginSandboxAim(state, point);
+    canvas.setPointerCapture?.(event.pointerId);
+    status.textContent = '蓄力中：拖曳方向與距離，放開滑鼠即可彈射。';
+    render();
+    return;
+  }
   const hit = state.enemies
     .filter((enemy) => !enemy.defeated)
     .find((enemy) => Math.hypot(point.x - enemy.x, point.y - enemy.y) <= enemy.radius + 18);
@@ -144,6 +199,22 @@ function selectOrPlace(event) {
   spawnSandboxEnemy(state, enemySelect.value, point);
   updateSkillPicker();
   status.textContent = '已放置敵人；可點擊敵人或選擇技能驗收。';
+  render();
+}
+
+function moveAim(event) {
+  if (!state.aiming) return;
+  updateSandboxAim(state, canvasPoint(event));
+  render();
+}
+
+function releaseAim(event) {
+  if (!state.aiming) return;
+  const result = releaseSandboxAim(state, canvasPoint(event));
+  canvas.releasePointerCapture?.(event.pointerId);
+  status.textContent = result.launched
+    ? `彈射成功：初速 ${Math.round(result.speed)}；撞擊敵人會以目前武器造成傷害。`
+    : '彈射失敗：請拉出更長距離，並確認氧氣與能量足夠。';
   render();
 }
 
@@ -220,6 +291,30 @@ function renderEffects() {
   });
 }
 
+function renderAimPreview() {
+  if (!state.aiming || !state.aimPoint) return;
+  const actor = state.actor;
+  const distance = Math.hypot(actor.x - state.aimPoint.x, actor.y - state.aimPoint.y);
+  ctx.save();
+  ctx.strokeStyle = '#f6e66d';
+  ctx.fillStyle = 'rgba(246, 230, 109, .12)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.beginPath();
+  ctx.moveTo(actor.x, actor.y);
+  ctx.lineTo(state.aimPoint.x, state.aimPoint.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(state.aimPoint.x, state.aimPoint.y, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = '12px system-ui';
+  ctx.fillStyle = '#fff5b5';
+  ctx.fillText(`彈射距離 ${Math.round(distance)}`, state.aimPoint.x + 12, state.aimPoint.y - 10);
+  ctx.restore();
+}
+
 function renderEnemyMarkers() {
   state.enemies.forEach((enemy) => {
     ctx.save();
@@ -283,6 +378,7 @@ function renderSprites() {
   });
   playerMarker.style.left = `${(state.actor.x / SANDBOX_WIDTH) * 100}%`;
   playerMarker.style.top = `${(state.actor.y / SANDBOX_HEIGHT) * 100}%`;
+  playerMarker.classList.toggle('aiming', state.aiming);
 }
 
 function renderTelemetry() {
@@ -291,16 +387,19 @@ function renderTelemetry() {
     ['生命', `${format(state.actor.health)} / 100`],
     ['氧氣', state.infiniteResources ? '∞' : format(state.actor.oxygen)],
     ['能量', state.infiniteResources ? '∞' : format(state.actor.energy)],
+    ['L1 動量', `${format(state.actor.vx)}, ${format(state.actor.vy)}`],
     ['武器', `${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}`],
     ['被動', state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'],
     ['敵人數', `${state.enemies.length}（存活 ${state.enemies.filter((candidate) => !candidate.defeated).length}）`],
   ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
   sandboxLog.innerHTML = state.logs.map((event) => `<li data-level="${event.level}"><time>${event.time.toFixed(1)}s</time> ${event.message}</li>`).join('');
-  if (enemy) updateSkillPicker();
+  updateSkillPicker();
+  renderPlacedEnemyList();
 }
 
 function render() {
   renderBackground();
+  renderAimPreview();
   renderEffects();
   renderEnemyMarkers();
   renderSprites();
@@ -344,7 +443,27 @@ skillSelect.addEventListener('change', () => {
   const enemy = selectedEnemy();
   skillDescription.textContent = encyclopediaById[enemy?.enemyId]?.attacks.find((skill) => skill.id === state.selectedSkillId)?.description ?? '';
 });
+placedEnemyList.addEventListener('click', (event) => {
+  const selectButton = event.target.closest('[data-select-enemy]');
+  if (selectButton) {
+    state.selectedEnemyInstanceId = selectButton.dataset.selectEnemy;
+    updateSkillPicker();
+    status.textContent = `已選取 ${ENEMY_DEFINITIONS[selectedEnemy()?.enemyId]?.name ?? '敵人'}。`;
+    render();
+    return;
+  }
+  const skillButton = event.target.closest('[data-sandbox-skill]');
+  if (!skillButton) return;
+  state.selectedEnemyInstanceId = skillButton.dataset.instanceId;
+  state.selectedSkillId = skillButton.dataset.sandboxSkill;
+  const result = executeEnemySkill(state, state.selectedEnemyInstanceId, state.selectedSkillId);
+  status.textContent = result.ok ? `已施放 ${skillButton.textContent}。` : '技能目前仍在冷卻中。';
+  render();
+});
 canvas.addEventListener('pointerdown', selectOrPlace);
+canvas.addEventListener('pointermove', moveAim);
+canvas.addEventListener('pointerup', releaseAim);
+canvas.addEventListener('pointercancel', releaseAim);
 window.addEventListener('keydown', (event) => {
   if (event.key === ' ') { event.preventDefault(); playerAttack(state); render(); }
   if (event.key.toLowerCase() === 'e') { executeEnemySkill(state); render(); }
@@ -355,6 +474,7 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy) },
+  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming },
   build: state.build,
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), health: format(enemy.health), defeated: enemy.defeated, animation: enemy.animation })),

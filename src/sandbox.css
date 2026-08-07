@@ -37,7 +37,7 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .passive-row select { padding: 4px; font-size: 11px; }
 .sandbox-main { min-width: 0; }
 .sandbox-stage { position: relative; overflow: hidden; border: 1px solid #345d84; border-radius: 7px; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
-#sandbox-canvas { display: block; width: 100%; height: auto; background: #081725; cursor: crosshair; }
+#sandbox-canvas { display: block; width: 100%; height: auto; background: #081725; cursor: crosshair; touch-action: none; }
 .sandbox-sprites { position: absolute; inset: 0; pointer-events: none; }
 .sandbox-sprite { position: absolute; object-fit: contain; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
 .sandbox-sprite.selected { filter: drop-shadow(0 0 7px #f6e66d) drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
@@ -45,10 +45,27 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .sandbox-sprite-fallback { position: absolute; display: grid; place-items: center; transform: translate(-50%, -50%); border: 2px solid #8cdcff; border-radius: 50%; color: #fff2ad; background: radial-gradient(circle, #347ba4, #102b46); font-size: 11px; font-weight: 700; text-align: center; box-shadow: 0 0 14px rgba(116, 218, 255, .4); }
 .sandbox-sprite-fallback.selected { border-color: #f6e66d; box-shadow: 0 0 15px rgba(246, 230, 109, .78); }
 .player-marker { position: absolute; left: 15.6%; top: 50%; display: grid; place-items: center; width: 22px; height: 22px; transform: translate(-50%, -50%); border: 2px solid #fff1a3; border-radius: 50%; color: #fffdf0; background: #c65b70; font-size: 11px; font-weight: 800; pointer-events: none; box-shadow: 0 0 10px rgba(255, 231, 112, .65); }
+.player-marker.aiming { border-color: #f6e66d; background: #b99036; box-shadow: 0 0 0 5px rgba(246, 230, 109, .16), 0 0 18px rgba(246, 230, 109, .9); }
 .arena-toolbar { display: flex; align-items: center; gap: 7px; margin: 8px 0; }
 .arena-toolbar span { flex: 1; min-width: 0; overflow: hidden; color: #a9c4da; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .arena-toolbar button { width: auto; white-space: nowrap; }
 .selected-enemy-card { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 15px; padding: 12px; }
+.placed-enemies-card { margin-top: 8px; padding: 12px; border: 1px solid #264b70; border-radius: 7px; background: #0c1b2e; }
+.placed-enemies-card h2 { margin-bottom: 3px; color: #fff1a3; }
+.card-note { color: #9bb6ce; font-size: 12px; line-height: 1.45; }
+.placed-enemy-list { display: grid; gap: 7px; max-height: 260px; margin-top: 10px; overflow: auto; }
+.placed-enemy-empty { padding: 10px; border: 1px dashed #345d84; border-radius: 5px; color: #88a9c4; font-size: 12px; }
+.placed-enemy-row { padding: 7px; border: 1px solid #264b70; border-radius: 5px; background: #09182a; }
+.placed-enemy-row.selected { border-color: #f6e66d; box-shadow: 0 0 0 1px rgba(246, 230, 109, .15); }
+.placed-enemy-row.defeated { opacity: .6; }
+.placed-enemy-heading { display: flex; align-items: center; gap: 7px; }
+.placed-enemy-select { flex: 1; width: auto; padding: 4px 6px; border: 0; background: transparent; color: #eaf6ff; text-align: left; }
+.placed-enemy-select:hover { background: #1d5378; }
+.placed-enemy-id { color: #7393ad; font-size: 10px; }
+.placed-enemy-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.placed-enemy-skill { width: auto; padding: 4px 7px; border-color: #355a80; color: #c8e4f4; background: #122944; font-size: 11px; }
+.placed-enemy-skill.active { border-color: #f6e66d; color: #fff4b3; background: #3b3a25; }
+.placed-enemy-skill:disabled { cursor: not-allowed; opacity: .45; }
 .selected-enemy-card h2 { color: #fff1a3; }
 .selected-enemy-card p { color: #9bb6ce; font-size: 12px; line-height: 1.45; }
 .skill-picker label { margin-top: 0; }
