@@ -29,3 +29,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - User requested the map maximum width and height at two thirds of the prior 36×25 default, without reducing first-open screen coverage, and a player at one third of the prior size.
 - New map defaults are 24×17; first-open/demo zoom is 150% to retain comparable screen coverage; player diameter is 24 px instead of 72 px. Existing authored local maps are deliberately not cropped or resized.
 - Demo object/Edge positions are now proportional to map dimensions and covered by a no-out-of-bounds validation test.
+
+## 2026-08-07 — Step 5 in progress
+
+- User requested gravity at 50%, player size at half its current size, horizontal-only drag that settles to a full stop, and separate authored Tile art for every gravity level.
+- Located the five authored water Tiles under `GDD/07_技術/六邊形水域素材/`: L-1 rising, L0 neutral, L1 standard, L2 transition, and L3 deep. Runtime copies are being bound one-to-one to `gravityLevel`; the prior one-texture tint approach is removed.
+- Static verification passed: 14/14 tests and Vite production build. The build contains all five distinct runtime water Tile files; browser validation remains disallowed.

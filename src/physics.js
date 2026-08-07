@@ -13,11 +13,15 @@ import {
 
 export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
-export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE;
+export const GRAVITY_SCALE = 0.5;
+export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE * GRAVITY_SCALE;
 export const MAX_SPEED = 560 * SIMULATION_SPEED_SCALE;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
 const WEIGHT_STONE_BREAK_SPEED = 310 * SIMULATION_SPEED_SCALE;
+const HORIZONTAL_WATER_DRAG = 0.96;
+const VERTICAL_WATER_DRAG = 0.998;
+const HORIZONTAL_STOP_SPEED = 0.15;
 export const WORLD_BOUNDS = Object.freeze({ minX: 24, maxX: 976, minY: 24, maxY: 656 });
 
 function clamp(value, min, max) {
@@ -53,7 +57,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     y: position.y,
     vx: 0,
     vy: 0,
-    radius: 12,
+    radius: 6,
     health: 3,
     oxygen: 100,
     stamina: 100,
@@ -261,9 +265,11 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   const zoneGravity = actor.gravityImmunity > 0 ? 0 : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY;
   const current = applyCurrentAcceleration(map, before?.key, chapter);
   const special = actor.specialAcceleration ?? { x: 0, y: 0 };
-  const drag = Math.pow(0.998, dt * 60);
-  actor.vx = (actor.vx + (current.x + special.x) * dt) * drag;
-  actor.vy = (actor.vy + (zoneGravity + current.y + special.y) * dt) * drag;
+  const horizontalDrag = Math.pow(HORIZONTAL_WATER_DRAG, dt * 60);
+  const verticalDrag = Math.pow(VERTICAL_WATER_DRAG, dt * 60);
+  actor.vx = (actor.vx + (current.x + special.x) * dt) * horizontalDrag;
+  if (Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
+  actor.vy = (actor.vy + (zoneGravity + current.y + special.y) * dt) * verticalDrag;
   const speed = Math.hypot(actor.vx, actor.vy);
   if (speed > MAX_SPEED) {
     actor.vx = (actor.vx / speed) * MAX_SPEED;

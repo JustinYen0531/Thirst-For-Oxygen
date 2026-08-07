@@ -62,6 +62,13 @@ const gravityColours = {
   L2: '#245eac',
   L3: '#132a76',
 };
+const waterTilePaths = {
+  'L-1': '/assets/editor/water/L-1.png',
+  L0: '/assets/editor/water/L0.png',
+  L1: '/assets/editor/water/L1.png',
+  L2: '/assets/editor/water/L2.png',
+  L3: '/assets/editor/water/L3.png',
+};
 const objectSymbols = {
   mine: '✹',
   weightStone: '◆',
@@ -82,6 +89,7 @@ const objectImagePaths = {
   bubble: '/assets/editor/objects/photosynthesis-bubble.png',
   torricelli: '/assets/editor/objects/torricelli-space.png',
 };
+const paletteImagePaths = { ...waterTilePaths, ...objectImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行',
   coral: '珊瑚安全區', ink: '墨水區',
@@ -90,14 +98,17 @@ const paletteLabels = {
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
   none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺', barrier: '障礙', current: '潮流',
 };
-const cellTexture = new Image();
-cellTexture.src = '/assets/editor/cell-base.png';
+const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [level, image];
+}));
 const objectImages = Object.fromEntries(Object.entries(objectImagePaths).map(([kind, source]) => {
   const image = new Image();
   image.src = source;
   return [kind, image];
 }));
-cellTexture.addEventListener('load', () => render());
+Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
   playerStart: 'P',
@@ -229,9 +240,9 @@ function createPalette() {
       button.className = `palette-item palette-${tool}`;
       button.dataset.paletteTool = tool;
       button.dataset.paletteValue = value;
-      const visual = document.createElement(objectImagePaths[value] ? 'img' : 'span');
+      const visual = document.createElement(paletteImagePaths[value] ? 'img' : 'span');
       if (visual.tagName === 'IMG') {
-        visual.src = objectImagePaths[value];
+        visual.src = paletteImagePaths[value];
         visual.alt = '';
       } else {
         visual.className = 'palette-swatch';
@@ -274,10 +285,9 @@ function drawCell(key, cell) {
   ctx.clip();
   ctx.fillStyle = cell.terrain === 'blocked' ? '#3e4249' : gravityColours[cell.gravityLevel];
   ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
-  if (cellTexture.complete && cellTexture.naturalWidth > 0) {
-    ctx.globalAlpha = 0.48;
-    ctx.globalCompositeOperation = 'soft-light';
-    ctx.drawImage(cellTexture, center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
+  const waterTile = waterTiles[cell.gravityLevel];
+  if (cell.terrain === 'water' && waterTile?.complete && waterTile.naturalWidth > 0) {
+    ctx.drawImage(waterTile, center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
   ctx.restore();
   pathHex(cell);

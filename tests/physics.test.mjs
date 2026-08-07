@@ -16,6 +16,7 @@ import {
 import {
   FIXED_STEP,
   GAME_GRAVITY,
+  GRAVITY_SCALE,
   MAX_SPEED,
   SIMULATION_SPEED_SCALE,
   createTestActor,
@@ -52,7 +53,7 @@ test('L-1 accelerates upward and L0 preserves inertia', () => {
   stepPhysics({ map, actor: upward, origin: ORIGIN });
   stepPhysics({ map, actor: neutral, origin: ORIGIN });
   assert.ok(upward.vy < 0);
-  assert.ok(neutral.vx > 39, 'L0 should not clear horizontal velocity');
+  assert.ok(neutral.vx > 38, 'L0 should decay horizontal velocity instead of clearing it in one step');
   assert.ok(Math.abs(neutral.vy) < 0.01, 'L0 should add no vertical gravity');
 });
 
@@ -67,7 +68,8 @@ test('launch velocity is opposite the pull direction', () => {
 
 test('all primary motion limits use the 0.1 simulation scale', () => {
   assert.equal(SIMULATION_SPEED_SCALE, 0.1);
-  assert.equal(GAME_GRAVITY, 23);
+  assert.equal(GRAVITY_SCALE, 0.5);
+  assert.equal(GAME_GRAVITY, 11.5);
   assert.equal(MAX_SPEED, 56);
 });
 
@@ -75,7 +77,7 @@ test('compact editor uses a rectangular odd-r grid with one-Cell player diameter
   const map = createEmptyMap();
   const actor = createTestActor();
   assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width: 24, height: 17 });
-  assert.equal(HEX_SIZE * 2, actor.radius * 2);
+  assert.equal(HEX_SIZE, actor.radius * 2);
   assert.ok(map.cells[cellKeyFromColumn(0, 0)]);
   assert.ok(map.cells[cellKeyFromColumn(0, 16)]);
   assert.ok(map.cells[cellKeyFromColumn(23, 16)]);
@@ -112,6 +114,16 @@ test('compact demo map keeps all objects and Edges inside the new bounds', () =>
   assert.equal(errors.length, 0, errors.map((result) => result.message).join('; '));
 });
 
+test('horizontal velocity settles to zero while vertical gravity continues', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L1' });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 40;
+  for (let index = 0; index < 180; index += 1) stepPhysics({ map, actor, origin: ORIGIN });
+  assert.equal(actor.vx, 0);
+  assert.ok(actor.vy > 0, 'vertical gravity must continue after horizontal motion stops');
+});
+
 test('spring jelly reflects a crossing player', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L0' });
@@ -120,7 +132,7 @@ test('spring jelly reflects a crossing player', () => {
   const actor = actorIn(map, '0,0');
   actor.vx = 500;
   let events = [];
-  for (let index = 0; index < 15; index += 1) {
+  for (let index = 0; index < 90; index += 1) {
     events = stepPhysics({ map, actor, origin: ORIGIN, dt: FIXED_STEP });
     if (events.some((event) => event.type === 'springJelly')) break;
   }
