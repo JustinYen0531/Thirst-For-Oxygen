@@ -6,7 +6,7 @@ const enemyGrid = document.querySelector('#enemy-grid');
 const afterimageToggle = document.querySelector('#afterimage-toggle');
 const tierOrder = ['all', 1, 2, 3, 4, 'miniBoss', 'mutatedMiniBoss', 'finalBoss'];
 const tierLabels = { all: '全部', 1: '等級 1', 2: '等級 2', 3: '等級 3', 4: '等級 4', miniBoss: '小 Boss', mutatedMiniBoss: '變異小 Boss', finalBoss: 'Final Boss' };
-let afterimageEnabled = true;
+let afterimageEnabled = afterimageToggle?.checked ?? false;
 
 const escapeHtml = (value) => String(value)
   .replaceAll('&', '&amp;')
@@ -34,9 +34,19 @@ function lorePanel(lore) {
   </section>`;
 }
 
+function getPreviewSource(enemy, attackId) {
+  const normalSource = attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle;
+  const trailSource = attackId ? enemy.visuals?.afterimageActions?.[attackId] : enemy.visuals?.afterimageIdle;
+  const showingAfterimage = afterimageEnabled && Boolean(trailSource);
+  return {
+    source: showingAfterimage ? trailSource : normalSource,
+    showingAfterimage,
+  };
+}
+
 function enemyCard(enemy) {
   const hasIdle = Boolean(enemy.visuals?.idle);
-  const previewSource = enemy.visuals?.afterimageIdle ?? enemy.visuals?.idle;
+  const { source: previewSource, showingAfterimage } = getPreviewSource(enemy);
   const preview = hasIdle
     ? `<img class="enemy-preview-image" src="${previewSource}" alt="${escapeHtml(enemy.name)} 自然漂浮" data-preview-image />`
     : '<div class="enemy-preview-placeholder"><span>GIF</span><small>動畫素材待補</small></div>';
@@ -49,7 +59,7 @@ function enemyCard(enemy) {
       <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
       <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">Lore 檔案</button></div>
     </div>
-    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? '自然漂浮 · 正式殘影' : '目前沒有 GIF 預覽素材'}</p></div>
+    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? `自然漂浮${showingAfterimage ? ' · 正式殘影' : ''}` : '目前沒有 GIF 預覽素材'}</p></div>
     <div class="preview-actions">${actions}</div>
     <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
     <section class="enemy-description" data-enemy-description><h3>生態觀察</h3><p>${escapeHtml(enemy.description)}</p></section>
@@ -73,17 +83,21 @@ function setActiveFilter(filter) {
 function updatePreview(card, enemy, attackId) {
   const image = card.querySelector('[data-preview-image]');
   const caption = card.querySelector('[data-preview-caption]');
-  const normalSource = attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle;
-  const trailSource = attackId ? enemy.visuals?.afterimageActions?.[attackId] : enemy.visuals?.afterimageIdle;
-  const source = afterimageEnabled && trailSource ? trailSource : normalSource;
+  const { source, showingAfterimage } = getPreviewSource(enemy, attackId);
   const attack = enemy.attacks.find(({ id }) => id === attackId);
   const enemyDescription = card.querySelector('[data-enemy-description]');
   const skillPanel = card.querySelector('[data-skill-panel]');
   if (source && image) {
+    image.hidden = false;
     image.src = source;
     image.alt = `${enemy.name} ${attack?.name ?? '自然漂浮'}`;
-    caption.textContent = `${attack?.name ?? '自然漂浮'}${afterimageEnabled && trailSource ? ' · 正式殘影' : ''}`;
+    caption.textContent = `${attack?.name ?? '自然漂浮'}${showingAfterimage ? ' · 正式殘影' : ''}`;
   } else {
+    if (image) {
+      image.removeAttribute('src');
+      image.hidden = true;
+      image.alt = '';
+    }
     caption.textContent = attack ? `${attack.name}：動畫素材待補，數值已可查閱` : '目前沒有 GIF 預覽素材';
   }
   if (attack) {
