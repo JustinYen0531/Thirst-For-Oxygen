@@ -37,7 +37,7 @@ export const CELL_OBJECT_TYPES = Object.freeze([
 ]);
 // seaweed/coralCluster remain accepted in CELL_OBJECT_TYPES for existing saved
 // maps, but new authoring always places them as Edge attachments.
-export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster', 'layerPortal']);
+export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster', 'layerPortal', 'multiPortal']);
 export const ACTOR_TYPES = Object.freeze(['playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn']);
 
 export function cellKey(q, r) {
@@ -405,6 +405,12 @@ export function validateMap(map) {
     if (!map.cells[a] || !map.cells[b]) results.push({ level: 'error', message: `孤立 Edge：${key}` });
     else if (!areNeighbors(a, b)) results.push({ level: 'error', message: `Edge 並非相鄰 Cell：${key}` });
     if (!EDGE_TYPES.includes(edge.type)) results.push({ level: 'error', message: `${key} 的 Edge 類型無效：${edge.type}` });
+    if (edge.type === 'multiPortal') {
+      if (!edge.portalGroupId) results.push({ level: 'error', message: `${key} 的多邊傳送門缺少群組編號。` });
+      if (!Number.isInteger(edge.portalSlot) || edge.portalSlot < 0) results.push({ level: 'error', message: `${key} 的多邊傳送門缺少有效順序。` });
+      if (edge.portalTargetKey && !map.edges[edge.portalTargetKey]) results.push({ level: 'error', message: `${key} 的多邊傳送門指定了不存在的對應 Edge。` });
+      if (edge.portalTargetKey && map.edges[edge.portalTargetKey]?.type !== 'multiPortal') results.push({ level: 'error', message: `${key} 的多邊傳送門目標不是多邊傳送門。` });
+    }
   });
 
   if (playerStarts === 0) results.push({ level: 'warning', message: '尚未放置玩家起點；物理測試會使用預設位置。' });

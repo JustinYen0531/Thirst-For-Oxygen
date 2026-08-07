@@ -4,6 +4,7 @@ import {
   createEmptyMap,
   createBlankMap,
   cellKeyFromColumn,
+  edgeKey,
   ensureOddRRows,
   getActiveCell,
   findCellContainingPoint,
@@ -11,6 +12,7 @@ import {
   getHexCenter,
   HEX_SIZE,
   migrateMapToOddR,
+  neighborKey,
   screenPointToWorldPoint,
   validateMap,
   patchCell,
@@ -69,6 +71,11 @@ import {
   getOfficialEdgeState,
   getOfficialFreeObjectState,
 } from '../src/map-object-settings.js';
+import {
+  MULTI_PORTAL_EDGE_TYPE,
+  connectPortalGroups,
+  getPortalGroupEdges,
+} from '../src/portal.js';
 
 const ORIGIN = { x: 76, y: 82 };
 
@@ -490,6 +497,40 @@ test('a button opens its explicitly assigned gate once and keeps the gate at L1'
 
   const secondEvents = stepPhysics({ map, actor, origin: ORIGIN });
   assert.equal(secondEvents.some((event) => event.type === 'button'), false, 'a pressed button must not trigger again');
+});
+
+test('multi-edge portals pair equal edge groups and teleport the actor', () => {
+  const map = createEmptyMap({ width: 12, height: 3 });
+  const origin = { x: 120, y: 120 };
+  const firstGroup = 'portal-test-a';
+  const secondGroup = 'portal-test-b';
+  const firstEdges = [];
+  const secondEdges = [];
+  for (let column = 1; column <= 3; column += 1) {
+    const firstA = cellKeyFromColumn(column, 1);
+    const firstB = neighborKey(firstA, 0);
+    const secondA = cellKeyFromColumn(column + 7, 1);
+    const secondB = neighborKey(secondA, 0);
+    patchCell(map, firstB, { terrain: 'blocked' });
+    patchCell(map, secondB, { terrain: 'blocked' });
+    patchEdge(map, firstA, firstB, { type: MULTI_PORTAL_EDGE_TYPE, portalGroupId: firstGroup, portalSlot: column - 1, portalTargetKey: null });
+    patchEdge(map, secondA, secondB, { type: MULTI_PORTAL_EDGE_TYPE, portalGroupId: secondGroup, portalSlot: column - 1, portalTargetKey: null });
+    firstEdges.push(edgeKey(firstA, firstB));
+    secondEdges.push(edgeKey(secondA, secondB));
+  }
+  const connection = connectPortalGroups(map, firstGroup, secondGroup);
+  assert.deepEqual(connection, { ok: true, count: 3 });
+  assert.deepEqual(getPortalGroupEdges(map, firstGroup).map((entry) => entry.edge.portalTargetKey), secondEdges);
+  const sourceCell = getActiveCell(map, cellKeyFromColumn(1, 1));
+  const actor = createTestActor(getHexCenter(sourceCell, origin));
+  actor.vx = 120;
+  const events = [];
+  for (let index = 0; index < 30 && !events.some((event) => event.type === 'multiPortal'); index += 1) {
+    events.push(...stepPhysics({ map, actor, origin, mutateMap: false }));
+  }
+  assert.ok(events.some((event) => event.type === 'multiPortal'), 'crossing a paired portal Edge should teleport');
+  assert.ok(actor.x > getHexCenter(getActiveCell(map, cellKeyFromColumn(8, 1)), origin).x - 20, 'actor should arrive near the paired group');
+  assert.equal(validateMap(map).some((result) => result.level === 'error'), false);
 });
 
 test('health is 0-100 and losing all health permanently consumes one life', () => {

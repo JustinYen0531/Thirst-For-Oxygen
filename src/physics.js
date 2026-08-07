@@ -2,6 +2,7 @@ import {
   DIRECTIONS,
   GRAVITY_LEVELS,
   allMapEdges,
+  edgeKey,
   findCellContainingPoint,
   getActiveCell,
   getEditableCell,
@@ -20,6 +21,7 @@ import {
   getFreeObjectHitRadius,
   getFreeObjectSetting,
 } from './map-object-settings.js';
+import { MULTI_PORTAL_EDGE_TYPE, getPortalPartnerEdge } from './portal.js';
 
 export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
@@ -438,6 +440,46 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
   const crossesWaterLayer = fromCell?.terrain === 'water'
     && toCell?.terrain === 'water'
     && fromLayer !== toLayer;
+  if (edge.type === MULTI_PORTAL_EDGE_TYPE) {
+    const portalTarget = getPortalPartnerEdge(map, { key: edgeKey(fromKey, toKey), edge }, chapter);
+    if (!portalTarget) {
+      const from = getHexCenter(fromCell, origin);
+      const to = getHexCenter(toCell, origin);
+      const normal = unitVector(from, to);
+      const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.68);
+      actor.vx = reflected.x;
+      actor.vy = reflected.y;
+      actor.x = from.x + normal.x * 8;
+      actor.y = from.y + normal.y * 8;
+      addEvent(events, 'multiPortal', '多邊傳送門尚未連接另一端：入口暫時阻擋。');
+      return;
+    }
+    const targetFromCell = getActiveCell(map, portalTarget.a, chapter);
+    const targetToCell = getActiveCell(map, portalTarget.b, chapter);
+    const sourceFromCenter = getHexCenter(fromCell, origin);
+    const sourceToCenter = getHexCenter(toCell, origin);
+    const targetFromCenter = getHexCenter(targetFromCell, origin);
+    const targetToCenter = getHexCenter(targetToCell, origin);
+    const sourceAngle = Math.atan2(sourceToCenter.y - sourceFromCenter.y, sourceToCenter.x - sourceFromCenter.x);
+    // A portal Edge is normally mounted on a blocked hex. Exit on the target
+    // side that matches the terrain the actor came from, so the actor emerges
+    // into water instead of being placed inside the black obstacle.
+    const targetSideIsFrom = targetFromCell?.terrain === fromCell?.terrain;
+    const targetSideCenter = targetSideIsFrom ? targetFromCenter : targetToCenter;
+    const targetObstacleCenter = targetSideIsFrom ? targetToCenter : targetFromCenter;
+    const targetAngle = Math.atan2(targetSideCenter.y - targetObstacleCenter.y, targetSideCenter.x - targetObstacleCenter.x);
+    const rotation = targetAngle - sourceAngle;
+    const velocity = {
+      x: actor.vx * Math.cos(rotation) - actor.vy * Math.sin(rotation),
+      y: actor.vx * Math.sin(rotation) + actor.vy * Math.cos(rotation),
+    };
+    actor.vx = velocity.x;
+    actor.vy = velocity.y;
+    actor.x = (targetFromCenter.x + targetToCenter.x) / 2 + Math.cos(targetAngle) * 8;
+    actor.y = (targetFromCenter.y + targetToCenter.y) / 2 + Math.sin(targetAngle) * 8;
+    addEvent(events, 'multiPortal', `多邊傳送門：已傳送至另一端 Edge（${portalTarget.key}）。`);
+    return;
+  }
   if (crossesWaterLayer && edge.type !== 'layerPortal') {
     const from = getHexCenter(fromCell, origin);
     const to = getHexCenter(toCell, origin);

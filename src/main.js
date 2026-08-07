@@ -57,6 +57,15 @@ import {
   getOfficialEdgeState,
   getOfficialFreeObjectState,
 } from './map-object-settings.js';
+import {
+  MULTI_PORTAL_EDGE_TYPE,
+  connectPortalGroups,
+  disconnectPortalGroup,
+  getPortalGroupAnchor,
+  getPortalGroupEdges,
+  getPortalGroupId,
+  getPortalGroupMidpoint,
+} from './portal.js';
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -148,6 +157,7 @@ const edgeImagePaths = {
   layerPortal: '/assets/editor/edges/layer-portal-stair.png',
   seaweed: '/assets/editor/objects/sea-grass.png',
   coralCluster: '/assets/editor/objects/coral-cluster.png',
+  multiPortal: '/assets/editor/edges/multi-portal.png',
 };
 const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
 const paletteLabels = {
@@ -159,7 +169,7 @@ const paletteLabels = {
   noGate: '不是條件通行門', buttonGate: '條件通行門',
   once: '一次性開門', toggle: '開關門',
   playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
-  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門',
+  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門', multiPortal: '多邊傳送門',
 };
 const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level, source]) => {
   const image = new Image();
@@ -284,6 +294,8 @@ const state = {
   selectedEdgeKey: null,
   selectedMapObject: null,
   connection: null,
+  portalConnection: null,
+  nextPortalGroupId: 1,
   dirty: false,
   dragging: null,
   painting: null,
@@ -320,6 +332,7 @@ function updateCanvasCursor() {
   canvas.classList.toggle('is-pan-ready', canPan);
   canvas.classList.toggle('is-panning', Boolean(state.viewDrag));
   canvas.classList.toggle('is-connecting', Boolean(state.connection));
+  canvas.classList.toggle('is-portal-connecting', Boolean(state.portalConnection));
 }
 
 function updateObjectPlacementControl() {
@@ -356,6 +369,7 @@ function setPaletteTab(tab) {
 function setTool(tool, preferredValue = null, paletteTab = null) {
   state.painting = null;
   state.connection = null;
+  state.portalConnection = null;
   state.tool = tool;
   brushValue.innerHTML = '';
   const values = toolDefinitions[tool].values;
@@ -489,7 +503,7 @@ function createPaletteVisual(tool, value) {
     visual.className = 'palette-swatch';
         visual.textContent = tool === 'gravity' || tool === 'waterLayer'
           ? value
-          : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : '↔') : value === 'blocked' ? '■' : '◇');
+          : actorSymbols[value] ?? (tool === 'edge' ? (value === 'layerPortal' ? '⇄' : value === 'multiPortal' ? '⟷' : '↔') : value === 'blocked' ? '■' : '◇');
         if (tool === 'gravity') visual.style.background = gravityColours[value];
         if (tool === 'waterLayer') {
           visual.classList.add('palette-layer-swatch');
@@ -532,6 +546,7 @@ function getPaletteDescription(tool, value) {
   if (tool === 'edge' && value === 'barrier') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
   if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
   if (tool === 'edge' && value === 'layerPortal') return '層間轉接門：只能放在 T1 與 T2 相鄰的共享邊；玩家通過後即可進入另一個水域層。';
+  if (tool === 'edge' && value === 'multiPortal') return '多邊傳送門：按住滑鼠拖過貼著黑色不可通行六角形的連續邊，可畫出一整端；再畫另一端，從右側 Inspector 開始拖曳連線，兩端會逐段一對一傳送。';
   if (tool === 'edge' && value === 'seaweed') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。物理測試按 E 可附著或離開。';
   if (tool === 'edge' && value === 'coralCluster') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。';
   return getPaletteNote(tool, value);
@@ -541,6 +556,7 @@ function getPaletteNote(tool, value) {
   if (tool === 'edge' && value === 'barrier') return '邏輯上是通用障礙；目前共用 edge-spike-barrier.png，沒有獨立 barrier 圖。';
   if (tool === 'edge' && value === 'current') return '潮流是程式化方向與強度工具，不使用 bitmap。';
   if (tool === 'edge' && value === 'none') return '清除 Edge 的操作，不是素材。';
+  if (tool === 'edge' && value === 'multiPortal') return '多邊傳送門使用 imagegen 生成的透明 Edge 段，必須貼在黑色不可通行障礙物邊上；只有完成另一端連線後才會啟用。';
   if (tool === 'actor') return '出生點是編輯器語意標記，不是本輪生成的靜態素材。';
   if (tool === 'terrain') return '地形狀態工具；水域外觀由重力水域素材與畫布底圖處理。';
   return paletteLabels[value] ?? value;
@@ -1046,6 +1062,59 @@ function drawButtonConnections() {
   });
 }
 
+function portalEdgeMidpoint(entry) {
+  const centerA = getHexCenter(getActiveCell(state.map, entry.a, state.chapter), state.origin);
+  const centerB = getHexCenter(getActiveCell(state.map, entry.b, state.chapter), state.origin);
+  return { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
+}
+
+function drawPortalGroupRail(groupId) {
+  const entries = getPortalGroupEdges(state.map, groupId, state.chapter);
+  if (entries.length < 2) return;
+  const points = entries.map(portalEdgeMidpoint);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(4, 9, 24, 0.94)';
+  ctx.lineWidth = 5.2;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(109, 223, 255, 0.58)';
+  ctx.lineWidth = 2.1;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPortalConnections() {
+  if (state.mode !== 'edit') return;
+  const groups = new Set();
+  Object.values(state.map.edges).forEach((edge) => {
+    if (edge.type === MULTI_PORTAL_EDGE_TYPE && edge.portalGroupId) groups.add(edge.portalGroupId);
+  });
+  groups.forEach((groupId) => {
+    const entries = getPortalGroupEdges(state.map, groupId, state.chapter);
+    const targetKey = entries.find((entry) => entry.edge.portalTargetKey)?.edge.portalTargetKey;
+    const target = targetKey ? getActiveEdge(state.map, targetKey, state.chapter) : null;
+    const targetGroupId = target?.portalGroupId;
+    if (!targetGroupId || groupId > targetGroupId) return;
+    const start = getPortalGroupAnchor(state.map, groupId, state.chapter, state.origin);
+    const end = getPortalGroupAnchor(state.map, targetGroupId, state.chapter, state.origin);
+    if (start && end) {
+      drawButtonConnectionLine(start, end, '#cf8bff');
+      drawButtonConnectionLine(end, start, '#cf8bff');
+    }
+  });
+  if (state.portalConnection?.pointerId !== null && state.portalConnection?.targetPoint) {
+    const start = getPortalGroupAnchor(state.map, state.portalConnection.sourceGroupId, state.chapter, state.origin);
+    if (start) drawButtonConnectionLine(start, state.portalConnection.targetPoint, '#f6e66d', true);
+  }
+}
+
 const sideVertexIndexes = [
   [0, 1], // E
   [5, 0], // NE
@@ -1170,6 +1239,7 @@ function drawArrow(origin, vector, colour = '#ebff6b', size = 1) {
 }
 
 function drawEdges() {
+  const drawnPortalGroups = new Set();
   allMapEdges(state.map).forEach(({ key, a, b }) => {
     const edge = getActiveEdge(state.map, key, state.chapter);
     if (!edge || edge.type === 'none') return;
@@ -1189,6 +1259,10 @@ function drawEdges() {
       drawLayerPortal(shared, centerA, centerB, cellA, cellB, size);
       return;
     }
+    if (edge.type === MULTI_PORTAL_EDGE_TYPE && edge.portalGroupId && !drawnPortalGroups.has(edge.portalGroupId)) {
+      drawnPortalGroups.add(edge.portalGroupId);
+      drawPortalGroupRail(edge.portalGroupId);
+    }
     const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
     const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
     const receivesHelp = state.mode === 'play' && (
@@ -1205,6 +1279,7 @@ function drawEdges() {
     if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
+    if (edge.type === MULTI_PORTAL_EDGE_TYPE && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('⟷', midpoint.x, midpoint.y, { font: 'bold 9px system-ui', fill: '#d4a8ff' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size);
   });
 }
@@ -1289,7 +1364,73 @@ function isEdgePlacementValid(edgeTarget) {
       && cellB?.terrain === 'water'
       && (cellA.waterLayer ?? 'T1') !== (cellB.waterLayer ?? 'T1');
   }
+  if (brushValue.value === MULTI_PORTAL_EDGE_TYPE) {
+    return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
+  }
   return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
+}
+
+function createPortalGroupId() {
+  let groupId = `portal-${state.nextPortalGroupId}`;
+  while (Object.values(state.map.edges).some((edge) => edge.portalGroupId === groupId)) {
+    state.nextPortalGroupId += 1;
+    groupId = `portal-${state.nextPortalGroupId}`;
+  }
+  state.nextPortalGroupId += 1;
+  return groupId;
+}
+
+function paintPortalEdge(edgeTarget) {
+  const groupId = state.painting?.portalGroupId ?? createPortalGroupId();
+  if (state.painting && !state.painting.portalGroupId) state.painting.portalGroupId = groupId;
+  const existing = getActiveEdge(state.map, edgeTarget.key, state.chapter);
+  if (existing?.portalTargetKey) disconnectPortalGroup(state.map, existing.portalGroupId, state.chapter);
+  const slot = state.painting?.portalSlot ?? getPortalGroupEdges(state.map, groupId, state.chapter).length;
+  patchEdge(state.map, edgeTarget.a, edgeTarget.b, {
+    type: MULTI_PORTAL_EDGE_TYPE,
+    blocksPassage: false,
+    currentDirection: 0,
+    currentStrength: 0,
+    ...getOfficialEdgeState(MULTI_PORTAL_EDGE_TYPE),
+    portalGroupId: groupId,
+    portalSlot: slot,
+    portalTargetKey: null,
+  }, state.chapter);
+  if (state.painting) state.painting.portalSlot = slot + 1;
+  if (existing?.portalTargetKey) {
+    setStatus('已重新繪製傳送門段；原本的對應線已解除，請重新連接。');
+  }
+  return groupId;
+}
+
+function paintEdgesAlongPath(point) {
+  if (!state.painting) return;
+  const previous = state.painting.lastPoint ?? point;
+  const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
+  const steps = Math.max(1, Math.ceil(distance / 6));
+  let changed = false;
+  for (let index = 1; index <= steps; index += 1) {
+    const progress = index / steps;
+    const sample = {
+      x: previous.x + (point.x - previous.x) * progress,
+      y: previous.y + (point.y - previous.y) * progress,
+    };
+    const edgeTarget = edgeAtPoint(sample);
+    if (!edgeTarget || state.painting.visited.has(edgeTarget.key)) continue;
+    state.painting.visited.add(edgeTarget.key);
+    if (!isEdgePlacementValid(edgeTarget)) continue;
+    state.selectedEdgeKey = edgeTarget.key;
+    state.selectedCellKey = null;
+    state.selectedMapObject = null;
+    if (brushValue.value === MULTI_PORTAL_EDGE_TYPE) paintPortalEdge(edgeTarget);
+    else applyEdgeTool(edgeTarget);
+    changed = true;
+  }
+  state.painting.lastPoint = point;
+  if (changed && !state.painting.statusShown) {
+    state.painting.statusShown = true;
+    markDirty(`拖曳繪製 Edge：已連續套用${paletteLabels[brushValue.value] ?? brushValue.value}。`);
+  }
 }
 
 function isCellEraseValid(cell) {
@@ -1549,6 +1690,7 @@ function startButtonConnection() {
 
 function cancelButtonConnection() {
   state.connection = null;
+  state.portalConnection = null;
   updateCanvasCursor();
   setStatus('已結束按鈕連線模式。');
   render();
@@ -1577,6 +1719,59 @@ function completeButtonConnection(point) {
   state.selectedMapObject = { storage: source.storage, key: source.key, index: source.index };
   updateSelectedMapObject({ targetGates });
   setStatus(`已建立 ${getConditionalGateLabel(gate.key)} 連線；可繼續拖曳到其他門。`);
+}
+
+function startPortalConnection() {
+  const edge = state.selectedEdgeKey && getActiveEdge(state.map, state.selectedEdgeKey, state.chapter);
+  const groupId = getPortalGroupId(edge);
+  if (!groupId) return;
+  state.portalConnection = {
+    sourceGroupId: groupId,
+    pointerId: null,
+    targetPoint: getPortalGroupAnchor(state.map, groupId, state.chapter, state.origin),
+  };
+  setStatus('請從這一大片多邊傳送門拖曳到另一大片；放開後會按段一對一連接。');
+  updateCanvasCursor();
+  render();
+}
+
+function cancelPortalConnection() {
+  state.portalConnection = null;
+  updateCanvasCursor();
+  setStatus('已結束多邊傳送門連線模式。');
+  render();
+}
+
+function completePortalConnection(point) {
+  if (!state.portalConnection) return;
+  const edgeTarget = edgeAtPoint(point);
+  const targetEdge = edgeTarget && getActiveEdge(state.map, edgeTarget.key, state.chapter);
+  const targetGroupId = getPortalGroupId(targetEdge);
+  if (!targetGroupId) {
+    setStatus('連線未完成：請把線放在另一大片多邊傳送門的 Edge 上。');
+    return;
+  }
+  const result = connectPortalGroups(state.map, state.portalConnection.sourceGroupId, targetGroupId, state.chapter);
+  if (!result.ok) {
+    setStatus(result.reason === 'countMismatch'
+      ? `連線未完成：兩端必須有相同數量的 Edge（目前 ${result.firstCount} 對 ${result.secondCount}）。`
+      : '連線未完成：不能把同一大片傳送門連回自己。');
+    return;
+  }
+  state.portalConnection = null;
+  markDirty(`多邊傳送門已連接：${result.count} 條 Edge 一對一對應。`);
+  updateCanvasCursor();
+  setStatus(`已建立多邊傳送關係：${result.count} 條 Edge 會逐段傳送。`);
+}
+
+function clearPortalConnection() {
+  const edge = state.selectedEdgeKey && getActiveEdge(state.map, state.selectedEdgeKey, state.chapter);
+  const groupId = getPortalGroupId(edge);
+  if (!groupId) return;
+  const count = disconnectPortalGroup(state.map, groupId, state.chapter);
+  markDirty(`已清除這大片多邊傳送門的對應連線（${count} 條 Edge）。`);
+  setStatus('已清除多邊傳送門連線；兩端仍保留，可重新配對。');
+  render();
 }
 
 function selectMapObject(target) {
@@ -1830,11 +2025,41 @@ function renderEdgeInspector(edge) {
   const fields = getEdgeFields(edge.type);
   const signature = JSON.stringify({ key: state.selectedEdgeKey, edge, chapter: state.chapter });
   setInspector(signature, () => {
-    appendInspectorHeader(`${paletteLabels[edge.type] ?? edge.type}・可調參數`, '大小與效果值只影響這一條 Edge；可隨時回到官方預設。');
+    const isMultiPortal = edge.type === MULTI_PORTAL_EDGE_TYPE;
+    appendInspectorHeader(`${paletteLabels[edge.type] ?? edge.type}・可調參數`, isMultiPortal
+      ? '這一條是多邊傳送門的一段；同一群組的連續 Edge 會一起形成一大片。'
+      : '大小與效果值只影響這一條 Edge；可隨時回到官方預設。');
     const fieldList = document.createElement('div');
     fieldList.className = 'inspector-fields';
     fields.forEach((field) => appendInspectorField(fieldList, field, getEdgeSetting(edge, field.key), (value) => updateSelectedEdge({ [field.key]: value })));
     inspector.append(fieldList);
+    if (isMultiPortal) {
+      const groupEdges = getPortalGroupEdges(state.map, edge.portalGroupId, state.chapter);
+      const targetEdge = edge.portalTargetKey && getActiveEdge(state.map, edge.portalTargetKey, state.chapter);
+      const groupSummary = document.createElement('p');
+      groupSummary.className = 'inspector-connection-summary';
+      groupSummary.textContent = targetEdge
+        ? `群組 ${edge.portalGroupId}：${groupEdges.length} 條 Edge，已連到 ${targetEdge.portalGroupId}。`
+        : `群組 ${edge.portalGroupId}：${groupEdges.length} 條 Edge，尚未連接另一端。`;
+      inspector.append(groupSummary);
+      const connectButton = document.createElement('button');
+      connectButton.type = 'button';
+      connectButton.className = 'inspector-connect';
+      connectButton.textContent = state.portalConnection ? '結束傳送門連線' : '開始拖曳連接另一端';
+      connectButton.addEventListener('click', () => {
+        if (state.portalConnection) cancelPortalConnection();
+        else startPortalConnection();
+      });
+      inspector.append(connectButton);
+      if (targetEdge) {
+        const clearButton = document.createElement('button');
+        clearButton.type = 'button';
+        clearButton.className = 'inspector-reset inspector-clear-connections';
+        clearButton.textContent = '清除這大片的傳送連線';
+        clearButton.addEventListener('click', clearPortalConnection);
+        inspector.append(clearButton);
+      }
+    }
     appendResetButton(() => updateSelectedEdge({}, true));
   });
 }
@@ -1908,6 +2133,7 @@ function render() {
   // cover part of the object.
   drawEdgeOccupancyWedges();
   drawButtonConnections();
+  drawPortalConnections();
   cells.forEach((cell) => drawCellObjects(cell));
   drawTerrainBoundaries();
   drawEdges();
@@ -2154,6 +2380,11 @@ function applyEdgeTool(edgeTarget) {
         : '邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
       return;
     }
+    if (value === MULTI_PORTAL_EDGE_TYPE) {
+      paintPortalEdge(edgeTarget);
+      markDirty(`${edgeTarget.key} 已加入多邊傳送門；完成另一端後可在 Inspector 拖曳連接。`);
+      return;
+    }
     const isBlocking = ['springJelly', 'spike', 'barrier'].includes(value);
     patchEdge(state.map, edgeTarget.a, edgeTarget.b, {
       type: value,
@@ -2236,6 +2467,19 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
+  if (state.portalConnection) {
+    const sourceTarget = edgeAtPoint(point);
+    const sourceEdge = sourceTarget && getActiveEdge(state.map, sourceTarget.key, state.chapter);
+    if (getPortalGroupId(sourceEdge) !== state.portalConnection.sourceGroupId) {
+      setStatus('請從已選取的多邊傳送門群組任一段開始拖曳連線。');
+      return;
+    }
+    state.portalConnection.pointerId = event.pointerId;
+    state.portalConnection.targetPoint = point;
+    canvas.setPointerCapture(event.pointerId);
+    render();
+    return;
+  }
   if (state.connection) {
     const source = getConnectionSource();
     const sourceDistance = source?.position ? Math.hypot(point.x - source.position.x, point.y - source.position.y) : Infinity;
@@ -2259,6 +2503,20 @@ canvas.addEventListener('pointerdown', (event) => {
     state.painting = { pointerId: event.pointerId, lastPoint: point, visited: new Set(), statusShown: false };
     canvas.setPointerCapture(event.pointerId);
     paintCellsAlongPath(point);
+    render();
+    return;
+  }
+  if (state.tool === 'edge') {
+    state.painting = {
+      pointerId: event.pointerId,
+      lastPoint: point,
+      visited: new Set(),
+      statusShown: false,
+      portalGroupId: brushValue.value === MULTI_PORTAL_EDGE_TYPE ? createPortalGroupId() : null,
+      portalSlot: 0,
+    };
+    canvas.setPointerCapture(event.pointerId);
+    paintEdgesAlongPath(point);
     render();
     return;
   }
@@ -2291,6 +2549,11 @@ canvas.addEventListener('pointermove', (event) => {
   const point = eventPoint(event);
   state.hoverPoint = point;
   if (state.dragging) state.dragging.pointer = point;
+  if (state.portalConnection?.pointerId === event.pointerId) {
+    state.portalConnection.targetPoint = point;
+    render();
+    return;
+  }
   if (state.connection?.pointerId === event.pointerId) {
     state.connection.targetPoint = point;
     render();
@@ -2310,7 +2573,10 @@ canvas.addEventListener('pointermove', (event) => {
     render();
     return;
   }
-  if (state.painting?.pointerId === event.pointerId) paintCellsAlongPath(point);
+  if (state.painting?.pointerId === event.pointerId) {
+    if (state.tool === 'edge') paintEdgesAlongPath(point);
+    else paintCellsAlongPath(point);
+  }
   if (state.mode === 'edit') render();
 });
 
@@ -2320,6 +2586,18 @@ canvas.addEventListener('pointerleave', () => {
 });
 
 canvas.addEventListener('pointerup', (event) => {
+  if (state.portalConnection?.pointerId === event.pointerId) {
+    const pointer = eventPoint(event);
+    completePortalConnection(pointer);
+    if (state.portalConnection) {
+      state.portalConnection.pointerId = null;
+      state.portalConnection.targetPoint = getPortalGroupAnchor(state.map, state.portalConnection.sourceGroupId, state.chapter, state.origin);
+    }
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    updateCanvasCursor();
+    render();
+    return;
+  }
   if (state.connection?.pointerId === event.pointerId) {
     const pointer = eventPoint(event);
     completeButtonConnection(pointer);
@@ -2364,6 +2642,10 @@ canvas.addEventListener('pointerup', (event) => {
 });
 
 canvas.addEventListener('pointercancel', (event) => {
+  if (state.portalConnection?.pointerId === event.pointerId) {
+    state.portalConnection.pointerId = null;
+    state.portalConnection.targetPoint = getPortalGroupAnchor(state.map, state.portalConnection.sourceGroupId, state.chapter, state.origin);
+  }
   if (state.connection?.pointerId === event.pointerId) {
     state.connection.pointerId = null;
     state.connection.targetPoint = getConnectionSource()?.position ?? null;
@@ -2381,6 +2663,7 @@ function setMode(mode) {
   state.painting = null;
   state.viewDrag = null;
   state.connection = null;
+  state.portalConnection = null;
   state.accumulator = 0;
   updateCanvasCursor();
   if (mode === 'play') {
@@ -2415,6 +2698,7 @@ document.querySelector('#demo-map').addEventListener('click', () => {
   state.selectedEdgeKey = null;
   state.selectedMapObject = null;
   state.connection = null;
+  state.portalConnection = null;
   markDirty('已重設為空白 24×17 地圖：全水域為 L0，沒有物件、Actor 或 Edge。');
   render();
 });
@@ -2449,6 +2733,7 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
     state.selectedEdgeKey = null;
     state.selectedMapObject = null;
     state.connection = null;
+    state.portalConnection = null;
     state.validation = validateMap(state.map);
     markDirty(`已匯入 ${file.name}。`);
   } catch (error) {

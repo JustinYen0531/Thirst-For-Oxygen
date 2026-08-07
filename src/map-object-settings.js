@@ -76,6 +76,9 @@ export const EDGE_SETTING_FIELDS = Object.freeze({
   layerPortal: freezeFields([
     { key: 'size', label: '階梯大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
   ]),
+  multiPortal: freezeFields([
+    { key: 'size', label: '傳送門大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+  ]),
 });
 
 function setting(fields, key) {
