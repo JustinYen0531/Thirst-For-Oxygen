@@ -53,7 +53,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     y: position.y,
     vx: 0,
     vy: 0,
-    radius: 36,
+    radius: 12,
     health: 3,
     oxygen: 100,
     stamina: 100,

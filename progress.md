@@ -23,3 +23,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by the user.
 - Legacy locally saved parallelogram maps now migrate automatically to the rectangular odd-r layout while preserving Cell, Edge, and chapter-override data.
 - Added a pure viewport-coordinate test so pointer placement is verified against the same 50%–400% zoom transform used by Canvas rendering.
+
+## 2026-08-07 — Step 4 in progress
+
+- User requested the map maximum width and height at two thirds of the prior 36×25 default, without reducing first-open screen coverage, and a player at one third of the prior size.
+- New map defaults are 24×17; first-open/demo zoom is 150% to retain comparable screen coverage; player diameter is 24 px instead of 72 px. Existing authored local maps are deliberately not cropped or resized.
+- Demo object/Edge positions are now proportional to map dimensions and covered by a no-out-of-bounds validation test.

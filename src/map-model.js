@@ -1,6 +1,5 @@
-// A Cell is intentionally tiny: its point-to-point size is 24 px while the
-// playtest player is 72 px across. This gives authors the requested 1:3
-// tile-to-player editing precision.
+// A Cell is 24 px point-to-point. The current compact test player matches one
+// Cell across, so individual Cell placement remains easy to inspect.
 export const HEX_SIZE = 12;
 
 export const DIRECTIONS = Object.freeze([
@@ -86,7 +85,7 @@ function makeCell(q, r) {
   };
 }
 
-export function createEmptyMap({ width = 36, height = 25 } = {}) {
+export function createEmptyMap({ width = 24, height = 17 } = {}) {
   const cells = {};
   for (let r = 0; r < height; r += 1) {
     for (let column = 0; column < width; column += 1) {
@@ -311,6 +310,10 @@ export function createDemoMap() {
   const levels = ['L-1', 'L0', 'L1', 'L2', 'L3'];
   const { width, height } = map.layout;
   const at = (column, row) => cellKeyFromColumn(column, row);
+  const point = (columnRatio, rowRatio) => at(
+    Math.round((width - 1) * columnRatio),
+    Math.round((height - 1) * rowRatio),
+  );
   Object.values(map.cells).forEach((cell) => {
     const levelIndex = Math.min(levels.length - 1, Math.floor((cell.r / Math.max(height - 1, 1)) * levels.length));
     cell.gravityLevel = levels[levelIndex];
@@ -319,22 +322,26 @@ export function createDemoMap() {
   const addOverlay = (key, kind) => map.cells[key].overlays.push(kind);
   const addObject = (key, kind) => map.cells[key].objects.push({ kind });
   const addActor = (key, kind) => map.cells[key].actors.push({ kind });
-  addActor(at(4, 5), 'playerStart');
-  addActor(at(22, 8), 'enemySpawn');
-  addActor(at(27, 15), 'miniBossSpawn');
+  addActor(point(0.12, 0.2), 'playerStart');
+  addActor(point(0.62, 0.34), 'enemySpawn');
+  addActor(point(0.76, 0.64), 'miniBossSpawn');
   addActor(at(width - 3, height - 3), 'bossSpawn');
-  addOverlay(at(8, 3), 'coral');
-  addOverlay(at(25, 5), 'ink');
-  addObject(at(15, 8), 'mine');
-  addObject(at(18, 8), 'weightStone');
-  addObject(at(7, 11), 'seaweed');
-  addObject(at(12, 15), 'oxygen');
-  addObject(at(19, 18), 'checkpoint');
-  addObject(at(28, 4), 'bubble');
-  addObject(at(4, 17), 'torricelli');
-  patchEdge(map, at(14, 8), at(15, 8), { type: 'springJelly', blocksPassage: true });
-  patchEdge(map, at(14, 15), at(15, 15), { type: 'spike', blocksPassage: true });
-  patchEdge(map, at(23, 15), at(24, 15), { type: 'barrier', blocksPassage: true });
-  patchEdge(map, at(9, 10), at(10, 10), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
+  addOverlay(point(0.22, 0.12), 'coral');
+  addOverlay(point(0.72, 0.2), 'ink');
+  addObject(point(0.42, 0.34), 'mine');
+  addObject(point(0.5, 0.34), 'weightStone');
+  addObject(point(0.2, 0.46), 'seaweed');
+  addObject(point(0.34, 0.62), 'oxygen');
+  addObject(point(0.54, 0.74), 'checkpoint');
+  addObject(point(0.8, 0.16), 'bubble');
+  addObject(point(0.1, 0.7), 'torricelli');
+  const springColumn = Math.round((width - 1) * 0.4);
+  const spikeColumn = Math.round((width - 1) * 0.42);
+  const barrierColumn = Math.round((width - 1) * 0.65);
+  const currentColumn = Math.round((width - 1) * 0.26);
+  patchEdge(map, at(springColumn, Math.round((height - 1) * 0.34)), at(springColumn + 1, Math.round((height - 1) * 0.34)), { type: 'springJelly', blocksPassage: true });
+  patchEdge(map, at(spikeColumn, Math.round((height - 1) * 0.62)), at(spikeColumn + 1, Math.round((height - 1) * 0.62)), { type: 'spike', blocksPassage: true });
+  patchEdge(map, at(barrierColumn, Math.round((height - 1) * 0.62)), at(barrierColumn + 1, Math.round((height - 1) * 0.62)), { type: 'barrier', blocksPassage: true });
+  patchEdge(map, at(currentColumn, Math.round((height - 1) * 0.46)), at(currentColumn + 1, Math.round((height - 1) * 0.46)), { type: 'current', currentDirection: 0, currentStrength: 1.5 });
   return map;
 }

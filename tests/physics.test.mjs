@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   createEmptyMap,
+  createDemoMap,
   cellKeyFromColumn,
   getActiveCell,
   getHexCenter,
   HEX_SIZE,
   migrateMapToOddR,
   screenPointToWorldPoint,
+  validateMap,
   patchCell,
   patchEdge,
 } from '../src/map-model.js';
@@ -69,15 +71,15 @@ test('all primary motion limits use the 0.1 simulation scale', () => {
   assert.equal(MAX_SPEED, 56);
 });
 
-test('precision editor uses a rectangular odd-r grid at three Cells across one player diameter', () => {
+test('compact editor uses a rectangular odd-r grid with one-Cell player diameter', () => {
   const map = createEmptyMap();
   const actor = createTestActor();
-  assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width: 36, height: 25 });
-  assert.equal(HEX_SIZE * 2 * 3, actor.radius * 2);
+  assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width: 24, height: 17 });
+  assert.equal(HEX_SIZE * 2, actor.radius * 2);
   assert.ok(map.cells[cellKeyFromColumn(0, 0)]);
-  assert.ok(map.cells[cellKeyFromColumn(0, 24)]);
-  assert.ok(map.cells[cellKeyFromColumn(35, 24)]);
-  assert.equal(Object.keys(map.cells).length, 36 * 25);
+  assert.ok(map.cells[cellKeyFromColumn(0, 16)]);
+  assert.ok(map.cells[cellKeyFromColumn(23, 16)]);
+  assert.equal(Object.keys(map.cells).length, 24 * 17);
 });
 
 test('legacy axial-parallelogram maps migrate without losing Cell content', () => {
@@ -100,6 +102,14 @@ test('legacy axial-parallelogram maps migrate without losing Cell content', () =
 test('zoomed screen coordinates map back to the intended world Cell', () => {
   const worldPoint = screenPointToWorldPoint({ x: 700, y: 440 }, { x: 500, y: 340 }, 2);
   assert.deepEqual(worldPoint, { x: 600, y: 390 });
+});
+
+test('compact demo map keeps all objects and Edges inside the new bounds', () => {
+  const map = createDemoMap();
+  const errors = validateMap(map).filter((result) => result.level === 'error');
+  assert.equal(map.layout.width, 24);
+  assert.equal(map.layout.height, 17);
+  assert.equal(errors.length, 0, errors.map((result) => result.message).join('; '));
 });
 
 test('spring jelly reflects a crossing player', () => {

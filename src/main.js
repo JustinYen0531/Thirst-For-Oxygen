@@ -162,7 +162,7 @@ const state = {
   validation: [],
   actor: createTestActor(findPlayerStart(initialMap, 'chapter1', initialOrigin)),
   accumulator: 0,
-  zoom: 1,
+  zoom: 1.5,
 };
 
 function setStatus(message) {
@@ -663,11 +663,14 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
 document.querySelector('#demo-map').addEventListener('click', () => {
   state.map = createDemoMap();
   state.origin = calculateMapOrigin(state.map);
+  state.zoom = 1.5;
+  zoomSlider.value = String(state.zoom);
+  zoomValue.textContent = '150%';
   state.chapter = 'chapter1';
   chapterSelect.value = state.chapter;
   state.selectedCellKey = null;
   state.selectedEdgeKey = null;
-  markDirty('已載入示範地圖；它含五級水域、物件與 Edge 互動。');
+  markDirty('已載入 24×17 示範地圖；它含五級水域、物件與 Edge 互動。');
   render();
 });
 document.querySelector('#save-local').addEventListener('click', saveLocal);
