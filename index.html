@@ -27,7 +27,7 @@
           <div id="tool-buttons" class="button-stack"></div>
           <label for="brush-value">目前筆刷</label>
           <select id="brush-value"></select>
-          <p class="hint">編輯：點 Cell 塗刷；Edge 工具請點兩格中間的邊。</p>
+          <p class="hint">水域上物件直接點可通行水域格；邊緣沾黏物件請點兩格中間的六角邊。</p>
 
           <h2>地圖</h2>
           <label for="chapter-select">章節狀態</label>
@@ -91,15 +91,13 @@
             </div>
             <div class="palette-tabs" role="tablist" aria-label="素材分類">
               <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity">水域重力</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="overlay">環境效果</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="object">Cell 物件</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="overlay">水域上物件</button>
               <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="actor">Actor／出生點</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="edge">Edge 互動</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="edge">邊緣沾黏</button>
             </div>
             <div class="palette-groups">
               <section class="palette-group" data-palette-panel="gravity"><div id="palette-gravity" class="palette-items"></div></section>
               <section class="palette-group" data-palette-panel="overlay" hidden><div id="palette-overlay" class="palette-items"></div></section>
-              <section class="palette-group" data-palette-panel="object" hidden><div id="palette-object" class="palette-items"></div></section>
               <section class="palette-group" data-palette-panel="actor" hidden><div id="palette-actor" class="palette-items"></div></section>
               <section class="palette-group" data-palette-panel="edge" hidden><div id="palette-edge" class="palette-items"></div></section>
             </div>

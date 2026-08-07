@@ -67,7 +67,7 @@ const zoomSlider = document.querySelector('#zoom-slider');
 const zoomValue = document.querySelector('#zoom-value');
 const paletteTabs = [...document.querySelectorAll('[data-palette-tab]')];
 const palettePanels = [...document.querySelectorAll('[data-palette-panel]')];
-const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'object', 'actor', 'edge']
+const paletteRoots = Object.fromEntries(['gravity', 'overlay', 'actor', 'edge']
   .map((name) => [name, document.querySelector(`#palette-${name}`)]));
 
 const STORAGE_KEY = 'thirst-for-oxygen.map-editor.v1';
@@ -275,7 +275,8 @@ function saveLocal() {
 }
 
 function createToolButtons() {
-  Object.entries(toolDefinitions).filter(([key]) => key !== 'terrain').forEach(([key, definition]) => {
+  const directPaletteTools = new Set(['terrain', 'gravity', 'overlay', 'object', 'actor', 'edge']);
+  Object.entries(toolDefinitions).filter(([key]) => !directPaletteTools.has(key)).forEach(([key, definition]) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.tool = key;
@@ -291,8 +292,10 @@ function createPalette() {
       { tool: 'gravity', values: GRAVITY_ORDER },
       { tool: 'terrain', values: ['blocked'] },
     ],
-    overlay: [{ tool: 'overlay', values: OVERLAY_TYPES }],
-    object: [{ tool: 'object', values: CELL_OBJECT_TYPES }],
+    overlay: [
+      { tool: 'overlay', values: OVERLAY_TYPES },
+      { tool: 'object', values: CELL_OBJECT_TYPES },
+    ],
     actor: [{ tool: 'actor', values: ACTOR_TYPES }],
     edge: [{ tool: 'edge', values: EDGE_TYPES }],
   };
@@ -357,22 +360,22 @@ function getPaletteDescription(tool, value) {
     })[value];
   }
   if (tool === 'terrain' && value === 'blocked') return '不可通行：角色不能進入此 Cell。選擇任一水域重力 Tile 可把這格還原為可通行水域。';
-  if (tool === 'overlay' && value === 'coral') return '珊瑚安全區：在此格中免於地雷傷害。';
-  if (tool === 'overlay' && value === 'ink') return '墨水區：物理測試時遮蔽角色周圍以外的視野。';
-  if (tool === 'object' && value === 'coralCluster') return '珊瑚群落：可直接放置的場景物件。';
-  if (tool === 'object' && value === 'mine') return '深海地雷：角色接觸時造成傷害；珊瑚安全區內不生效。';
-  if (tool === 'object' && value === 'weightStone') return '重石：高速撞擊可破壞它。';
-  if (tool === 'object' && value === 'seaweed') return '水草：物理測試按 E 可附著或離開，附著時暫停重力。';
-  if (tool === 'object' && value === 'oxygen') return '氧氣礦石：目前作為可放置關卡物件。';
-  if (tool === 'object' && value === 'checkpoint') return 'Checkpoint：更新重生位置並恢復資源。';
-  if (tool === 'object' && value === 'bubble') return '光合作用氣泡：短暫免疫重力。';
-  if (tool === 'object' && value === 'torricelli') return '托里切利空間：目前作為可放置關卡物件。';
+  if (tool === 'overlay' && value === 'coral') return '水域上物件：直接覆蓋可通行水域格；在此格中免於地雷傷害。';
+  if (tool === 'overlay' && value === 'ink') return '水域上物件：直接覆蓋可通行水域格；物理測試時遮蔽角色周圍以外的視野。';
+  if (tool === 'object' && value === 'coralCluster') return '水域上物件：可直接放置在任何可通行水域格。';
+  if (tool === 'object' && value === 'mine') return '水域上物件：直接覆蓋可通行水域格；角色接觸時造成傷害，珊瑚安全區內不生效。';
+  if (tool === 'object' && value === 'weightStone') return '水域上物件：直接覆蓋可通行水域格；高速撞擊可破壞它。';
+  if (tool === 'object' && value === 'seaweed') return '水域上物件：直接覆蓋可通行水域格；物理測試按 E 可附著或離開，附著時暫停重力。';
+  if (tool === 'object' && value === 'oxygen') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
+  if (tool === 'object' && value === 'checkpoint') return '水域上物件：直接覆蓋可通行水域格；更新重生位置並恢復資源。';
+  if (tool === 'object' && value === 'bubble') return '水域上物件：直接覆蓋可通行水域格；短暫免疫重力。';
+  if (tool === 'object' && value === 'torricelli') return '水域上物件：直接覆蓋可通行水域格；目前是可放置關卡物件。';
   if (tool === 'actor') return '出生點：放置該類 Actor 的起始位置。';
-  if (tool === 'edge' && value === 'none') return '清除兩格之間既有的 Edge 互動。';
-  if (tool === 'edge' && value === 'springJelly') return '彈簧水母：角色越過此 Edge 時反彈。';
-  if (tool === 'edge' && value === 'spike') return '尖刺邊界：阻擋角色通過。';
-  if (tool === 'edge' && value === 'barrier') return '通用邊界：阻擋角色通過。';
-  if (tool === 'edge' && value === 'current') return '潮流：依左側設定的方向與強度推動角色。';
+  if (tool === 'edge' && value === 'none') return '邊緣沾黏：清除兩格之間既有的邊緣物件。';
+  if (tool === 'edge' && value === 'springJelly') return '邊緣沾黏：固定在兩格中間的六角邊；角色越過時反彈。通常放在不可通行障礙旁。';
+  if (tool === 'edge' && value === 'spike') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
+  if (tool === 'edge' && value === 'barrier') return '邊緣沾黏：固定在兩格中間的六角邊，阻擋角色通過。通常放在不可通行障礙旁。';
+  if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
   return getPaletteNote(tool, value);
 }
 
@@ -746,6 +749,10 @@ function applyCellTool(key) {
   }
   if (state.tool === 'terrain') patchCell(state.map, key, { terrain: value }, state.chapter);
   if (state.tool === 'gravity') patchCell(state.map, key, { terrain: 'water', gravityLevel: value }, state.chapter);
+  if ((state.tool === 'overlay' || state.tool === 'object') && cell.terrain !== 'water') {
+    setStatus('水域上物件只能直接覆蓋在可通行水域格；請先選水域重力把這格還原為水域。');
+    return;
+  }
   if (state.tool === 'overlay') patchCell(state.map, key, { overlays: addOrRemove(cell.overlays, value) }, state.chapter);
   if (state.tool === 'object') {
     const existing = cell.objects.some((object) => object.kind === value);

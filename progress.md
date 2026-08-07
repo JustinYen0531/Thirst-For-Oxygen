@@ -59,3 +59,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Completed the three-resource player loop and an in-editor HUD. `health` remains a three-point survival resource; oxygen is now spent by every launch and cannot be spent below zero; the GDD's stamina is represented in code and HUD as `energy`, which pays for aiming and launches, recovers at rest, and recovers faster while attached to seaweed.
 - Added an always-visible, non-interactive Canvas overlay: editor mode shows a HUD preview, and physics-test mode renders live health hearts plus oxygen and energy bars. Checkpoints refill all three resources; health/oxygen depletion still returns the tester to its most recent checkpoint.
 - Starter balance values are centralised in `src/physics.js`; they are initial tuning rather than a claimed final GDD number. Static verification passed: `npm run check` (15/15 tests) and `npm run build`. Browser validation was deliberately not run per user direction.
+
+## 2026-08-07 — Step 10 in progress
+
+- Reclassified map materials by placement/attachment rather than by the prior technical data buckets: `水域上物件` combines overlays and Cell objects and may only be placed directly on passable water Cells; `邊緣沾黏` contains all Edge interactions and is placed only by clicking a shared hex edge, typically beside a blocked obstacle. Actor/spawn remains separate because it is not a map object attachment mode.
+- Removed the duplicate category tool buttons so direct placement is the single place to select any material. Updated every information-card explanation to state the relevant placement mode.
+- Remaining: static verification, scoped commit, and push. Browser validation remains prohibited by user instruction.
