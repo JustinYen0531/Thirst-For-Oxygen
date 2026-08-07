@@ -29,6 +29,9 @@ import {
   getLaunchCosts,
   getLaunchSpeed,
   launchActor,
+  getMicroflowAcceleration,
+  getMicroflowRegionKeys,
+  sampleMicroflowVector,
   applyDamage,
   applyEnemyDefeatRewards,
   recoverPlayerResource,
@@ -217,6 +220,29 @@ test('horizontal velocity settles to zero while vertical gravity continues', () 
   for (let index = 0; index < 180; index += 1) stepPhysics({ map, actor, origin: ORIGIN });
   assert.equal(actor.vx, 0);
   assert.ok(actor.vy > 0, 'vertical gravity must continue after horizontal motion stops');
+});
+
+test('dynamic microflow changes over time without a persistent directional push', () => {
+  const map = createEmptyMap({ width: 3, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0' });
+  patchCell(map, '1,0', { gravityLevel: 'L0' });
+  patchCell(map, '2,0', { gravityLevel: 'L0' });
+  const center = getHexCenter(getActiveCell(map, '1,0'), ORIGIN);
+  const first = sampleMicroflowVector(center, 0);
+  const later = sampleMicroflowVector(center, 4);
+  assert.notDeepEqual(first, later, 'microflow should evolve instead of becoming a fixed current');
+  const acceleration = getMicroflowAcceleration({ map, cellKey: '1,0', position: center, origin: ORIGIN, time: 4 });
+  assert.ok(Math.hypot(acceleration.x, acceleration.y) < 1, 'microflow physics must stay low amplitude');
+});
+
+test('microflow regions stop at gravity or water-layer changes', () => {
+  const map = createEmptyMap({ width: 4, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L1', waterLayer: 'T1' });
+  patchCell(map, '1,0', { gravityLevel: 'L1', waterLayer: 'T1' });
+  patchCell(map, '2,0', { gravityLevel: 'L1', waterLayer: 'T2' });
+  patchCell(map, '3,0', { gravityLevel: 'L2', waterLayer: 'T2' });
+  assert.deepEqual(new Set(getMicroflowRegionKeys({ map, startKey: '0,0' })), new Set(['0,0', '1,0']));
+  assert.deepEqual(new Set(getMicroflowRegionKeys({ map, startKey: '2,0' })), new Set(['2,0']));
 });
 
 test('spring jelly reflects a crossing player', () => {

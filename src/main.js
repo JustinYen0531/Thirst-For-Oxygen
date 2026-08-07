@@ -809,6 +809,53 @@ function drawCellSurface(cell) {
     ctx.fillStyle = 'rgba(3, 8, 20, 0.17)';
     ctx.fillRect(center.x - HEX_SIZE, center.y - HEX_SIZE, HEX_SIZE * 2, HEX_SIZE * 2);
   }
+  if (cell.terrain === 'water') drawWaterMotion(cell, center);
+  ctx.restore();
+}
+
+function drawWaterMotion(cell, center) {
+  const phase = cell.q * 1.71 + cell.r * 0.93;
+  const time = state.animationTime;
+  const pulse = 0.5 + Math.sin(time * 0.8 + phase) * 0.5;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  // Short arcs rotate locally with different phases. They suggest movement
+  // without introducing a readable left-to-right or top-to-bottom current.
+  for (let index = 0; index < 3; index += 1) {
+    const localPhase = phase + index * 2.07;
+    const angle = localPhase + Math.sin(time * 0.45 + localPhase) * 0.42;
+    const radius = 3.2 + index * 2.2;
+    const x = center.x + Math.cos(localPhase * 0.7 + time * 0.16) * 2.2;
+    const y = center.y + Math.sin(localPhase * 0.8 - time * 0.14) * 2.2;
+    ctx.strokeStyle = `rgba(193, 235, 255, ${0.035 + pulse * 0.045})`;
+    ctx.lineWidth = 0.42;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, angle, angle + 0.95 + pulse * 0.18);
+    ctx.stroke();
+  }
+  // Two tiny particles provide the readable motion cue while remaining much
+  // softer than the authored Tile artwork.
+  for (let index = 0; index < 2; index += 1) {
+    const particlePhase = phase + index * 3.1;
+    const x = center.x + Math.sin(time * (0.28 + index * 0.05) + particlePhase) * 7.4;
+    const y = center.y + Math.cos(time * (0.22 + index * 0.04) + particlePhase * 1.3) * 6.2;
+    ctx.fillStyle = `rgba(218, 247, 255, ${0.08 + pulse * 0.08})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 0.42 + pulse * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // A slow brightness pulse makes the water feel alive even when no particle
+  // happens to be near the player, without changing the Tile's gravity colour.
+  ctx.fillStyle = `rgba(181, 229, 255, ${0.012 + pulse * 0.018})`;
+  ctx.beginPath();
+  ctx.arc(
+    center.x + Math.cos(time * 0.22 + phase) * 4.5,
+    center.y + Math.sin(time * 0.19 + phase * 1.2) * 4.5,
+    4.5 + pulse * 2.5,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
   ctx.restore();
 }
 
@@ -1182,6 +1229,7 @@ function drawTrajectory() {
     pointer: state.dragging.pointer,
     origin: state.origin,
     steps: 96,
+    time: state.animationTime,
   });
   ctx.save();
   ctx.fillStyle = 'rgba(255, 239, 112, 0.8)';
@@ -1785,7 +1833,7 @@ function stepGame() {
       recordEvents([{ type: 'aim', message: '能量耗盡：已取消瞄準，靜止後可恢復能量。' }]);
     }
   }
-  const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS });
+  const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS, time: state.animationTime });
   if (state.actor.health <= 0 || state.actor.oxygen <= 0) {
     const cause = state.actor.health <= 0 ? '生命歸零' : '氧氣歸零';
     const death = registerPlayerDeath(state.actor, cause);
@@ -2080,7 +2128,10 @@ window.render_game_to_text = () => {
 
 window.advanceTime = (milliseconds) => {
   const steps = Math.max(1, Math.round(milliseconds / (FIXED_STEP * 1000)));
-  for (let index = 0; index < steps; index += 1) stepGame();
+  for (let index = 0; index < steps; index += 1) {
+    state.animationTime += FIXED_STEP;
+    stepGame();
+  }
   render();
   return window.render_game_to_text();
 };

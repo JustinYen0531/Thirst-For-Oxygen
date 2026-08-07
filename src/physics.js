@@ -44,6 +44,12 @@ const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
 const OXYGEN_DRAIN_PER_SECOND = 0.15;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
+// Dynamic micro-flow is deliberately only 10% of the explicit current force.
+// It adds motion without becoming a conveyor belt.
+export const MICROFLOW_ACCELERATION = CURRENT_ACCELERATION * 0.1;
+const MICROFLOW_SPATIAL_SCALE = 0.045;
+const MICROFLOW_TIME_SCALE = 0.55;
+const MICROFLOW_VECTOR_SCALE = 18;
 const HORIZONTAL_WATER_DRAG = 0.96;
 const VERTICAL_WATER_DRAG = 0.998;
 const HORIZONTAL_STOP_SPEED = 0.15;
@@ -82,6 +88,81 @@ function addEvent(events, type, message) {
 
 function launchDistance(actor, pointer) {
   return clamp(Math.hypot(actor.x - pointer.x, actor.y - pointer.y), 0, 420);
+}
+
+function microflowStreamFunction(x, y, time) {
+  const sx = x * MICROFLOW_SPATIAL_SCALE;
+  const sy = y * MICROFLOW_SPATIAL_SCALE;
+  const t = time * MICROFLOW_TIME_SCALE;
+  return Math.sin(sx + t) * Math.cos(sy - t * 0.72)
+    + 0.35 * Math.sin(sx * 0.65 - sy * 0.85 - t * 0.58);
+}
+
+export function sampleMicroflowVector(point, time = 0) {
+  const delta = 0.25;
+  const horizontalGradient = (microflowStreamFunction(point.x + delta, point.y, time)
+    - microflowStreamFunction(point.x - delta, point.y, time)) / (delta * 2);
+  const verticalGradient = (microflowStreamFunction(point.x, point.y + delta, time)
+    - microflowStreamFunction(point.x, point.y - delta, time)) / (delta * 2);
+  // A curl field keeps the local motion swirling instead of creating a
+  // consistent source-to-destination push.
+  return {
+    x: verticalGradient * MICROFLOW_VECTOR_SCALE,
+    y: -horizontalGradient * MICROFLOW_VECTOR_SCALE,
+  };
+}
+
+function sameMicroflowSurface(left, right) {
+  return Boolean(left && right
+    && left.terrain === 'water'
+    && right.terrain === 'water'
+    && left.gravityLevel === right.gravityLevel
+    && (left.waterLayer ?? 'T1') === (right.waterLayer ?? 'T1'));
+}
+
+export function getMicroflowRegionKeys({ map, startKey, chapter = 'chapter1' }) {
+  const start = getActiveCell(map, startKey, chapter);
+  if (!start || start.terrain !== 'water') return [];
+  const region = [];
+  const queue = [startKey];
+  const visited = new Set(queue);
+  while (queue.length) {
+    const key = queue.shift();
+    const cell = getActiveCell(map, key, chapter);
+    if (!sameMicroflowSurface(start, cell)) continue;
+    region.push(key);
+    DIRECTIONS.forEach((_, directionIndex) => {
+      const adjacentKey = neighborKey(key, directionIndex);
+      if (visited.has(adjacentKey) || !map.cells[adjacentKey]) return;
+      const edge = getEdgeBetween(map, key, adjacentKey, chapter);
+      if (edge.blocksPassage) return;
+      const adjacent = getActiveCell(map, adjacentKey, chapter);
+      if (sameMicroflowSurface(start, adjacent)) {
+        visited.add(adjacentKey);
+        queue.push(adjacentKey);
+      }
+    });
+  }
+  return region;
+}
+
+export function getMicroflowAcceleration({ map, cellKey, position, chapter = 'chapter1', origin, time = 0 }) {
+  const cell = getActiveCell(map, cellKey, chapter);
+  if (!cell || cell.terrain !== 'water' || !Number.isFinite(time)) return { x: 0, y: 0 };
+  const regionKeys = getMicroflowRegionKeys({ map, startKey: cellKey, chapter });
+  if (!regionKeys.length) return { x: 0, y: 0 };
+  const mean = regionKeys.reduce((total, key) => {
+    const center = getHexCenter(getActiveCell(map, key, chapter), origin);
+    const vector = sampleMicroflowVector(center, time);
+    return { x: total.x + vector.x, y: total.y + vector.y };
+  }, { x: 0, y: 0 });
+  mean.x /= regionKeys.length;
+  mean.y /= regionKeys.length;
+  const local = sampleMicroflowVector(position, time);
+  return {
+    x: (local.x - mean.x) * MICROFLOW_ACCELERATION,
+    y: (local.y - mean.y) * MICROFLOW_ACCELERATION,
+  };
 }
 
 export function getLaunchSpeed(distance) {
@@ -513,7 +594,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   if (actor.inInk) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 }
 
-export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true }) {
+export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null }) {
   const events = [];
   Object.keys(actor.cooldowns).forEach((key) => {
     actor.cooldowns[key] = Math.max(0, actor.cooldowns[key] - dt);
@@ -531,12 +612,20 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   const activeCell = before?.cell;
   const zoneGravity = actor.gravityImmunity > 0 ? 0 : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY;
   const current = applyCurrentAcceleration(map, before?.key, chapter);
+  const microflow = getMicroflowAcceleration({
+    map,
+    cellKey: before?.key,
+    position: actor,
+    chapter,
+    origin,
+    time,
+  });
   const special = actor.specialAcceleration ?? { x: 0, y: 0 };
   const horizontalDrag = Math.pow(HORIZONTAL_WATER_DRAG, dt * 60);
   const verticalDrag = Math.pow(VERTICAL_WATER_DRAG, dt * 60);
-  actor.vx = (actor.vx + (current.x + special.x) * dt) * horizontalDrag;
+  actor.vx = (actor.vx + (current.x + microflow.x + special.x) * dt) * horizontalDrag;
   if (Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
-  actor.vy = (actor.vy + (zoneGravity + current.y + special.y) * dt) * verticalDrag;
+  actor.vy = (actor.vy + (zoneGravity + current.y + microflow.y + special.y) * dt) * verticalDrag;
   const speed = Math.hypot(actor.vx, actor.vy);
   if (speed > MAX_SPEED) {
     actor.vx = (actor.vx / speed) * MAX_SPEED;
@@ -557,13 +646,13 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   return events;
 }
 
-export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120 }) {
+export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120, time = null }) {
   const previewMap = JSON.parse(JSON.stringify(map));
   const ghost = JSON.parse(JSON.stringify(actor));
   if (!launchActor(ghost, pointer).launched) return [];
   const points = [];
   for (let index = 0; index < steps; index += 1) {
-    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: true });
+    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: true, time: Number.isFinite(time) ? time + index * FIXED_STEP : null });
     points.push({ x: ghost.x, y: ghost.y });
   }
   return points;

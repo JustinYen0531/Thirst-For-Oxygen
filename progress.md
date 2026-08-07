@@ -272,6 +272,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the DOM-only select with explicit `Free Snap` and `六邊形中央` buttons backed by `state.objectPlacementMode`. Preview placement, saved offsets, status text, and `render_game_to_text` now use the same mode value.
 - Static-only verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 34 complete
+
+- Added a dynamic microflow field for passable water. The field is a time-varying curl pattern with no fixed global direction; its region mean is subtracted so a connected water area does not drift as one body.
+- Microflow regions are separated by gravity level, water layer, blocked terrain, and blocking Edges. T1 and T2 therefore keep independent motion fields.
+- Added subtle per-Cell water arcs, particles, and brightness pulses for the visual motion layer. Player physics receives only 10% of the explicit current acceleration, while gravity and existing horizontal damping remain unchanged.
+- Static verification passed: `npm run check` (30/30 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited per user instruction.
+
 ## 2026-08-08 — Step 35 complete
 
 - Added a right-side Inspector field for Razor water objects: each placed Razor can now use 1–4 blades, with the saved count driving the rotating visual while keeping the existing hitbox and damage contract.
