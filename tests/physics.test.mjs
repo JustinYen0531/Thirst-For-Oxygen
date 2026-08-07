@@ -277,7 +277,7 @@ test('all defined weapons, passive abilities, and enemy attack contracts are num
   assert.equal(getPassiveModifiers([{ id: 'pressureStabilizer', level: 3 }]).launchEnergyCostMultiplier, 0.7);
   assert.equal(getWeaponUseCost('knife', 1, [{ id: 'pressureStabilizer', level: 3 }]), 2.8);
 
-  assert.equal(ENEMY_ORDER.length, 17);
+  assert.equal(ENEMY_ORDER.length, 19);
   ENEMY_ORDER.forEach((enemyId) => {
     const definition = ENEMY_DEFINITIONS[enemyId];
     const state = createEnemyState(enemyId);
