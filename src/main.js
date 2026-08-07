@@ -695,17 +695,19 @@ function getOrExtendCellAtPoint(point, allowExtend = false) {
   const candidate = estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
-  if (candidate.column < 0 || candidate.column >= width || candidate.row < height || candidate.row >= height + MAP_VERTICAL_BUFFER_ROWS) return null;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+  const targetRow = Math.min(candidate.row, height + MAP_VERTICAL_BUFFER_ROWS - 1);
+  const targetKey = cellKeyFromColumn(candidate.column, targetRow);
 
   const previousOrigin = { ...state.origin };
-  ensureOddRRows(state.map, candidate.row);
+  ensureOddRRows(state.map, targetRow);
   syncCanvasGeometry(state.map, state.zoom);
   const resizedOrigin = calculateMapOrigin(state.map, state.zoom, state.pan);
   state.pan.x += previousOrigin.x - resizedOrigin.x;
   state.pan.y += previousOrigin.y - resizedOrigin.y;
   state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
   return findCellContainingPoint(state.map, point, state.chapter, state.origin)
-    ?? { key: candidate.key, cell: getActiveCell(state.map, candidate.key, state.chapter) };
+    ?? { key: targetKey, cell: getActiveCell(state.map, targetKey, state.chapter) };
 }
 
 function getWaterObjectCellAtPoint(point, allowExtend = false) {
@@ -739,12 +741,13 @@ function getCellPreviewAtPoint(point) {
   const candidate = estimateCellGridPosition(point);
   const width = Number(state.map.layout?.width) || 0;
   const height = Number(state.map.layout?.height) || 0;
-  if (candidate.column < 0 || candidate.column >= width || candidate.row < height || candidate.row >= height + MAP_VERTICAL_BUFFER_ROWS) return null;
+  if (candidate.column < 0 || candidate.column >= width || candidate.row < height) return null;
+  const targetRow = Math.min(candidate.row, height + MAP_VERTICAL_BUFFER_ROWS - 1);
   return {
-    key: candidate.key,
+    key: cellKeyFromColumn(candidate.column, targetRow),
     cell: {
-      q: candidate.column - Math.floor(candidate.row / 2),
-      r: candidate.row,
+      q: candidate.column - Math.floor(targetRow / 2),
+      r: targetRow,
       terrain: 'water',
       gravityLevel: getContinuationGuideCell(candidate.column, height - 1)?.gravityLevel ?? 'L0',
       waterLayer: getContinuationGuideCell(candidate.column, height - 1)?.waterLayer ?? 'T1',
