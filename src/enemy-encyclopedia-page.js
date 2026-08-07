@@ -50,7 +50,7 @@ function enemyCard(enemy) {
       <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">Lore 檔案</button></div>
     </div>
     <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? '自然漂浮 · 正式殘影' : '目前沒有 GIF 預覽素材'}</p></div>
-    <div class="preview-actions">${actions}<span class="action-hint">再次點擊已選技能即可取消，回到自然漂浮</span></div>
+    <div class="preview-actions">${actions}</div>
     <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
     <section class="enemy-description" data-enemy-description><h3>生態觀察</h3><p>${escapeHtml(enemy.description)}</p></section>
     <section class="selected-skill-panel" data-skill-panel hidden></section>
@@ -122,6 +122,16 @@ enemyGrid.addEventListener('click', (event) => {
     panel.hidden = isOpen;
     loreButton.setAttribute('aria-expanded', String(!isOpen));
     panel.classList.toggle('is-open', !isOpen);
+    card.classList.toggle('is-lore-open', !isOpen);
+    if (!isOpen) {
+      card.dataset.selectedAction = 'idle';
+      card.querySelectorAll('.action-button').forEach((candidate) => candidate.classList.remove('is-active'));
+      const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
+      if (enemy) updatePreview(card, enemy, undefined);
+    } else {
+      const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
+      if (enemy) updatePreview(card, enemy, undefined);
+    }
     return;
   }
   const button = event.target.closest('[data-action-id]');

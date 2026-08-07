@@ -148,3 +148,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added a top-right `Lore 檔案` button to every enemy encyclopedia card. It opens a contextual Lore panel without disturbing the selected skill or natural-floating preview.
 - Connected all 19 enemies to the existing `敵人圖鑑.md` creature references: real-world biological reference, identification features, and visual setting. The panel also states that these references provide silhouette/part/motion inspiration rather than a realistic copy.
 - Kept Lore data separate from numerical combat contracts and skill descriptions. Static verification confirmed 19/19 enemies have all three Lore fields; `npm run check` passed (21/21 tests), `npm run build` passed, and `git diff --check` passed. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 19 complete
+
+- Made Lore a focused reading mode: opening `Lore 檔案` resets the preview to natural floating and hides the skill controls, health/move-speed/skill statistics, ecology introduction, and selected-skill panel.
+- Removed the redundant `再次點擊已選技能即可取消，回到自然漂浮` hint from every card.
+- Static verification passed: the old hint is absent, the Lore focus CSS rule covers all requested sections, `npm run check` passed (21/21 tests), `npm run build` passed, and `git diff --check` passed. Browser validation remains prohibited by user instruction.
