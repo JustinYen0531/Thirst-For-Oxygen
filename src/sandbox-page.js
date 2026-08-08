@@ -11,6 +11,7 @@ import {
 } from './player-animation.js';
 import {
   SANDBOX_HEIGHT,
+  SANDBOX_PLAYER_INTERACTION_RADIUS,
   SANDBOX_WIDTH,
   beginSandboxAim,
   clearSandboxEnemies,
@@ -19,6 +20,7 @@ import {
   createSandboxState,
   executeEnemySkill,
   getSandboxEnemyIds,
+  isSandboxPlayerHit,
   listSandboxSkills,
   playerAttack,
   releaseSandboxAim,
@@ -53,7 +55,7 @@ const playerStats = document.querySelector('#player-stats');
 const sandboxLog = document.querySelector('#sandbox-log');
 const status = document.querySelector('#sandbox-status');
 const state = createSandboxState();
-let placementMode = true;
+let placementMode = false;
 let lastFrame = performance.now();
 
 const encyclopediaById = Object.fromEntries(ENEMY_ENCYCLOPEDIA.map((enemy) => [enemy.id, enemy]));
@@ -248,8 +250,13 @@ function canvasPoint(event) {
 
 function selectOrPlace(event) {
   const point = canvasPoint(event);
-  if (Math.hypot(point.x - state.actor.x, point.y - state.actor.y) <= 26) {
-    beginSandboxAim(state, point);
+  if (isSandboxPlayerHit(state, point)) {
+    const result = beginSandboxAim(state, point);
+    if (!result.ok) {
+      status.textContent = result.reason === 'upgrade' ? '請先完成升級選擇，再操控潛水員。' : '目前無法操控潛水員。';
+      render();
+      return;
+    }
     canvas.setPointerCapture?.(event.pointerId);
     status.textContent = '蓄力中：拖曳方向與距離，放開滑鼠即可彈射。';
     render();
@@ -265,7 +272,11 @@ function selectOrPlace(event) {
     render();
     return;
   }
-  if (!placementMode) return;
+  if (!placementMode) {
+    status.textContent = '目前是潛水員操控模式；請點擊潛水員周圍高亮區。要放置敵人，先開啟放置敵人模式。';
+    render();
+    return;
+  }
   spawnSandboxEnemy(state, enemySelect.value, point);
   updateSkillPicker();
   status.textContent = '已放置敵人；可點擊敵人或選擇技能驗收。';
@@ -366,6 +377,18 @@ function renderEffects() {
   });
   state.effects.forEach((effect) => {
     const progress = effect.elapsed / effect.duration;
+    if (effect.type === 'playerSlash' && effect.style === 'knifeArc') {
+      renderKnifeSlashEffect(effect, progress);
+      return;
+    }
+    if (effect.type === 'knifeTrail' && effect.style === 'knifeTrail') {
+      renderKnifeTrailEffect(effect, progress);
+      return;
+    }
+    if (effect.type === 'knifeArea' && effect.style === 'knifeArea') {
+      renderKnifeAreaEffect(effect, progress);
+      return;
+    }
     const radius = effect.radius * (effect.type === 'hit' ? 1 + progress : .78 + progress * .22);
     ctx.save();
     ctx.globalAlpha = Math.max(0, 1 - progress);
@@ -383,6 +406,110 @@ function renderEffects() {
     }
     ctx.restore();
   });
+}
+
+function renderKnifeSlashEffect(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const arcCount = Math.max(1, Math.round(effect.arcCount ?? 1));
+  const trailCount = Math.max(0, Math.round(effect.trailCount ?? 0));
+  const spread = ((effect.spreadDegrees ?? 0) * Math.PI) / 180;
+  const arcSpan = ((effect.arcDegrees ?? 70) * Math.PI) / 180;
+  const lineWidth = effect.lineWidth ?? 3.5;
+  const radius = effect.radius * (.74 + safeProgress * .28);
+  const baseAngle = effect.angle ?? 0;
+  const arcOffset = arcCount === 1 ? 0 : spread / (arcCount - 1);
+  const accentCount = Math.max(0, Math.round(effect.accentCount ?? 0));
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.shadowColor = effect.colour;
+  ctx.shadowBlur = 12;
+  for (let trail = trailCount; trail >= 0; trail -= 1) {
+    const alpha = (1 - safeProgress) * (trail === 0 ? 0.96 : 0.2 / (trail + 1));
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.strokeStyle = effect.colour;
+    ctx.lineWidth = Math.max(1.2, lineWidth - trail * 0.8);
+    for (let arcIndex = 0; arcIndex < arcCount; arcIndex += 1) {
+      const offset = (arcIndex - (arcCount - 1) / 2) * arcOffset;
+      const angle = baseAngle + offset;
+      ctx.beginPath();
+      ctx.arc(effect.x, effect.y, radius - trail * 4, angle - arcSpan / 2, angle + arcSpan / 2);
+      ctx.stroke();
+    }
+  }
+  if (accentCount > 0) {
+    ctx.globalAlpha = (1 - safeProgress) * 0.7;
+    ctx.strokeStyle = '#fffbe0';
+    ctx.lineWidth = 1.4;
+    for (let index = 0; index < accentCount; index += 1) {
+      const angle = baseAngle + (index - (accentCount - 1) / 2) * 0.22;
+      const inner = radius * 0.42;
+      const outer = radius * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(effect.x + Math.cos(angle) * inner, effect.y + Math.sin(angle) * inner);
+      ctx.lineTo(effect.x + Math.cos(angle) * outer, effect.y + Math.sin(angle) * outer);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function renderKnifeTrailEffect(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  ctx.save();
+  ctx.globalAlpha = (1 - safeProgress) * 0.86;
+  ctx.strokeStyle = effect.colour;
+  ctx.shadowColor = effect.colour;
+  ctx.shadowBlur = 10;
+  ctx.lineWidth = effect.lineWidth ?? 3;
+  ctx.lineCap = 'round';
+  ctx.setLineDash([12, 6]);
+  ctx.beginPath();
+  ctx.moveTo(effect.x, effect.y);
+  ctx.lineTo(effect.targetX, effect.targetY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function renderKnifeAreaEffect(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const pulse = 0.92 + Math.sin(safeProgress * Math.PI) * 0.12;
+  const radius = effect.radius * pulse;
+  ctx.save();
+  ctx.globalAlpha = (1 - safeProgress) * 0.72;
+  ctx.strokeStyle = effect.colour;
+  ctx.fillStyle = 'rgba(184, 245, 255, .06)';
+  ctx.shadowColor = effect.colour;
+  ctx.shadowBlur = 14;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.lineWidth = 1.4;
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (Math.PI * 2 * index) / 8 + safeProgress * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(effect.x + Math.cos(angle) * radius * 0.62, effect.y + Math.sin(angle) * radius * 0.62);
+    ctx.lineTo(effect.x + Math.cos(angle) * radius * 1.05, effect.y + Math.sin(angle) * radius * 1.05);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function renderPlayerControlZone() {
+  ctx.save();
+  ctx.globalAlpha = state.aiming ? 0.72 : 0.3;
+  ctx.strokeStyle = state.aiming ? '#f6e66d' : '#8cdcff';
+  ctx.fillStyle = state.aiming ? 'rgba(246, 230, 109, .08)' : 'rgba(140, 220, 255, .035)';
+  ctx.lineWidth = state.aiming ? 2 : 1;
+  ctx.setLineDash(state.aiming ? [] : [5, 7]);
+  ctx.beginPath();
+  ctx.arc(state.actor.x, state.actor.y, SANDBOX_PLAYER_INTERACTION_RADIUS, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }
 
 function renderAimPreview() {
@@ -512,6 +639,7 @@ function renderTelemetry() {
 function render() {
   renderBackground();
   renderExperienceOrbs();
+  renderPlayerControlZone();
   renderAimPreview();
   renderEffects();
   renderEnemyMarkers();
@@ -529,8 +657,8 @@ function tick(now) {
 
 document.querySelector('#place-enemy').addEventListener('click', () => {
   placementMode = !placementMode;
-  document.querySelector('#place-enemy').textContent = placementMode ? '點擊場地放置（啟用）' : '點擊場地放置（關閉）';
-  status.textContent = placementMode ? '放置模式已啟用，點擊場地即可新增敵人。' : '放置模式已關閉，點擊場上敵人可選取。';
+  document.querySelector('#place-enemy').textContent = placementMode ? '放置敵人模式（開啟）' : '放置敵人模式（關閉）';
+  status.textContent = placementMode ? '放置模式已開啟；點擊潛水員周圍仍優先操控潛水員。' : '放置模式已關閉；目前點擊場地不會召喚敵人。';
 });
 document.querySelector('#clear-enemies').addEventListener('click', () => { clearSandboxEnemies(state); updateSkillPicker(); render(); });
 document.querySelector('#apply-build').addEventListener('click', () => { applyBuild(); render(); });
@@ -627,10 +755,17 @@ window.render_game_to_text = () => JSON.stringify({
     activeWeaponSlot: state.progression.activeWeaponSlot,
   },
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
-  flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, running: state.running },
+  flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), health: format(enemy.health), defeated: enemy.defeated, animation: enemy.animation })),
   projectiles: state.projectiles.length,
-  effects: state.effects.length,
+  effects: state.effects.map((effect) => ({
+    type: effect.type,
+    style: effect.style,
+    arcCount: effect.arcCount,
+    trailCount: effect.trailCount,
+    elapsed: format(effect.elapsed),
+    duration: format(effect.duration),
+  })),
 });
 
 window.advanceTime = (milliseconds) => {

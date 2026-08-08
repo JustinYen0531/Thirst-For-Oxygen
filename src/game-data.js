@@ -73,9 +73,30 @@ export const WEAPONS = Object.freeze({
   knife: {
     id: 'knife', name: '小刀', type: 'melee', maxLevel: 3,
     levels: {
-      1: { damage: 18, range: 42, cooldown: 0.45, energyCost: 4, hitArcDegrees: 70 },
-      2: { damage: 24, range: 46, cooldown: 0.4, energyCost: 4, hitArcDegrees: 78 },
-      3: { damage: 32, range: 50, cooldown: 0.34, energyCost: 4, hitArcDegrees: 86 },
+      1: {
+        damage: 18,
+        range: 42,
+        cooldown: 0.45,
+        energyCost: 4,
+        hitArcDegrees: 70,
+        effect: { style: 'knifeArc', arcCount: 1, arcDegrees: 70, spreadDegrees: 0, trailCount: 0, accentCount: 0, lineWidth: 3.5, duration: 0.25 },
+      },
+      2: {
+        damage: 24,
+        range: 46,
+        cooldown: 0.4,
+        energyCost: 4,
+        hitArcDegrees: 78,
+        effect: { style: 'knifeArc', arcCount: 2, arcDegrees: 78, spreadDegrees: 14, trailCount: 1, accentCount: 1, lineWidth: 4, duration: 0.28, sideTrailDamageMultiplier: 0.7, sideTrailOffset: 22, sideTrailRadius: 18, sideTrailDuration: 0.28 },
+      },
+      3: {
+        damage: 32,
+        range: 50,
+        cooldown: 0.34,
+        energyCost: 4,
+        hitArcDegrees: 86,
+        effect: { style: 'knifeArc', arcCount: 3, arcDegrees: 86, spreadDegrees: 22, trailCount: 2, accentCount: 2, lineWidth: 4.5, duration: 0.32, stationaryAreaRadius: 62, stationaryDamageMultiplier: 0.55, stationaryTickInterval: 0.34 },
+      },
     },
   },
   katana: {

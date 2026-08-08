@@ -14,9 +14,12 @@ import {
   setActiveWeapon,
 } from '../src/progression.js';
 import {
+  SANDBOX_PLAYER_INTERACTION_RADIUS,
   createSandboxState,
   executeEnemySkill,
+  isSandboxPlayerHit,
   playerAttack,
+  setSandboxBuild,
   spawnSandboxEnemy,
   stepSandbox,
 } from '../src/sandbox-sim.js';
@@ -86,6 +89,59 @@ test('level-one knife passes through a hit instead of reflecting the diver', () 
 
   assert.ok(enemy.health < enemy.maxHealth);
   assert.ok(state.actor.vx > 0, 'knife collision should keep the diver moving forward');
+});
+
+test('knife levels expose distinct vector slash effects without image assets', () => {
+  [1, 2, 3].forEach((level) => {
+    const state = createSandboxState();
+    setSandboxBuild(state, { weaponId: 'knife', weaponLevel: level });
+    const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 20, y: state.actor.y }, { health: 1000, maxHealth: 1000 });
+    state.selectedEnemyInstanceId = enemy.instanceId;
+
+    assert.equal(playerAttack(state).ok, true);
+    const slash = state.effects.find((effect) => effect.type === 'playerSlash');
+    assert.ok(slash, `knife Lv.${level} should create a slash effect`);
+    assert.equal(slash.style, 'knifeArc');
+    assert.equal(slash.arcCount, level);
+    assert.equal(slash.trailCount, level - 1);
+    assert.equal(slash.accentCount, Math.max(0, level - 1));
+  });
+});
+
+test('knife Lv.2 creates side trails that deal seventy percent damage', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 2 });
+  state.actor.x = 200;
+  state.actor.y = 280;
+  state.actor.vx = 100;
+  const primary = spawnSandboxEnemy(state, 'crabGuard', { x: 207, y: 280 }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
+  const side = spawnSandboxEnemy(state, 'crabGuard', { x: 207, y: 313 }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
+
+  stepSandbox(state);
+
+  assert.ok(primary.health < primary.maxHealth, 'the movement path should hit the primary target');
+  assert.equal(side.health, 1000 - 24 * 0.7, 'the side trail should use seventy percent of the main damage');
+  assert.ok(state.effects.some((effect) => effect.type === 'knifeTrail'));
+});
+
+test('knife Lv.3 deals continuous area damage while the diver is stopped', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 3 });
+  state.actor.x = 200;
+  state.actor.y = 280;
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: 240, y: 280 }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
+
+  stepSandbox(state);
+
+  assert.ok(enemy.health < enemy.maxHealth, 'a stopped Lv.3 knife should damage nearby enemies');
+  assert.ok(state.effects.some((effect) => effect.type === 'knifeArea'));
+  assert.ok((state.actor.cooldowns['weapon:knife:stationaryArea'] ?? 0) > 0);
+});
+
+test('sandbox gives the diver a generous control area before enemy placement', () => {
+  const state = createSandboxState();
+  assert.equal(isSandboxPlayerHit(state, { x: state.actor.x + SANDBOX_PLAYER_INTERACTION_RADIUS - 1, y: state.actor.y }), true);
+  assert.equal(isSandboxPlayerHit(state, { x: state.actor.x + SANDBOX_PLAYER_INTERACTION_RADIUS + 1, y: state.actor.y }), false);
 });
 
 test('lanternfish locks a point, waits one second, then detonates', () => {

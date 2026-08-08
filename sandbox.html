@@ -28,9 +28,9 @@
             <h2>放置敵人</h2>
             <label for="enemy-select">敵人</label>
             <select id="enemy-select"></select>
-            <button id="place-enemy" type="button">點擊場地放置</button>
+            <button id="place-enemy" type="button">放置敵人模式（關閉）</button>
             <button id="clear-enemies" type="button" class="secondary">清除全部敵人</button>
-            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。拖住正式潛水夫，會使用與遊玩頁相同的直線彈射、L1 下沉重力、阻尼與氧氣規則。</p>
+            <p class="hint">預設是潛水員操控模式：點擊潛水員周圍的高亮操控區，再拖曳方向與距離。要新增敵人時，先開啟放置敵人模式；放置模式也不會搶走操控區的判定。</p>
           </section>
 
           <section class="control-section">
@@ -60,7 +60,7 @@
             <img id="player-sprite" class="sandbox-player-sprite" alt="玩家潛水夫" />
           </div>
           <div class="arena-toolbar">
-            <span id="sandbox-status">沙盒已準備。</span>
+            <span id="sandbox-status">沙盒已準備：目前為潛水員操控模式。</span>
             <button id="player-attack" type="button">直接測試武器</button>
             <button id="test-skill" type="button">立即施放技能</button>
           </div>

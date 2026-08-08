@@ -36,11 +36,26 @@ import {
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
 export const SANDBOX_FIXED_STEP = FIXED_STEP;
+// The diver sprite is intentionally smaller than the control affordance. The
+// sandbox should test combat, not punish a click that lands a few pixels beside
+// the diver while the user is trying to start a launch.
+export const SANDBOX_PLAYER_INTERACTION_RADIUS = 82;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
 const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
 const unique = (values) => [...new Set(values)];
+
+function distanceToSegment(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const ratio = lengthSquared > 0
+    ? clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1)
+    : 0;
+  const closest = { x: start.x + dx * ratio, y: start.y + dy * ratio };
+  return distanceBetween(point, closest);
+}
 
 // The sandbox is a test harness, but its player must live in the same kind of
 // L1 water field as the official play page. Keep a generous hidden map behind
@@ -463,6 +478,11 @@ export function beginSandboxAim(state, point) {
   return { ok: true };
 }
 
+export function isSandboxPlayerHit(state, point) {
+  if (!state?.actor || !point) return false;
+  return distanceBetween(state.actor, point) <= Math.max(SANDBOX_PLAYER_INTERACTION_RADIUS, state.actor.radius + 24);
+}
+
 export function updateSandboxAim(state, point) {
   if (!state.aiming || !point) return { ok: false, reason: 'notAiming' };
   state.aimPoint = {
@@ -638,7 +658,21 @@ export function playerAttack(state) {
   if (weapon.type === 'melee') {
     hit = distanceBetween(state.actor, target) <= weapon.range;
     if (hit) damageEnemy(state, target, weapon.damage, weaponDefinition.name);
-    addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.25, angle: angleBetween(state.actor, target), colour: '#f6e66d' });
+    const effect = weapon.effect ?? { style: 'generic', duration: 0.25 };
+    const attackAngle = angleBetween(state.actor, target);
+    addEffect(state, {
+      type: 'playerSlash',
+      x: state.actor.x,
+      y: state.actor.y,
+      radius: weapon.range,
+      duration: effect.duration ?? 0.25,
+      angle: attackAngle,
+      colour: '#f6e66d',
+      ...effect,
+    });
+    if (effect.sideTrailDamageMultiplier) {
+      applyKnifeSideTrails(state, weapon, state.actor, target, target.instanceId);
+    }
     if (!hit) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
   } else {
     const count = weapon.projectileCount ?? 1;
@@ -693,17 +727,61 @@ function updateZones(state, dt) {
   });
 }
 
-function processPlayerEnemyCollisions(state) {
+function applyKnifeSideTrails(state, weapon, start, end, primaryEnemyId = null) {
+  const effect = weapon.effect;
+  if (!effect?.sideTrailDamageMultiplier) return;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  const fallbackAngle = state.actor.vx || state.actor.vy
+    ? Math.atan2(state.actor.vy, state.actor.vx)
+    : (state.actor.facing === 'left' ? Math.PI : 0);
+  const angle = length > 0 ? Math.atan2(dy, dx) : fallbackAngle;
+  const normal = { x: -Math.sin(angle), y: Math.cos(angle) };
+  const offset = effect.sideTrailOffset ?? 22;
+  const sideRadius = effect.sideTrailRadius ?? 18;
+  [-1, 1].forEach((side) => {
+    const sideStart = { x: start.x + normal.x * offset * side, y: start.y + normal.y * offset * side };
+    const sideEnd = { x: end.x + normal.x * offset * side, y: end.y + normal.y * offset * side };
+    addEffect(state, {
+      type: 'knifeTrail',
+      style: 'knifeTrail',
+      x: sideStart.x,
+      y: sideStart.y,
+      targetX: sideEnd.x,
+      targetY: sideEnd.y,
+      radius: sideRadius,
+      duration: effect.sideTrailDuration ?? 0.28,
+      angle,
+      colour: '#a7f3ff',
+      lineWidth: Math.max(2, (effect.lineWidth ?? 3.5) - 0.7),
+    });
+    activeEnemies(state).forEach((enemy) => {
+      if (enemy.instanceId === primaryEnemyId || (enemy.knifeSideHitCooldownUntil ?? 0) > state.time) return;
+      if (distanceToSegment(enemy, sideStart, sideEnd) > enemy.radius + sideRadius) return;
+      damageEnemy(state, enemy, weapon.damage * effect.sideTrailDamageMultiplier, `小刀 Lv.${state.build.weaponLevel} 側刃`);
+      enemy.knifeSideHitCooldownUntil = state.time + 0.25;
+    });
+  });
+}
+
+function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
   const actor = state.actor;
   const speed = Math.hypot(actor.vx, actor.vy);
   if (speed < 18) return;
   const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
+  const isKnife = state.build.weaponId === 'knife';
+  const pathStart = previousPosition ?? actor;
+  const pathEnd = { x: actor.x, y: actor.y };
   activeEnemies(state).forEach((enemy) => {
-    if (distanceBetween(actor, enemy) > actor.radius + enemy.radius) return;
+    const contact = distanceBetween(actor, enemy) <= actor.radius + enemy.radius;
+    const pathHit = isKnife && distanceToSegment(enemy, pathStart, pathEnd) <= actor.radius + enemy.radius + 8;
+    if (!contact && !pathHit) return;
     if (state.time < (enemy.playerHitCooldownUntil ?? 0)) return;
     damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
     enemy.playerHitCooldownUntil = state.time + 0.28;
-    if (state.build.weaponId === 'knife') {
+    if (isKnife) {
+      if (weapon.effect?.sideTrailDamageMultiplier) applyKnifeSideTrails(state, weapon, pathStart, pathEnd, enemy.instanceId);
       addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
       return;
     }
@@ -716,6 +794,38 @@ function processPlayerEnemyCollisions(state) {
     actor.x = enemy.x + normalX * (actor.radius + enemy.radius + 1);
     actor.y = enemy.y + normalY * (actor.radius + enemy.radius + 1);
     addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
+  });
+}
+
+function processStationaryKnifeArea(state) {
+  if (state.aiming || state.build.weaponId !== 'knife' || state.build.weaponLevel < 3) return;
+  if (Math.hypot(state.actor.vx, state.actor.vy) > 8) return;
+  const weapon = getWeaponStats('knife', 3);
+  const effect = weapon.effect;
+  const radius = effect?.stationaryAreaRadius ?? 62;
+  const cooldownKey = 'weapon:knife:stationaryArea';
+  if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
+  state.actor.cooldowns[cooldownKey] = effect?.stationaryTickInterval ?? 0.34;
+  let hitCount = 0;
+  activeEnemies(state).forEach((enemy) => {
+    if (distanceBetween(state.actor, enemy) > radius + enemy.radius) return;
+    const damage = damageEnemy(
+      state,
+      enemy,
+      weapon.damage * (effect?.stationaryDamageMultiplier ?? 0.55),
+      '小刀 Lv.3 停止範圍',
+    );
+    if (damage > 0) hitCount += 1;
+  });
+  addEffect(state, {
+    type: 'knifeArea',
+    style: 'knifeArea',
+    x: state.actor.x,
+    y: state.actor.y,
+    radius,
+    duration: Math.min(0.38, effect?.stationaryTickInterval ?? 0.34),
+    colour: '#b8f5ff',
+    hitCount,
   });
 }
 
@@ -766,6 +876,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   // damage gate; all movement, gravity, drag, boundary reflection, oxygen,
   // facing and launch momentum now come from the production step.
   if (state.invincible) state.actor.invulnerability = Math.max(state.actor.invulnerability ?? 0, dt + 0.01);
+  const previousPosition = { x: state.actor.x, y: state.actor.y };
   const physicsEvents = state.aiming ? [] : stepPhysics({
     map: state.physicsMap,
     chapter: 'chapter1',
@@ -792,7 +903,8 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.health = MAX_HEALTH;
   }
   updateEnemies(state, dt);
-  processPlayerEnemyCollisions(state);
+  processPlayerEnemyCollisions(state, previousPosition);
+  processStationaryKnifeArea(state);
   updateProjectiles(state, dt);
   collectSandboxExperience(state);
   updateZones(state, dt);

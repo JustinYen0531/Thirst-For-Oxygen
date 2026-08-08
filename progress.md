@@ -613,3 +613,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Preserved the authored encounter density: Part 1 spawns 9 teaching enemies, Part 2 spawns 4 mid-tier enemies, and Part 3 spawns 6 advanced regular enemies. Existing markers may optionally override the assigned regular enemy with an explicit `enemyId`.
 - Rendered the transparent natural-floating enemy assets with a small positional drift, fixed sprite size, camera culling, loading fallback, spawn-count event, and visible-enemy text state. Formal combat AI remains a separate follow-up rather than being implied by this visibility milestone.
 - Static-only verification passed: focused play-enemy checks (3/3), full `npm run check` (85/85 tests), `npm run build`, and `git diff --check`. Browser and Playwright remain prohibited by user instruction.
+
+## 2026-08-09 — Step 74 complete
+
+- Added explicit Canvas-only knife upgrade profiles: Lv.1 path slash, Lv.2 two side trails at 70% main damage, and Lv.3 stationary area damage with a fixed tick interval.
+- Added distinct Lv.1/Lv.2/Lv.3 arc, trail, and accent visuals without image assets.
+- Enlarged the sandbox diver interaction zone, made diver control the default, and made enemy placement an explicit opt-in mode.
+- Static-only verification passed: focused progression tests (15/15), full `npm run check` (87/87), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
