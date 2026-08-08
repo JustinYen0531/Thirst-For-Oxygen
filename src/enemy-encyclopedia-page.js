@@ -1,11 +1,52 @@
-import { ATTACK_VALUE_LABELS, ENEMY_ENCYCLOPEDIA, formatAttackValue } from './enemy-encyclopedia.js';
+import {
+  ATTACK_VALUE_LABELS,
+  ENCYCLOPEDIA_SECTIONS,
+  ENEMY_ENCYCLOPEDIA,
+  MAP_ENCYCLOPEDIA,
+  PASSIVE_ENCYCLOPEDIA,
+  WEAPON_ENCYCLOPEDIA,
+  formatAttackValue,
+} from './enemy-encyclopedia.js';
 import { AFTERIMAGE_PROFILE } from './afterimage.js';
 
+const sectionFilters = document.querySelector('#section-filters');
 const tierFilters = document.querySelector('#tier-filters');
+const sectionSummary = document.querySelector('#section-summary');
 const enemyGrid = document.querySelector('#enemy-grid');
+const afterimageControls = document.querySelector('.afterimage-controls');
 const afterimageToggle = document.querySelector('#afterimage-toggle');
 const tierOrder = ['all', 1, 2, 3, 4, 'miniBoss', 'mutatedMiniBoss', 'finalBoss'];
 const tierLabels = { all: '全部', 1: '等級 1', 2: '等級 2', 3: '等級 3', 4: '等級 4', miniBoss: '小 Boss', mutatedMiniBoss: '變異小 Boss', finalBoss: 'Final Boss' };
+const tierDescriptions = { all: '所有敵人與 Boss', 1: '教學型生物', 2: '核心小怪', 3: '特殊小怪與精英', 4: '變異精英', miniBoss: '大型生物原型', mutatedMiniBoss: '變異大型生物原型', finalBoss: '最終戰場控制者' };
+const weaponTypeLabels = { melee: '近戰', projectile: '遠程投射' };
+const entryValueLabels = {
+  damage: '傷害',
+  range: '距離',
+  cooldown: '冷卻',
+  energyCost: '能量消耗',
+  projectileSpeed: '投射速度',
+  projectileCount: '投射物數量',
+  spreadDegrees: '散射角度',
+  hitArcDegrees: '命中弧度',
+  burstCount: '連射數量',
+  burstInterval: '連射間隔',
+  maxOxygenMultiplier: '最大氧氣倍率',
+  launchEnergyCostMultiplier: '噴射消耗倍率',
+  weaponEnergyCostMultiplier: '武器消耗倍率',
+  aimEnergyCostMultiplier: '瞄準消耗倍率',
+  rangedDamageTakenMultiplier: '遠程受傷倍率',
+  lowOxygenDamageTakenMultiplier: '低氧受傷倍率',
+  damageMultiplier: '武器傷害倍率',
+  highOxygenDamageMultiplier: '高氧傷害倍率',
+  killEnergyRecoveryRatio: '擊殺能量回復',
+  killOxygenRecoveryRatio: '擊殺氧氣回復',
+  resourceRecoveryHealthRatio: '資源轉生命',
+  shieldThresholdRatio: '護盾觸發比例',
+  shieldDuration: '護盾時間',
+  shieldCooldown: '護盾冷卻',
+};
+let activeSection = 'enemies';
+let activeTier = 'all';
 let afterimageEnabled = afterimageToggle?.checked ?? false;
 
 const escapeHtml = (value) => String(value)
@@ -17,8 +58,26 @@ const escapeHtml = (value) => String(value)
 
 function attackValues(attack) {
   return Object.entries(attack)
-    .filter(([key, value]) => !['id', 'name', 'type'].includes(key) && value !== undefined)
+    .filter(([key, value]) => !['id', 'name', 'type', 'description'].includes(key) && value !== undefined)
     .map(([key, value]) => `<span><b>${escapeHtml(ATTACK_VALUE_LABELS[key] ?? key)}</b>${escapeHtml(formatAttackValue(key, value))}</span>`)
+    .join('');
+}
+
+function formatEntryValue(key, value) {
+  if (key.endsWith('Multiplier')) {
+    const percent = Math.round((value - 1) * 100);
+    return `${percent > 0 ? '+' : ''}${percent}%`;
+  }
+  if (key.endsWith('Ratio')) return `${Math.round(value * 100)}%`;
+  if (typeof value === 'number' && (key.toLowerCase().includes('cooldown') || key.toLowerCase().includes('interval') || key.toLowerCase().includes('duration'))) return `${value} 秒`;
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  return String(value);
+}
+
+function entryValues(values) {
+  return Object.entries(values)
+    .filter(([key, value]) => value !== undefined && value !== null && typeof value !== 'object')
+    .map(([key, value]) => `<span><b>${escapeHtml(entryValueLabels[key] ?? key)}</b>${escapeHtml(formatEntryValue(key, value))}</span>`)
     .join('');
 }
 
@@ -38,10 +97,7 @@ function getPreviewSource(enemy, attackId) {
   const normalSource = attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle;
   const trailSource = attackId ? enemy.visuals?.afterimageActions?.[attackId] : enemy.visuals?.afterimageIdle;
   const showingAfterimage = afterimageEnabled && Boolean(trailSource);
-  return {
-    source: showingAfterimage ? trailSource : normalSource,
-    showingAfterimage,
-  };
+  return { source: showingAfterimage ? trailSource : normalSource, showingAfterimage };
 }
 
 function enemyCard(enemy) {
@@ -68,17 +124,88 @@ function enemyCard(enemy) {
   </article>`;
 }
 
-function renderCards(filter = 'all') {
+function mapCard(entry) {
+  return `<article class="entry-card map-card">
+    <div class="entry-card-heading"><span class="tier-chip">${escapeHtml(entry.group)}</span><h2>${escapeHtml(entry.name)}</h2></div>
+    <p class="entry-description">${escapeHtml(entry.description)}</p>
+    <dl class="entry-details">${entry.details.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
+  </article>`;
+}
+
+function levelList(entry) {
+  return `<ol class="level-list">${entry.levels.map((level) => `<li><div class="level-heading"><strong>Lv.${level.level}</strong><span>${escapeHtml(level.summary)}</span></div><div class="entry-values">${entryValues(level.values)}</div></li>`).join('')}</ol>`;
+}
+
+function weaponCard(weapon) {
+  return `<article class="entry-card build-card">
+    <div class="entry-card-heading"><div><span class="tier-chip">武器・${escapeHtml(weaponTypeLabels[weapon.type] ?? weapon.type)}</span><h2>${escapeHtml(weapon.name)}</h2></div><span class="role-label">最高 Lv.${weapon.maxLevel}</span></div>
+    <p class="entry-role"><b>定位</b>${escapeHtml(weapon.role)}</p>
+    <p class="entry-description">${escapeHtml(weapon.description)}</p>
+    ${levelList(weapon)}
+  </article>`;
+}
+
+function passiveCard(passive) {
+  return `<article class="entry-card build-card">
+    <div class="entry-card-heading"><div><span class="tier-chip">被動能力</span><h2>${escapeHtml(passive.name)}</h2></div><span class="role-label">最高 Lv.${passive.maxLevel}</span></div>
+    <p class="entry-role"><b>定位</b>${escapeHtml(passive.role)}</p>
+    <p class="entry-description">${escapeHtml(passive.description)}</p>
+    ${levelList(passive)}
+  </article>`;
+}
+
+function renderEnemyCards() {
   enemyGrid.innerHTML = ENEMY_ENCYCLOPEDIA
-    .filter((enemy) => filter === 'all' || String(enemy.tier) === String(filter))
+    .filter((enemy) => activeTier === 'all' || String(enemy.tier) === String(activeTier))
     .map(enemyCard)
     .join('');
 }
 
-function setActiveFilter(filter) {
-  tierFilters.querySelectorAll('button').forEach((button) => button.classList.toggle('is-active', button.dataset.filter === String(filter)));
-  renderCards(filter);
+function renderSection(sectionId) {
+  activeSection = sectionId;
+  const section = ENCYCLOPEDIA_SECTIONS.find(({ id }) => id === sectionId) ?? ENCYCLOPEDIA_SECTIONS[0];
+  sectionFilters.querySelectorAll('button').forEach((button) => button.classList.toggle('is-active', button.dataset.section === section.id));
+  sectionSummary.innerHTML = `<strong>${escapeHtml(section.label)}</strong><span>${escapeHtml(section.description)}</span>`;
+  const isEnemySection = section.id === 'enemies';
+  tierFilters.hidden = !isEnemySection;
+  afterimageControls.hidden = !isEnemySection;
+  if (section.id === 'map') enemyGrid.innerHTML = MAP_ENCYCLOPEDIA.map(mapCard).join('');
+  if (section.id === 'weapons') enemyGrid.innerHTML = WEAPON_ENCYCLOPEDIA.map(weaponCard).join('');
+  if (section.id === 'passives') enemyGrid.innerHTML = PASSIVE_ENCYCLOPEDIA.map(passiveCard).join('');
+  if (isEnemySection) renderEnemyCards();
 }
+
+function setActiveTier(tier) {
+  activeTier = tier;
+  tierFilters.querySelectorAll('button').forEach((button) => button.classList.toggle('is-active', button.dataset.filter === String(tier)));
+  sectionSummary.innerHTML = `<strong>${escapeHtml(tierLabels[tier])}</strong><span>${escapeHtml(tierDescriptions[tier])}</span>`;
+  renderEnemyCards();
+}
+
+sectionFilters.innerHTML = ENCYCLOPEDIA_SECTIONS
+  .map((section) => `<button type="button" data-section="${escapeHtml(section.id)}">${escapeHtml(section.label)}</button>`)
+  .join('');
+tierFilters.innerHTML = tierOrder.map((tier) => `<button type="button" data-filter="${tier}">${tierLabels[tier]}</button>`).join('');
+
+sectionFilters.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-section]');
+  if (button) renderSection(button.dataset.section);
+});
+
+tierFilters.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-filter]');
+  if (button) setActiveTier(button.dataset.filter);
+});
+
+afterimageToggle.checked = afterimageEnabled;
+afterimageToggle.addEventListener('change', () => {
+  afterimageEnabled = afterimageToggle.checked;
+  if (activeSection !== 'enemies') return;
+  enemyGrid.querySelectorAll('.enemy-card').forEach((card) => {
+    const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
+    if (enemy) updatePreview(card, enemy, card.dataset.selectedAction === 'idle' ? undefined : card.dataset.selectedAction);
+  });
+});
 
 function updatePreview(card, enemy, attackId) {
   const image = card.querySelector('[data-preview-image]');
@@ -111,21 +238,6 @@ function updatePreview(card, enemy, attackId) {
   }
 }
 
-tierFilters.innerHTML = tierOrder.map((tier) => `<button type="button" data-filter="${tier}">${tierLabels[tier]}</button>`).join('');
-tierFilters.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-filter]');
-  if (button) setActiveFilter(button.dataset.filter);
-});
-
-afterimageToggle.checked = afterimageEnabled;
-afterimageToggle.addEventListener('change', () => {
-  afterimageEnabled = afterimageToggle.checked;
-  enemyGrid.querySelectorAll('.enemy-card').forEach((card) => {
-    const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
-    if (enemy) updatePreview(card, enemy, card.dataset.selectedAction === 'idle' ? undefined : card.dataset.selectedAction);
-  });
-});
-
 enemyGrid.addEventListener('click', (event) => {
   const loreButton = event.target.closest('[data-lore-toggle]');
   if (loreButton) {
@@ -137,15 +249,10 @@ enemyGrid.addEventListener('click', (event) => {
     loreButton.setAttribute('aria-expanded', String(!isOpen));
     panel.classList.toggle('is-open', !isOpen);
     card.classList.toggle('is-lore-open', !isOpen);
-    if (!isOpen) {
-      card.dataset.selectedAction = 'idle';
-      card.querySelectorAll('.action-button').forEach((candidate) => candidate.classList.remove('is-active'));
-      const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
-      if (enemy) updatePreview(card, enemy, undefined);
-    } else {
-      const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
-      if (enemy) updatePreview(card, enemy, undefined);
-    }
+    card.dataset.selectedAction = 'idle';
+    card.querySelectorAll('.action-button').forEach((candidate) => candidate.classList.remove('is-active'));
+    const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
+    if (enemy) updatePreview(card, enemy, undefined);
     return;
   }
   const button = event.target.closest('[data-action-id]');
@@ -161,6 +268,6 @@ enemyGrid.addEventListener('click', (event) => {
   updatePreview(card, enemy, attackId);
 });
 
-setActiveFilter('all');
-
 document.querySelector('#afterimage-profile').textContent = `${AFTERIMAGE_PROFILE.sampleCount} 幀：${Math.round(AFTERIMAGE_PROFILE.nearestOpacity * 100)}% → ${Math.round(AFTERIMAGE_PROFILE.opacities.at(-1) * 100)}%，每幀偏移 ${AFTERIMAGE_PROFILE.driftX}px`;
+renderSection('enemies');
+setActiveTier('all');

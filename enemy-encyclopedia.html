@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thirst for Oxygen — 敵人圖鑑</title>
+    <title>Thirst for Oxygen — 世界圖鑑</title>
     <link rel="stylesheet" href="/src/encyclopedia.css" />
   </head>
   <body>
@@ -11,8 +11,8 @@
       <header class="encyclopedia-header">
         <div>
           <p class="eyebrow">THIRST FOR OXYGEN / FIELD GUIDE</p>
-          <h1>敵人圖鑑</h1>
-          <p class="lede">先看敵人在水中自然漂浮，再點技能按鈕觀看它的攻擊演示。</p>
+          <h1>世界圖鑑</h1>
+          <p class="lede">從敵人、地圖元素到武器與被動能力，一次讀懂這片深海的遊戲語言。</p>
         </div>
           <a class="back-link" href="/home.html">返回主控台</a>
           <a class="back-link" href="/play.html?part=3">遊玩地圖</a>
@@ -21,8 +21,8 @@
       </header>
 
       <section class="guide-note" aria-label="圖鑑使用說明">
-        <strong>演示入口已整合</strong>
-        <span>卡片只列出可演示的技能；沒有選擇技能時就是自然漂浮，會顯示敵人的生態介紹。右上角的「Lore 檔案」會補充現實生物參考、識別特徵與視覺設定。沒有 GIF 的 Boss 仍會列出完整技能與數值，待素材補齊後可直接接回同一個入口。</span>
+        <strong>完整資料入口已整合</strong>
+        <span>敵人分類保留自然漂浮、技能演示與 Lore 檔案；地圖元素、武器與被動能力則用同一套卡片列出正式定位、玩法作用與等級變化。數值資料仍以遊戲資料模組為準。</span>
       </section>
 
       <section class="afterimage-controls" aria-label="殘影演示控制">
@@ -30,6 +30,8 @@
         <span>預設顯示單一乾淨動畫；勾選後才以歷史幀疊合。</span><strong id="afterimage-profile">4 幀：28% → 5%，每幀偏移 3px</strong>
       </section>
 
+      <nav id="section-filters" class="section-filters" aria-label="圖鑑分類"></nav>
+      <div id="section-summary" class="section-summary" aria-live="polite"></div>
       <nav id="tier-filters" class="tier-filters" aria-label="敵人等級篩選"></nav>
       <section id="enemy-grid" class="enemy-grid" aria-live="polite"></section>
     </main>

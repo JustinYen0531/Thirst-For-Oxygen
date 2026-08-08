@@ -1,4 +1,16 @@
-import { ENEMY_DEFINITIONS, ENEMY_ORDER } from './game-data.js';
+import {
+  ENEMY_DEFINITIONS,
+  ENEMY_ORDER,
+  PASSIVE_ABILITIES,
+  WEAPONS,
+} from './game-data.js';
+import {
+  CELL_OBJECT_TYPES,
+  EDGE_TYPES,
+  OVERLAY_TYPES,
+  TERRAIN_TYPES,
+  WATER_LAYERS,
+} from './map-model.js';
 
 const gif = (slug) => `reconstructed-preview__${slug}.gif`;
 const root = (id) => `/assets/enemies/${id}`;
@@ -232,6 +244,276 @@ export const ENEMY_ENCYCLOPEDIA = Object.freeze(ENEMY_ORDER.map((id) => {
     }) : null,
   });
 }));
+
+const MAP_ENTRY_DETAILS = Object.freeze({
+  water: {
+    group: '地形',
+    name: '可通行水域',
+    description: '角色可以在其中移動、彈射與讀取水域重力的基本六邊形區域。',
+    details: [['放置層級', 'Cell 整格地形'], ['玩法作用', '提供可通行空間，並承載重力、物件、Edge 與角色']],
+  },
+  blocked: {
+    group: '地形',
+    name: '不可通行區域',
+    description: '封住路線的黑色六邊形空間，角色不能進入；它也可以成為 Edge 障礙與多邊傳送門的依附邊界。',
+    details: [['放置層級', 'Cell 整格地形'], ['玩法作用', '切斷路線、塑造狹窄通道與傳送門邊界']],
+  },
+  'L-1': {
+    group: '水域重力',
+    name: 'L-1 淺色水域',
+    description: '持續向上 1.0G，把玩家推向海面，適合構成上浮路線與回程壓力。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['物理效果', '向上 1.0G，保留角色自身慣性']],
+  },
+  L0: {
+    group: '水域重力',
+    name: 'L0 中性色帶',
+    description: '零垂直加速度的中性水域，讓玩家保留慣性並重新規劃下一次彈射。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['物理效果', '0G 垂直加速度，不清除速度']],
+  },
+  L1: {
+    group: '水域重力',
+    name: 'L1 一般藍色水域',
+    description: '遊戲的標準水域，向下 1.0G，是玩家學習水域重力與彈射節奏的基準。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['物理效果', '向下 1.0G']],
+  },
+  L2: {
+    group: '水域重力',
+    name: 'L2 深藍過渡帶',
+    description: '壓力更高的過渡水域，讓角色比一般水域更快下沉。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['物理效果', '向下 1.5G']],
+  },
+  L3: {
+    group: '水域重力',
+    name: 'L3 深色水域',
+    description: '最強下沉水域，會快速壓縮玩家的反應時間與路線選擇。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['物理效果', '向下 2.0G']],
+  },
+  conditionalGate: {
+    group: '水域重力',
+    name: '條件通行門',
+    description: '固定使用 L1 規則的關閉水域；按鈕觸發後解除鎖鏈，變成可通行的標準水域。',
+    details: [['放置層級', 'Cell 整格水域規則'], ['玩法作用', '由按鈕控制，可一顆按鈕開啟多個指定門']],
+  },
+  T1: {
+    group: '水域層級',
+    name: 'T1 水域層',
+    description: '基礎水域層，承載一般關卡路線與第一章的主要空間。',
+    details: [['放置層級', 'Cell 整格水域層'], ['玩法作用', '角色在此層移動，亦可透過層間轉接門切換']],
+  },
+  T2: {
+    group: '水域層級',
+    name: 'T2 水域層',
+    description: '第二個水域層，與 T1 疊合但保留自己的地圖狀態，讓同一段空間擁有另一條路線。',
+    details: [['放置層級', 'Cell 整格水域層'], ['玩法作用', '透過層間轉接門進出，支援上下層解謎']],
+  },
+  ink: {
+    group: 'Cell 環境效果',
+    name: '墨水區',
+    description: '把周圍空間藏進黑暗，只保留玩家附近的可見範圍，讓路線判讀變成風險。',
+    details: [['放置層級', 'Cell Overlay，可自由定位'], ['玩法作用', '限制視野，不直接改變重力或碰撞']],
+  },
+  coralCluster: {
+    group: 'Cell／Edge 物件',
+    name: '珊瑚群落',
+    description: '深海生態留下的石質珊瑚群落；在安全區配置中可以成為低壓避難點，讓小 Boss 以下敵人停止追擊。',
+    details: [['放置層級', '舊地圖可作 Cell 物件；新配置優先作 Edge 附著'], ['玩法作用', '建立安全區與視覺地標；大小可調，尚未拆成獨立戰鬥數值']],
+  },
+  mine: {
+    group: 'Cell 物件',
+    name: '深海地雷',
+    description: '埋在水域中的壓力爆裂物，碰撞時同時造成額外傷害與強力反彈。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '把撞擊路線變成高風險選擇']],
+  },
+  weightStone: {
+    group: 'Cell 物件',
+    name: '重石',
+    description: '會自然向下墜落的巨大石塊；玩家向上撞擊時若力量不足，反而會被它壓回去。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '高速撞擊可破壞，形成需要管理速度與角度的障礙']],
+  },
+  seaweed: {
+    group: 'Cell／Edge 物件',
+    name: '水草',
+    description: '可以附著的柔性生物，附著期間暫時不受水域重力，玩家可以利用它等待體力恢復。',
+    details: [['放置層級', '舊地圖可作 Cell 物件；新配置優先作 Edge 附著'], ['玩法作用', '提供停泊、恢復與重新瞄準的短暫節點']],
+  },
+  oxygen: {
+    group: 'Cell 物件',
+    name: '含氧礦石',
+    description: '藏著有限氧氣的深色礦石，必須用高速撞擊打開，補給通常放在危險位置。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '把氧氣取得與玩家肉身撞擊風險綁在一起']],
+  },
+  checkpoint: {
+    group: 'Cell 物件',
+    name: 'Checkpoint 檢查點',
+    description: '接觸後更新死亡返回位置，並恢復生命、氧氣與體力，讓長路線有明確的安全邊界。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '更新重生點與資源，不增加永久命數']],
+  },
+  bubble: {
+    group: 'Cell 物件',
+    name: '光合作用氣泡',
+    description: '短時間把玩家包進慣性移動狀態並免疫重力；速度很自由，也可能讓玩家失控掉落。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '快速穿越高壓區，但必須預先規劃脫離位置']],
+  },
+  torricelli: {
+    group: 'Cell 物件',
+    name: '托里切利空間',
+    description: '短暫存在的含氧浮島，提供補給與喘息，但常被放在需要高風險折返的位置。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '以有限安全時間換取氧氣回復']],
+  },
+  razor: {
+    group: 'Cell 物件',
+    name: '剃刀軸',
+    description: '繞中心軸旋轉的深海刀片組，接觸時造成傷害並把角色強制推離。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '可選 1–4 片刀刃，製造旋轉節奏與窄縫危險']],
+  },
+  button: {
+    group: 'Cell 物件',
+    name: '一次性開門按鈕',
+    description: '接觸後只觸發一次，開啟 Inspector 指定的條件通行門；一顆按鈕可以控制多扇門。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '把探索順序、回頭路與多門連鎖寫進地圖資料']],
+  },
+  springJelly: {
+    group: 'Edge 互動',
+    name: '彈簧水母',
+    description: '固定在兩個 Cell 共用邊上的反射生物，遵守入射角等於反射角，將角色彈向可預測方向。',
+    details: [['放置層級', 'Edge Snap'], ['玩法作用', '把撞擊轉成路線跳板，常與障礙邊界並用']],
+  },
+  spike: {
+    group: 'Edge 互動',
+    name: '尖刺',
+    description: '貼在共用邊上的尖銳障礙，阻擋角色通過並造成接觸傷害。',
+    details: [['放置層級', 'Edge Snap'], ['玩法作用', '封鎖一條邊，迫使玩家改變彈射角度']],
+  },
+  barrier: {
+    group: 'Edge 互動',
+    name: '通用障礙',
+    description: '不可穿越的邊界障礙，與尖刺共享目前的障礙素材，但邏輯上不一定造成傷害。',
+    details: [['放置層級', 'Edge Snap'], ['玩法作用', '建立牆面、窄口與不可直接穿越的路線邊界']],
+  },
+  current: {
+    group: 'Edge 互動',
+    name: '潮流',
+    description: '沿著兩格共用邊施加橫向推力，方向與強度可在 Inspector 中調整。',
+    details: [['放置層級', 'Edge Snap'], ['玩法作用', '像水平重力一樣改變彈射落點與移動節奏']],
+  },
+  layerPortal: {
+    group: 'Edge 互動',
+    name: '層間轉接門',
+    description: '只能放在 T1 與 T2 相鄰的共享邊；通過後切換到另一個水域層。',
+    details: [['放置層級', 'T1／T2 相鄰 Edge'], ['玩法作用', '讓兩層地圖共享同一個空間位置，但保留不同狀態']],
+  },
+  multiPortal: {
+    group: 'Edge 互動',
+    name: '多邊傳送門',
+    description: '沿著不可通行六邊形的一整端連續繪製，完成另一端連線後逐段一對一傳送。',
+    details: [['放置層級', '貼著不可通行 Cell 的連續 Edge'], ['玩法作用', '把兩端路線綁成大範圍傳送關係，必須先完成配對才啟用']],
+  },
+});
+
+const mapEntries = (ids, fallbackGroup) => ids.map((id) => {
+  const entry = MAP_ENTRY_DETAILS[id] ?? {
+    group: fallbackGroup,
+    name: id,
+    description: '此地圖元素的介紹仍在整理中。',
+    details: [],
+  };
+  return Object.freeze({ id, ...entry });
+});
+
+export const MAP_ENCYCLOPEDIA = Object.freeze([
+  ...mapEntries(TERRAIN_TYPES, '地形'),
+  ...mapEntries(['L-1', 'L0', 'L1', 'L2', 'L3', 'conditionalGate'], '水域重力'),
+  ...mapEntries(WATER_LAYERS, '水域層級'),
+  ...mapEntries(OVERLAY_TYPES, 'Cell 環境效果'),
+  ...mapEntries(CELL_OBJECT_TYPES, 'Cell 物件'),
+  ...mapEntries(EDGE_TYPES.filter((id) => id !== 'none'), 'Edge 互動'),
+]);
+
+const WEAPON_LORE = Object.freeze({
+  knife: {
+    role: '固定起始的近戰主武器，直接佔用第一個武器槽位。',
+    description: '用角色移動路徑形成斬擊，讓玩家把彈射角度與近身輸出綁在一起。',
+    levels: { 1: '移動路徑造成傷害。', 2: '額外在兩側生成傷害軌跡，傷害為主傷害的 70%。', 3: '停止時持續造成範圍傷害。' },
+  },
+  katana: {
+    role: '自動處理近距離敵人的持續近戰武器。',
+    description: '武士刀以玩家為軸心順時針揮擊，透過殘影交代方向與速度；Lv.3 額外發射可摧毀敵方子彈的劍氣。',
+    levels: { 1: '自動對近距離敵人揮擊；停留越久，輸出越高。', 2: '每次完成移動後，下一次斬擊造成雙倍傷害。', 3: '斬擊附帶大型劍氣，可摧毀敵方子彈。' },
+  },
+  trident: {
+    role: '需要停穩瞄準的高傷害單發遠程武器。',
+    description: '三叉戟適合用在中遠距離讀取敵人前搖，但敵人移動時更難命中。',
+    levels: { 1: '高傷害單發遠程攻擊，僅於靜止時發射。', 2: '命中造成暈眩，使敵人停止移動與攻擊。', 3: '成功命中可縮短下一次冷卻。' },
+  },
+  lightMachineGun: {
+    role: '連續輸出的遠程武器，擅長把擊殺轉成壓制。',
+    description: '輕量機槍以固定方向完成六連射，射擊期間必須承擔不能立即轉向的代價。',
+    levels: { 1: '連續六連射；射擊期間方向固定，結束後進入冷卻。', 2: '後三發造成雙倍傷害。', 3: '子彈命中或終止時產生爆炸。' },
+  },
+});
+
+export const WEAPON_ENCYCLOPEDIA = Object.freeze(Object.values(WEAPONS).map((weapon) => {
+  const lore = WEAPON_LORE[weapon.id];
+  return Object.freeze({
+    id: weapon.id,
+    name: weapon.name,
+    type: weapon.type,
+    maxLevel: weapon.maxLevel,
+    role: lore.role,
+    description: lore.description,
+    levels: Object.freeze(Object.entries(weapon.levels).map(([level, values]) => Object.freeze({
+      level: Number(level),
+      summary: lore.levels[level],
+      values: Object.freeze(values),
+    }))),
+  });
+}));
+
+const PASSIVE_LORE = Object.freeze({
+  oxygenCirculator: {
+    role: '氧氣消耗、氧氣補給與長距離探索。',
+    description: '讓玩家敢於探索更遠的水域，但不會讓氧氣管理失去意義。',
+    levels: { 1: '噴射與移動造成的氧氣消耗降低 10%。', 2: '最大氧氣上限提高 20%。', 3: '保留前兩級效果；低氧時額外降低體力消耗並獲得減傷。' },
+  },
+  pressureStabilizer: {
+    role: '瞄準、發射與體力消耗的節奏。',
+    description: '把擊殺轉化為輸出續航，適合輕量機槍與三叉戟等需要管理發射節奏的武器。',
+    levels: { 1: '瞄準與發射的體力消耗降低 10%。', 2: '消耗降低 20%，每次擊殺恢復最大體力的 5%。', 3: '消耗降低 30%，每次擊殺恢復最大體力的 8% 與最大氧氣的 4%。' },
+  },
+  ecologicalCarapace: {
+    role: '遠程火力容錯、補給轉生命與 Boss 生存。',
+    description: '提高遠程戰鬥與資源管理的容錯，但不增加永久命數。',
+    levels: { 1: '遠程傷害降低 20%。', 2: '受到高額單次傷害時獲得持續 2 秒的生態護盾，冷卻 8 秒。', 3: '保留前兩級效果；恢復氧氣或體力時同步恢復部分生命。' },
+  },
+  abyssalAmplifier: {
+    role: '純武器輸出與高壓清場。',
+    description: '用更高風險換取更快清場；最高級鼓勵玩家維持氧氣。',
+    levels: { 1: '所有武器造成的傷害提高 10%。', 2: '所有武器造成的傷害提高至 20%。', 3: '所有武器造成的傷害提高至 30%；高氧氣時再提高 15%。' },
+  },
+});
+
+export const PASSIVE_ENCYCLOPEDIA = Object.freeze(Object.values(PASSIVE_ABILITIES).map((passive) => {
+  const lore = PASSIVE_LORE[passive.id];
+  return Object.freeze({
+    id: passive.id,
+    name: passive.name,
+    maxLevel: passive.maxLevel,
+    role: lore.role,
+    description: lore.description,
+    levels: Object.freeze(Object.entries(passive.levels).map(([level, values]) => Object.freeze({
+      level: Number(level),
+      summary: lore.levels[level],
+      values: Object.freeze(values),
+    }))),
+  });
+}));
+
+export const ENCYCLOPEDIA_SECTIONS = Object.freeze([
+  { id: 'enemies', label: '敵人／Boss', description: '生物原型、視覺識別與戰鬥技能演示。' },
+  { id: 'map', label: '地圖元素', description: '從 Cell、重力、水域層到 Edge 的完整地圖語言。' },
+  { id: 'weapons', label: '武器', description: '四把武器的定位、等級變化與建構角色。' },
+  { id: 'passives', label: '被動能力', description: '四條能力線的生存、資源與輸出方向。' },
+]);
 
 export const ATTACK_VALUE_LABELS = Object.freeze({
   damage: '傷害',
