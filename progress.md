@@ -373,3 +373,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Synchronized the standalone play renderer with the editor's water presentation: animated local arcs, particles, and slow brightness breathing now run on every visible water Cell.
 - Replaced per-Cell heavy strokes with editor-style shared-side boundaries: same terrain/gravity/layer is faint, transitions are clear, and no artificial outer grid cap is drawn.
 - Static-only verification passed: `npm run check` (43/43 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 46 complete
+
+- Fixed the actual standalone play page so it no longer draws the player as a `P` marker; it now loads the diver sprite and keeps a non-text diver silhouette while the image loads.
+- Replaced the diver sprite with an opaque black visor that hides the face, while preserving the ancient carved-stone armor, cyan core, bubbles, and transparent background.
+- Updated the play instructions and initial event text to refer to the diver.
+- Static-only verification passed: `npm run check`, `npm run build`, `git diff --check`, and RGBA/alpha validation of `public/assets/editor/actors/player-diver.png`. Browser and Playwright checks remain prohibited per user instruction.

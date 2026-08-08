@@ -27,6 +27,7 @@ const MAPS = {
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
 const TILE_SIZE = 24;
+const PLAYER_ASSET = '/assets/editor/actors/player-diver.png';
 const TILE_ASSETS = {
   'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
@@ -53,7 +54,7 @@ const unlimitedResourcesButton = document.querySelector('#play-unlimited-resourc
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
-Object.values({ ...TILE_ASSETS, ...OBJECT_ASSETS, ...EDGE_ASSETS }).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+Object.values({ player: PLAYER_ASSET, ...TILE_ASSETS, ...OBJECT_ASSETS, ...EDGE_ASSETS }).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapPart = 3;
@@ -71,7 +72,7 @@ let paused = false;
 let unlimitedResources = false;
 let lastFrame = performance.now();
 let accumulator = 0;
-let eventLog = ['拖曳主角，放開即可彈射。'];
+let eventLog = ['拖曳潛水夫，放開即可彈射。'];
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
@@ -102,9 +103,9 @@ function setupWorld(nextMap) {
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
   trajectory = [];
-  eventLog = ['拖曳主角，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`];
+  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
-  help.textContent = '按住 P 圓形主角並拖曳，放開即可彈射。短距離與長距離的初速度會有明顯差異；相機在地圖左右外緣自動固定。';
+  help.textContent = '按住潛水夫並拖曳，瞄準方向後放開即可彈射。短距離與長距離的初速度會有明顯差異；相機在地圖左右外緣自動固定。';
   loadingMask.classList.add('is-hidden');
   updateCamera();
   updateHud();
@@ -273,7 +274,71 @@ function drawTrajectory() {
 
 function drawActor() {
   if (!actor) return;
-  context.save(); const pulse = 1 + Math.sin(performance.now() / 260) * .06; context.shadowColor = '#ffe68a'; context.shadowBlur = 14; context.fillStyle = '#fff7ca'; context.beginPath(); context.arc(actor.x, actor.y, 8 * pulse, 0, Math.PI * 2); context.fill(); context.shadowBlur = 0; context.strokeStyle = '#b98c36'; context.lineWidth = 1; context.stroke(); context.fillStyle = '#10233a'; context.font = 'bold 8px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText('P', actor.x, actor.y + .3); if (dragging && aimPoint) { context.strokeStyle = '#f7dc78'; context.lineWidth = 1; context.beginPath(); context.moveTo(actor.x, actor.y); context.lineTo(aimPoint.x, aimPoint.y); context.stroke(); } context.restore();
+  const time = performance.now();
+  const pulse = 1 + Math.sin(time / 260) * .06;
+  const image = images.get(PLAYER_ASSET);
+  const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+  const height = Math.max(22, actor.radius * 3.1);
+  const width = imageReady ? height * image.naturalWidth / image.naturalHeight : height * .78;
+  const bob = Math.sin(time / 420) * .65;
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.globalAlpha = .18;
+  context.fillStyle = '#49dfff';
+  context.beginPath();
+  context.ellipse(actor.x, actor.y + bob + height * .22, width * .42 * pulse, height * .34 * pulse, 0, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  context.save();
+  context.translate(actor.x, actor.y + bob);
+  context.rotate(Math.sin(time / 560) * .035 + clamp(actor.vy * .004, -.08, .08));
+  if (imageReady) {
+    context.globalAlpha = .98;
+    context.drawImage(image, -width / 2, -height / 2, width, height);
+  } else {
+    // Keep a readable non-text fallback while the sprite is loading.
+    context.fillStyle = '#090f18';
+    context.strokeStyle = '#8de9ff';
+    context.lineWidth = 1.1;
+    context.beginPath();
+    context.arc(0, -height * .24, width * .27, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#183c57';
+    context.beginPath();
+    context.ellipse(0, height * .12, width * .27, height * .35, 0, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#1b6f94';
+    context.fillRect(-width * .45, height * .3, width * .28, height * .18);
+    context.fillRect(width * .17, height * .3, width * .28, height * .18);
+  }
+  context.restore();
+
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.globalAlpha = .66;
+  context.fillStyle = '#bff8ff';
+  for (let index = 0; index < 2; index += 1) {
+    const phase = time / 420 + index * 2.8;
+    context.beginPath();
+    context.arc(actor.x + Math.cos(phase) * width * .42, actor.y + bob - height * .28 - ((time / 700 + index * 4) % 4), .55 + index * .18, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
+
+  if (dragging && aimPoint) {
+    context.save();
+    context.strokeStyle = '#f7dc78';
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(actor.x, actor.y);
+    context.lineTo(aimPoint.x, aimPoint.y);
+    context.stroke();
+    context.restore();
+  }
 }
 
 function render() {
