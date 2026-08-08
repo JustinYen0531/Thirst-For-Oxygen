@@ -15,6 +15,7 @@ import {
   MAX_OXYGEN,
   OXYGEN_DURATION_SECONDS,
   createTestActor,
+  findPlayerStart,
   launchActor,
   registerPlayerDeath,
   respawnActor,
@@ -132,6 +133,11 @@ function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, r
 function visibleCell(cell) { return cell.q !== undefined && cell.r !== undefined && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y > camera.y - 40 && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y < camera.y + canvas.height / SCALE + 40; }
 
 function chooseSpawn(nextMap) {
+  const authoredStart = findPlayerStart(nextMap, 'chapter1', origin);
+  const startCell = Object.values(nextMap.cells).find((cell) => (
+    cell.terrain === 'water' && cell.actors?.some((actor) => actor.kind === 'playerStart')
+  ));
+  if (startCell) return authoredStart;
   const targetRow = ((nextMap.layout?.height ?? 1) - 1) / 2;
   const targetColumn = ((nextMap.layout?.width ?? 1) - 1) / 2;
   const safe = Object.values(nextMap.cells).filter((cell) => cell.terrain === 'water').sort((a, b) => {

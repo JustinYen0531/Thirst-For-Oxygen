@@ -558,3 +558,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Increased visor transmission/reflection contrast with layered glass sheen, diagonal highlights, edge glow, and reduced-motion fallbacks; the map remains visible through the transparent center.
 - Made ambient audio startup resilient to autoplay rejection by listening in capture phase on trusted pointer/keyboard gestures, retrying after rejected attempts, and raising the 240-second underwater loop/bubble mix to an audible but subordinate level.
 - Static-only verification passed: `npm run check` (70/70 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-09 — Step 68 complete
+
+- Rebuilt Descent Parts 1 and 2 as independent authored routes instead of simplified copies: Part 1 is a forgiving deep-forest teaching route, while Part 2 is a thermal branch-and-gate challenge with an optional portal shortcut.
+- Preserved the player's original 24×117 Part 3 terrain, gravity, T1/T2 layers, and multi-portal structure as the final exam; the generator now only adds encounter pacing, resources, and actor markers around that authored geometry.
+- Added one real player start per map plus enemy, Mini Boss, and Boss markers, and made the standalone play page honor each authored start instead of falling back to the map centre.
+- Established a teach-then-combine curve that uses every implemented free object and Edge interaction across the trilogy. Focused map checks cover structural validity, route connectivity, complete mechanic coverage, button-before-gate order, difficulty growth, and exact preservation of the player's Part 3 geometry.
+- Static-only verification passed: focused map checks (8/8), full `npm run check` (74/74 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
