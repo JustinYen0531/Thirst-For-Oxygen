@@ -412,3 +412,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Removed the remaining visual position jump at blocked terrain and sealed water-layer boundaries: collision resolution now returns to the previous physics position instead of teleporting to a normal-offset point.
 - Kept horizontal blocking/reflection and the no-upward-lift velocity guard; explicit spring and mine bounce behavior remains unchanged.
 - Added a regression test for collision position correction. Static-only verification passed: `npm run check` (50/50 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 51 complete
+
+- Changed the launch preview from a pointer-ended line into a real forward range preview: the dashed path now mirrors the pull distance in the opposite direction, while the solid path remains attached to the pulled pointer.
+- Capped the visible forward range at the same 420px launch limit used by physics, retained the gyro/hex endpoint, and added a grey diver silhouette with a subtle breathing pulse at the predicted landing point. Gravity and current are intentionally absent from the preview.
+- Added regression coverage for diagonal alignment, forward endpoint projection, and over-cap pulls. Static-only verification passed: `npm run check` (51/51 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
