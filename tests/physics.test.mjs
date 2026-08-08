@@ -836,16 +836,17 @@ test('sandbox player projectile attack reaches a placed enemy', () => {
   assert.ok(enemy.health < enemy.maxHealth, 'a sandbox projectile should damage the selected enemy');
 });
 
-test('sandbox player uses L1 gravity and horizontal velocity settles', () => {
+test('sandbox player uses zero gravity while preserving launch direction', () => {
   const state = createSandboxState();
   state.actor.y = 120;
   state.actor.vx = 40;
   const startY = state.actor.y;
   stepSandbox(state);
-  assert.ok(state.actor.y > startY, 'sandbox player should fall under L1 gravity');
-  assert.ok(state.actor.vy > 0, 'sandbox player should have downward velocity');
-  for (let index = 0; index < 120; index += 1) stepSandbox(state);
-  assert.ok(Math.abs(state.actor.vx) < 1, 'horizontal velocity should settle toward zero');
+  assert.equal(state.infiniteResources, true, 'the sandbox should keep O2 and energy unlimited');
+  assert.ok(Object.values(state.physicsMap.cells).every((cell) => cell.gravityLevel === 'L0'), 'the sandbox physics field should be neutral gravity');
+  assert.equal(state.actor.y, startY, 'zero gravity should not move the diver vertically');
+  assert.equal(state.actor.vy, 0, 'zero gravity should not add vertical velocity');
+  assert.ok(state.actor.x > 150, 'horizontal launch momentum should remain available for combat testing');
 });
 
 test('sandbox elastic launch moves the player and damages enemies on collision', () => {

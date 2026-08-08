@@ -20,6 +20,7 @@ import {
   isSandboxPlayerHit,
   playerAttack,
   setSandboxBuild,
+  setSandboxActiveWeapon,
   spawnSandboxEnemy,
   stepSandbox,
 } from '../src/sandbox-sim.js';
@@ -658,6 +659,37 @@ test('sandbox accepts the authored three weapon and three passive slots with 3/2
   assert.equal(state.build.activeWeaponSlot, 1);
   assert.deepEqual(state.actor.activeWeapon, { id: 'trident', level: 2 });
   assert.equal(state.actor.abilities.length, 3);
+});
+
+test('sandbox can activate each authored weapon slot instead of only the knife', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 3 },
+      { id: 'trident', level: 2 },
+      { id: 'katana', level: 1 },
+    ],
+  });
+
+  [
+    [0, 'knife', 3],
+    [1, 'trident', 2],
+    [2, 'katana', 1],
+  ].forEach(([slot, id, level]) => {
+    const active = setSandboxActiveWeapon(state, slot);
+    assert.deepEqual(active, { id, level });
+    assert.equal(state.build.activeWeaponSlot, slot);
+    assert.equal(state.build.weaponId, id);
+    assert.equal(state.build.weaponLevel, level);
+    assert.deepEqual(state.actor.activeWeapon, { id, level });
+  });
+});
+
+test('knife visual data keeps the Lv.3 linger within a low-cost glow budget', () => {
+  const lv3 = getWeaponStats('knife', 3).effect;
+  assert.ok(lv3.glowBlur <= 8);
+  assert.ok(lv3.sideGlowBlur <= 4);
+  assert.ok(lv3.sparkleBudget <= 6);
 });
 
 test('weapon slots enforce the 3/2/1 level caps while preserving the knife', () => {

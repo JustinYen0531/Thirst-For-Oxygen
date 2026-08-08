@@ -722,3 +722,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Kept the legacy single-weapon `setSandboxBuild` call shape for focused weapon tests, while adding normalized multi-slot input for the actual Build panel and active-slot switching.
 - Removed defeated enemies from the sandbox scene immediately after rewards and split handling, leaving only the short defeat effect and stationary experience orb instead of a blocking corpse.
 - Added regression coverage for normalized weapon/passive slots and corpse removal; focused physics/progression tests passed 88/88. Full static verification passed: `npm run check` (128/128), `npm run build`, and `git diff --check`; browser/Playwright validation remains intentionally skipped.
+
+## 2026-08-09 — Step 89 complete
+
+- Added the formal visor HUD frame to the enemy validation sandbox, including the side O₂ and ENERGY readouts plus the bottom HP core. O₂ and ENERGY are rendered as full `∞ 無限` gauges, while HP continues to show actual combat damage.
+- Changed the sandbox's hidden physics field from L1 to L0. Launches now preserve the player's chosen direction without a gravity-induced vertical drift; the formal play map's gravity rules remain unchanged.
+- Updated sandbox telemetry and release status to expose `gravity: "zero"` and `zeroGravity: true`, and added regression coverage for neutral cells, unlimited resources, preserved vertical position, and horizontal momentum.
+- Static-only verification passed: full `npm run check` (130/130), `npm run build`, and `git diff --check`; browser and Playwright remain intentionally skipped by user instruction.

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thirst for Oxygen — 敵人沙盒</title>
+    <link rel="stylesheet" href="/src/visor-hud.css" />
     <link rel="stylesheet" href="/src/sandbox.css" />
   </head>
   <body>
@@ -55,6 +56,29 @@
             <canvas id="sandbox-canvas" width="960" height="560"></canvas>
             <div id="sandbox-sprites" class="sandbox-sprites" aria-hidden="true"></div>
             <img id="player-sprite" class="sandbox-player-sprite" alt="玩家潛水夫" />
+            <div id="sandbox-resource-hud" class="sandbox-resource-hud visor-hud" aria-label="沙盒玩家狀態">
+              <img class="visor-surround" src="/assets/editor/hud/visor-surround-balanced.png" alt="" aria-hidden="true" />
+              <img class="visor-frame" src="/assets/editor/hud/visor-frame-balanced.png" alt="" aria-hidden="true" />
+              <div class="visor-readout visor-oxygen" aria-label="氧氣（無限）">
+                <span class="visor-resource-label">O₂</span>
+                <output id="sandbox-oxygen-value" class="visor-resource-value">∞ 無限</output>
+                <div id="sandbox-oxygen" class="oxygen-gauge" role="progressbar" aria-label="氧氣（無限）" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="無限"><span data-oxygen-fill></span></div>
+              </div>
+              <div class="visor-readout visor-energy" aria-label="能量（無限）">
+                <span class="visor-resource-label">ENERGY</span>
+                <output id="sandbox-energy-value" class="visor-resource-value">∞ 無限</output>
+                <div id="sandbox-energy" class="energy-segments" role="progressbar" aria-label="能量（無限）" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5" aria-valuetext="無限">
+                  <span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span>
+                </div>
+              </div>
+              <div id="sandbox-health" class="health-core is-full" role="progressbar" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                <div class="health-segments" aria-hidden="true">
+                  <span data-health-segment style="--segment-angle: 180deg; --counter-angle: -180deg"><b></b></span><span data-health-segment style="--segment-angle: 216deg; --counter-angle: -216deg"><b></b></span><span data-health-segment style="--segment-angle: 252deg; --counter-angle: -252deg"><b></b></span><span data-health-segment style="--segment-angle: 288deg; --counter-angle: -288deg"><b></b></span><span data-health-segment style="--segment-angle: 324deg; --counter-angle: -324deg"><b></b></span><span data-health-segment style="--segment-angle: 360deg; --counter-angle: -360deg"><b></b></span><span data-health-segment style="--segment-angle: 396deg; --counter-angle: -396deg"><b></b></span><span data-health-segment style="--segment-angle: 432deg; --counter-angle: -432deg"><b></b></span><span data-health-segment style="--segment-angle: 468deg; --counter-angle: -468deg"><b></b></span><span data-health-segment style="--segment-angle: 504deg; --counter-angle: -504deg"><b></b></span>
+                </div>
+                <div class="health-pointer" aria-hidden="true"></div>
+                <div class="health-center"><span>HP</span><output id="sandbox-health-value" class="health-value">100</output></div>
+              </div>
+            </div>
           </div>
           <div class="arena-toolbar">
             <span id="sandbox-status">沙盒已準備：目前為潛水員操控模式。</span>

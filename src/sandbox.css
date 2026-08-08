@@ -38,7 +38,8 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .build-slot-selectors { display: grid; grid-template-columns: minmax(0, 1fr) 58px; gap: 5px; }
 .build-slot-selectors select { min-width: 0; padding: 4px; font-size: 11px; }
 .sandbox-main { min-width: 0; }
-.sandbox-stage { position: relative; overflow: hidden; border: 1px solid #345d84; border-radius: 7px; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+.sandbox-stage { position: relative; overflow: hidden; border: 0; border-radius: 0; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+.sandbox-resource-hud { pointer-events: none; }
 #sandbox-canvas { display: block; width: 100%; height: auto; background: #081725; cursor: crosshair; touch-action: none; }
 .sandbox-sprites { position: absolute; inset: 0; pointer-events: none; }
 .sandbox-sprite { position: absolute; object-fit: contain; transform: translate(-50%, -50%); filter: drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
@@ -48,9 +49,11 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .sandbox-sprite-fallback.selected { border-color: #f6e66d; box-shadow: 0 0 15px rgba(246, 230, 109, .78); }
 .sandbox-player-sprite { position: absolute; left: 15.6%; top: 50%; width: 38px; height: 38px; object-fit: contain; transform: translate(-50%, -50%); pointer-events: none; filter: drop-shadow(0 0 5px rgba(198, 248, 255, .8)) drop-shadow(0 4px 8px rgba(0, 0, 0, .48)); }
 .sandbox-player-sprite.aiming { filter: drop-shadow(0 0 5px rgba(246, 230, 109, .98)) drop-shadow(0 0 12px rgba(246, 230, 109, .72)); }
-.arena-toolbar { display: flex; align-items: center; gap: 7px; margin: 8px 0; }
-.arena-toolbar span { flex: 1; min-width: 0; overflow: hidden; color: #a9c4da; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.arena-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 8px 0; }
+.arena-toolbar > span { flex: 1 1 auto; min-width: 0; overflow: hidden; color: #a9c4da; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .arena-toolbar button { width: auto; white-space: nowrap; }
+.arena-weapon-slots { flex: 1 0 100%; margin-top: 0; }
+.arena-weapon-slots .weapon-slot { min-height: 36px; }
 .selected-enemy-card { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 15px; padding: 12px; }
 .progression-card { margin-top: 8px; padding: 12px; border: 1px solid #264b70; border-radius: 7px; background: linear-gradient(135deg, #0c1b2e, #10253b); }
 .progression-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

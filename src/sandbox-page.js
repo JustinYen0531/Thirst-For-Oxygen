@@ -1,6 +1,6 @@
 import { ENEMY_DEFINITIONS, PASSIVE_ABILITIES, WEAPONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
-import { getOxygenSecondsRemaining } from './physics.js';
+import { MAX_HEALTH, getOxygenSecondsRemaining } from './physics.js';
 import {
   PLAYER_ANIMATION_ASSETS,
   getPlayerAnimationFrameIndex,
@@ -33,6 +33,7 @@ import {
 } from './sandbox-sim.js';
 import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
+import { getHealthHud } from './visor-hud.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
@@ -56,8 +57,21 @@ const selectedEnemyName = document.querySelector('#selected-enemy-name');
 const selectedEnemyStats = document.querySelector('#selected-enemy-stats');
 const placedEnemyList = document.querySelector('#placed-enemy-list');
 const status = document.querySelector('#sandbox-status');
+const resourceBars = {
+  health: document.querySelector('#sandbox-health'),
+  oxygen: document.querySelector('#sandbox-oxygen'),
+  energy: document.querySelector('#sandbox-energy'),
+};
+const resourceValues = {
+  health: document.querySelector('#sandbox-health-value'),
+  oxygen: document.querySelector('#sandbox-oxygen-value'),
+  energy: document.querySelector('#sandbox-energy-value'),
+};
+const oxygenFill = resourceBars.oxygen.querySelector('[data-oxygen-fill]');
+const energySegments = [...resourceBars.energy.querySelectorAll('[data-energy-segment]')];
+const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-segment]')];
+const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const state = createSandboxState();
-state.infiniteResources = true;
 let placementMode = false;
 let lastFrame = performance.now();
 
@@ -298,7 +312,9 @@ function renderProgression() {
     button.className = `weapon-slot${index === state.build.activeWeaponSlot ? ' active' : ''}`;
     button.dataset.weaponSlot = String(index);
     button.textContent = `${index + 1}. ${WEAPONS[weapon.id].name} Lv.${weapon.level}`;
-    button.title = '點擊切換目前使用的武器';
+    button.setAttribute('aria-pressed', String(index === state.build.activeWeaponSlot));
+    button.setAttribute('aria-keyshortcuts', String(index + 1));
+    button.title = `點擊切換目前使用的武器（快捷鍵 ${index + 1}）`;
     weaponSlots.append(button);
   });
 
@@ -338,6 +354,32 @@ function renderProgression() {
     button.innerHTML = `<strong>${choice.label}</strong><small>${choice.detail}</small>`;
     upgradeChoiceList.append(button);
   });
+}
+
+function renderSandboxHud() {
+  resourceValues.oxygen.textContent = '∞ 無限';
+  resourceBars.oxygen.setAttribute('aria-valuenow', '100');
+  resourceBars.oxygen.setAttribute('aria-valuetext', '無限');
+  oxygenFill.style.setProperty('--oxygen-fill', '100%');
+
+  resourceValues.energy.textContent = '∞ 無限';
+  resourceBars.energy.setAttribute('aria-valuenow', '5');
+  resourceBars.energy.setAttribute('aria-valuetext', '無限');
+  energySegments.forEach((segment) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', '100%');
+  });
+
+  const healthHud = getHealthHud(state.actor.health, MAX_HEALTH);
+  resourceValues.health.textContent = healthHud.label;
+  resourceBars.health.setAttribute('aria-valuenow', String(Math.round(healthHud.value)));
+  resourceBars.health.classList.remove('is-full', 'is-warning', 'is-critical');
+  resourceBars.health.classList.add(`is-${healthHud.tone}`);
+  resourceBars.health.style.setProperty('--health-color', healthHud.color);
+  resourceBars.health.style.setProperty('--health-glow', healthHud.glow);
+  healthSegments.forEach((segment, index) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
+  });
+  healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
 }
 
 function canvasPoint(event) {
@@ -394,7 +436,7 @@ function releaseAim(event) {
   const result = releaseSandboxAim(state, canvasPoint(event));
   canvas.releasePointerCapture?.(event.pointerId);
   status.textContent = result.launched
-    ? `彈射成功：初速 ${Math.round(result.speed)}；正式遊玩 L1 重力與阻尼已接管。`
+    ? `彈射成功：初速 ${Math.round(result.speed)}；沙盒零重力已接管，方向不會被重力改彎。`
     : `彈射失敗：${result.reason === 'tooClose' ? '請拉出更長距離。' : result.reason === 'attached' ? '玩家目前附著中。' : '能量不足。'}`;
   render();
 }
@@ -813,7 +855,9 @@ function pointAlongEffect(effect, ratio) {
 
 function renderMeteorStroke(effect, headRatio, alpha, lineWidth) {
   const tailRatio = Math.max(0, headRatio - (effect.trailLength ?? 0.82));
-  const segments = 8;
+  // Six segments are enough for the meteor taper and avoid eight shadowed
+  // strokes per trail, which became expensive when the Lv.3 linger was active.
+  const segments = 6;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (let index = 0; index < segments; index += 1) {
@@ -834,16 +878,22 @@ function renderKnifeMeteorEffect(effect, progress, side) {
   const safeProgress = Math.max(0, Math.min(1, progress));
   const sweepDuration = Math.max(0.08, Math.min(0.7, effect.sweepDuration ?? 0.24));
   const headRatio = Math.min(1, safeProgress / sweepDuration);
-  const isLinger = !side && (effect.sparkleCount ?? 0) > 0;
+  const sparkleCount = !side
+    ? Math.min(6, Math.max(0, Math.round(effect.sparkleBudget ?? effect.sparkleCount ?? 0)))
+    : 0;
+  const isLinger = sparkleCount > 0;
   const fade = isLinger ? Math.max(effect.lingerMinAlpha ?? 0.2, 1 - safeProgress * 0.52) : Math.max(0, 1 - safeProgress);
   const lineWidth = effect.lineWidth ?? (side ? 2.5 : 6);
   const head = pointAlongEffect(effect, headRatio);
 
   ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
+  // Knife trails use normal alpha compositing. Additive blending made the
+  // white core bloom into a large halo on bright displays and cost more GPU.
+  ctx.globalCompositeOperation = 'source-over';
   ctx.strokeStyle = effect.colour ?? '#ffffff';
   ctx.shadowColor = effect.glowColour ?? '#dffbff';
-  ctx.shadowBlur = side ? 10 : 18;
+  const glowBlur = Math.min(side ? (effect.sideGlowBlur ?? 3) : (effect.glowBlur ?? 7), side ? 4 : 8);
+  ctx.shadowBlur = Math.max(0, glowBlur * 0.35);
   // Lv.2 side trails and Lv.3's lingering slash keep a faint complete path
   // visible from the first frame. The moving head still provides the
   // Fruit-Ninja-like sweep, but the effect can no longer disappear between
@@ -856,23 +906,24 @@ function renderKnifeMeteorEffect(effect, progress, side) {
     ctx.lineTo(effect.targetX ?? effect.startX ?? effect.x, effect.targetY ?? effect.startY ?? effect.y);
     ctx.stroke();
   }
+  ctx.shadowBlur = glowBlur;
   renderMeteorStroke(effect, headRatio, fade * (side ? 0.9 : 0.96), lineWidth * (side ? 0.9 : 1));
 
-  ctx.globalAlpha = fade * (side ? 0.72 : 0.92);
+  ctx.shadowBlur = Math.min(glowBlur, side ? 3 : 6);
+  ctx.globalAlpha = fade * (side ? 0.58 : 0.74);
   ctx.fillStyle = effect.colour ?? '#ffffff';
   ctx.beginPath();
   ctx.arc(head.x, head.y, effect.headRadius ?? (side ? 4 : 7), 0, Math.PI * 2);
   ctx.fill();
 
   if (isLinger) {
-    const sparkleCount = Math.max(0, Math.round(effect.sparkleCount));
     for (let index = 0; index < sparkleCount; index += 1) {
       const ratio = (index + 1) / (sparkleCount + 1);
       const point = pointAlongEffect(effect, ratio);
       const phase = (effect.id ?? 1) * 0.71 + index * 1.83;
       const twinkle = 0.35 + (Math.sin(state.time * 12 + phase) + 1) * 0.3;
       const size = 1.2 + twinkle * 2.1;
-      ctx.globalAlpha = fade * twinkle;
+      ctx.globalAlpha = fade * twinkle * 0.42;
       ctx.fillStyle = index % 3 === 0 ? '#ffffff' : (effect.sparkleColour ?? '#d8faff');
       ctx.beginPath();
       ctx.moveTo(point.x, point.y - size * 2.2);
@@ -891,19 +942,19 @@ function renderKnifeAreaEffect(effect, progress) {
   const pulse = 0.92 + Math.sin(safeProgress * Math.PI) * 0.12;
   const radius = effect.radius * pulse;
   ctx.save();
-  ctx.globalAlpha = (1 - safeProgress) * 0.72;
+  ctx.globalAlpha = (1 - safeProgress) * 0.38;
   ctx.strokeStyle = effect.colour;
-  ctx.fillStyle = 'rgba(184, 245, 255, .06)';
+  ctx.fillStyle = 'rgba(184, 245, 255, .025)';
   ctx.shadowColor = effect.glowColour ?? effect.colour;
-  ctx.shadowBlur = 14;
-  ctx.lineWidth = 2.5;
+  ctx.shadowBlur = 5;
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.lineWidth = 1.4;
-  for (let index = 0; index < 8; index += 1) {
-    const angle = (Math.PI * 2 * index) / 8 + safeProgress * 0.6;
+  ctx.lineWidth = 1;
+  for (let index = 0; index < 6; index += 1) {
+    const angle = (Math.PI * 2 * index) / 6 + safeProgress * 0.6;
     ctx.beginPath();
     ctx.moveTo(effect.x + Math.cos(angle) * radius * 0.62, effect.y + Math.sin(angle) * radius * 0.62);
     ctx.lineTo(effect.x + Math.cos(angle) * radius * 1.05, effect.y + Math.sin(angle) * radius * 1.05);
@@ -1044,6 +1095,7 @@ function render() {
   updateSkillPicker();
   renderPlacedEnemyList();
   renderProgression();
+  renderSandboxHud();
 }
 
 function tick(now) {
@@ -1142,6 +1194,16 @@ canvas.addEventListener('pointermove', moveAim);
 canvas.addEventListener('pointerup', releaseAim);
 canvas.addEventListener('pointercancel', releaseAim);
 window.addEventListener('keydown', (event) => {
+  if (/^[123]$/.test(event.key)) {
+    const slot = Number(event.key) - 1;
+    if (state.build.weapons[slot]) {
+      event.preventDefault();
+      setSandboxActiveWeapon(state, slot);
+      status.textContent = `目前使用 ${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}。`;
+      render();
+      return;
+    }
+  }
   if (event.key === ' ') {
     event.preventDefault();
     const result = playerAttack(state);
@@ -1156,7 +1218,7 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
-  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
+  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
   build: state.build,
   progression: {
@@ -1171,7 +1233,7 @@ window.render_game_to_text = () => JSON.stringify({
     activeWeaponSlot: state.progression.activeWeaponSlot,
   },
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
-  flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
+  flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, zeroGravity: true, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, hidden: enemy.hidden, stunned: Math.max(0, (enemy.stunnedUntil ?? 0) - state.time), rescueCompleted: enemy.rescueCompleted, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, beacon: enemy.beacon ? { x: format(enemy.beacon.targetX), y: format(enemy.beacon.targetY), remaining: format(enemy.beacon.remaining) } : null, linkedTargets: enemy.linkedTargets, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
   projectiles: state.projectiles.map((projectile) => ({ id: projectile.id, weapon: projectile.weaponId, level: projectile.weaponLevel, shotIndex: projectile.shotIndex, style: projectile.visual?.bulletStyle, colour: projectile.visual?.bulletColour ?? projectile.colour, x: format(projectile.x), y: format(projectile.y), stun: format(projectile.stunDuration), life: format(projectile.life) })),
   effects: state.effects.map((effect) => ({

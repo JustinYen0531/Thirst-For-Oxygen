@@ -85,17 +85,16 @@ function distanceToSegment(point, start, end) {
   return distanceBetween(point, closest);
 }
 
-// The sandbox is a test harness, but its player must live in the same kind of
-// L1 water field as the official play page. Keep a generous hidden map behind
-// the 960x560 stage so the shared physics can resolve a Cell everywhere the
-// pointer can reach without introducing an editor-specific gravity shortcut.
+// The sandbox is a combat test harness. Keep a generous hidden L0/T1 water
+// field behind the 960x560 stage so the shared physics can resolve a Cell
+// everywhere the pointer can reach without applying a gravity shortcut.
 const SANDBOX_PHYSICS_ORIGIN = Object.freeze({ x: 18, y: 18 });
 const SANDBOX_PHYSICS_BOUNDS = Object.freeze({ minX: 10, maxX: SANDBOX_WIDTH - 10, minY: 10, maxY: SANDBOX_HEIGHT - 10 });
 
 function createSandboxPhysicsMap() {
   const map = createEmptyMap({ width: 52, height: 32 });
   Object.values(map.cells).forEach((cell) => {
-    cell.gravityLevel = 'L1';
+    cell.gravityLevel = 'L0';
     cell.waterLayer = 'T1';
   });
   return map;
@@ -530,7 +529,7 @@ export function createSandboxState() {
     running: true,
     autoCycle: false,
     invincible: false,
-    infiniteResources: false,
+    infiniteResources: true,
     aiming: false,
     aimPoint: null,
     selectedEnemyInstanceId: null,
@@ -684,6 +683,7 @@ export function resetSandboxPlayer(state) {
   state.actor.inkUntil = 0;
   state.actor.katanaEmpoweredNextSlash = false;
   state.actor.tridentStationaryTime = 0;
+  state.weaponBurst = null;
   state.aiming = false;
   state.aimPoint = null;
   logEvent(state, '玩家已重置。', 'safe');
@@ -727,7 +727,7 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
   const result = { ok: launch.launched, ...launch };
   if (launch.launched) {
     addEffect(state, { type: 'launch', x: state.actor.x, y: state.actor.y, radius: 22, duration: 0.35, colour: '#f6e66d' });
-    logEvent(state, `玩家彈射：距離 ${Math.round(launch.distance)}、初速 ${Math.round(launch.speed)}；正式 L1 物理已接管。`, 'safe');
+    logEvent(state, `玩家彈射：距離 ${Math.round(launch.distance)}、初速 ${Math.round(launch.speed)}；沙盒零重力物理已接管。`, 'safe');
   } else if (state.infiniteResources) {
     state.actor.energy = energyBefore >= MAX_ENERGY ? MAX_ENERGY : energyBefore;
   }
@@ -1765,7 +1765,6 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   if (state.infiniteResources) {
     state.actor.oxygen = MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
-    state.actor.health = MAX_HEALTH;
   }
   updatePlayerStatusEffects(state, dt);
   if (state.actor.inInk && state.time >= (state.actor.inkUntil ?? 0)) state.actor.inInk = false;
@@ -1801,7 +1800,6 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   if (state.infiniteResources) {
     state.actor.oxygen = MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
-    state.actor.health = MAX_HEALTH;
   }
   updateEnemies(state, dt);
   markKatanaMovement(state, previousPosition);
