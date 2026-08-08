@@ -43,6 +43,15 @@ import {
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from './play-enemies.js';
+import {
+  CONDITIONAL_GATE_GUIDE,
+  createDiscoverySession,
+  getEdgeDiscoveryGuide,
+  getEnemyDiscoveryGuide,
+  getObjectDiscoveryGuide,
+  updateDiscoverySession,
+} from './visor-discovery.js';
+import { drawDiscoveryGuides } from './visor-discovery-renderer.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -123,6 +132,7 @@ let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
 let activeCollisionSoundKeys = new Set();
+const discoverySession = createDiscoverySession();
 const PLAYER_LEVEL = 1;
 const PLAYER_EXPERIENCE = 0;
 const EXPERIENCE_TO_NEXT_LEVEL = 100;
@@ -131,13 +141,31 @@ function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
 function cellCenter(key) { return getHexCenter(getActiveCell(map, key, 'chapter1'), origin); }
 function hexPath(ctx, cell, pad = 0) { const center = getHexCenter(cell, origin); const vertices = getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
-function drawImage(path, x, y, width, height, alpha = 1, rotation = 0) { const image = images.get(path); if (!image?.complete || !image.naturalWidth) return false; context.save(); context.globalAlpha = alpha; context.translate(x, y); context.rotate(rotation); context.drawImage(image, -width / 2, -height / 2, width, height); context.restore(); return true; }
+function silhouetteFilter(colour, radius) {
+  return `drop-shadow(${radius}px 0 0 ${colour}) drop-shadow(${-radius}px 0 0 ${colour}) drop-shadow(0 ${radius}px 0 ${colour}) drop-shadow(0 ${-radius}px 0 ${colour})`;
+}
+function drawImage(path, x, y, width, height, alpha = 1, rotation = 0, outlineColour = null) {
+  const image = images.get(path);
+  if (!image?.complete || !image.naturalWidth) return false;
+  context.save();
+  context.globalAlpha = alpha;
+  context.translate(x, y);
+  context.rotate(rotation);
+  if (outlineColour) {
+    context.filter = silhouetteFilter(outlineColour, .75);
+    context.drawImage(image, -width / 2, -height / 2, width, height);
+    context.filter = 'none';
+  }
+  context.drawImage(image, -width / 2, -height / 2, width, height);
+  context.restore();
+  return true;
+}
 function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, radius = 0.55, colour = 'rgba(246, 252, 255, 0.88)') {
   context.save();
   context.globalAlpha = alpha;
-  [[-radius, 0], [radius, 0], [0, -radius], [0, radius], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]].forEach(([offsetX, offsetY]) => {
-    context.drawImage(image, x - width / 2 + offsetX, y - height / 2 + offsetY, width, height);
-  });
+  context.filter = silhouetteFilter(colour, radius);
+  context.drawImage(image, x - width / 2, y - height / 2, width, height);
+  context.filter = 'none';
   context.drawImage(image, x - width / 2, y - height / 2, width, height);
   context.restore();
 }
@@ -173,6 +201,7 @@ function setupWorld(nextMap) {
   aimPoint = null;
   trajectory = [];
   activeCollisionSoundKeys.clear();
+  discoverySession.activeByGuideKey.clear();
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
   eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
@@ -239,6 +268,16 @@ function renderCell(cell, key) {
   if (cell.waterLayer === 'T2' && cell.terrain !== 'blocked') { context.fillStyle = 'rgba(11, 16, 49, .24)'; context.fillRect(center.x - TILE_SIZE, center.y - TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2); }
   if (cell.terrain === 'water') drawWaterMotion(cell, center);
   context.restore();
+  if (cell.conditionalGate && !cell.conditionalGate.opened) {
+    context.save();
+    hexPath(context, cell, 1.3);
+    context.strokeStyle = CONDITIONAL_GATE_GUIDE.colour;
+    context.lineWidth = 1.15;
+    context.shadowColor = CONDITIONAL_GATE_GUIDE.colour;
+    context.shadowBlur = 3;
+    context.stroke();
+    context.restore();
+  }
   (cell.objects ?? []).forEach((object, index) => drawObject(object, center.x + Math.cos(index * 2.5) * 2, center.y + Math.sin(index * 2.5) * 2));
   (cell.freeObjects ?? []).forEach((object) => { const offset = object.offset ?? { x: 0, y: 0 }; drawObject(object, center.x + offset.x, center.y + offset.y); });
 }
@@ -319,7 +358,8 @@ function drawTerrainBoundaries() {
 
 function drawObject(object, x, y) {
   const size = Math.min(21, Math.max(10, Number(object.size) || 16));
-  if (!drawImage(OBJECT_ASSETS[object.kind], x, y, size, size, .95)) { context.save(); context.fillStyle = '#f5d967'; context.strokeStyle = '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
+  const guide = getObjectDiscoveryGuide(object.kind);
+  if (!drawImage(OBJECT_ASSETS[object.kind], x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
 }
 
 function drawEdges() {
@@ -369,7 +409,7 @@ function drawEdges() {
     }
     const width = isPortal ? 22 : isAnchoredPlant ? 16 : HEX_SIZE * 1.04;
     const height = edge.type === 'multiPortal' ? 9 : isPortal ? 18 : isAnchoredPlant ? 16 : width * .625;
-    drawImage(asset, renderX, renderY, width, height, .92, rotation);
+    drawImage(asset, renderX, renderY, width, height, .92, rotation, getEdgeDiscoveryGuide(edge.type)?.colour);
   });
 }
 
@@ -462,6 +502,7 @@ function drawEnemies() {
   enemies.forEach((enemy) => {
     if (!isPlayEnemyVisible(enemy, camera, viewport)) return;
     const pose = getPlayEnemyPose(enemy, worldTime);
+    const guide = getEnemyDiscoveryGuide(enemy.enemyId);
     const image = images.get(enemy.visual);
     const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
     const height = enemy.renderSize;
@@ -478,13 +519,13 @@ function drawEnemies() {
     context.restore();
 
     if (imageReady) {
-      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .38);
+      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .75, guide?.colour);
       return;
     }
 
     context.save();
     context.fillStyle = '#173b55';
-    context.strokeStyle = '#b9efff';
+    context.strokeStyle = guide?.colour ?? '#b9efff';
     context.lineWidth = .7;
     context.beginPath();
     context.ellipse(pose.x, pose.y, width * .38, height * .32, 0, 0, Math.PI * 2);
@@ -499,12 +540,75 @@ function drawEnemies() {
   });
 }
 
+function isWorldTargetVisible(x, y, size = 0) {
+  const half = size * .5;
+  return x + half >= camera.x
+    && x - half <= camera.x + canvas.width / SCALE
+    && y + half >= camera.y
+    && y - half <= camera.y + canvas.height / SCALE;
+}
+
+function collectVisibleDiscoverables() {
+  const targets = [];
+  Object.entries(map.cells).forEach(([cellKey]) => {
+    const cell = getActiveCell(map, cellKey, 'chapter1');
+    const center = getHexCenter(cell, origin);
+    if (cell.conditionalGate && !cell.conditionalGate.opened && isWorldTargetVisible(center.x, center.y, TILE_SIZE)) {
+      targets.push({ instanceId: `gate:${cellKey}`, guideKey: 'gate:conditional', guide: CONDITIONAL_GATE_GUIDE, x: center.x, y: center.y, size: TILE_SIZE });
+    }
+    (cell.objects ?? []).forEach((object, index) => {
+      const guide = getObjectDiscoveryGuide(object.kind);
+      if (!guide) return;
+      const x = center.x + Math.cos(index * 2.5) * 2;
+      const y = center.y + Math.sin(index * 2.5) * 2;
+      const size = Math.min(21, Math.max(10, Number(object.size) || 16));
+      if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `cell-object:${cellKey}:${index}`, guideKey: `object:${object.kind}`, guide, x, y, size });
+    });
+    (cell.freeObjects ?? []).forEach((object, index) => {
+      const guide = getObjectDiscoveryGuide(object.kind);
+      if (!guide) return;
+      const offset = object.offset ?? { x: 0, y: 0 };
+      const x = center.x + offset.x;
+      const y = center.y + offset.y;
+      const size = Math.min(21, Math.max(10, Number(object.size) || 16));
+      if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `free-object:${cellKey}:${index}`, guideKey: `object:${object.kind}`, guide, x, y, size });
+    });
+  });
+
+  allMapEdges(map).forEach(({ a, b, key }) => {
+    const edge = getActiveEdge(map, key, 'chapter1') ?? getEdgeBetween(map, a, b, 'chapter1');
+    const guide = getEdgeDiscoveryGuide(edge?.type);
+    if (!guide) return;
+    const from = cellCenter(a);
+    const to = cellCenter(b);
+    const x = (from.x + to.x) * .5;
+    const y = (from.y + to.y) * .5;
+    if (isWorldTargetVisible(x, y, 18)) targets.push({ instanceId: `edge:${key}`, guideKey: `edge:${edge.type}`, guide, x, y, size: 18 });
+  });
+
+  const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
+  enemies.forEach((enemy) => {
+    if (enemy.defeated || !isPlayEnemyVisible(enemy, camera, viewport, 0)) return;
+    const guide = getEnemyDiscoveryGuide(enemy.enemyId);
+    if (!guide) return;
+    const pose = getPlayEnemyPose(enemy, worldTime);
+    targets.push({ instanceId: enemy.instanceId, guideKey: `enemy:${enemy.enemyId}`, guide, x: pose.x, y: pose.y, size: enemy.renderSize });
+  });
+
+  return targets.sort((left, right) => (
+    Math.hypot(left.x - actor.x, left.y - actor.y) - Math.hypot(right.x - actor.x, right.y - actor.y)
+  ));
+}
+
 function render() {
   renderBackground();
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor(); context.restore();
+  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor();
+  const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
+  drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
+  context.restore();
 }
 
 function updateHud() {
@@ -658,6 +762,10 @@ window.render_game_to_text = () => JSON.stringify({
   enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), state: enemy.state, facing: enemy.facing, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
   totalEnemySpawns: enemies.length,
   totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
+  discoveries: {
+    seen: [...discoverySession.seenGuideKeys],
+    active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
+  },
   unlimitedResources,
   paused,
 });
