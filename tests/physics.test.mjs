@@ -125,6 +125,20 @@ test('L-1 accelerates upward and L0 preserves inertia', () => {
   assert.ok(Math.abs(neutral.vy) < 0.01, 'L0 should add no vertical gravity');
 });
 
+test('descent maps reverse water gravity while ascent maps pull downward', () => {
+  const map = createEmptyMap({ width: 1, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L1' });
+  map.metadata = { chapter: '下沉篇' };
+  const descentActor = actorIn(map, '0,0');
+  stepPhysics({ map, actor: descentActor, origin: ORIGIN });
+  assert.ok(descentActor.vy < 0, 'descent maps should pull the diver toward screen-up');
+
+  map.metadata = { chapter: '上升篇' };
+  const ascentActor = actorIn(map, '0,0');
+  stepPhysics({ map, actor: ascentActor, origin: ORIGIN });
+  assert.ok(ascentActor.vy > 0, 'ascent maps should pull the diver toward screen-down');
+});
+
 test('launch velocity is opposite the pull direction', () => {
   const actor = createTestActor({ x: 200, y: 200 });
   const oxygenBefore = actor.oxygen;

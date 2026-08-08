@@ -28,6 +28,7 @@ export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
 export const GRAVITY_SCALE = 0.5;
 export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE * GRAVITY_SCALE;
+export const GRAVITY_DIRECTIONS = Object.freeze({ downward: 1, upward: -1 });
 // Preserve the familiar 0.1x feel for short pulls, while leaving headroom for
 // long launches to travel farther instead of hitting the old cap immediately.
 export const MAX_SPEED = 140;
@@ -42,6 +43,23 @@ const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const LAUNCH_MOMENTUM_DURATION = 0.75;
 const LAUNCH_LINEAR_DISTANCE = 90;
 const LAUNCH_LONG_DISTANCE_GAIN = 0.05;
+
+/**
+ * A map's water Tile value describes strength; the arc describes direction.
+ * Descent maps intentionally make L1-L3 pull toward screen-up so progress is
+ * earned through elastic launches. Ascent maps retain the normal screen-down
+ * pull. Untagged sandbox/test maps keep the legacy downward direction.
+ */
+export function getGravityDirection(map, explicitDirection = null) {
+  if (explicitDirection === GRAVITY_DIRECTIONS.upward || explicitDirection === 'upward' || explicitDirection === 'up') {
+    return GRAVITY_DIRECTIONS.upward;
+  }
+  if (explicitDirection === GRAVITY_DIRECTIONS.downward || explicitDirection === 'downward' || explicitDirection === 'down') {
+    return GRAVITY_DIRECTIONS.downward;
+  }
+  const arc = String(map?.metadata?.chapter ?? map?.metadata?.arc ?? '');
+  return arc.includes('下沉') ? GRAVITY_DIRECTIONS.upward : GRAVITY_DIRECTIONS.downward;
+}
 export const ENERGY_COST_PER_LAUNCH = 5;
 // Oxygen is a survival clock, never a movement or launch-distance budget.
 // A full tank lasts forty real-time seconds at the default capacity.
@@ -881,7 +899,7 @@ function processOxygenClock(actor, dt, events) {
   }
 }
 
-export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null }) {
+export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null, gravityDirection = null }) {
   const events = [];
   actor.hurtTimer = Math.max(0, (actor.hurtTimer ?? 0) - dt);
   if (actor.deathAnimation) {
@@ -907,7 +925,9 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
 
   const before = findCellContainingPoint(map, actor, chapter, origin);
   const activeCell = before?.cell;
-  const zoneGravity = actor.gravityImmunity > 0 ? 0 : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY;
+  const zoneGravity = actor.gravityImmunity > 0
+    ? 0
+    : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY * getGravityDirection(map, gravityDirection);
   const current = applyCurrentAcceleration(map, before?.key, chapter);
   const microflow = getMicroflowAcceleration({
     map,
@@ -944,7 +964,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   return events;
 }
 
-export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120, time = null }) {
+export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120, time = null, gravityDirection = null }) {
   // The preview never mutates Cells or objects, so sharing the immutable map
   // avoids cloning thousands of Cells on every pointer move.
   const previewMap = map;
@@ -952,7 +972,7 @@ export function predictTrajectory({ map, chapter, actor, pointer, origin, steps 
   if (!launchActor(ghost, pointer).launched) return [];
   const points = [];
   for (let index = 0; index < steps; index += 1) {
-    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: false, time: Number.isFinite(time) ? time + index * FIXED_STEP : null });
+    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: false, time: Number.isFinite(time) ? time + index * FIXED_STEP : null, gravityDirection });
     points.push({ x: ghost.x, y: ghost.y });
   }
   return points;

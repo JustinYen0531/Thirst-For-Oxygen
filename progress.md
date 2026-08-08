@@ -561,6 +561,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-09 — Step 68 complete
 
+- Made gravity direction an arc-level rule instead of a Tile-level workaround: maps tagged `下沉篇` multiply water gravity by `-1`, so L1/L2/L3 pull toward screen-up and the player must launch upward to progress.
+- Maps tagged `上升篇` keep the normal `+1` direction and pull toward screen-down; untagged test/sandbox maps retain the legacy downward default.
+- Kept L-1 as the inverse of the active arc direction and L0 neutral. Trajectory prediction accepts the same direction option so previews cannot disagree with runtime physics.
+- Added regression coverage for both 下沉篇 and 上升篇 direction rules. Static-only verification passed: `npm run check` (76/76 tests), `npm run build`, and `git diff --check`.
+
+## 2026-08-09 — Step 68 complete
+
 - Rebuilt Descent Parts 1 and 2 as independent authored routes instead of simplified copies: Part 1 is a forgiving deep-forest teaching route, while Part 2 is a thermal branch-and-gate challenge with an optional portal shortcut.
 - Preserved the player's original 24×117 Part 3 terrain, gravity, T1/T2 layers, and multi-portal structure as the final exam; the generator now only adds encounter pacing, resources, and actor markers around that authored geometry.
 - Added one real player start per map plus enemy, Mini Boss, and Boss markers, and made the standalone play page honor each authored start instead of falling back to the map centre.
