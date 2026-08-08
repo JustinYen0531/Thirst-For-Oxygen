@@ -68,6 +68,9 @@ const help = document.querySelector('#play-help');
 const eventsList = document.querySelector('#play-events');
 const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
 const attemptsReadout = document.querySelector('#play-attempts');
+const settingsToggle = document.querySelector('#play-settings-toggle');
+const settingsPanel = document.querySelector('#play-settings');
+const settingsClose = document.querySelector('#play-settings-close');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
@@ -388,6 +391,13 @@ function updateHud() {
   eventsList.innerHTML = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
 }
 
+function setSettingsOpen(open) {
+  const nextOpen = Boolean(open);
+  settingsPanel.hidden = !nextOpen;
+  settingsToggle.setAttribute('aria-expanded', String(nextOpen));
+  if (nextOpen) settingsClose.focus();
+}
+
 function addEvents(events) { events.forEach((event) => { if (event?.message) eventLog.push(event.message); }); if (eventLog.length > 12) eventLog = eventLog.slice(-12); }
 function refreshTrajectory(force = false) {
   if (!dragging || !aimPoint || !map || !actor) return;
@@ -408,6 +418,8 @@ canvas.addEventListener('lostpointercapture', () => { dragging = false; trajecto
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
+settingsToggle.addEventListener('click', () => setSettingsOpen(settingsPanel.hidden));
+settingsClose.addEventListener('click', () => setSettingsOpen(false));
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
@@ -418,7 +430,14 @@ mapSelect.addEventListener('change', () => {
 });
 musicArcSelect.addEventListener('change', syncMusicTrack);
 musicModeSelect.addEventListener('change', syncMusicTrack);
-window.addEventListener('keydown', (event) => { if (event.key.toLowerCase() === 'r') resetButton.click(); if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); } if (event.key === 'Escape') window.location.href = '/home.html'; });
+window.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() === 'r') resetButton.click();
+  if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
+  if (event.key === 'Escape') {
+    if (!settingsPanel.hidden) setSettingsOpen(false);
+    else window.location.href = '/home.html';
+  }
+});
 
 function simulate(elapsed, now = performance.now()) {
   if (!paused && map && actor && !actor.gameOver) {

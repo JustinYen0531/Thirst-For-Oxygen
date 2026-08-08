@@ -447,3 +447,17 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Made launch-facing a hard rule: the actor keeps the left/right direction chosen by the latest horizontal launch instead of being flipped by current drift or reflection.
 - Added a stationary rest animation for low-speed players that have contacted an impassable obstacle; the swim frame and body motion freeze so the legs no longer kick against the wall.
 - Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 55 complete
+
+- Removed the standalone top-card appearance from the full-screen play page. The brand, centered map selector, settings button, and exit link now sit directly over the game canvas as an embedded top HUD.
+- The map stage starts at the top of the viewport instead of below a separate header block; the settings drawer remains contextual and only appears after pressing 設定.
+- Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 54 complete
+
+- Reworked the standalone play page into a full-screen play deck: removed the left-side control console and let the map stage own the viewport.
+- Moved the map-part selector to the centered top bar. Added a top-right Settings drawer containing music arc/context, play/pause, volume, unlimited oxygen/energy, reset, camera status, and event history.
+- Kept keyboard controls intact: `Space` pauses, `R` resets, and `Escape` closes Settings before leaving the play page.
+- Placed help and vitals as lightweight overlays so they remain readable without reclaiming a permanent sidebar. UI hierarchy follows the game UI pattern of keeping high-frequency map choice central and low-frequency tools contextual.
+- Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

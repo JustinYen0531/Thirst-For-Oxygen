@@ -11,68 +11,23 @@
       <header class="play-topbar">
         <a class="brand-lockup" href="/home.html" aria-label="回到水下主控台">
           <span class="brand-glyph" aria-hidden="true">◈</span>
-          <span><strong>THIRST FOR OXYGEN</strong><small>ABYSSAL AQUARIUM / PLAY DECK</small></span>
+          <span><strong>THIRST FOR OXYGEN</strong><small>ABYSSAL AQUARIUM / PLAY</small></span>
         </a>
-        <nav class="play-nav" aria-label="主導航">
-          <a href="/home.html">主控台</a>
-          <a href="/">地圖編輯器</a>
-          <a href="/enemy-encyclopedia.html">敵人圖鑑</a>
-          <a href="/sandbox.html">敵人沙盒</a>
-        </nav>
+        <label class="top-map-picker" for="play-map-select">
+          <span class="sr-only">選擇地圖部分</span>
+          <select id="play-map-select" aria-label="選擇地圖部分">
+            <option value="1">下沉篇・第一部分（輕）</option>
+            <option value="2">下沉篇・第二部分（中）</option>
+            <option value="3" selected>下沉篇・第三部分（範本）</option>
+          </select>
+        </label>
+        <div class="play-topbar-actions">
+          <button class="settings-toggle" id="play-settings-toggle" type="button" aria-expanded="false" aria-controls="play-settings">⚙ 設定</button>
+          <a class="exit-link" href="/home.html">離開</a>
+        </div>
       </header>
 
       <section class="play-layout" aria-label="地圖遊玩測試">
-        <aside class="play-sidebar">
-          <p class="eyebrow">PLAY / MAP PREVIEW</p>
-          <h1>下沉篇<br /><em>試玩甲板</em></h1>
-          <p class="intro">直接在范本地圖上測試水域重力、彈射與邊緣互動。出生點暫不寫入地圖，這裡會自動放在中央的安全水域。</p>
-
-          <label class="map-picker" for="play-map-select">
-            <span>選擇地圖部分</span>
-            <select id="play-map-select">
-              <option value="1">下沉篇・第一部分（輕）</option>
-              <option value="2">下沉篇・第二部分（中）</option>
-              <option value="3" selected>下沉篇・第三部分（範本）</option>
-            </select>
-          </label>
-
-          <label class="map-picker" for="play-music-arc">
-            <span>音樂篇章</span>
-            <select id="play-music-arc">
-              <option value="descent" selected>下沉篇</option>
-              <option value="ascent20">上升篇 2.0（待驗收）</option>
-            </select>
-          </label>
-
-          <label class="map-picker" for="play-music-mode">
-            <span>音樂情境</span>
-            <select id="play-music-mode">
-              <option value="normal" selected>Normal／Auto Scroller</option>
-              <option value="boss">Boss 戰</option>
-            </select>
-          </label>
-
-          <div id="play-music-control"></div>
-
-          <div class="play-actions">
-            <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
-            <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
-          </div>
-
-          <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
-
-          <div class="camera-card">
-            <span>鏡頭狀態</span>
-            <strong id="play-camera-readout">主角 60% 錨點</strong>
-            <small id="play-map-title">正在載入地圖…</small>
-          </div>
-
-          <div class="event-card">
-            <span>測試紀錄</span>
-            <ol id="play-events"><li>拖曳潛水夫，放開即可彈射。</li></ol>
-          </div>
-        </aside>
-
         <section class="play-stage-wrap">
           <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
           <div class="play-stage-frame">
@@ -84,10 +39,51 @@
               <div class="resource-row"><span>能量</span><strong id="play-energy-value">100</strong><i><b id="play-energy"></b></i></div>
             </div>
             <div class="loading-mask" id="play-loading">正在潛入水域…</div>
+            <p class="play-help" id="play-help">按住潛水夫並拖曳，瞄準方向後放開即可彈射。每次彈射消耗約 5 能量；中距離約消耗 5 氧氣，遠距離約 10，會隨實際移動逐步結算。氧氣歸零會慢慢扣生命，能量歸零需停止移動休息。</p>
           </div>
-          <p class="play-help" id="play-help">按住潛水夫並拖曳，瞄準方向後放開即可彈射。每次彈射消耗約 5 能量；中距離約消耗 5 氧氣，遠距離約 10，會隨實際移動逐步結算。氧氣歸零會慢慢扣生命，能量歸零需停止移動休息。</p>
         </section>
       </section>
+
+      <aside class="play-settings" id="play-settings" hidden aria-label="遊玩設定">
+        <div class="settings-heading">
+          <div><span class="eyebrow">PLAY SETTINGS</span><h2>遊玩設定</h2></div>
+          <button class="settings-close" id="play-settings-close" type="button" aria-label="關閉設定">×</button>
+        </div>
+        <p class="settings-note">地圖選擇固定在上方中央；這裡集中音樂、暫停與測試輔助。</p>
+        <section class="settings-section" aria-labelledby="music-settings-title">
+          <h3 id="music-settings-title">音樂</h3>
+          <label class="settings-field" for="play-music-arc"><span>音樂篇章</span>
+            <select id="play-music-arc">
+              <option value="descent" selected>下沉篇</option>
+              <option value="ascent20">上升篇 2.0（待驗收）</option>
+            </select>
+          </label>
+          <label class="settings-field" for="play-music-mode"><span>音樂情境</span>
+            <select id="play-music-mode">
+              <option value="normal" selected>Normal／Auto Scroller</option>
+              <option value="boss">Boss 戰</option>
+            </select>
+          </label>
+          <div id="play-music-control"></div>
+        </section>
+        <section class="settings-section" aria-labelledby="play-tools-title">
+          <h3 id="play-tools-title">測試工具</h3>
+          <div class="play-actions">
+            <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
+            <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
+          </div>
+          <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
+        </section>
+        <section class="camera-card">
+          <span>鏡頭狀態</span>
+          <strong id="play-camera-readout">主角 60% 錨點</strong>
+          <small id="play-map-title">正在載入地圖…</small>
+        </section>
+        <section class="event-card">
+          <span>測試紀錄</span>
+          <ol id="play-events"><li>拖曳潛水夫，放開即可彈射。</li></ol>
+        </section>
+      </aside>
     </main>
     <script type="module" src="/src/play-page.js"></script>
   </body>
