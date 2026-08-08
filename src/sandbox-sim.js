@@ -13,11 +13,13 @@ import {
   MAX_HEALTH,
   MAX_OXYGEN,
   MAX_SPEED,
+  OXYGEN_STARVATION_DAMAGE_PER_SECOND,
   applyDamage,
   applyEnemyDefeatRewards,
   createTestActor,
   getLaunchCosts,
   getLaunchSpeed,
+  getOxygenDrainPerSecond,
   setPlayerLoadout,
 } from './physics.js';
 
@@ -284,8 +286,6 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
   const result = { ok: false, launched: false, distance, costs };
   if (distance < 5) {
     result.reason = 'tooClose';
-  } else if (!state.infiniteResources && state.actor.oxygen < costs.oxygen) {
-    result.reason = 'oxygen';
   } else if (!state.infiniteResources && state.actor.energy < costs.energy) {
     result.reason = 'energy';
   } else {
@@ -295,7 +295,6 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
     state.actor.vx = directionX * speed;
     state.actor.vy = directionY * speed;
     if (!state.infiniteResources) {
-      state.actor.oxygen = Math.max(0, state.actor.oxygen - costs.oxygen);
       state.actor.energy = Math.max(0, state.actor.energy - costs.energy);
     }
     result.ok = true;
@@ -306,7 +305,7 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
   }
   state.aiming = false;
   state.aimPoint = null;
-  if (!result.launched) logEvent(state, `彈射失敗：${result.reason === 'tooClose' ? '蓄力距離太短' : result.reason === 'oxygen' ? '氧氣不足' : '能量不足'}。`, 'warning');
+  if (!result.launched) logEvent(state, `彈射失敗：${result.reason === 'tooClose' ? '蓄力距離太短' : '能量不足'}。`, 'warning');
   return result;
 }
 
@@ -581,10 +580,20 @@ function updateEnemies(state, dt) {
 export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   if (!state.running) return state;
   state.time += dt;
+  state.actor.cooldowns ??= {};
+  Object.keys(state.actor.cooldowns ?? {}).forEach((key) => {
+    state.actor.cooldowns[key] = Math.max(0, state.actor.cooldowns[key] - dt);
+  });
   if (state.infiniteResources) {
     state.actor.oxygen = MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
     state.actor.health = MAX_HEALTH;
+  } else {
+    state.actor.oxygen = Math.max(0, state.actor.oxygen - getOxygenDrainPerSecond(state.actor) * dt);
+    if (state.actor.oxygen <= 0 && (state.actor.cooldowns.oxygenStarvation ?? 0) <= 0) {
+      applyPlayerDamage(state, OXYGEN_STARVATION_DAMAGE_PER_SECOND * dt, 'oxygenStarvation', 'oxygen');
+      state.actor.cooldowns.oxygenStarvation = 0.5;
+    }
   }
   updateSandboxActor(state, dt);
   updateEnemies(state, dt);

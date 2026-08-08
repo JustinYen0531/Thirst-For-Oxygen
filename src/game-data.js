@@ -10,7 +10,6 @@ export const RESOURCE_LIMITS = Object.freeze({
 });
 
 export const PLAYER_BASE_STATS = Object.freeze({
-  launchOxygenCostMultiplier: 1,
   launchEnergyCostMultiplier: 1,
   weaponEnergyCostMultiplier: 1,
   aimEnergyCostMultiplier: 1,
@@ -33,7 +32,7 @@ export const PASSIVE_ABILITIES = Object.freeze({
     name: '氧循環器',
     maxLevel: 3,
     levels: {
-      1: { launchOxygenCostMultiplier: 0.9 },
+      1: { maxOxygenMultiplier: 1.1 },
       2: { maxOxygenMultiplier: 1.2 },
       3: { launchEnergyCostMultiplier: 0.7, weaponEnergyCostMultiplier: 0.7, lowOxygenDamageTakenMultiplier: 0.85 },
     },

@@ -12,6 +12,7 @@ import {
   MAX_ENERGY,
   MAX_HEALTH,
   MAX_OXYGEN,
+  OXYGEN_DURATION_SECONDS,
   createTestActor,
   launchActor,
   registerPlayerDeath,
@@ -386,7 +387,14 @@ function updateHud() {
   if (!actor) return;
   attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   const resources = { health: actor.health, oxygen: actor.oxygen, energy: actor.energy };
-  Object.entries(resources).forEach(([key, value]) => { const maximum = key === 'health' ? MAX_HEALTH : key === 'oxygen' ? MAX_OXYGEN : MAX_ENERGY; resourceBars[key].style.width = `${clamp(value / maximum, 0, 1) * 100}%`; resourceValues[key].textContent = Math.round(value); });
+  const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
+  Object.entries(resources).forEach(([key, value]) => {
+    const maximum = key === 'health' ? MAX_HEALTH : key === 'oxygen' ? oxygenMaximum : MAX_ENERGY;
+    resourceBars[key].style.width = `${clamp(value / maximum, 0, 1) * 100}%`;
+    resourceValues[key].textContent = key === 'oxygen'
+      ? `${Math.ceil(clamp(value / maximum, 0, 1) * OXYGEN_DURATION_SECONDS)}s`
+      : Math.round(value);
+  });
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
   eventsList.innerHTML = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
 }
@@ -412,7 +420,7 @@ function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (acto
 
 canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣最多 -${result.costs.oxygen.toFixed(1)}（隨移動結算）`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });

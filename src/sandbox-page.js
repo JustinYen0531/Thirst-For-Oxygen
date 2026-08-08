@@ -1,5 +1,6 @@
 import { ENEMY_DEFINITIONS, PASSIVE_ABILITIES, WEAPONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
+import { getOxygenSecondsRemaining } from './physics.js';
 import {
   SANDBOX_HEIGHT,
   SANDBOX_WIDTH,
@@ -214,7 +215,7 @@ function releaseAim(event) {
   canvas.releasePointerCapture?.(event.pointerId);
   status.textContent = result.launched
     ? `彈射成功：初速 ${Math.round(result.speed)}；撞擊敵人會以目前武器造成傷害。`
-    : '彈射失敗：請拉出更長距離，並確認氧氣與能量足夠。';
+    : '彈射失敗：請拉出更長距離，並確認能量足夠。氧氣會依時間倒數。';
   render();
 }
 
@@ -385,7 +386,7 @@ function renderTelemetry() {
   const enemy = selectedEnemy();
   playerStats.innerHTML = [
     ['生命', `${format(state.actor.health)} / 100`],
-    ['氧氣', state.infiniteResources ? '∞' : format(state.actor.oxygen)],
+    ['氧氣', state.infiniteResources ? '∞' : `${format(getOxygenSecondsRemaining(state.actor))}s`],
     ['能量', state.infiniteResources ? '∞' : format(state.actor.energy)],
     ['L1 動量', `${format(state.actor.vx)}, ${format(state.actor.vy)}`],
     ['武器', `${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}`],
@@ -473,7 +474,7 @@ window.addEventListener('keydown', (event) => {
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy) },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : `${format(getOxygenSecondsRemaining(state.actor))}s`, energy: state.infiniteResources ? 'infinite' : format(state.actor.energy) },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming },
   build: state.build,
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, running: state.running },

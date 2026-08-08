@@ -39,6 +39,7 @@ import {
   MAX_ENERGY,
   MAX_HEALTH,
   MAX_OXYGEN,
+  OXYGEN_DURATION_SECONDS,
   registerPlayerDeath,
   respawnActor,
   resetTestActor,
@@ -1723,7 +1724,11 @@ function updateHudBar(element, valueElement, value, maximum, unit = '%') {
   const percent = (safeValue / maximum) * 100;
   element.style.setProperty('--resource-fill', `${percent}%`);
   element.setAttribute('aria-valuenow', String(Math.round(safeValue)));
-  valueElement.textContent = unit === '%' ? `${Math.round(safeValue)}%` : `${Math.round(safeValue)}/${maximum}`;
+  valueElement.textContent = unit === '%'
+    ? `${Math.round(safeValue)}%`
+    : unit === 'seconds'
+      ? `${Math.ceil(safeValue)}s`
+      : `${Math.round(safeValue)}/${maximum}`;
 }
 
 function renderHud() {
@@ -1734,7 +1739,11 @@ function renderHud() {
   playerHud.classList.toggle('is-game-over', actor.gameOver);
   hudAttempts.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   updateHudBar(hudHealth, hudHealthValue, actor.health, MAX_HEALTH);
-  updateHudBar(hudOxygen, hudOxygenValue, actor.oxygen, MAX_OXYGEN);
+  const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
+  const oxygenSeconds = oxygenMaximum > 0
+    ? (actor.oxygen / oxygenMaximum) * OXYGEN_DURATION_SECONDS
+    : 0;
+  updateHudBar(hudOxygen, hudOxygenValue, oxygenSeconds, OXYGEN_DURATION_SECONDS, 'seconds');
   updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
 }
 
@@ -2756,7 +2765,7 @@ canvas.addEventListener('pointerup', (event) => {
   const pointer = eventPoint(event);
   const launch = launchActor(state.actor, pointer);
   if (launch.launched) {
-    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣最多 -${launch.costs.oxygen.toFixed(1)}（隨移動結算）。` }]);
+    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}。氧氣改為時間倒數，滿氧約 40 秒。` }]);
   } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
     const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
     recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法彈射，請補給或原地休息。` }]);
@@ -2896,7 +2905,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === ' ' && state.mode === 'play') {
     event.preventDefault();
     const launch = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
-    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣最多 -${launch.costs.oxygen.toFixed(1)}（隨移動結算）。` }]);
+    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}。氧氣改為時間倒數，滿氧約 40 秒。` }]);
     else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
       const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
       recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法快速彈射。` }]);

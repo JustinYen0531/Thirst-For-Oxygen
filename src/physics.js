@@ -43,11 +43,15 @@ const LAUNCH_MOMENTUM_DURATION = 0.75;
 const LAUNCH_LINEAR_DISTANCE = 90;
 const LAUNCH_LONG_DISTANCE_GAIN = 0.05;
 export const ENERGY_COST_PER_LAUNCH = 5;
-// A medium drag (~200 px) budgets about 5 O₂; the longest 420 px drag reaches
-// about 10.5 O₂. The budget is charged progressively as the actor actually
-// travels, so the HUD changes during the launch instead of at pointer release.
-export const OXYGEN_COST_PER_DISTANCE = 0.025;
-export const MAX_LAUNCH_OXYGEN_COST = 12;
+// Oxygen is a survival clock, never a movement or launch-distance budget.
+// A full tank lasts forty real-time seconds at the default capacity.
+export const OXYGEN_DURATION_SECONDS = 40;
+export const OXYGEN_DRAIN_DURATION_SECONDS = OXYGEN_DURATION_SECONDS;
+export const OXYGEN_DRAIN_PER_SECOND = MAX_OXYGEN / OXYGEN_DURATION_SECONDS;
+// Kept as zero-valued compatibility exports for older callers. Distance no
+// longer changes oxygen and launches never reserve an oxygen budget.
+export const OXYGEN_COST_PER_DISTANCE = 0;
+export const MAX_LAUNCH_OXYGEN_COST = 0;
 export const OXYGEN_STARVATION_DAMAGE_PER_SECOND = 3;
 const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
@@ -70,6 +74,16 @@ const contactObjectCache = new WeakMap();
 
 function maxOxygenFor(actor) {
   return actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
+}
+
+export function getOxygenDrainPerSecond(actor) {
+  return maxOxygenFor(actor) / OXYGEN_DURATION_SECONDS;
+}
+
+export function getOxygenSecondsRemaining(actor) {
+  const maximum = maxOxygenFor(actor);
+  if (maximum <= 0) return 0;
+  return clamp((actor.oxygen / maximum) * OXYGEN_DURATION_SECONDS, 0, OXYGEN_DURATION_SECONDS);
 }
 
 function clamp(value, min, max) {
@@ -228,12 +242,11 @@ export function getLaunchSpeed(distance) {
 }
 
 export function getLaunchCosts(distance, actor = null) {
-  const oxygenMultiplier = actor?.derivedStats?.launchOxygenCostMultiplier ?? 1;
   const energyMultiplier = actor?.derivedStats?.launchEnergyCostMultiplier ?? 1;
   return {
-    // This is the planned oxygen budget, not an upfront debit. stepPhysics
-    // charges it as the player actually travels.
-    oxygen: clamp(distance * OXYGEN_COST_PER_DISTANCE * oxygenMultiplier, 0, MAX_LAUNCH_OXYGEN_COST),
+    // Oxygen is elapsed-time based. Keep the field for HUD/API compatibility,
+    // but it is intentionally independent of the requested launch distance.
+    oxygen: 0,
     energy: ENERGY_COST_PER_LAUNCH * energyMultiplier,
   };
 }
@@ -270,8 +283,6 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     shieldCooldown: 0,
     attached: false,
     blockedResting: false,
-    launchOxygenRemaining: 0,
-    launchOxygenRate: 0,
     gravityImmunity: 0,
     safe: false,
     inInk: false,
@@ -379,8 +390,6 @@ export function respawnActor(actor, spawn) {
   actor.oxygen = actor.derivedStats.maxOxygen;
   actor.dead = false;
   actor.blockedResting = false;
-  actor.launchOxygenRemaining = 0;
-  actor.launchOxygenRate = 0;
   actor.hurtTimer = 0;
   actor.deathAnimation = deathAnimation;
   actor.invulnerability = 1;
@@ -402,8 +411,6 @@ export function launchActor(actor, pointer) {
   if (direction.x < 0) actor.facing = 'left';
   else if (direction.x > 0) actor.facing = 'right';
   actor.blockedResting = false;
-  actor.launchOxygenRemaining = costs.oxygen;
-  actor.launchOxygenRate = costs.oxygen / Math.max(distance, 1);
   actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
   return { launched: true, speed, distance, costs };
@@ -851,6 +858,19 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   if (actor.inInk) addEvent(events, 'ink', '墨水區：預覽視野受限。');
 }
 
+function processOxygenClock(actor, dt, events) {
+  const elapsed = Math.max(0, Number(dt) || 0);
+  const current = Number.isFinite(actor.oxygen) ? actor.oxygen : maxOxygenFor(actor);
+  actor.oxygen = Math.max(0, current - getOxygenDrainPerSecond(actor) * elapsed);
+  if (actor.oxygen <= 0 && !isOnCooldown(actor, 'oxygenStarvation')) {
+    const damage = applyDamage(actor, OXYGEN_STARVATION_DAMAGE_PER_SECOND * elapsed, 'oxygenStarvation', 'oxygen');
+    if (damage.applied > 0) {
+      actor.cooldowns.oxygenStarvation = 0.5;
+      addEvent(events, 'oxygenStarvation', `氧氣耗盡：生命 -${damage.applied.toFixed(1)}，請尋找氧氣補給。`);
+    }
+  }
+}
+
 export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null }) {
   const events = [];
   actor.hurtTimer = Math.max(0, (actor.hurtTimer ?? 0) - dt);
@@ -867,6 +887,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.invulnerability = Math.max(0, actor.invulnerability - dt);
   actor.shieldTimer = Math.max(0, actor.shieldTimer - dt);
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
+  processOxygenClock(actor, dt, events);
   if (actor.attached) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);
     return events;
@@ -899,29 +920,12 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.vy = (actor.vy / speed) * speedLimit;
   }
   const previousPosition = { x: actor.x, y: actor.y };
-  const travelDistance = Math.hypot(actor.vx, actor.vy) * dt;
   actor.x += actor.vx * dt;
   actor.y += actor.vy * dt;
   processBoundary(actor, bounds, events);
   const after = findCellContainingPoint(map, actor, chapter, origin);
   const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events, previousPosition);
   if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
-  // Charge the launch budget from actual attempted travel distance. A medium
-  // launch therefore spends about 5 O₂ and a full-range launch about 10 O₂,
-  // but the value is visible progressively during the flight.
-  const oxygenCharge = Math.min(
-    actor.launchOxygenRemaining ?? 0,
-    travelDistance * (actor.launchOxygenRate ?? 0),
-  );
-  actor.oxygen = Math.max(0, actor.oxygen - oxygenCharge);
-  actor.launchOxygenRemaining = Math.max(0, (actor.launchOxygenRemaining ?? 0) - oxygenCharge);
-  if (actor.oxygen <= 0 && !isOnCooldown(actor, 'oxygenStarvation')) {
-    const damage = applyDamage(actor, OXYGEN_STARVATION_DAMAGE_PER_SECOND * dt, 'oxygenStarvation', 'oxygen');
-    if (damage.applied > 0) {
-      actor.cooldowns.oxygenStarvation = 0.5;
-      addEvent(events, 'oxygenStarvation', `氧氣耗盡：生命 -${damage.applied.toFixed(1)}，請尋找氧氣補給。`);
-    }
-  }
   processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
   if (Math.hypot(actor.vx, actor.vy) < 1) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);

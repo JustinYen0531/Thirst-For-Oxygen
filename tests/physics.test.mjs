@@ -28,6 +28,8 @@ import {
   MAX_LAUNCH_SPEED,
   LAUNCH_MOMENTUM_MULTIPLIER,
   ENERGY_COST_PER_LAUNCH,
+  OXYGEN_DURATION_SECONDS,
+  OXYGEN_DRAIN_PER_SECOND,
   OXYGEN_COST_PER_DISTANCE,
   OXYGEN_STARVATION_DAMAGE_PER_SECOND,
   SIMULATION_SPEED_SCALE,
@@ -35,6 +37,7 @@ import {
   drainAimEnergy,
   getLaunchCosts,
   getLaunchSpeed,
+  getOxygenSecondsRemaining,
   launchActor,
   getMicroflowAcceleration,
   getMicroflowRegionKeys,
@@ -131,10 +134,10 @@ test('launch velocity is opposite the pull direction', () => {
   assert.ok(actor.vx > 0);
   assert.equal(actor.vy, 0);
   assert.ok(launch.speed > 100, 'launch speed should include the requested five-times momentum boost');
-  assert.equal(actor.oxygen, oxygenBefore, 'oxygen is charged from actual travel, not upfront');
+  assert.equal(actor.oxygen, oxygenBefore, 'oxygen is not charged by launching');
   assert.equal(actor.energy, 100 - ENERGY_COST_PER_LAUNCH, 'one launch should settle one fixed energy cost');
-  assert.ok(Math.abs(getLaunchCosts(200).oxygen - 5) < 0.0001, 'medium launch should budget about 5 oxygen');
-  assert.ok(getLaunchCosts(420).oxygen >= 10, 'long launch should budget about 10 oxygen');
+  assert.equal(getLaunchCosts(200).oxygen, 0, 'medium launch should not budget oxygen');
+  assert.equal(getLaunchCosts(420).oxygen, 0, 'long launch should not budget oxygen');
 });
 
 test('long launches gain extra speed while short launches keep the old scale', () => {
@@ -146,7 +149,7 @@ test('long launches gain extra speed while short launches keep the old scale', (
 test('launch only requires energy and aiming is free', () => {
   let actor = createTestActor({ x: 200, y: 200 });
   const costs = getLaunchCosts(80);
-  assert.ok(costs.oxygen > 0);
+  assert.equal(costs.oxygen, 0);
   actor.oxygen = 0;
   assert.ok(launchActor(actor, { x: 120, y: 200 }).launched, 'oxygen starvation does not prevent movement');
 
@@ -160,30 +163,28 @@ test('launch only requires energy and aiming is free', () => {
   assert.equal(actor.energy, energyBeforeAim, 'holding aim must not spend energy');
 });
 
-test('oxygen follows travel distance and starvation drains health slowly', () => {
+test('oxygen is a fixed forty-second timer independent of travel distance', () => {
   const map = createEmptyMap({ width: 3, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L0' });
   patchCell(map, '1,0', { gravityLevel: 'L0' });
   patchCell(map, '2,0', { gravityLevel: 'L0' });
-  const actor = actorIn(map, '1,0');
-  const launch = launchActor(actor, { x: actor.x - 200, y: actor.y });
-  assert.ok(launch.launched);
-  const beforeOxygen = actor.oxygen;
-  stepPhysics({ map, actor, origin: ORIGIN });
-  assert.ok(actor.oxygen < beforeOxygen);
-  assert.ok(beforeOxygen - actor.oxygen > 0.01, 'oxygen should visibly change during a launch');
-  assert.ok(OXYGEN_COST_PER_DISTANCE >= 0.02);
+  const idle = actorIn(map, '1,0');
+  const moving = actorIn(map, '1,0');
+  moving.vx = 120;
+  const idleBefore = idle.oxygen;
+  const movingBefore = moving.oxygen;
+  stepPhysics({ map, actor: idle, origin: ORIGIN, dt: 1 });
+  stepPhysics({ map, actor: moving, origin: ORIGIN, dt: 1 });
+  assert.equal(OXYGEN_DURATION_SECONDS, 40);
+  assert.ok(Math.abs((idleBefore - idle.oxygen) - OXYGEN_DRAIN_PER_SECOND) < 0.0001, 'one second should consume the fixed oxygen rate');
+  assert.ok(Math.abs((movingBefore - moving.oxygen) - OXYGEN_DRAIN_PER_SECOND) < 0.0001, 'travel distance must not change oxygen consumption');
+  assert.equal(Math.round(getOxygenSecondsRemaining(idle)), 39, 'HUD time should show thirty-nine seconds after one second');
+  assert.equal(OXYGEN_COST_PER_DISTANCE, 0, 'distance oxygen compatibility constant must stay disabled');
 
-  actor.oxygen = 0;
-  actor.health = MAX_HEALTH;
-  actor.vx = 0;
-  actor.vy = 0;
-  actor.energy = 100;
-  const beforeHealth = actor.health;
-  stepPhysics({ map, actor, origin: ORIGIN });
-  assert.ok(actor.health < beforeHealth, 'empty oxygen should slowly damage health');
-  assert.ok(actor.health > beforeHealth - OXYGEN_STARVATION_DAMAGE_PER_SECOND, 'starvation damage should be gradual');
-  assert.equal(actor.energy, 100, 'resting with zero velocity still allows energy recovery');
+  for (let index = 0; index < OXYGEN_DURATION_SECONDS - 1; index += 1) stepPhysics({ map, actor: idle, origin: ORIGIN, dt: 1 });
+  assert.equal(idle.oxygen, 0, 'a full tank should reach zero after forty elapsed seconds');
+  assert.ok(idle.health < MAX_HEALTH, 'empty oxygen should slowly damage health');
+  assert.ok(idle.health > MAX_HEALTH - OXYGEN_STARVATION_DAMAGE_PER_SECOND * 2, 'starvation damage should be gradual and cooldown-limited');
 });
 
 test('all primary motion limits use the 0.1 simulation scale', () => {
@@ -441,7 +442,7 @@ test('free-object parameters drive oxygen, mine damage, and Torricelli recovery'
   const torricelliActor = actorIn(torricelliMap, '0,0');
   torricelliActor.oxygen = 10;
   stepPhysics({ map: torricelliMap, actor: torricelliActor, origin: ORIGIN, dt: 0.5 });
-  assert.ok(torricelliActor.oxygen > 22, 'Torricelli recovery should use the configured per-second rate');
+  assert.ok(Math.abs(torricelliActor.oxygen - (10 + (25 - OXYGEN_DRAIN_PER_SECOND) * 0.5)) < 0.0001, 'Torricelli recovery should use the configured per-second rate after the oxygen clock');
 });
 
 test('custom edge parameters control spring force and spike damage', () => {
