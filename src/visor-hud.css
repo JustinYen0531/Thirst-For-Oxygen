@@ -20,16 +20,46 @@
   z-index: 2;
   content: '';
   pointer-events: none;
-  opacity: .34;
+  opacity: .58;
   mix-blend-mode: screen;
   -webkit-backdrop-filter: saturate(1.08) brightness(1.03);
   backdrop-filter: saturate(1.08) brightness(1.03);
   background:
-    linear-gradient(116deg, rgba(224, 253, 255, .1) 0, transparent 18%, transparent 38%, rgba(210, 250, 255, .055) 47%, transparent 56%, transparent 80%, rgba(224, 253, 255, .075) 100%),
-    radial-gradient(ellipse at 7% 46%, rgba(185, 246, 255, .18) 0, rgba(185, 246, 255, .06) 9%, transparent 24%),
-    radial-gradient(ellipse at 93% 46%, rgba(185, 246, 255, .18) 0, rgba(185, 246, 255, .06) 9%, transparent 24%),
-    linear-gradient(108deg, transparent 0 6%, rgba(218, 252, 255, .12) 7%, transparent 9% 91%, rgba(218, 252, 255, .12) 93%, transparent 94%),
-    linear-gradient(180deg, rgba(208, 248, 255, .13), transparent 12% 86%, rgba(208, 248, 255, .08));
+    linear-gradient(116deg, transparent 0 22%, rgba(224, 253, 255, .24) 28%, rgba(224, 253, 255, .07) 31%, transparent 38% 62%, rgba(224, 253, 255, .13) 69%, transparent 75%),
+    linear-gradient(168deg, rgba(220, 252, 255, .13), transparent 17% 73%, rgba(220, 252, 255, .1)),
+    radial-gradient(ellipse at 7% 46%, rgba(185, 246, 255, .3) 0, rgba(185, 246, 255, .1) 9%, transparent 24%),
+    radial-gradient(ellipse at 93% 46%, rgba(185, 246, 255, .3) 0, rgba(185, 246, 255, .1) 9%, transparent 24%),
+    repeating-linear-gradient(105deg, transparent 0 13%, rgba(218, 252, 255, .06) 14%, transparent 15% 29%);
+  animation: visor-glass-drift 9s ease-in-out infinite alternate;
+}
+
+.visor-hud::before {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  pointer-events: none;
+  opacity: .28;
+  mix-blend-mode: screen;
+  background:
+    linear-gradient(102deg, transparent 0 44%, rgba(175, 239, 255, .34) 48%, transparent 52% 100%),
+    linear-gradient(180deg, rgba(198, 246, 255, .16), transparent 10% 88%, rgba(198, 246, 255, .11));
+  animation: visor-glass-sheen 6s ease-in-out infinite alternate;
+}
+
+@keyframes visor-glass-drift {
+  from { transform: translate3d(-1.5%, 0, 0) scale(1.01); }
+  to { transform: translate3d(1.5%, 0, 0) scale(1.01); }
+}
+
+@keyframes visor-glass-sheen {
+  from { opacity: .18; }
+  to { opacity: .38; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visor-hud::before,
+  .visor-hud::after { animation: none; }
 }
 
 .visor-surround {

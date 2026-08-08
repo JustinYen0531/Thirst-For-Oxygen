@@ -150,62 +150,63 @@ body { min-width: 0; }
 /* The chapter selector is part of the full-screen play surface: it reads as
    a compact navigation console, while the map remains visible behind it. */
 .top-map-picker {
-  top: clamp(84px, 12%, 128px);
+  top: clamp(118px, 17%, 154px);
   left: 50%;
   right: auto;
   display: grid;
-  gap: 3px;
-  width: min(360px, calc(100vw - 260px));
-  min-height: 48px;
-  padding: 7px 38px 7px 14px;
-  border: 1px solid rgba(119, 232, 255, .42);
-  border-radius: 9px;
-  background: linear-gradient(180deg, rgba(8, 34, 61, .88), rgba(5, 20, 38, .74));
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .25), inset 0 1px rgba(206, 249, 255, .1);
+  gap: 2px;
+  width: clamp(220px, 26vw, 320px);
+  min-height: 0;
+  padding: 7px 34px 8px 14px;
+  border: 1px solid rgba(84, 202, 255, .25);
+  border-left: 3px solid rgba(87, 216, 255, .62);
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(4, 22, 43, .7), rgba(4, 22, 43, .24), transparent);
+  box-shadow: inset 0 0 12px rgba(47, 172, 231, .1);
   transform: translateX(-50%);
   z-index: 6;
 }
 .top-map-picker::after {
   position: absolute;
   top: 50%;
-  right: 14px;
+  right: 12px;
   content: '⌄';
-  color: var(--cyan);
-  font-size: 1rem;
+  color: #70c7ef;
+  font-size: .86rem;
   line-height: 1;
   pointer-events: none;
   transform: translateY(-42%);
 }
-.chapter-picker-label { color: #75b8dc; font-size: .53rem; font-weight: 800; letter-spacing: .17em; }
+.chapter-picker-label { color: #6aaed5; font-size: .54rem; font-weight: 800; letter-spacing: .14em; }
 .top-map-picker select {
   width: 100%;
   padding: 0;
   border: 0;
   color: #f2fcff;
   background: transparent;
-  font-size: .78rem;
+  font-size: .86rem;
   font-weight: 800;
   text-align: left;
-  text-shadow: 0 0 9px rgba(119, 232, 255, .28);
+  text-shadow: 0 0 8px rgba(69, 210, 255, .5);
   appearance: none;
 }
 .top-map-picker select:focus { border-color: transparent; box-shadow: none; outline: none; }
 .play-attempts { z-index: 5; }
 .depth-readout { top: clamp(146px, 20%, 195px); left: clamp(72px, 14%, 210px); z-index: 6; }
-.level-readout { top: clamp(206px, 30%, 270px); z-index: 6; }
+.level-readout { top: clamp(178px, 26%, 222px); z-index: 6; }
 
 @media (max-width: 650px) {
   .top-map-picker {
-    top: 52px;
+    top: 72px;
     right: 45px;
     left: 45px;
     width: auto;
-    min-height: 42px;
+    min-height: 0;
     padding: 5px 30px 5px 10px;
     transform: none;
   }
-  .top-map-picker select { font-size: .65rem; }
+  .top-map-picker select { font-size: .7rem; }
   .chapter-picker-label { font-size: .46rem; }
-  .depth-readout { top: 108px; left: 70px; }
-  .level-readout { top: 158px; }
+  .depth-readout { top: 118px; left: 70px; }
+  .level-readout { top: 162px; }
 }

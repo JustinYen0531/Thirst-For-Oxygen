@@ -551,3 +551,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added collision-entry sound deduplication: wall and other contact sounds play once when entering a collision and stay quiet while the player remains held against it.
 - Added a Settings toggle for the existing 240-second underwater ambience loop; it starts on interaction when autoplay is unavailable and can be turned off/on explicitly.
 - Static-only verification passed: `npm run check` (68/68 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-09 — Step 67 complete
+
+- Reworked the embedded chapter picker to use the same compact left-accent card language as the LEVEL 01 readout, with tighter vertical spacing so the two cards read as one HUD stack rather than an AI-generated navigation banner.
+- Increased visor transmission/reflection contrast with layered glass sheen, diagonal highlights, edge glow, and reduced-motion fallbacks; the map remains visible through the transparent center.
+- Made ambient audio startup resilient to autoplay rejection by listening in capture phase on trusted pointer/keyboard gestures, retrying after rejected attempts, and raising the 240-second underwater loop/bubble mix to an audible but subordinate level.
+- Static-only verification passed: `npm run check` (70/70 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

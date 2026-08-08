@@ -585,7 +585,12 @@ if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
 syncMusicTrack();
 musicController.start();
 sfxController.startAmbient();
-window.addEventListener('pointerdown', () => { if (ambientEnabled) sfxController.startAmbient(); }, { once: true });
-window.addEventListener('keydown', () => { if (ambientEnabled) sfxController.startAmbient(); }, { once: true });
+function unlockAmbientAudio() {
+  if (ambientEnabled) sfxController.startAmbient();
+}
+// Capture the first trusted gesture even when it lands on a HUD control or
+// canvas child; repeated attempts also recover from a browser autoplay reject.
+window.addEventListener('pointerdown', unlockAmbientAudio, { capture: true });
+window.addEventListener('keydown', unlockAmbientAudio, { capture: true });
 loadMap(mapPart);
 requestAnimationFrame(frame);

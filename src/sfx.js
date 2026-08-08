@@ -86,8 +86,12 @@ export function createSfxController() {
   return {
     play,
     startAmbient() {
-      startAmbient('underwaterLoop', 0.28);
-      startAmbient('scubaBubbles', 0.08);
+      // The loop is the primary diving bed; bubbles sit underneath it so the
+      // water presence remains audible without competing with collision cues.
+      return Promise.all([
+        startAmbient('underwaterLoop', 0.42),
+        startAmbient('scubaBubbles', 0.12),
+      ]);
     },
     stopAmbient,
     setVolume(nextVolume) {
