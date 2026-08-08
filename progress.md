@@ -393,6 +393,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Kept `launchActor`, runtime physics, and `predictTrajectory` available for actual movement and tests; only the player-facing preview was simplified so gravity remains an experience-based judgment.
 - Updated the player-operation, core-summary, physics-launch, and water-gravity GDD notes to record this intentional information boundary. Static syntax/build checks remain required; browser validation remains prohibited by user instruction.
 
+## 2026-08-08 — Step 49 complete
+
+- Added player animation states for swimming, hurt, death, and fast ascent, with shared state selection used by both the editor Play mode and standalone `play.html`.
+- Added generated black-visor diver variants: `player-diver-swim.png`, `player-diver-hurt.png`, `player-diver-death.png`, and `player-diver-fast-ascent.png`; all are RGBA cutouts with transparent corners.
+- Damage now starts a short hurt timer, death preserves a short death pose at the impact position, and standalone play now handles death/respawn presentation consistently with the editor.
+- Added a subtle pale-white silhouette outline around the diver so the player remains readable against dark water tiles.
+- Static-only verification passed: `npm run check` (48/48 tests), `npm run build`, `git diff --check`, and alpha validation for all five diver assets. Browser and Playwright checks remain prohibited per user instruction.
+
 ## 2026-08-08 — Step 48 complete
 
 - Replaced the bare straight launch line with a shared `潮壓脈衝導引`: soft cyan pressure wake, moving gold core, alternating hex pulse markers with asymmetric fins, an animated charge ring at the diver, and a hexagonal echo ring at the aimed landing point.

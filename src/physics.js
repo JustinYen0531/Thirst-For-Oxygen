@@ -22,6 +22,7 @@ import {
   getFreeObjectSetting,
 } from './map-object-settings.js';
 import { MULTI_PORTAL_EDGE_TYPE, getPortalPartnerEdge } from './portal.js';
+import { PLAYER_DEATH_DURATION, PLAYER_HURT_DURATION } from './player-animation.js';
 
 export const FIXED_STEP = 1 / 60;
 export const SIMULATION_SPEED_SCALE = 0.1;
@@ -80,6 +81,18 @@ function reflect(velocity, normal, multiplier = 0.72) {
     x: (velocity.x - 2 * dot * normal.x) * multiplier,
     y: (velocity.y - 2 * dot * normal.y) * multiplier,
   };
+}
+
+function reflectWithoutUpwardLift(velocity, normal, multiplier = 0.72) {
+  const reflected = reflect(velocity, normal, multiplier);
+  // A blocked hex is a wall, not another gravity source. In screen space
+  // negative y is upward, so a wall may not turn a downward/neutral velocity
+  // upward, nor make an already-upward launch even more upward. Explicit
+  // bounce objects (spring jelly, mines) continue to use full reflection.
+  reflected.y = velocity.y <= 0
+    ? Math.max(reflected.y, velocity.y)
+    : Math.max(reflected.y, 0);
+  return reflected;
 }
 
 function unitVector(from, to) {
@@ -248,6 +261,8 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     derivedStats: getPlayerDerivedStats(abilities, MAX_OXYGEN),
     dead: false,
     gameOver: false,
+    hurtTimer: 0,
+    deathAnimation: null,
     invulnerability: 0,
     shieldTimer: 0,
     shieldCooldown: 0,
@@ -307,6 +322,7 @@ export function applyDamage(actor, amount, source = 'unknown', damageType = 'gen
   if (actor.oxygen < MAX_OXYGEN * 0.5) multiplier *= actor.derivedStats?.lowOxygenDamageTakenMultiplier ?? 1;
   const damage = Math.max(0, amount * multiplier);
   actor.health = Math.max(0, actor.health - damage);
+  if (damage > 0) actor.hurtTimer = PLAYER_HURT_DURATION;
   const threshold = (actor.derivedStats?.shieldThresholdRatio ?? 0) * MAX_HEALTH;
   if (threshold > 0 && damage >= threshold && actor.shieldCooldown <= 0) {
     actor.shieldTimer = actor.derivedStats.shieldDuration;
@@ -336,6 +352,7 @@ export function applyEnemyDefeatRewards(actor) {
 
 export function registerPlayerDeath(actor, cause = 'damage') {
   if (actor.dead || actor.gameOver) return { livesRemaining: actor.lives, gameOver: actor.gameOver, cause };
+  actor.deathAnimation = { x: actor.x, y: actor.y, timer: PLAYER_DEATH_DURATION, cause };
   actor.dead = true;
   actor.health = 0;
   actor.lives = Math.max(0, actor.lives - 1);
@@ -346,6 +363,7 @@ export function registerPlayerDeath(actor, cause = 'damage') {
 
 export function respawnActor(actor, spawn) {
   if (actor.gameOver) return false;
+  const deathAnimation = actor.deathAnimation;
   actor.x = spawn.x;
   actor.y = spawn.y;
   actor.vx = 0;
@@ -355,6 +373,8 @@ export function respawnActor(actor, spawn) {
   actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen);
   actor.oxygen = actor.derivedStats.maxOxygen;
   actor.dead = false;
+  actor.hurtTimer = 0;
+  actor.deathAnimation = deathAnimation;
   actor.invulnerability = 1;
   actor.shieldTimer = 0;
   actor.shieldCooldown = 0;
@@ -536,7 +556,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     const from = getHexCenter(fromCell, origin);
     const to = getHexCenter(toCell, origin);
     const normal = unitVector(from, to);
-    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.72);
+    const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.72);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
     actor.x = from.x + normal.x * 8;
@@ -548,7 +568,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     const from = getHexCenter(fromCell, origin);
     const to = getHexCenter(toCell, origin);
     const normal = unitVector(from, to);
-    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.68);
+    const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.68);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
     actor.x = from.x + normal.x * 8;
@@ -594,7 +614,7 @@ function processTerrainContact(map, actor, cellKey, chapter, origin, events) {
     const distanceIntoSide = (actor.x - from.x) * normal.x + (actor.y - from.y) * normal.y;
     const approaching = actor.vx * normal.x + actor.vy * normal.y > 0;
     if (distanceIntoSide + actor.radius <= boundaryDistance || !approaching) continue;
-    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.72);
+    const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.72);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
     const safeDistance = Math.max(0, boundaryDistance - actor.radius - 0.2);
@@ -815,6 +835,11 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
 
 export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null }) {
   const events = [];
+  actor.hurtTimer = Math.max(0, (actor.hurtTimer ?? 0) - dt);
+  if (actor.deathAnimation) {
+    actor.deathAnimation.timer = Math.max(0, actor.deathAnimation.timer - dt);
+    if (actor.deathAnimation.timer <= 0 && !actor.dead && !actor.gameOver) actor.deathAnimation = null;
+  }
   Object.keys(actor.cooldowns).forEach((key) => {
     actor.cooldowns[key] = Math.max(0, actor.cooldowns[key] - dt);
   });

@@ -66,6 +66,13 @@ import {
   getPortalGroupMidpoint,
 } from './portal.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
+import {
+  PLAYER_ANIMATION_ASSETS,
+  PLAYER_ANIMATION_IMAGE_KEYS,
+  getPlayerAnimationMotion,
+  getPlayerAnimationPosition,
+  getPlayerAnimationState,
+} from './player-animation.js';
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -160,7 +167,11 @@ const edgeImagePaths = {
   multiPortal: '/assets/editor/edges/multi-portal.png',
 };
 const actorImagePaths = {
-  playerStart: '/assets/editor/actors/player-diver.png',
+  playerStart: PLAYER_ANIMATION_ASSETS.swim,
+  playerSwim: PLAYER_ANIMATION_ASSETS.swim,
+  playerHurt: PLAYER_ANIMATION_ASSETS.hurt,
+  playerDeath: PLAYER_ANIMATION_ASSETS.death,
+  playerFastAscent: PLAYER_ANIMATION_ASSETS.fastAscent,
 };
 const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths, ...actorImagePaths };
 const paletteLabels = {
@@ -758,21 +769,25 @@ function drawImageWithSilhouetteOutline(image, x, y, width, height, options = {}
 }
 
 function drawPlayerDiver(position, height, options = {}) {
-  const image = actorImages.playerStart;
+  const actor = options.actor ?? state.actor;
   const time = state.animationTime;
   const gameplay = options.gameplay === true;
-  const bob = Math.sin(time * 1.8 + position.x * 0.01) * (gameplay ? 1.2 : 0.45);
-  const sway = Math.sin(time * 1.35 + position.y * 0.008) * (gameplay ? 0.045 : 0.025);
+  const animationState = options.animationState ?? (gameplay ? getPlayerAnimationState(actor) : 'swim');
+  const imageKey = PLAYER_ANIMATION_IMAGE_KEYS[animationState] ?? PLAYER_ANIMATION_IMAGE_KEYS.swim;
+  const image = actorImages[imageKey] ?? actorImages.playerStart;
+  const motion = getPlayerAnimationMotion(animationState, time, actor);
+  const anchor = gameplay ? getPlayerAnimationPosition(actor) : position;
   const width = height * ((image?.naturalWidth || 1122) / (image?.naturalHeight || 1402));
-  const alpha = options.alpha ?? 0.98;
+  const alpha = options.alpha ?? motion.alpha;
   ctx.save();
-  ctx.translate(position.x, position.y + bob);
-  ctx.rotate(sway);
+  ctx.translate(anchor.x, anchor.y + motion.bob);
+  ctx.rotate(motion.rotation);
+  ctx.scale(motion.scaleX, motion.scaleY);
   if (gameplay) {
     const pulse = 0.5 + Math.sin(time * 3.4) * 0.5;
     ctx.save();
-    ctx.globalAlpha = 0.08 + pulse * 0.08;
-    ctx.fillStyle = options.attached ? '#70e88e' : '#5de8ff';
+    ctx.globalAlpha = 0.06 + pulse * 0.08;
+    ctx.fillStyle = options.attached ? '#70e88e' : motion.glow;
     ctx.shadowColor = ctx.fillStyle;
     ctx.shadowBlur = 8 + pulse * 6;
     ctx.beginPath();
@@ -783,8 +798,8 @@ function drawPlayerDiver(position, height, options = {}) {
   if (image?.complete && image.naturalWidth > 0) {
     drawImageWithSilhouetteOutline(image, -width / 2, -height / 2, width, height, {
       alpha,
-      radius: gameplay ? 0.58 : 0.42,
-      colour: options.attached ? 'rgba(166, 255, 191, 0.94)' : 'rgba(198, 248, 255, 0.9)',
+      radius: gameplay ? 0.68 : 0.5,
+      colour: options.attached ? 'rgba(205, 255, 221, 0.9)' : 'rgba(246, 252, 255, 0.88)',
     });
   } else {
     // Keep a readable non-letter fallback while the generated asset loads.
@@ -806,10 +821,10 @@ function drawPlayerDiver(position, height, options = {}) {
   ctx.restore();
 
   if (!gameplay) return;
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < (animationState === 'death' ? 1 : 3); index += 1) {
     const phase = time * (1.2 + index * 0.14) + index * 2.1;
-    const bubbleX = position.x + Math.sin(phase) * height * (0.18 + index * 0.06);
-    const bubbleY = position.y + bob - height * (0.46 + index * 0.13) - ((time * (5 + index) + index * 7) % 7);
+    const bubbleX = anchor.x + Math.sin(phase) * height * (0.18 + index * 0.06);
+    const bubbleY = anchor.y + motion.bob - height * (0.46 + index * 0.13) - ((time * (5 + index) + index * 7) % 7);
     ctx.save();
     ctx.globalAlpha = 0.35 - index * 0.07;
     ctx.strokeStyle = '#a6f5ff';
@@ -2907,6 +2922,7 @@ window.render_game_to_text = () => {
       oxygen: formatNumber(state.actor.oxygen), oxygenMax: MAX_OXYGEN,
       energy: formatNumber(state.actor.energy), attached: state.actor.attached,
       lives: state.actor.lives, maxLives: state.actor.maxLives, gameOver: state.actor.gameOver,
+      animation: getPlayerAnimationState(state.actor),
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },

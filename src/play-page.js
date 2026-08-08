@@ -14,9 +14,17 @@ import {
   MAX_OXYGEN,
   createTestActor,
   launchActor,
+  registerPlayerDeath,
+  respawnActor,
   stepPhysics,
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
+import {
+  PLAYER_ANIMATION_ASSETS,
+  getPlayerAnimationMotion,
+  getPlayerAnimationPosition,
+  getPlayerAnimationState,
+} from './player-animation.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -27,7 +35,7 @@ const MAPS = {
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
 const TILE_SIZE = 24;
-const PLAYER_ASSET = '/assets/editor/actors/player-diver.png';
+const PLAYER_ASSET = PLAYER_ANIMATION_ASSETS.swim;
 const TILE_ASSETS = {
   'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
@@ -36,6 +44,7 @@ const OBJECT_ASSETS = {
   coralCluster: '/assets/editor/objects/coral-cluster.png', mine: '/assets/editor/objects/deep-sea-mine.png', weightStone: '/assets/editor/objects/heavy-stone.png', seaweed: '/assets/editor/objects/sea-grass.png', oxygen: '/assets/editor/objects/oxygen-ore.png', checkpoint: '/assets/editor/objects/checkpoint.png', bubble: '/assets/editor/objects/photosynthesis-bubble.png', torricelli: '/assets/editor/objects/torricelli-space.png', razor: '/assets/editor/objects/razor-blade.png', button: '/assets/editor/objects/button.png',
 };
 const EDGE_ASSETS = { springJelly: '/assets/editor/edges/spring-jellyfish.png', spike: '/assets/editor/edges/edge-spike-barrier.png', barrier: '/assets/editor/edges/edge-spike-barrier.png', current: '/assets/editor/edges/edge-spike-barrier.png', layerPortal: '/assets/editor/edges/layer-portal-stair.png', multiPortal: '/assets/editor/edges/multi-portal.png', seaweed: OBJECT_ASSETS.seaweed, coralCluster: OBJECT_ASSETS.coralCluster };
+const PLAYER_ASSETS = { ...PLAYER_ANIMATION_ASSETS };
 const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱', button: 'B' };
 const edgeColors = { springJelly: '#e77dff', spike: '#ff8394', barrier: '#ff9e78', current: '#6fe5ff', layerPortal: '#f4d56d', multiPortal: '#8cc7ff', seaweed: '#76e49c', coralCluster: '#f1a0ff' };
 
@@ -54,7 +63,7 @@ const unlimitedResourcesButton = document.querySelector('#play-unlimited-resourc
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
-Object.values({ player: PLAYER_ASSET, ...TILE_ASSETS, ...OBJECT_ASSETS, ...EDGE_ASSETS }).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+Object.values({ ...PLAYER_ASSETS, ...TILE_ASSETS, ...OBJECT_ASSETS, ...EDGE_ASSETS }).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapPart = 3;
@@ -79,6 +88,15 @@ function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 
 function cellCenter(key) { return getHexCenter(getActiveCell(map, key, 'chapter1'), origin); }
 function hexPath(ctx, cell, pad = 0) { const center = getHexCenter(cell, origin); const vertices = getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
 function drawImage(path, x, y, width, height, alpha = 1) { const image = images.get(path); if (!image?.complete || !image.naturalWidth) return false; context.save(); context.globalAlpha = alpha; context.drawImage(image, x - width / 2, y - height / 2, width, height); context.restore(); return true; }
+function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, radius = 0.55, colour = 'rgba(246, 252, 255, 0.88)') {
+  context.save();
+  context.globalAlpha = alpha;
+  [[-radius, 0], [radius, 0], [0, -radius], [0, radius], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]].forEach(([offsetX, offsetY]) => {
+    context.drawImage(image, x - width / 2 + offsetX, y - height / 2 + offsetY, width, height);
+  });
+  context.drawImage(image, x - width / 2, y - height / 2, width, height);
+  context.restore();
+}
 function visibleCell(cell) { return cell.q !== undefined && cell.r !== undefined && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y > camera.y - 40 && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y < camera.y + canvas.height / SCALE + 40; }
 
 function chooseSpawn(nextMap) {
@@ -275,28 +293,30 @@ function drawTrajectory() {
 function drawActor() {
   if (!actor) return;
   const time = performance.now();
-  const pulse = 1 + Math.sin(time / 260) * .06;
-  const image = images.get(PLAYER_ASSET);
+  const animationState = getPlayerAnimationState(actor);
+  const animationPath = PLAYER_ASSETS[animationState] ?? PLAYER_ASSET;
+  const image = images.get(animationPath);
   const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+  const motion = getPlayerAnimationMotion(animationState, time / 1000, actor);
+  const anchor = getPlayerAnimationPosition(actor);
   const height = Math.max(22, actor.radius * 3.1);
   const width = imageReady ? height * image.naturalWidth / image.naturalHeight : height * .78;
-  const bob = Math.sin(time / 420) * .65;
 
   context.save();
   context.globalCompositeOperation = 'screen';
   context.globalAlpha = .18;
   context.fillStyle = '#49dfff';
   context.beginPath();
-  context.ellipse(actor.x, actor.y + bob + height * .22, width * .42 * pulse, height * .34 * pulse, 0, 0, Math.PI * 2);
+  context.ellipse(anchor.x, anchor.y + motion.bob + height * .22, width * .42 * motion.scaleX, height * .34 * motion.scaleY, 0, 0, Math.PI * 2);
   context.fill();
   context.restore();
 
   context.save();
-  context.translate(actor.x, actor.y + bob);
-  context.rotate(Math.sin(time / 560) * .035 + clamp(actor.vy * .004, -.08, .08));
+  context.translate(anchor.x, anchor.y + motion.bob);
+  context.rotate(motion.rotation);
+  context.scale(motion.scaleX, motion.scaleY);
   if (imageReady) {
-    context.globalAlpha = .98;
-    context.drawImage(image, -width / 2, -height / 2, width, height);
+    drawImageWithSilhouetteOutline(image, 0, 0, width, height, motion.alpha, .62, motion.glow === '#ffb7a1' ? 'rgba(255, 243, 239, 0.9)' : 'rgba(246, 252, 255, 0.88)');
   } else {
     // Keep a readable non-text fallback while the sprite is loading.
     context.fillStyle = '#090f18';
@@ -321,10 +341,10 @@ function drawActor() {
   context.globalCompositeOperation = 'screen';
   context.globalAlpha = .66;
   context.fillStyle = '#bff8ff';
-  for (let index = 0; index < 2; index += 1) {
+  for (let index = 0; index < (animationState === 'death' ? 1 : 2); index += 1) {
     const phase = time / 420 + index * 2.8;
     context.beginPath();
-    context.arc(actor.x + Math.cos(phase) * width * .42, actor.y + bob - height * .28 - ((time / 700 + index * 4) % 4), .55 + index * .18, 0, Math.PI * 2);
+    context.arc(anchor.x + Math.cos(phase) * width * .42, anchor.y + motion.bob - height * .28 - ((time / 700 + index * 4) % 4), .55 + index * .18, 0, Math.PI * 2);
     context.fill();
   }
   context.restore();
@@ -381,14 +401,33 @@ mapSelect.addEventListener('change', () => loadMap(mapSelect.value));
 window.addEventListener('keydown', (event) => { if (event.key.toLowerCase() === 'r') resetButton.click(); if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); } if (event.key === 'Escape') window.location.href = '/home.html'; });
 
 function simulate(elapsed, now = performance.now()) {
-  if (!paused && map && actor) { accumulator += Math.min(.1, Math.max(0, elapsed)); while (accumulator >= FIXED_STEP) { refillUnlimitedResources(); addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 })); refillUnlimitedResources(); accumulator -= FIXED_STEP; } updateCamera(); updateHud(); }
+  if (!paused && map && actor && !actor.gameOver) {
+    accumulator += Math.min(.1, Math.max(0, elapsed));
+    while (accumulator >= FIXED_STEP) {
+      refillUnlimitedResources();
+      addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
+      if (actor.health <= 0 || actor.oxygen <= 0) {
+        const cause = actor.health <= 0 ? '生命歸零' : '氧氣歸零';
+        const death = registerPlayerDeath(actor, cause);
+        if (death.gameOver) eventLog.push(`${cause}：永久死亡。`);
+        else {
+          respawnActor(actor, spawn);
+          eventLog.push(`${cause}：失去 1 條命，已回到安全水域。`);
+        }
+      }
+      refillUnlimitedResources();
+      accumulator -= FIXED_STEP;
+    }
+    updateCamera();
+    updateHud();
+  }
 }
 
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'world origin is top-left; x right, y down',
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), dragging } : null,
+  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), dragging } : null,
   unlimitedResources,
   paused,
 });

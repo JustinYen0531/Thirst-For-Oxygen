@@ -56,6 +56,11 @@ import {
   getWeaponUseCost,
 } from '../src/game-data.js';
 import {
+  FAST_ASCENT_VELOCITY,
+  getPlayerAnimationPosition,
+  getPlayerAnimationState,
+} from '../src/player-animation.js';
+import {
   beginSandboxAim,
   createSandboxState,
   executeEnemySkill,
@@ -542,6 +547,21 @@ test('blocked terrain reflects a player instead of becoming passable', () => {
   assert.ok(actor.vx < 0, 'blocked terrain should reflect horizontal velocity');
 });
 
+test('blocked terrain cannot turn downward motion into hidden upward lift', () => {
+  const map = createEmptyMap({ width: 2, height: 2 });
+  patchCell(map, '0,0', { gravityLevel: 'L1' });
+  patchCell(map, '0,1', { terrain: 'blocked' });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 140;
+  actor.vy = 140;
+  let events = [];
+  for (let index = 0; index < 30 && !events.some((event) => event.type === 'terrainBoundary'); index += 1) {
+    events = events.concat(stepPhysics({ map, actor, origin: ORIGIN }));
+  }
+  assert.ok(events.some((event) => event.type === 'terrainBoundary'));
+  assert.ok(actor.vy >= 0, 'a blocked wall must not create upward velocity in a downward-gravity Cell');
+});
+
 test('multi-edge portals pair equal edge groups and teleport the actor', () => {
   const map = createEmptyMap({ width: 12, height: 3 });
   const origin = { x: 120, y: 120 };
@@ -598,6 +618,19 @@ test('the last life enters permanent game over and cannot respawn', () => {
   assert.equal(death.gameOver, true);
   assert.equal(actor.lives, 0);
   assert.equal(respawnActor(actor, { x: 1, y: 1 }), false);
+});
+
+test('player animation states prioritize death, hurt, fast ascent, and swimming', () => {
+  const actor = createTestActor({ x: 200, y: 200 });
+  assert.equal(getPlayerAnimationState(actor), 'swim');
+  actor.vy = FAST_ASCENT_VELOCITY - 1;
+  assert.equal(getPlayerAnimationState(actor), 'fastAscent');
+  actor.vy = 0;
+  actor.hurtTimer = 0.2;
+  assert.equal(getPlayerAnimationState(actor), 'hurt');
+  actor.deathAnimation = { x: 321, y: 123, timer: 0.4 };
+  assert.equal(getPlayerAnimationState(actor), 'death');
+  assert.deepEqual(getPlayerAnimationPosition(actor), { x: 321, y: 123 });
 });
 
 test('all defined weapons, passive abilities, and enemy attack contracts are numeric', () => {
