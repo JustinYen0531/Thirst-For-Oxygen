@@ -265,6 +265,13 @@ test('dynamic microflow changes over time without a persistent directional push'
   assert.ok(Math.hypot(acceleration.x, acceleration.y) < 1, 'microflow physics must stay low amplitude');
 });
 
+test('microflow never adds hidden vertical lift to a player', () => {
+  const map = createEmptyMap({ width: 1, height: 1 });
+  const center = getHexCenter(getActiveCell(map, '0,0'), ORIGIN);
+  const acceleration = getMicroflowAcceleration({ map, cellKey: '0,0', position: center, origin: ORIGIN, time: 7 });
+  assert.equal(acceleration.y, 0);
+});
+
 test('microflow regions stop at gravity or water-layer changes', () => {
   const map = createEmptyMap({ width: 4, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L1', waterLayer: 'T1' });

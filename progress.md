@@ -313,6 +313,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Removed the generated image's black surround with the chroma-key helper and verified transparent corners (`RGBA`, alpha `0`).
 - Static-only verification passed: `npm run check` (31/31 tests), `npm run build`, `git diff --check`, and the conditional gate alpha check. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 38 complete
+
+- Generated and chroma-key cleaned `public/assets/editor/actors/player-diver.png`, an ancient-relic human diver matching the project's deep-sea stone-carving and geometric biomimetic art direction.
+- Replaced the player-start `P` marker in the editor and the playtest player's `P` circle with the diver artwork.
+- Added a shared player animation: gentle buoyant bob, body sway, cyan core pulse, attached-state green glow, and rising oxygen bubbles; the palette also shows the diver artwork for the player-start material.
+- Static verification is scheduled after the asset and renderer integration; browser and Playwright checks remain prohibited by user instruction.
+
 ## 2026-08-08 — Step 38 in progress
 
 - Fixed downward authoring and Free Snap placement target resolution: after extending the map, the editor now returns the resolved continuation Cell directly instead of re-running a boundary-sensitive geometric hit test.
@@ -346,6 +353,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Launch previews now share the immutable map, use 48 prediction steps, and throttle pointer recomputation to 45 ms. Added deterministic `render_game_to_text` / `advanceTime` hooks.
 - Pure Node benchmark: 48-step trajectory preview dropped from about 550 ms to 8 ms first-run / 2 ms warm; 240 physics steps on the reference map dropped from about 3 s to about 26 ms.
 - Static-only verification passed: `npm run check` (43/43 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 45 complete
+
+- Removed vertical microflow acceleration from player physics. Water motion still has visual animation and a small horizontal perturbation, but it can no longer lift the player during an angled launch.
+- Added a regression test asserting player microflow acceleration has `y === 0`.
+- Static-only verification passed: `npm run check` (44/44 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
 
 ## 2026-08-08 — Step 44 complete
 

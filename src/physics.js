@@ -200,7 +200,9 @@ export function getMicroflowAcceleration({ map, cellKey, position, chapter = 'ch
   const local = sampleMicroflowVector(position, time);
   return {
     x: (local.x - mean.x) * MICROFLOW_ACCELERATION,
-    y: (local.y - mean.y) * MICROFLOW_ACCELERATION,
+    // The water can breathe sideways, but must never become a hidden lift
+    // source. Vertical motion belongs only to launch impulse and gravity.
+    y: 0,
   };
 }
 
