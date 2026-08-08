@@ -61,15 +61,15 @@
 }
 
 .visor-oxygen {
-  top: calc(31.5% - 3px);
-  left: calc(2% + 1px);
+  top: calc(31.5% - 5px);
+  left: calc(2% + 2px);
   width: 10%;
   height: 31%;
 }
 
 .visor-energy {
-  top: calc(32% - 3px);
-  right: calc(2.35% + 1px);
+  top: calc(32% - 7px);
+  right: calc(2.35% + 2px);
   width: 9.6%;
   height: 30.5%;
 }
@@ -249,7 +249,7 @@
 .health-center {
   position: absolute;
   top: 47%;
-  left: calc(52% - 4px);
+  left: calc(52% - 11px);
   z-index: 4;
   display: flex;
   flex-direction: column;

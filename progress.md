@@ -503,3 +503,7 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Generated and chroma-keyed the full-screen engineering surround into `public/assets/editor/hud/visor-surround-balanced.png`; its central window remains transparent so the live game view shows through.
 - Added a restrained glass-reflection layer using edge-localized cyan highlights and soft transmission light, without washing over the playable map.
 - Static-only verification passed: `npm run check`, `npm run build`, `git diff --check`, and RGBA transparency validation for the surround. The preview connection was attempted earlier but timed out; no browser automation result is being claimed.
+
+## 2026-08-08 — Step 61 complete
+
+- Applied the requested final micro-adjustments relative to the previous HUD layout: O₂ moved right 1px and up 2px, ENERGY moved left 1px and up 4px, and the HP readout moved left 7px.
