@@ -30,6 +30,7 @@ import {
   getPlayerSpriteScaleX,
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
+import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -75,6 +76,10 @@ const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
+const oxygenFill = resourceBars.oxygen.querySelector('[data-oxygen-fill]');
+const energySegments = [...resourceBars.energy.querySelectorAll('[data-energy-segment]')];
+const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-segment]')];
+const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const images = new Map();
 [...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS)].forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
@@ -387,15 +392,28 @@ function render() {
 function updateHud() {
   if (!actor) return;
   attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
-  const resources = { health: actor.health, oxygen: actor.oxygen, energy: actor.energy };
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
-  Object.entries(resources).forEach(([key, value]) => {
-    const maximum = key === 'health' ? MAX_HEALTH : key === 'oxygen' ? oxygenMaximum : MAX_ENERGY;
-    resourceBars[key].style.width = `${clamp(value / maximum, 0, 1) * 100}%`;
-    resourceValues[key].textContent = key === 'oxygen'
-      ? `${Math.ceil(clamp(value / maximum, 0, 1) * OXYGEN_DURATION_SECONDS)}s`
-      : Math.round(value);
+  const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
+  resourceValues.oxygen.textContent = oxygenHud.label;
+  oxygenFill.style.setProperty('--oxygen-fill', `${oxygenHud.ratio * 100}%`);
+  resourceBars.oxygen.setAttribute('aria-valuenow', String(Math.round(oxygenHud.ratio * 100)));
+
+  const energyHud = getEnergyHud(actor.energy, MAX_ENERGY);
+  resourceValues.energy.textContent = energyHud.label;
+  resourceBars.energy.setAttribute('aria-valuenow', String(energyHud.level));
+  energySegments.forEach((segment, index) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', `${energyHud.fills[index] * 100}%`);
   });
+
+  const healthHud = getHealthHud(actor.health, MAX_HEALTH);
+  resourceValues.health.textContent = healthHud.label;
+  resourceBars.health.setAttribute('aria-valuenow', String(Math.round(healthHud.value)));
+  resourceBars.health.classList.remove('is-full', 'is-warning', 'is-critical');
+  resourceBars.health.classList.add(`is-${healthHud.tone}`);
+  healthSegments.forEach((segment, index) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
+  });
+  healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
   eventsList.innerHTML = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
 }

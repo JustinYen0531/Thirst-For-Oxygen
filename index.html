@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thirst for Oxygen — Map Editor</title>
     <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/visor-hud.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -65,23 +66,26 @@
             <div class="canvas-stage">
               <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
               <p id="hud-attempts" class="hud-attempts" hidden>Attempts 3/3</p>
-              <section id="player-hud" class="player-hud" aria-label="測試玩家狀態" hidden>
-                <div class="hud-resource-grid">
-                  <div class="hud-row">
-                    <span class="hud-label">生命</span>
-                    <div id="hud-health" class="hud-bar hud-health" role="progressbar" aria-label="生命" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                    <output id="hud-health-value" class="hud-value">100%</output>
+              <section id="player-hud" class="player-hud visor-hud" aria-label="測試玩家狀態" hidden>
+                <img class="visor-frame" src="/assets/editor/hud/visor-frame-balanced.png" alt="" aria-hidden="true" />
+                <div class="visor-readout visor-oxygen" aria-label="氧氣">
+                  <span class="visor-resource-label">O₂</span>
+                  <output id="hud-oxygen-value" class="visor-resource-value">100%</output>
+                  <div id="hud-oxygen" class="oxygen-gauge" role="progressbar" aria-label="氧氣" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span data-oxygen-fill></span></div>
+                </div>
+                <div class="visor-readout visor-energy" aria-label="能量">
+                  <span class="visor-resource-label">ENERGY</span>
+                  <output id="hud-energy-value" class="visor-resource-value">5/5</output>
+                  <div id="hud-energy" class="energy-segments" role="progressbar" aria-label="能量" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
+                    <span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span>
                   </div>
-                  <div class="hud-row">
-                    <span class="hud-label">氧氣</span>
-                    <div id="hud-oxygen" class="hud-bar hud-oxygen" role="progressbar" aria-label="氧氣" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                    <output id="hud-oxygen-value" class="hud-value">40s</output>
+                </div>
+                <div id="hud-health" class="health-core is-full" role="progressbar" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                  <div class="health-segments" aria-hidden="true">
+                    <span data-health-segment style="--segment-angle: 180deg; --counter-angle: -180deg"><b></b></span><span data-health-segment style="--segment-angle: 216deg; --counter-angle: -216deg"><b></b></span><span data-health-segment style="--segment-angle: 252deg; --counter-angle: -252deg"><b></b></span><span data-health-segment style="--segment-angle: 288deg; --counter-angle: -288deg"><b></b></span><span data-health-segment style="--segment-angle: 324deg; --counter-angle: -324deg"><b></b></span><span data-health-segment style="--segment-angle: 360deg; --counter-angle: -360deg"><b></b></span><span data-health-segment style="--segment-angle: 396deg; --counter-angle: -396deg"><b></b></span><span data-health-segment style="--segment-angle: 432deg; --counter-angle: -432deg"><b></b></span><span data-health-segment style="--segment-angle: 468deg; --counter-angle: -468deg"><b></b></span><span data-health-segment style="--segment-angle: 504deg; --counter-angle: -504deg"><b></b></span>
                   </div>
-                  <div class="hud-row">
-                    <span class="hud-label">能量</span>
-                    <div id="hud-energy" class="hud-bar hud-energy" role="progressbar" aria-label="能量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                    <output id="hud-energy-value" class="hud-value">100%</output>
-                  </div>
+                  <div class="health-pointer" aria-hidden="true"></div>
+                  <div class="health-center"><span>HP</span><output id="hud-health-value" class="health-value">100</output></div>
                 </div>
               </section>
               <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；氧氣以時間倒數，滿氧約 40 秒，不受彈射距離影響；E 附著／離開水草；R 重設。</p>

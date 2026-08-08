@@ -1,0 +1,29 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { getEnergyHud, getHealthHud, getOxygenHud } from '../src/visor-hud.js';
+
+test('oxygen HUD exposes a percentage and normalized fill', () => {
+  assert.deepEqual(getOxygenHud(40, 100), { value: 40, ratio: 0.4, label: '40%' });
+});
+
+test('energy HUD rounds to half-slot increments across five slots', () => {
+  const hud = getEnergyHud(90, 100);
+  assert.equal(hud.label, '4.5/5');
+  assert.deepEqual(hud.fills, [1, 1, 1, 1, 0.5]);
+  assert.equal(getEnergyHud(70, 100).label, '3.5/5');
+  assert.deepEqual(getEnergyHud(70, 100).fills, [1, 1, 1, 0.5, 0]);
+});
+
+test('health HUD uses ten clockwise segments and severity tones', () => {
+  const full = getHealthHud(100, 100);
+  assert.equal(full.tone, 'full');
+  assert.deepEqual(full.fills, Array(10).fill(1));
+
+  const warning = getHealthHud(65, 100);
+  assert.equal(warning.tone, 'warning');
+  assert.deepEqual(warning.fills.slice(0, 7), [1, 1, 1, 1, 1, 1, 0.5]);
+
+  const critical = getHealthHud(20, 100);
+  assert.equal(critical.tone, 'critical');
+  assert.deepEqual(critical.fills, [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
+});

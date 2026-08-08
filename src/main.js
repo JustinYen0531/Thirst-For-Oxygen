@@ -76,6 +76,7 @@ import {
   getPlayerAnimationState,
   getPlayerSpriteScaleX,
 } from './player-animation.js';
+import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -101,6 +102,10 @@ const hudOxygen = document.querySelector('#hud-oxygen');
 const hudOxygenValue = document.querySelector('#hud-oxygen-value');
 const hudEnergy = document.querySelector('#hud-energy');
 const hudEnergyValue = document.querySelector('#hud-energy-value');
+const hudOxygenFill = hudOxygen.querySelector('[data-oxygen-fill]');
+const hudEnergySegments = [...hudEnergy.querySelectorAll('[data-energy-segment]')];
+const hudHealthSegments = [...hudHealth.querySelectorAll('[data-health-segment]')];
+const hudHealthPointer = hudHealth.querySelector('.health-pointer');
 const editorModeButton = document.querySelector('#editor-mode');
 const playModeButton = document.querySelector('#play-mode');
 const zoomSlider = document.querySelector('#zoom-slider');
@@ -1720,18 +1725,6 @@ function drawInkMask() {
   ctx.restore();
 }
 
-function updateHudBar(element, valueElement, value, maximum, unit = '%') {
-  const safeValue = Math.max(0, Math.min(maximum, value));
-  const percent = (safeValue / maximum) * 100;
-  element.style.setProperty('--resource-fill', `${percent}%`);
-  element.setAttribute('aria-valuenow', String(Math.round(safeValue)));
-  valueElement.textContent = unit === '%'
-    ? `${Math.round(safeValue)}%`
-    : unit === 'seconds'
-      ? `${Math.ceil(safeValue)}s`
-      : `${Math.round(safeValue)}/${maximum}`;
-}
-
 function renderHud() {
   const actor = state.actor;
   const preview = state.mode !== 'play';
@@ -1739,13 +1732,28 @@ function renderHud() {
   hudAttempts.hidden = preview;
   playerHud.classList.toggle('is-game-over', actor.gameOver);
   hudAttempts.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
-  updateHudBar(hudHealth, hudHealthValue, actor.health, MAX_HEALTH);
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
-  const oxygenSeconds = oxygenMaximum > 0
-    ? (actor.oxygen / oxygenMaximum) * OXYGEN_DURATION_SECONDS
-    : 0;
-  updateHudBar(hudOxygen, hudOxygenValue, oxygenSeconds, OXYGEN_DURATION_SECONDS, 'seconds');
-  updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
+  const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
+  hudOxygenValue.textContent = oxygenHud.label;
+  hudOxygenFill.style.setProperty('--oxygen-fill', `${oxygenHud.ratio * 100}%`);
+  hudOxygen.setAttribute('aria-valuenow', String(Math.round(oxygenHud.ratio * 100)));
+
+  const energyHud = getEnergyHud(actor.energy, MAX_ENERGY);
+  hudEnergyValue.textContent = energyHud.label;
+  hudEnergy.setAttribute('aria-valuenow', String(energyHud.level));
+  hudEnergySegments.forEach((segment, index) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', `${energyHud.fills[index] * 100}%`);
+  });
+
+  const healthHud = getHealthHud(actor.health, MAX_HEALTH);
+  hudHealthValue.textContent = healthHud.label;
+  hudHealth.setAttribute('aria-valuenow', String(Math.round(healthHud.value)));
+  hudHealth.classList.remove('is-full', 'is-warning', 'is-critical');
+  hudHealth.classList.add(`is-${healthHud.tone}`);
+  hudHealthSegments.forEach((segment, index) => {
+    segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
+  });
+  hudHealthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
 }
 
 function getSelectedMapObject() {

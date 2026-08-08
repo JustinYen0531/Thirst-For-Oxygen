@@ -473,3 +473,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Kept keyboard controls intact: `Space` pauses, `R` resets, and `Escape` closes Settings before leaving the play page.
 - Placed help and vitals as lightweight overlays so they remain readable without reclaiming a permanent sidebar. UI hierarchy follows the game UI pattern of keeping high-frequency map choice central and low-frequency tools contextual.
 - Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 58 in progress
+
+- Adopted the approved middle-scale visor layout: medium lower side resource bays, three compact upgrade sockets per side, and a medium bottom life dashboard.
+- Generated and chroma-keyed the balanced visor frame into `public/assets/editor/hud/visor-frame-balanced.png`; the center viewport and life-dial center are transparent.
+- Replaced the editor Play HUD and standalone play HUD with the visor layout. Oxygen uses a live vertical fill and percentage, energy maps the existing 0–100 value to five slots with 0.5-slot precision, and health uses ten clockwise segments from the bottom plus a live pointer and central value.
+- Static-only checks currently pass: `npm run check` (59/59 tests), `npm run build`, `git diff --check`, and RGBA transparency validation. Browser and Playwright checks remain prohibited by user instruction.
