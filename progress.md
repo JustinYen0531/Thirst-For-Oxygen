@@ -495,3 +495,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Rotated the ten health markers with their 36-degree positions so they form a decagonal ring instead of ten horizontal dashes.
 - Replaced stepped health colors with continuous hue interpolation from green through yellow to red, while retaining severity classes for fallback styling.
 - Static-only verification passed: `npm run check` (59/59 tests), `npm run build`, and `git diff --check`. The attempted preview connection timed out without interacting with the game; no browser automation was performed.
+
+## 2026-08-08 — Step 60 complete
+
+- Applied the requested final HUD offsets: O₂ right 1px/up 3px, ENERGY left 1px/up 3px, and HP readout left 4px.
+- Made the HP needle a continuous illuminated line from the dial center to its marker, while keeping the ten-segment decagonal health ring and continuous green-yellow-red interpolation.
+- Generated and chroma-keyed the full-screen engineering surround into `public/assets/editor/hud/visor-surround-balanced.png`; its central window remains transparent so the live game view shows through.
+- Added a restrained glass-reflection layer using edge-localized cyan highlights and soft transmission light, without washing over the playable map.
+- Static-only verification passed: `npm run check`, `npm run build`, `git diff --check`, and RGBA transparency validation for the surround. The preview connection was attempted earlier but timed out; no browser automation result is being claimed.
