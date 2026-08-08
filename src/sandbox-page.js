@@ -34,7 +34,7 @@ import {
 } from './sandbox-sim.js';
 import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
-import { getHealthHud } from './visor-hud.js';
+import { getHealthHud, getPlayerHudSlots } from './visor-hud.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
@@ -72,6 +72,7 @@ const oxygenFill = resourceBars.oxygen.querySelector('[data-oxygen-fill]');
 const energySegments = [...resourceBars.energy.querySelectorAll('[data-energy-segment]')];
 const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-segment]')];
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
+const visorSlots = [...document.querySelectorAll('[data-visor-slot]')];
 const state = createSandboxState();
 let placementMode = false;
 let lastFrame = performance.now();
@@ -395,6 +396,7 @@ function renderProgression() {
 }
 
 function renderSandboxHud() {
+  updateSandboxHudIconSlots();
   resourceValues.oxygen.textContent = '∞ 無限';
   resourceBars.oxygen.setAttribute('aria-valuenow', '100');
   resourceBars.oxygen.setAttribute('aria-valuetext', '無限');
@@ -418,6 +420,30 @@ function renderSandboxHud() {
     segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
   });
   healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
+}
+
+function updateSandboxHudIconSlots() {
+  const slots = getPlayerHudSlots({
+    weapons: state.build.weapons,
+    passives: state.build.passives,
+  });
+  visorSlots.forEach((slotElement, index) => {
+    const slot = slots[index];
+    const icon = slotElement.querySelector('[data-visor-icon]');
+    if (!slot || !icon) return;
+    const filled = Boolean(slot.path);
+    slotElement.dataset.visorFilled = String(filled);
+    if (!filled) {
+      icon.hidden = true;
+      icon.removeAttribute('src');
+      slotElement.setAttribute('aria-label', `${slotElement.dataset.visorSlotKind === 'weapon' ? '主動武器' : '被動能力'}空槽`);
+      return;
+    }
+    icon.src = slot.path;
+    icon.alt = `${slot.name} Lv.${slot.level}`;
+    icon.hidden = false;
+    slotElement.setAttribute('aria-label', `${slot.name} Lv.${slot.level}`);
+  });
 }
 
 function canvasPoint(event) {
@@ -1270,6 +1296,7 @@ window.render_game_to_text = () => JSON.stringify({
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
   build: state.build,
+  hudLoadout: getPlayerHudSlots({ weapons: state.build.weapons, passives: state.build.passives }).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
   progression: {
     ...getExperienceProgress(state.progression),
     pendingLevelUps: state.progression.pendingLevelUps,

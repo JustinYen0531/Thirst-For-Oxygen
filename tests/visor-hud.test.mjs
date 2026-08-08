@@ -14,6 +14,19 @@ test('player HUD maps the starter knife to the first weapon slot', () => {
   assert.equal(slots[3].path, null);
 });
 
+test('player HUD maps equipped sandbox weapons and passives to their own sides', () => {
+  const slots = getPlayerHudSlots({
+    weapons: [{ id: 'knife', level: 1 }, { id: 'trident', level: 2 }],
+    passives: [{ id: 'abyssalAmplifier', level: 3 }],
+  });
+  assert.equal(slots[0].path, '/assets/editor/icons/weapons/knife/lv1.png');
+  assert.equal(slots[1].path, '/assets/editor/icons/weapons/trident/lv2.png');
+  assert.equal(slots[2].path, null);
+  assert.equal(slots[3].path, '/assets/editor/icons/passives/abyssalAmplifier/lv3.png');
+  assert.equal(slots[4].path, null);
+  assert.equal(slots[5].path, null);
+});
+
 test('oxygen HUD exposes a percentage and normalized fill', () => {
   assert.deepEqual(getOxygenHud(40, 100), { value: 40, ratio: 0.4, label: '40%' });
 });
