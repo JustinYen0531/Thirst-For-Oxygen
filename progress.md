@@ -606,3 +606,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the short corridor with five macro exploration sections containing four split-and-rejoin loops, 16 water regions, large forest-rock masses, long horizontal traverses, optional reward grottoes, and 18 paced resource objects.
 - Kept sampled primary routes at least five Cells wide. Torricelli return caverns are now four Cells wide and require 18- or 23-row upward returns, preserving their risk/reward identity without precision movement.
 - Added static checks for unchanged width, doubled height, exploration-loop count, region variety, broad route cross-sections, and a shortest completion route of at least 150 Cells. Static-only verification passed: focused map checks (10/10), full `npm run check` (78/78 tests), `npm run build`, and `git diff --check`; browser and Playwright remain prohibited by user instruction.
+
+## 2026-08-09 — Step 73 complete
+
+- Connected the authored `enemySpawn` actors to the standalone play page. Map load now creates deterministic chapter-appropriate regular enemies while leaving Mini Boss and Boss markers outside this small-enemy pass.
+- Preserved the authored encounter density: Part 1 spawns 9 teaching enemies, Part 2 spawns 4 mid-tier enemies, and Part 3 spawns 6 advanced regular enemies. Existing markers may optionally override the assigned regular enemy with an explicit `enemyId`.
+- Rendered the transparent natural-floating enemy assets with a small positional drift, fixed sprite size, camera culling, loading fallback, spawn-count event, and visible-enemy text state. Formal combat AI remains a separate follow-up rather than being implied by this visibility milestone.
+- Static-only verification passed: focused play-enemy checks (3/3), full `npm run check` (85/85 tests), `npm run build`, and `git diff --check`. Browser and Playwright remain prohibited by user instruction.

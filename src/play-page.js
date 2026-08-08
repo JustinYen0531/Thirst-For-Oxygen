@@ -35,6 +35,12 @@ import {
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 import { attachSfxVolumeControl, createSfxController } from './sfx.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
+import {
+  PLAY_ENEMY_VISUALS,
+  createPlayEnemies,
+  getPlayEnemyPose,
+  isPlayEnemyVisible,
+} from './play-enemies.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -92,7 +98,7 @@ const energySegments = [...resourceBars.energy.querySelectorAll('[data-energy-se
 const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-segment]')];
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const images = new Map();
-[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS)].forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS), ...Object.values(PLAY_ENEMY_VISUALS)].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapPart = 3;
@@ -101,6 +107,8 @@ let mapBounds = null;
 let physicsBounds = null;
 let actor = null;
 let spawn = null;
+let enemies = [];
+let worldTime = 0;
 let camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
 let dragging = false;
 let aimPoint = null;
@@ -157,11 +165,13 @@ function setupWorld(nextMap) {
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
   actor = createTestActor(spawn);
+  enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
+  worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
   trajectory = [];
   activeCollisionSoundKeys.clear();
-  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`];
+  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `${enemies.length} 個小怪出生點已啟動。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
   updateCamera();
@@ -438,12 +448,54 @@ function drawActor() {
   }
 }
 
+function drawEnemies() {
+  const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
+  enemies.forEach((enemy) => {
+    if (!isPlayEnemyVisible(enemy, camera, viewport)) return;
+    const pose = getPlayEnemyPose(enemy, worldTime);
+    const image = images.get(enemy.visual);
+    const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+    const height = enemy.renderSize;
+    const rawRatio = imageReady ? image.naturalWidth / image.naturalHeight : 1;
+    const width = height * clamp(rawRatio, 0.72, 1.65);
+
+    context.save();
+    context.globalCompositeOperation = 'screen';
+    context.globalAlpha = .2;
+    context.fillStyle = enemy.tier >= 3 ? '#a785ff' : '#4edcff';
+    context.beginPath();
+    context.ellipse(pose.x, pose.y + height * .25, width * .42, height * .24, 0, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+
+    if (imageReady) {
+      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .38);
+      return;
+    }
+
+    context.save();
+    context.fillStyle = '#173b55';
+    context.strokeStyle = '#b9efff';
+    context.lineWidth = .7;
+    context.beginPath();
+    context.ellipse(pose.x, pose.y, width * .38, height * .32, 0, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#eafaff';
+    context.font = 'bold 4px system-ui';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(String(enemy.tier), pose.x, pose.y);
+    context.restore();
+  });
+}
+
 function render() {
   renderBackground();
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawTerrainBoundaries(); drawEdges(); drawTrajectory(); drawActor(); context.restore();
+  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor(); context.restore();
 }
 
 function updateHud() {
@@ -565,6 +617,7 @@ function simulate(elapsed, now = performance.now()) {
   if (!paused && map && actor && !actor.gameOver) {
     accumulator += Math.min(.1, Math.max(0, elapsed));
     while (accumulator >= FIXED_STEP) {
+      worldTime += FIXED_STEP;
       refillUnlimitedResources();
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
       if (actor.health <= 0) {
@@ -592,6 +645,8 @@ window.render_game_to_text = () => JSON.stringify({
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
   player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
+  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), state: enemy.state })),
+  totalEnemySpawns: enemies.length,
   unlimitedResources,
   paused,
 });
