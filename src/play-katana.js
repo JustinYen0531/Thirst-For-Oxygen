@@ -33,12 +33,9 @@ export function stepPlayKatana(state, dt) {
   return state;
 }
 
-function isWithinArc(actor, enemy, weapon, angle) {
-  const effect = weapon.effect ?? {};
+function isWithinArc(actor, enemy, weapon) {
   const reach = weapon.range + Math.min(8, (enemy.radius ?? 0) * 0.25);
-  const arcDegrees = effect.arcDegrees ?? weapon.hitArcDegrees ?? 100;
-  return distanceBetween(actor, enemy) <= reach
-    && Math.abs(shortestAngleDifference(angleBetween(actor, enemy), angle)) <= (arcDegrees * Math.PI) / 360;
+  return distanceBetween(actor, enemy) <= reach;
 }
 
 function activeEnemies(enemies) {
@@ -108,7 +105,7 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   const angle = target ? angleBetween(actor, target) : (actor.facing === 'left' ? Math.PI : 0);
   const empowered = Boolean(weapon.effect?.empowerAfterMovement && state.empowerNextSlash);
   const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
-  const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon, angle));
+  const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon));
   const damage = weapon.damage * multiplier;
   hitEnemies.forEach((enemy) => {
     enemy.health = Math.max(0, enemy.health - damage);

@@ -597,6 +597,12 @@ function renderKatanaBlade(effect, angle, alpha) {
   ctx.globalAlpha = alpha;
   ctx.shadowColor = effect.glowColour ?? effect.colour ?? '#9be8ff';
   ctx.shadowBlur = effect.empowered ? 16 : 7;
+  ctx.strokeStyle = effect.colour ?? '#73d9ff';
+  ctx.lineWidth = Math.max(1.2, thickness * 0.22);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(length - pivot, 0);
+  ctx.stroke();
   if (katanaSprite.complete && katanaSprite.naturalWidth > 0) {
     ctx.drawImage(katanaSprite, -pivot, -thickness * 0.5, length, thickness);
   } else {
@@ -626,7 +632,7 @@ function renderKatanaProjectileWave(effect, progress) {
   ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = Math.max(0, 1 - safeProgress);
   ctx.lineCap = 'round';
-  ctx.strokeStyle = effect.colour ?? '#70f6ff';
+  ctx.strokeStyle = effect.colour ?? '#f4fdff';
   ctx.shadowColor = effect.glowColour ?? '#b8fbff';
   ctx.shadowBlur = 18;
   ctx.lineWidth = effect.thickness ?? effect.lineWidth ?? 8;
@@ -682,7 +688,7 @@ function renderKnifeMeteorEffect(effect, progress, side) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.strokeStyle = effect.colour ?? '#ffffff';
-  ctx.shadowColor = '#dffbff';
+  ctx.shadowColor = effect.glowColour ?? '#dffbff';
   ctx.shadowBlur = side ? 10 : 18;
   // Lv.2 side trails and Lv.3's lingering slash keep a faint complete path
   // visible from the first frame. The moving head still provides the
@@ -699,7 +705,7 @@ function renderKnifeMeteorEffect(effect, progress, side) {
   renderMeteorStroke(effect, headRatio, fade * (side ? 0.9 : 0.96), lineWidth * (side ? 0.9 : 1));
 
   ctx.globalAlpha = fade * (side ? 0.72 : 0.92);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = effect.colour ?? '#ffffff';
   ctx.beginPath();
   ctx.arc(head.x, head.y, effect.headRadius ?? (side ? 4 : 7), 0, Math.PI * 2);
   ctx.fill();
@@ -713,7 +719,7 @@ function renderKnifeMeteorEffect(effect, progress, side) {
       const twinkle = 0.35 + (Math.sin(state.time * 12 + phase) + 1) * 0.3;
       const size = 1.2 + twinkle * 2.1;
       ctx.globalAlpha = fade * twinkle;
-      ctx.fillStyle = index % 3 === 0 ? '#ffffff' : '#d8faff';
+      ctx.fillStyle = index % 3 === 0 ? '#ffffff' : (effect.sparkleColour ?? '#d8faff');
       ctx.beginPath();
       ctx.moveTo(point.x, point.y - size * 2.2);
       ctx.lineTo(point.x + size * 0.65, point.y);
@@ -734,7 +740,7 @@ function renderKnifeAreaEffect(effect, progress) {
   ctx.globalAlpha = (1 - safeProgress) * 0.72;
   ctx.strokeStyle = effect.colour;
   ctx.fillStyle = 'rgba(184, 245, 255, .06)';
-  ctx.shadowColor = effect.colour;
+  ctx.shadowColor = effect.glowColour ?? effect.colour;
   ctx.shadowBlur = 14;
   ctx.lineWidth = 2.5;
   ctx.beginPath();

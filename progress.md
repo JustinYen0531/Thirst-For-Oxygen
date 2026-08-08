@@ -702,3 +702,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the Lv.1/Lv.2 giant white katana arc with the real katana sprite rotating clockwise around the diver's grip. Five or more historical blade poses trail behind it, with opacity decreasing as their angular distance from the current blade increases.
 - Kept the combat range, damage, cooldown, and Lv.2 post-movement double-damage rules. Lv.3 alone now emits the former white arc as a separate forward-travelling shockwave that can destroy enemy projectiles.
 - Synchronized formal play and sandbox rendering, updated the existing katana GDD and regression contracts, and verified the generated PNG has a real alpha channel. Static-only verification passed: focused katana/progression checks (44/44), full `npm run check` (126/126), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 86 in progress
+
+- Third-part formal play now defaults its katana showcase to Lv.3 so the outward white sword-qi projectile is visible immediately; `?katanaLevel=1/2/3` remains an explicit override.
+- Katana damage now applies to every active enemy inside the weapon radius, while preserving one swing animation and one damage instance per enemy.
+- Added distinct katana Lv.2 gold / empowered pink and Lv.3 violet colour contracts. Knife Lv.1/Lv.2/Lv.3 now expose cyan / amber / violet trail, glow, sparkle, and area colours.
+- Static-only verification passed: focused katana/progression checks (45/45), full `npm run check` (127/127), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped by user instruction.

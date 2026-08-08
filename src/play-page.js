@@ -146,7 +146,10 @@ let discoveryAcknowledgementTargets = [];
 const PLAYER_LEVEL = 1;
 const PLAYER_EXPERIENCE = 0;
 const EXPERIENCE_TO_NEXT_LEVEL = 100;
-const INITIAL_KATANA_LEVEL = clamp(Number(new URLSearchParams(window.location.search).get('katanaLevel')) || 1, 1, 3);
+const requestedPart = new URLSearchParams(window.location.search).get('part');
+const requestedKatanaLevel = Number(new URLSearchParams(window.location.search).get('katanaLevel'));
+const defaultKatanaLevel = requestedPart === '1' || requestedPart === '2' ? 1 : 3;
+const INITIAL_KATANA_LEVEL = clamp(requestedKatanaLevel || defaultKatanaLevel, 1, 3);
 let katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
@@ -566,6 +569,12 @@ function drawKatanaBlade(effect, angle, alpha) {
   context.globalAlpha = alpha;
   context.shadowColor = effect.glowColour ?? '#9be8ff';
   context.shadowBlur = effect.empowered ? 12 : 6;
+  context.strokeStyle = effect.colour ?? '#73d9ff';
+  context.lineWidth = Math.max(1.2, thickness * 0.22);
+  context.beginPath();
+  context.moveTo(0, 0);
+  context.lineTo(length - pivot, 0);
+  context.stroke();
   if (sprite?.complete && sprite.naturalWidth > 0) {
     context.drawImage(sprite, -pivot, -thickness * 0.5, length, thickness);
   } else {
@@ -942,7 +951,6 @@ window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Ma
 
 function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }
 
-const requestedPart = new URLSearchParams(window.location.search).get('part');
 if (requestedPart && MAPS[requestedPart]) { mapSelect.value = requestedPart; mapPart = Number(requestedPart); }
 const requestedArc = new URLSearchParams(window.location.search).get('arc');
 const requestedMode = new URLSearchParams(window.location.search).get('mode');

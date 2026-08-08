@@ -54,6 +54,22 @@ test('katana Lv.2 empowers the next slash after movement and doubles its damage'
   assert.equal(scenario.state.effects[0].afterimageCount, 6);
 });
 
+test('formal play katana damages every active enemy inside its range', () => {
+  const scenario = createScenario(1);
+  const sideEnemy = { ...scenario.enemy, instanceId: 'side-enemy', x: 100, y: 140, health: 100, maxHealth: 100 };
+  const farEnemy = { ...scenario.enemy, instanceId: 'far-enemy', x: 100, y: 180, health: 100, maxHealth: 100 };
+  const result = resolvePlayKatanaSlash({
+    state: scenario.state,
+    actor: scenario.actor,
+    enemies: [scenario.enemy, sideEnemy, farEnemy],
+  });
+
+  assert.equal(result.hitCount, 2);
+  assert.equal(scenario.enemy.health, 72);
+  assert.equal(sideEnemy.health, 72);
+  assert.equal(farEnemy.health, 100, 'enemies beyond the range remain unharmed');
+});
+
 test('katana Lv.3 adds a persistent outward projectile wave that survives simulation steps', () => {
   const scenario = createScenario(3);
   const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies, persistent: true });

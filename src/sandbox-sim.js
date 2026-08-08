@@ -919,13 +919,10 @@ function katanaDirectionAngle(state, target = null) {
   return state.actor.facing === 'left' ? Math.PI : 0;
 }
 
-function isWithinKatanaArc(state, enemy, weapon, angle) {
-  const effect = weapon.effect ?? {};
+function isWithinKatanaArc(state, enemy, weapon) {
   const distance = distanceBetween(state.actor, enemy);
   const reach = weapon.range + Math.min(8, enemy.radius * 0.25);
-  const arcDegrees = effect.arcDegrees ?? weapon.hitArcDegrees ?? 100;
-  return distance <= reach
-    && Math.abs(shortestAngleDifference(angleBetween(state.actor, enemy), angle)) <= (arcDegrees * Math.PI) / 360;
+  return distance <= reach;
 }
 
 function katanaWaveContainsPoint(wave, point, progress = 0) {
@@ -968,7 +965,7 @@ function performKatanaSlash(state, weapon, target = null) {
   const angle = katanaDirectionAngle(state, target);
   const empowered = Boolean(effect.empowerAfterMovement && state.actor.katanaEmpoweredNextSlash);
   const damageMultiplier = empowered ? (effect.empoweredDamageMultiplier ?? 2) : 1;
-  const hitEnemies = activeEnemies(state).filter((enemy) => isWithinKatanaArc(state, enemy, weapon, angle));
+  const hitEnemies = activeEnemies(state).filter((enemy) => isWithinKatanaArc(state, enemy, weapon));
   hitEnemies.forEach((enemy) => {
     damageEnemy(state, enemy, weapon.damage * damageMultiplier, empowered ? '武士刀・強化揮擊' : '武士刀・順時針揮擊');
   });
@@ -1100,7 +1097,9 @@ function addKnifeMeteorEffect(state, weapon, start, end, { offset = 0, side = fa
     lingerMinAlpha: effect.lingerMinAlpha ?? 0.2,
     sparkleCount: side ? 0 : (effect.sparkleCount ?? 0),
     angle: Math.atan2(dy, dx),
-    colour: side ? '#e6faff' : '#ffffff',
+    colour: side ? (effect.sideTrailColour ?? effect.colour ?? '#e6faff') : (effect.colour ?? '#ffffff'),
+    glowColour: effect.glowColour ?? '#dffbff',
+    sparkleColour: effect.sparkleColour ?? '#d8faff',
   });
 }
 
@@ -1439,7 +1438,8 @@ function processStationaryKnifeArea(state) {
     y: state.actor.y,
     radius,
     duration: Math.min(0.38, effect?.stationaryTickInterval ?? 0.34),
-    colour: '#b8f5ff',
+    colour: effect.areaColour ?? effect.colour ?? '#b8f5ff',
+    glowColour: effect.glowColour ?? effect.areaColour ?? '#b8f5ff',
     hitCount,
   });
 }

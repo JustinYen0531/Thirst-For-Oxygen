@@ -103,7 +103,9 @@ test('knife levels expose distinct vector slash effects without image assets', (
     const slash = state.effects.find((effect) => effect.type === 'playerSlash');
     assert.ok(slash, `knife Lv.${level} should create a slash effect`);
     assert.equal(slash.style, 'knifeMeteor');
-    assert.equal(slash.colour, '#ffffff');
+    const expectedColours = { 1: '#8fe8ff', 2: '#ffbd6e', 3: '#eaa7ff' };
+    assert.equal(slash.colour, expectedColours[level]);
+    assert.ok(slash.glowColour, `knife Lv.${level} should expose a level-specific glow colour`);
     assert.equal(state.effects.filter((effect) => effect.type === 'knifeTrail').length, level === 1 ? 0 : 2);
     assert.ok(slash.duration >= 0.68);
     assert.equal(slash.sparkleCount > 0, level === 3);
@@ -123,7 +125,7 @@ test('knife preview creates a visible white meteor slash without a target', () =
   assert.ok(state.effects[0].targetX > state.effects[0].startX, 'the preview should extend in the diver facing direction');
 });
 
-test('knife movement leaves a white meteor trace even before it reaches an enemy', () => {
+test('knife movement leaves a cyan meteor trace even before it reaches an enemy', () => {
   const state = createSandboxState();
   setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 1 });
   state.actor.vx = 120;
@@ -133,7 +135,7 @@ test('knife movement leaves a white meteor trace even before it reaches an enemy
   const slash = state.effects.find((effect) => effect.type === 'playerSlash');
   assert.ok(slash, 'knife movement should create a visible trace without a collision target');
   assert.equal(slash.style, 'knifeMeteor');
-  assert.equal(slash.colour, '#ffffff');
+  assert.equal(slash.colour, '#8fe8ff');
 });
 
 test('knife Lv.2 creates side trails that deal seventy percent damage', () => {
@@ -198,6 +200,8 @@ test('katana levels use a clockwise sword sprite contract instead of a white sla
   assert.equal(levelTwo.effect.empowerAfterMovement, true);
   assert.equal(levelTwo.effect.empoweredDamageMultiplier, 2);
   assert.equal(levelTwo.effect.afterimageCount > levelOne.effect.afterimageCount, true);
+  assert.notEqual(levelTwo.effect.colour, levelOne.effect.colour);
+  assert.notEqual(levelThree.effect.colour, levelTwo.effect.colour);
   assert.equal(levelThree.effect.wave.style, 'katanaProjectileWave');
   assert.equal(levelThree.effect.wave.travelDistance > levelThree.effect.wave.startDistance, true);
   assert.equal(levelThree.effect.wave.arcDegrees < 120, true);
