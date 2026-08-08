@@ -166,7 +166,19 @@ test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
     const key = `${detour.objectColumn - Math.floor(detour.objectRow / 2)},${detour.objectRow}`;
     const cell = part1.cells[key];
     assert.equal(cell.freeObjects.some((object) => object.kind === 'torricelli'), true, `${key} should contain the Torricelli reward`);
-    assert.equal(cell.gravityLevel, 'L-1', `${key} should be an upward Torricelli pocket`);
+    assert.equal(cell.gravityLevel, 'L1', `${key} should be the final naturally rising Torricelli rest room`);
+    const detourRows = [...new Set(Object.values(part1.cells)
+      .filter((candidate) => candidate.region === detour.region && candidate.r >= detour.objectRow && candidate.r <= detour.ascentEndRow)
+      .map((candidate) => candidate.r))].sort((left, right) => left - right);
+    const terminalRows = detourRows.slice(0, detour.terminalRestRows);
+    const climbRows = detourRows.slice(detour.terminalRestRows);
+    assert.equal(terminalRows.length, detour.terminalRestRows, `${key} should have a complete Torricelli rest room`);
+    assert.ok(terminalRows.every((row) => Object.values(part1.cells)
+      .filter((candidate) => candidate.region === detour.region && candidate.r === row)
+      .every((candidate) => candidate.gravityLevel === 'L1')), `${key} terminal rows should use L1`);
+    assert.ok(climbRows.length > 0 && climbRows.every((row) => Object.values(part1.cells)
+      .filter((candidate) => candidate.region === detour.region && candidate.r === row)
+      .every((candidate) => candidate.gravityLevel === 'L-1')), `${key} return climb should use L-1`);
     assert.ok(Math.abs(detour.objectColumn - part1.metadata.mainAxisColumn) >= 6, `${key} should be visibly off the main axis`);
     assert.ok(detour.junctionRow - detour.objectRow >= 7, `${key} should require a meaningful upward return`);
     assert.ok(detour.shaftWidth >= 4, `${key} should use a broad ascent cavern instead of a precision shaft`);

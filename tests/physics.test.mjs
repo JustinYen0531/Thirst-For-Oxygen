@@ -474,6 +474,22 @@ test('free-object parameters drive oxygen, mine damage, and Torricelli recovery'
   torricelliActor.oxygen = 10;
   stepPhysics({ map: torricelliMap, actor: torricelliActor, origin: ORIGIN, dt: 0.5 });
   assert.ok(Math.abs(torricelliActor.oxygen - (10 + (25 - OXYGEN_DRAIN_PER_SECOND) * 0.5)) < 0.0001, 'Torricelli recovery should use the configured per-second rate after the oxygen clock');
+
+  const descentRestMap = createEmptyMap({ width: 1, height: 1 });
+  descentRestMap.metadata = { chapter: '下沉篇' };
+  patchCell(descentRestMap, '0,0', {
+    gravityLevel: 'L1',
+    freeObjects: [{ kind: 'torricelli', offset: { x: 0, y: 0 }, size: 20, params: { oxygenRecoveryPerSecond: 25 } }],
+  });
+  const descentRestActor = actorIn(descentRestMap, '0,0');
+  descentRestActor.oxygen = 10;
+  descentRestActor.energy = 0;
+  descentRestActor.energyRecoveryDelay = 0;
+  const beforeRestY = descentRestActor.y;
+  stepPhysics({ map: descentRestMap, actor: descentRestActor, origin: ORIGIN, dt: 0.5 });
+  assert.ok(descentRestActor.y < beforeRestY, 'the L1 Torricelli rest room should naturally float upward in a descent map');
+  assert.ok(descentRestActor.oxygen > 10, 'resting in Torricelli space should refill oxygen while floating');
+  assert.ok(descentRestActor.energy > 0, 'resting in Torricelli space should allow idle energy recovery without another launch');
 });
 
 test('custom edge parameters control spring force and spike damage', () => {

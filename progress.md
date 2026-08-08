@@ -1,5 +1,12 @@
 Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一個要做的是地圖編輯器,因為那也是我製作地圖的方式。請參閱相關的文件。 如果我還沒有生成一個圖片的話,那就使用placeholder的圖案就好了,完全不要花心思在一開始的介面上,能用就行了。 那些效果都要做出來,也就是像什麼重力的邏輯啦,還是什麼物件,都要有相對應的互動邏輯。 另外一般的那種彈射邏輯也要讓我可以測試出來。
 
+## 2026-08-09 — Step 58 — make Torricelli detours a deliberate ascent/rest route
+
+- 下沉篇第一部分的兩條 Torricelli 岔路現在由生成器明確分成兩段：靠近補氧空間的 6 個 row 使用 L1，讓玩家進入後在下沉篇自然向上浮；其餘較長的折返段使用 L-1，作為逆重力的困難攀爬。
+- 新增 `terminalRestRows`／`ascentEndRow` metadata，並以地圖測試鎖定兩段不能被後續改動顛倒；不直接手改生成結果以免下次重新產生地圖時遺失規則。
+- Torricelli 接觸仍會持續回復氧氣，且不需再次拖曳發射即可在一秒後恢復能量；新增物理回歸測試確認它在下沉篇 L1 休息室自然上浮、同時補氧與回能量。
+- 靜態驗證：`npm run generate:maps`、`npm run check`（82/82）、`npm run build`、`git diff --check` 通過；依專案指示未執行瀏覽器／Playwright。
+
 ## 2026-08-08 — Step 57 — protect play HUD and strengthen chapter picker
 
 - 將機械視窗框降為裝飾層，避免蓋住等級、經驗與深度等關鍵讀數。

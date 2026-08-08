@@ -265,6 +265,42 @@ function carveRoom(map, { rowStart, rowEnd, columnStart, columnEnd, region, grav
   }
 }
 
+// Torricelli detours are intentionally split into two readable gravity beats:
+// the long return climb is L-1 (hard against the descent arc), while the small
+// terminal room around the oxygen space is L1 so the player can naturally
+// float up while resting and refilling oxygen.
+const TORRICELLI_TERMINAL_REST_ROWS = 6;
+
+function carveTorricelliDetour(map, {
+  objectRow,
+  ascentEndRow,
+  columnStart,
+  columnEnd,
+  region,
+  terminalRestRows = TORRICELLI_TERMINAL_REST_ROWS,
+}) {
+  const safeAscentEndRow = Math.max(objectRow, ascentEndRow);
+  const terminalEndRow = Math.min(safeAscentEndRow, objectRow + Math.max(1, terminalRestRows) - 1);
+  carveRoom(map, {
+    rowStart: objectRow,
+    rowEnd: terminalEndRow,
+    columnStart,
+    columnEnd,
+    region,
+    gravityLevel: 'L1',
+  });
+  if (terminalEndRow < safeAscentEndRow) {
+    carveRoom(map, {
+      rowStart: terminalEndRow + 1,
+      rowEnd: safeAscentEndRow,
+      columnStart,
+      columnEnd,
+      region,
+      gravityLevel: 'L-1',
+    });
+  }
+}
+
 function carveBroadRoute(map, points, region, gravityLevel = 'L1', radius = 2) {
   for (let index = 0; index < points.length - 1; index += 1) {
     const start = points[index];
@@ -312,8 +348,13 @@ function paintPart1Terrain(map) {
 
   // Right Torricelli cavern: four cells wide, separated from all upper paths,
   // and connected only beneath the reward through the row-58 junction.
-  carveRoom(map, { rowStart: 39, rowEnd: 44, columnStart: 13, columnEnd: 16, region: 'torricelli-ascent-right', gravityLevel: 'L-1' });
-  carveRoom(map, { rowStart: 45, rowEnd: 60, columnStart: 13, columnEnd: 16, region: 'torricelli-ascent-right' });
+  carveTorricelliDetour(map, {
+    objectRow: 39,
+    ascentEndRow: 57,
+    columnStart: 13,
+    columnEnd: 16,
+    region: 'torricelli-ascent-right',
+  });
   carveRoom(map, { rowStart: 58, rowEnd: 63, columnStart: 11, columnEnd: 16, region: 'torricelli-junction-right' });
 
   // Loop 2: a large central reef offers two readable routes that rejoin much
@@ -327,8 +368,13 @@ function paintPart1Terrain(map) {
 
   // Left Torricelli cavern: an even longer return climb. Two solid columns
   // remain between this four-cell shaft and the western garden route.
-  carveRoom(map, { rowStart: 87, rowEnd: 93, columnStart: 1, columnEnd: 4, region: 'torricelli-ascent-left', gravityLevel: 'L-1' });
-  carveRoom(map, { rowStart: 94, rowEnd: 112, columnStart: 1, columnEnd: 4, region: 'torricelli-ascent-left' });
+  carveTorricelliDetour(map, {
+    objectRow: 87,
+    ascentEndRow: 109,
+    columnStart: 1,
+    columnEnd: 4,
+    region: 'torricelli-ascent-left',
+  });
   carveRoom(map, { rowStart: 110, rowEnd: 115, columnStart: 1, columnEnd: 10, region: 'torricelli-junction-left' });
 
   // Loop 3: the lower cathedral asks for a long side commitment, then returns
@@ -377,8 +423,8 @@ function buildPart1() {
         { row: 128, column: 4 }, { row: 144, column: 4 }, { row: 144, column: 13 },
       ],
       torricelliDetours: [
-        { side: 'right', region: 'torricelli-ascent-right', objectRow: 39, objectColumn: 16, junctionRow: 57, junctionColumn: 12, ascentRows: 18, shaftWidth: 4, separationWallWidth: 3 },
-        { side: 'left', region: 'torricelli-ascent-left', objectRow: 87, objectColumn: 1, junctionRow: 110, junctionColumn: 8, ascentRows: 23, shaftWidth: 4, separationWallWidth: 2 },
+        { side: 'right', region: 'torricelli-ascent-right', objectRow: 39, objectColumn: 16, ascentEndRow: 57, junctionRow: 57, junctionColumn: 12, ascentRows: 19, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 3 },
+        { side: 'left', region: 'torricelli-ascent-left', objectRow: 87, objectColumn: 1, ascentEndRow: 109, junctionRow: 110, junctionColumn: 8, ascentRows: 23, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 2 },
       ],
       teachingSequence: [
         '氧氣礦石：先在安全直道練習以足夠速度撞開。',
