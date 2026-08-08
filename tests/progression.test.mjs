@@ -148,7 +148,12 @@ test('knife Lv.2 creates side trails that deal seventy percent damage', () => {
 
   assert.ok(primary.health < primary.maxHealth, 'the movement path should hit the primary target');
   assert.equal(side.health, 1000 - 24 * 0.7, 'the side trail should use seventy percent of the main damage');
-  assert.ok(state.effects.some((effect) => effect.type === 'knifeTrail'));
+  const sideTrails = state.effects.filter((effect) => effect.type === 'knifeTrail');
+  assert.equal(sideTrails.length, 2);
+  assert.ok(sideTrails.every((effect) => effect.pathAlpha > 0), 'Lv.2 side trails should be visible from their first frame');
+  assert.ok(Math.abs(sideTrails[0].startY - sideTrails[1].startY) >= 40, 'the side trails should be visibly separated from one another');
+  stepSandbox(state, 0.9);
+  assert.equal(state.effects.filter((effect) => effect.type === 'knifeTrail').length, 2, 'Lv.2 side trails should remain visible long enough to inspect');
 });
 
 test('knife Lv.3 deals continuous area damage while the diver is stopped', () => {
@@ -163,6 +168,20 @@ test('knife Lv.3 deals continuous area damage while the diver is stopped', () =>
   assert.ok(enemy.health < enemy.maxHealth, 'a stopped Lv.3 knife should damage nearby enemies');
   assert.ok(state.effects.some((effect) => effect.type === 'knifeArea'));
   assert.ok((state.actor.cooldowns['weapon:knife:stationaryArea'] ?? 0) > 0);
+});
+
+test('knife Lv.3 keeps its main meteor slash after the sweep finishes', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 3 });
+
+  assert.equal(playerAttack(state).ok, true);
+  const slash = state.effects.find((effect) => effect.type === 'playerSlash');
+  assert.ok(slash);
+  assert.equal(slash.pathAlpha > 0, true);
+  stepSandbox(state, 3.1);
+  const lingeringSlash = state.effects.find((effect) => effect.type === 'playerSlash');
+  assert.ok(lingeringSlash, 'Lv.3 main knife trail should still be present after three seconds');
+  assert.equal(lingeringSlash.sparkleCount > 0, true);
 });
 
 test('sandbox gives the diver a generous control area before enemy placement', () => {
@@ -192,6 +211,73 @@ test('lanternfish locks a point, waits one second, then detonates', () => {
   stepSandbox(state, 0.5);
   assert.equal(enemy.defeated, true);
   assert.equal(state.experienceOrbs.length, 1);
+});
+
+test('sandbox enemies chase the diver and deal contact damage', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 200, y: state.actor.y }, { moveSpeed: 52 });
+  const startX = enemy.x;
+
+  for (let index = 0; index < 240; index += 1) stepSandbox(state);
+
+  assert.ok(enemy.x < startX, 'a mobile enemy should close the distance to the diver');
+  assert.ok(state.actor.health < 100, 'a melee enemy should damage the diver once it reaches attack range');
+  assert.ok(['chasing', 'attacking'].includes(enemy.state));
+});
+
+test('telegraphed enemy skills resolve after their authored cast window', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 60, y: state.actor.y }, { moveSpeed: 0 });
+
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'dashClamp').pending, true);
+  assert.equal(state.actor.health, 100, 'the dash should not hit before its warning finishes');
+  assert.equal(enemy.state, 'casting');
+
+  stepSandbox(state, 0.65);
+
+  assert.ok(state.actor.health < 100, 'the dash should resolve after the telegraph');
+  assert.equal(enemy.pendingSkill, null);
+});
+
+test('seahorse rescue waits six seconds before summoning core enemies', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'juvenileSeahorseCaller', { x: state.actor.x + 160, y: state.actor.y });
+  const initialCount = state.enemies.length;
+
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'callForHelp').pending, true);
+  for (let index = 0; index < 359; index += 1) stepSandbox(state);
+  assert.equal(state.enemies.length, initialCount, '援軍不應該在六秒前出現');
+
+  stepSandbox(state);
+  assert.equal(state.enemies.length, initialCount + 2);
+  assert.ok(state.enemies.slice(-2).every((candidate) => ['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin'].includes(candidate.enemyId)));
+});
+
+test('lionfish venom projectile applies a timed player status', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 70, y: state.actor.y }, { moveSpeed: 0 });
+
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'venomStraightShot').ok, true);
+  stepSandbox(state, 0.25);
+
+  assert.ok((state.actor.activeEffects.venom ?? 0) > 0, '毒刺命中後應保留持續效果');
+  const healthAfterHit = state.actor.health;
+  stepSandbox(state, 0.5);
+  assert.ok(state.actor.health < healthAfterHit, 'venom should continue dealing damage over time');
+});
+
+test('coral seahorse automatically links and protects a nearby ally', () => {
+  const state = createSandboxState();
+  const coral = spawnSandboxEnemy(state, 'coralBackSeahorse', { x: state.actor.x + 100, y: state.actor.y });
+  const crab = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 120, y: state.actor.y }, { moveSpeed: 0, health: 1000, maxHealth: 1000 });
+  state.selectedEnemyInstanceId = crab.instanceId;
+
+  stepSandbox(state);
+  const before = crab.health;
+  assert.equal(coral.linkedTarget, crab.instanceId);
+  assert.equal(crab.linkedProtection, coral.instanceId);
+  playerAttack(state);
+  assert.equal(crab.health, before, '生命連結中的目標應該先解除支援才能受傷');
 });
 
 test('experience orbs stay stationary until the player enters pickup range', () => {

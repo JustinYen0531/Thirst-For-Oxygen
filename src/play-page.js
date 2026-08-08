@@ -14,6 +14,7 @@ import {
   MAX_HEALTH,
   MAX_OXYGEN,
   OXYGEN_DURATION_SECONDS,
+  applyDamage,
   createTestActor,
   findPlayerStart,
   launchActor,
@@ -40,6 +41,7 @@ import {
   createPlayEnemies,
   getPlayEnemyPose,
   isPlayEnemyVisible,
+  updatePlayEnemies,
 } from './play-enemies.js';
 
 const MAPS = {
@@ -371,6 +373,12 @@ function drawEdges() {
   });
 }
 
+function applyPlayEnemyDamage(amount, source) {
+  if (!actor || unlimitedResources) return;
+  const result = applyDamage(actor, amount, source, 'enemy');
+  if (result.applied > 0) eventLog.push(`受到 ${Math.round(result.applied)} 傷害 · ${source}`);
+}
+
 function drawTrajectory() {
   if (!dragging || !aimPoint) return;
   drawLaunchGuide(context, getLaunchGuideGeometry(actor, aimPoint), actor, aimPoint, performance.now() / 1000);
@@ -621,6 +629,7 @@ function simulate(elapsed, now = performance.now()) {
       worldTime += FIXED_STEP;
       refillUnlimitedResources();
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
+      updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
       if (actor.health <= 0) {
         const cause = '生命歸零';
         const death = registerPlayerDeath(actor, cause);
@@ -646,7 +655,7 @@ window.render_game_to_text = () => JSON.stringify({
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
   player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
-  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), state: enemy.state })),
+  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), state: enemy.state, facing: enemy.facing, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
   totalEnemySpawns: enemies.length,
   totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
   unlimitedResources,

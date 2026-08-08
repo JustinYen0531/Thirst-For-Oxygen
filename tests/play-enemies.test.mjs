@@ -13,6 +13,7 @@ import {
   createPlayEnemies,
   getPlayEnemyPose,
   isPlayEnemyVisible,
+  updatePlayEnemies,
 } from '../src/play-enemies.js';
 
 const PART_MAP_PATHS = [
@@ -88,4 +89,18 @@ test('all nine descent visuals exist and enemy display size is at least doubled'
   assert.notDeepEqual(first, later);
   assert.equal(isPlayEnemyVisible(enemy, { x: 80, y: 160 }, { width: 100, height: 100 }), true);
   assert.equal(isPlayEnemyVisible(enemy, { x: 400, y: 400 }, { width: 100, height: 100 }), false);
+});
+
+test('play enemies chase the actor and expose a real damage callback', () => {
+  const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
+  const enemy = enemies.find((candidate) => candidate.enemyId === 'crabGuard');
+  assert.ok(enemy);
+  const actor = { x: enemy.x - 120, y: enemy.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
+  const startX = enemy.x;
+  let damage = 0;
+  for (let index = 0; index < 180; index += 1) updatePlayEnemies([enemy], actor, 1 / 60, index / 60, (amount) => { damage += amount; });
+
+  assert.ok(enemy.x < startX, 'the real play enemy should track the actor');
+  assert.ok(damage > 0, 'the real play enemy should eventually call the player damage path');
+  assert.ok(['chasing', 'attacking'].includes(enemy.state));
 });

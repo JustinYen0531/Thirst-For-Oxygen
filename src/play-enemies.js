@@ -1,6 +1,6 @@
 import { ENEMY_DEFINITIONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
-import { getActiveCell, getHexCenter } from './map-model.js';
+import { findCellContainingPoint, getActiveCell, getHexCenter } from './map-model.js';
 
 export const DESCENT_LV1_ENEMIES = Object.freeze(['explodingLanternfish', 'juvenileSeahorseCaller']);
 export const DESCENT_CORE_ENEMIES = Object.freeze(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin']);
@@ -135,16 +135,153 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
         spawnCellKey,
         x: position.x + repeatedOffset.x,
         y: position.y + repeatedOffset.y,
+        health: definition.maxHealth,
+        maxHealth: definition.maxHealth,
+        moveSpeed: definition.moveSpeed ?? 0,
+        vx: 0,
+        vy: 0,
         radius: (4.5 + definition.tier * 0.65) * PLAY_ENEMY_RENDER_SCALE,
         renderSize: (12 + definition.tier * 1.8) * PLAY_ENEMY_RENDER_SCALE,
         visual: PLAY_ENEMY_VISUALS[enemyId] ?? encyclopediaById[enemyId]?.visuals?.idle ?? null,
         phase: ((spawnCell.q * 31 + spawnCell.r * 17 + globalIndex * 13) % 360) * Math.PI / 180,
         state: 'idle',
+        facing: 'left',
+        cooldowns: {},
+        nextSkillIndex: 0,
+        pendingSkill: null,
+        defeated: false,
       });
     }
   });
 
   return enemies;
+}
+
+const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
+const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
+const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
+
+function attackReach(enemy, skill) {
+  return (skill.range ?? skill.radius ?? 44) + enemy.radius + (enemy.actorRadius ?? 6);
+}
+
+function preferredDistance(enemy, definition) {
+  const contact = definition.attacks.find((skill) => skill.type === 'contact' || skill.type === 'melee');
+  if (contact) return Math.max(24, (contact.range ?? contact.radius ?? 44) + enemy.radius + 2);
+  const ranged = definition.attacks.find((skill) => skill.range || ['projectile', 'spread', 'lobbed'].includes(skill.type));
+  return clampValue((ranged?.range ?? 280) * 0.55, 90, 220);
+}
+
+function canUsePlaySkill(enemy, skill, distance) {
+  if ((enemy.cooldowns[skill.id] ?? 0) > 0) return false;
+  if (skill.type === 'contact' || skill.type === 'melee') return distance <= attackReach(enemy, skill);
+  if (skill.type === 'suicideCharge') return distance <= (skill.triggerRange ?? 260);
+  return true;
+}
+
+function playEnemyDamage(actor, amount, source, onDamage) {
+  if (!amount || actor.dead || actor.invulnerability > 0) return;
+  if (typeof onDamage === 'function') onDamage(amount, source);
+  else actor.health = Math.max(0, actor.health - amount);
+  actor.hurtTimer = Math.max(actor.hurtTimer ?? 0, 0.18);
+}
+
+function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
+  const distance = distanceBetween(enemy, actor);
+  const source = `${enemy.name}・${skill.name}`;
+  if (skill.type === 'teleportMelee' || skill.type === 'dash') {
+    const angle = angleBetween(enemy, actor);
+    enemy.x = actor.x - Math.cos(angle) * 28;
+    enemy.y = actor.y - Math.sin(angle) * 28;
+    if (distanceBetween(enemy, actor) <= attackReach(enemy, { ...skill, range: skill.range ?? 56 })) playEnemyDamage(actor, skill.damage, source, onDamage);
+    return;
+  }
+  if (skill.type === 'contact' || skill.type === 'melee') {
+    if (distance <= attackReach(enemy, skill)) playEnemyDamage(actor, skill.damage, source, onDamage);
+    return;
+  }
+  // The play page intentionally keeps projectiles lightweight: the sandbox
+  // owns their full swept collision model, while the authored encounter still
+  // needs a deterministic ranged hit cadence in the real map.
+  if (skill.type === 'lobbed' || skill.type === 'areaStun' || skill.type === 'gravityField') {
+    if (distance <= (skill.radius ?? 96) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage);
+    return;
+  }
+  if (skill.type === 'suicideCharge') {
+    if (distance <= (skill.radius ?? 52) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage);
+    enemy.defeated = true;
+    enemy.health = 0;
+    return;
+  }
+  if (skill.damage > 0) playEnemyDamage(actor, skill.damage, source, onDamage);
+}
+
+/** Advance authored descent enemies in the real play scene. */
+export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null, bounds = null, world = null) {
+  if (!actor) return;
+  enemies.forEach((enemy) => {
+    if (enemy.defeated) return;
+    const definition = ENEMY_DEFINITIONS[enemy.enemyId];
+    if (!definition) return;
+    Object.keys(enemy.cooldowns).forEach((key) => { enemy.cooldowns[key] = Math.max(0, enemy.cooldowns[key] - dt); });
+    if (enemy.pendingSkill) {
+      enemy.pendingSkill.remaining -= dt;
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'casting';
+      if (enemy.pendingSkill.remaining > 1e-6) return;
+      const skill = definition.attacks.find((candidate) => candidate.id === enemy.pendingSkill.skillId);
+      enemy.pendingSkill = null;
+      if (skill) resolvePlayEnemySkill(enemy, skill, actor, onDamage);
+      enemy.state = enemy.defeated ? 'defeated' : 'attacking';
+      return;
+    }
+    const distance = distanceBetween(enemy, actor);
+    const preferred = preferredDistance(enemy, definition);
+    if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
+      const angle = angleBetween(enemy, actor);
+      enemy.vx = Math.cos(angle) * enemy.moveSpeed;
+      enemy.vy = Math.sin(angle) * enemy.moveSpeed;
+      const nextPosition = { x: enemy.x + enemy.vx * dt, y: enemy.y + enemy.vy * dt };
+      const nextCell = world?.map
+        ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
+        : null;
+      if (nextCell?.cell?.terrain === 'blocked') {
+        enemy.vx = 0;
+        enemy.vy = 0;
+        enemy.state = 'blocked';
+      } else {
+        enemy.x = nextPosition.x;
+        enemy.y = nextPosition.y;
+        enemy.state = 'chasing';
+      }
+      if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
+      if (bounds) {
+        enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+        enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+      }
+    } else {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'attacking';
+    }
+    const attacks = definition.attacks ?? [];
+    if (!attacks.length) return;
+    const start = enemy.nextSkillIndex % attacks.length;
+    const selected = attacks.map((skill, index) => ({ skill, index: (start + index) % attacks.length }))
+      .find(({ skill }) => canUsePlaySkill(enemy, skill, distance));
+    if (!selected) return;
+    const { skill, index } = selected;
+    enemy.nextSkillIndex = (index + 1) % attacks.length;
+    enemy.cooldowns[skill.id] = skill.cooldown ?? 0.6;
+    const castTime = skill.type === 'lobbed' || skill.type === 'suicideCharge' ? 0 : Number(skill.castTime ?? skill.telegraph ?? 0);
+    if (castTime > 0) {
+      enemy.pendingSkill = { skillId: skill.id, remaining: castTime };
+      enemy.state = 'casting';
+      return;
+    }
+    resolvePlayEnemySkill(enemy, skill, actor, onDamage);
+  });
 }
 
 export function getPlayEnemyPose(enemy, timeSeconds) {

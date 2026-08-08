@@ -634,3 +634,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Lv.2 now renders two thinner side meteor trails; Lv.3 keeps the slash lingering and adds deterministic twinkling sparkles.
 - Direct knife preview now creates the visual effect even when no enemy has been placed, so the sandbox's weapon button can demonstrate the effect without a hidden target prerequisite.
 - Static-only verification passed: focused progression tests (17/17), full `npm run check` (90/90), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 76 complete
+
+- Added sandbox enemy behavior: movement tracking, melee contact cadence, rage cooldown scaling, automatic skill cycling, telegraph/cast windows, delayed rescue summons, link protection/healing, venom status damage, ink state, split children, continuous beam zones, knockback, and swept projectile collision.
+- Added the same authored chase/attack cadence to the formal play scene, including blocked-cell stopping and telemetry for enemy health, state, facing, and pending skill casts.
+- Added regression coverage for chase/contact damage, telegraphed attacks, six-second rescue, venom persistence, coral link protection, and formal play damage callbacks.
+- Static-only verification passed: full `npm run check` (100/100 after the workspace's concurrent visor checks were present). Browser/Playwright validation remains prohibited by user instruction.

@@ -441,7 +441,7 @@ function renderKnifeMeteorEffect(effect, progress, side) {
   const sweepDuration = Math.max(0.08, Math.min(0.7, effect.sweepDuration ?? 0.24));
   const headRatio = Math.min(1, safeProgress / sweepDuration);
   const isLinger = !side && (effect.sparkleCount ?? 0) > 0;
-  const fade = isLinger ? Math.max(0.2, 1 - safeProgress * 0.52) : Math.max(0, 1 - safeProgress);
+  const fade = isLinger ? Math.max(effect.lingerMinAlpha ?? 0.2, 1 - safeProgress * 0.52) : Math.max(0, 1 - safeProgress);
   const lineWidth = effect.lineWidth ?? (side ? 2.5 : 6);
   const head = pointAlongEffect(effect, headRatio);
 
@@ -450,6 +450,18 @@ function renderKnifeMeteorEffect(effect, progress, side) {
   ctx.strokeStyle = effect.colour ?? '#ffffff';
   ctx.shadowColor = '#dffbff';
   ctx.shadowBlur = side ? 10 : 18;
+  // Lv.2 side trails and Lv.3's lingering slash keep a faint complete path
+  // visible from the first frame. The moving head still provides the
+  // Fruit-Ninja-like sweep, but the effect can no longer disappear between
+  // two screenshots taken around the start of the animation.
+  if ((effect.pathAlpha ?? 0) > 0) {
+    ctx.globalAlpha = fade * effect.pathAlpha;
+    ctx.lineWidth = Math.max(1.25, lineWidth * (side ? 0.72 : 0.42));
+    ctx.beginPath();
+    ctx.moveTo(effect.startX ?? effect.x, effect.startY ?? effect.y);
+    ctx.lineTo(effect.targetX ?? effect.startX ?? effect.x, effect.targetY ?? effect.startY ?? effect.y);
+    ctx.stroke();
+  }
   renderMeteorStroke(effect, headRatio, fade * (side ? 0.9 : 0.96), lineWidth * (side ? 0.9 : 1));
 
   ctx.globalAlpha = fade * (side ? 0.72 : 0.92);
@@ -759,7 +771,7 @@ window.addEventListener('keydown', (event) => {
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor) },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   build: state.build,
   progression: {
@@ -775,7 +787,7 @@ window.render_game_to_text = () => JSON.stringify({
   },
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
-  enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), health: format(enemy.health), defeated: enemy.defeated, animation: enemy.animation })),
+  enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
   projectiles: state.projectiles.length,
   effects: state.effects.map((effect) => ({
     type: effect.type,

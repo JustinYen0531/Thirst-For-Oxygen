@@ -86,6 +86,48 @@ function enemyDefinition(enemy) {
   return ENEMY_DEFINITIONS[enemy.enemyId ?? enemy.id];
 }
 
+const CONTACT_ATTACK_TYPES = new Set(['contact', 'melee']);
+const RANGED_ATTACK_TYPES = new Set(['projectile', 'spread', 'lobbed', 'boomerangSpread', 'shieldBoomerang']);
+const CORE_SUMMON_IDS = Object.freeze(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin']);
+
+function isEnemyEnraged(enemy) {
+  return Number(enemy.health) > 0 && Number(enemy.maxHealth) > 0 && enemy.health / enemy.maxHealth <= 0.3;
+}
+
+function enemyCooldownMultiplier(enemy) {
+  return isEnemyEnraged(enemy) ? 0.65 : 1;
+}
+
+function getContactAttack(enemy) {
+  return enemyDefinition(enemy)?.attacks.find((skill) => CONTACT_ATTACK_TYPES.has(skill.type)) ?? null;
+}
+
+function getPreferredEnemyDistance(enemy) {
+  const definition = enemyDefinition(enemy);
+  const contact = getContactAttack(enemy);
+  // Stop just inside the collision envelope; leaving an eight-pixel gap here
+  // makes a melee enemy orbit forever without ever reaching its attack.
+  if (contact) return Math.max(28, (contact.range ?? contact.radius ?? 44) + enemy.radius + 2);
+  const ranged = definition?.attacks.find((skill) => RANGED_ATTACK_TYPES.has(skill.type));
+  if (ranged) return clamp((ranged.range ?? 280) * 0.55, 110, 240);
+  return 74;
+}
+
+function getNextReadySkill(enemy, distance) {
+  const attacks = enemyDefinition(enemy)?.attacks ?? [];
+  if (!attacks.length) return null;
+  const start = Math.max(0, enemy.nextAutoSkillIndex ?? 0) % attacks.length;
+  for (let offset = 0; offset < attacks.length; offset += 1) {
+    const index = (start + offset) % attacks.length;
+    const skill = attacks[index];
+    if ((enemy.cooldowns[skill.id] ?? 0) > 0) continue;
+    if (CONTACT_ATTACK_TYPES.has(skill.type) && distance > (skill.range ?? skill.radius ?? 44) + enemy.radius + 12) continue;
+    if (skill.type === 'suicideCharge' && distance > (skill.triggerRange ?? 260)) continue;
+    return { skill, index };
+  }
+  return null;
+}
+
 function setAnimation(enemy, skillId, time) {
   enemy.animation = skillId ?? 'idle';
   enemy.animationToken += 1;
@@ -137,7 +179,7 @@ function updateSuicideCharge(state, enemy, dt) {
   }
   if (charge.phase === 'seeking') {
     const distance = Math.hypot(charge.targetX - enemy.x, charge.targetY - enemy.y);
-    const travel = enemyDefinition(enemy).moveSpeed * dt;
+    const travel = (enemy.moveSpeed ?? enemyDefinition(enemy).moveSpeed) * dt;
     if (distance <= Math.max(8, travel)) {
       enemy.x = charge.targetX;
       enemy.y = charge.targetY;
@@ -253,6 +295,13 @@ function applyPlayerDamage(state, amount, source, damageType = 'generic') {
 
 function damageEnemy(state, enemy, amount, source) {
   if (!enemy || enemy.defeated) return 0;
+  const linkedProtector = enemy.linkedProtection
+    ? state.enemies.find((candidate) => candidate.instanceId === enemy.linkedProtection && !candidate.defeated)
+    : null;
+  if (linkedProtector) {
+    logEvent(state, `${enemyDefinition(enemy).name} 受到生命連結保護，必須先切斷支援。`, 'warning');
+    return 0;
+  }
   const damage = Math.max(0, amount * (state.actor.derivedStats?.currentDamageMultiplier ?? 1));
   enemy.health = Math.max(0, enemy.health - damage);
   enemy.lastHitAt = state.time;
@@ -265,6 +314,10 @@ function damageEnemy(state, enemy, amount, source) {
 function defeatEnemy(state, enemy) {
   if (enemy.defeated) return;
   enemy.defeated = true;
+  state.enemies.forEach((candidate) => {
+    if (candidate.linkedProtection === enemy.instanceId) candidate.linkedProtection = null;
+    if (candidate.linkedTarget === enemy.instanceId) candidate.linkedTarget = null;
+  });
   enemy.animation = 'defeated';
   enemy.animationToken += 1;
   addEffect(state, { type: 'defeat', x: enemy.x, y: enemy.y, radius: 28, duration: 0.7, colour: '#f6e66d' });
@@ -280,14 +333,20 @@ function defeatEnemy(state, enemy) {
   ));
   logEvent(state, `經驗光點 +${experienceValue} 留在原地，靠近後才會拾取。`, 'safe');
   const split = enemyDefinition(enemy).attacks.find((attack) => attack.type === 'split');
-  if (split) {
+  if (split && (enemy.splitGeneration ?? 0) < 2) {
     for (let index = 0; index < (split.childCount ?? 2); index += 1) {
-      spawnSandboxEnemy(state, 'explodingLanternfish', {
+      spawnSandboxEnemy(state, 'splitLanternfish', {
         x: enemy.x + (index === 0 ? -26 : 26),
         y: enemy.y + 16,
-      }, { health: split.childHealth ?? 28, moveSpeed: split.childSpeed ?? 122 });
+      }, {
+        health: split.childHealth ?? 28,
+        maxHealth: split.childHealth ?? 28,
+        moveSpeed: split.childSpeed ?? 122,
+        radius: Math.max(14, enemy.radius * 0.72),
+        splitGeneration: (enemy.splitGeneration ?? 0) + 1,
+      });
     }
-    logEvent(state, `${enemyDefinition(enemy).name} 觸發死亡分裂。`, 'warning');
+    logEvent(state, `${enemyDefinition(enemy).name} 死亡分裂成 ${(split.childCount ?? 2)} 隻更快的小型個體。`, 'warning');
   }
 }
 
@@ -304,9 +363,13 @@ function spawnProjectile(state, source, options) {
     ownerId: source.instanceId,
     damage: options.damage ?? 0,
     damageType: options.damageType ?? 'ranged',
-    life: options.life ?? ((options.range ?? 360) / Math.max(options.speed, 1)),
+    life: options.life ?? ((options.returnDelay ?? 0) + (options.range ?? 360) / Math.max(options.speed, 1)),
+    age: 0,
     returnDelay: options.returnDelay ?? null,
     returning: false,
+    applies: options.applies ?? null,
+    effectDuration: options.effectDuration ?? 0,
+    persistent: Boolean(options.persistent),
     radius: options.radius ?? 6,
     colour: options.colour ?? '#a5e8ff',
   });
@@ -326,8 +389,44 @@ function spawnSkillProjectiles(state, enemy, skill, type = skill.type) {
       source: 'enemy',
       colour: type === 'shieldBoomerang' ? '#f6e66d' : '#a5e8ff',
       returnDelay: skill.returnDelay,
+      applies: skill.applies,
+      effectDuration: skill.duration,
+      persistent: skill.persistent,
     });
   }
+}
+
+function shouldTelegraphSkill(skill) {
+  if (!skill) return false;
+  if (skill.type === 'lobbed' || skill.type === 'suicideCharge') return false;
+  return Number(skill.castTime ?? skill.telegraph ?? 0) > 0;
+}
+
+function skillCastDuration(skill) {
+  return Math.max(0, Number(skill.castTime ?? skill.telegraph ?? 0));
+}
+
+function startEnemySkillCast(state, enemy, skill) {
+  const duration = skillCastDuration(skill);
+  if (!shouldTelegraphSkill(skill) || duration <= 0) return false;
+  enemy.pendingSkill = {
+    skillId: skill.id,
+    remaining: duration,
+    targetX: state.actor.x,
+    targetY: state.actor.y,
+  };
+  enemy.state = 'casting';
+  enemy.animationUntil = state.time + duration;
+  addEffect(state, {
+    type: 'telegraph',
+    x: skill.type === 'melee' || skill.type === 'teleportMelee' || skill.type === 'projectile' ? state.actor.x : enemy.x,
+    y: skill.type === 'melee' || skill.type === 'teleportMelee' || skill.type === 'projectile' ? state.actor.y : enemy.y,
+    radius: skill.radius ?? skill.range ?? enemy.radius + 18,
+    duration,
+    colour: '#ffb86e',
+  });
+  logEvent(state, `${enemyDefinition(enemy).name} 進入 ${skill.name} 預警，${duration.toFixed(1)} 秒後施放。`, 'warning');
+  return true;
 }
 
 function areaDamage(state, origin, radius, damage, source, damageType = 'area') {
@@ -335,8 +434,17 @@ function areaDamage(state, origin, radius, damage, source, damageType = 'area') 
   addEffect(state, { type: 'area', x: origin.x, y: origin.y, radius, duration: 0.55, colour: '#ffb86e' });
 }
 
+function applyKnockback(state, origin, radius, strength) {
+  if (!strength || distanceBetween(origin, state.actor) > radius + state.actor.radius) return;
+  const angle = angleBetween(origin, state.actor);
+  state.actor.vx += Math.cos(angle) * strength;
+  state.actor.vy += Math.sin(angle) * strength;
+}
+
 function summonFromSkill(state, enemy, skill) {
-  const summonId = enemyDefinition(enemy).id === 'juvenileSeahorseCaller' ? 'explodingLanternfish' : 'juvenileSeahorseCaller';
+  const summonId = enemyDefinition(enemy).id === 'juvenileSeahorseCaller'
+    ? CORE_SUMMON_IDS[(state.nextEnemyId - 1) % CORE_SUMMON_IDS.length]
+    : 'juvenileSeahorseCaller';
   const count = clamp(Math.round(skill.summonCount ?? 1), 1, 8);
   for (let index = 0; index < count; index += 1) {
     const angle = (Math.PI * 2 * index) / count;
@@ -350,6 +458,8 @@ function summonFromSkill(state, enemy, skill) {
 
 export function createSandboxState() {
   const actor = createTestActor({ x: 150, y: SANDBOX_HEIGHT / 2 });
+  actor.activeEffects = {};
+  actor.stunnedUntil = 0;
   const state = {
     time: 0,
     running: true,
@@ -399,10 +509,20 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
     y: clamp(position.y, 32, SANDBOX_HEIGHT - 32),
     vx: 0,
     vy: 0,
+    moveSpeed: definition.moveSpeed,
     radius: clamp(Math.sqrt(definition.maxHealth) * 1.15, 18, 48),
     animation: 'idle',
     animationToken: 0,
     animationUntil: 0,
+    state: 'idle',
+    facing: 'left',
+    nextAutoAt: 0,
+    nextAutoSkillIndex: 0,
+    linkedTarget: null,
+    linkedProtection: null,
+    splitGeneration: 0,
+    enraged: false,
+    pendingSkill: null,
     defeated: false,
     cooldowns: {},
     activeEffects: {},
@@ -464,13 +584,18 @@ export function resetSandboxPlayer(state) {
   state.actor.dead = false;
   state.actor.gameOver = false;
   state.actor.activeEffects = {};
+  state.actor.stunnedUntil = 0;
+  state.actor.inInk = false;
+  state.actor.inkUntil = 0;
   state.aiming = false;
   state.aimPoint = null;
   logEvent(state, '玩家已重置。', 'safe');
 }
 
 export function beginSandboxAim(state, point) {
-  if (!point || state.awaitingUpgrade || state.actor.attached || state.actor.dead) return { ok: false, reason: state.awaitingUpgrade ? 'upgrade' : 'unavailable' };
+  if (!point || state.awaitingUpgrade || state.actor.attached || state.actor.dead || (state.actor.stunnedUntil ?? 0) > state.time) {
+    return { ok: false, reason: state.awaitingUpgrade ? 'upgrade' : (state.actor.stunnedUntil ?? 0) > state.time ? 'stunned' : 'unavailable' };
+  }
   state.aiming = true;
   state.aimPoint = { x: point.x, y: point.y };
   state.actor.vx = 0;
@@ -518,19 +643,29 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
   return result;
 }
 
-export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanceId, skillId = state.selectedSkillId) {
+export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanceId, skillId = state.selectedSkillId, options = {}) {
   const enemy = state.enemies.find((candidate) => candidate.instanceId === instanceId && !candidate.defeated);
   if (!enemy) return { ok: false, reason: 'enemy' };
   const definition = enemyDefinition(enemy);
   const skill = definition.attacks.find((candidate) => candidate.id === skillId) ?? definition.attacks[0];
   if (!skill) return { ok: false, reason: 'skill' };
   if (enemy.suicideCharge) return { ok: false, reason: 'busy' };
-  if ((enemy.cooldowns[skill.id] ?? 0) > 0) {
+  // Manual sandbox selection is an inspection tool: choosing another skill
+  // cancels the previous preview so every authored skill can be tested
+  // without waiting through an earlier telegraph.
+  if (enemy.pendingSkill && !options.resolve) {
+    enemy.pendingSkill = null;
+    enemy.state = 'idle';
+  }
+  if (!options.resolve && (enemy.cooldowns[skill.id] ?? 0) > 0) {
     logEvent(state, `${skill.name} 冷卻中：${enemy.cooldowns[skill.id].toFixed(1)} 秒。`, 'warning');
     return { ok: false, reason: 'cooldown' };
   }
-  enemy.cooldowns[skill.id] = skill.cooldown ?? 0;
+  if (!options.resolve) enemy.cooldowns[skill.id] = (skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy);
   setAnimation(enemy, skill.id, state.time);
+  if (!options.resolve && startEnemySkillCast(state, enemy, skill)) {
+    return { ok: true, pending: true, enemy: enemy.instanceId, skill: skill.id };
+  }
   const distance = distanceBetween(enemy, state.actor);
   const source = `${definition.name}・${skill.name}`;
   logEvent(state, `${source} 已啟動。`);
@@ -540,10 +675,10 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       beginSuicideCharge(state, enemy, skill);
       break;
     case 'contact':
-      if (distance <= (skill.radius ?? 42)) areaDamage(state, enemy, skill.radius ?? 42, skill.damage ?? 0, source);
+      if (distance <= (skill.radius ?? 42) + enemy.radius + state.actor.radius) areaDamage(state, enemy, skill.radius ?? 42, skill.damage ?? 0, source);
       break;
     case 'melee':
-      if (distance <= (skill.range ?? 48)) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
+      if (distance <= (skill.range ?? 48) + enemy.radius + state.actor.radius) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
       addEffect(state, { type: 'slash', x: enemy.x, y: enemy.y, radius: skill.range ?? 48, duration: 0.4, angle: angleBetween(enemy, state.actor), colour: '#ff8d8d' });
       break;
     case 'dash':
@@ -551,7 +686,11 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       const angle = angleBetween(enemy, state.actor);
       enemy.x = clamp(state.actor.x - Math.cos(angle) * 28, 32, SANDBOX_WIDTH - 32);
       enemy.y = clamp(state.actor.y - Math.sin(angle) * 28, 32, SANDBOX_HEIGHT - 32);
-      if (distance <= (skill.range ?? 150)) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
+      if (distanceBetween(enemy, state.actor) <= (skill.range ?? 150) + enemy.radius + state.actor.radius) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
+      if (skill.inkDuration) {
+        state.actor.inInk = true;
+        state.actor.inkUntil = state.time + skill.inkDuration;
+      }
       addEffect(state, { type: skill.type, x: enemy.x, y: enemy.y, radius: 38, duration: 0.6, colour: '#e98dff' });
       break;
     }
@@ -562,7 +701,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       spawnSkillProjectiles(state, enemy, skill);
       break;
     case 'lobbed':
-      state.zones.push({ x: state.actor.x, y: state.actor.y, radius: skill.radius ?? 56, delay: skill.telegraph ?? 1, damage: skill.damage ?? 0, source, elapsed: 0, triggered: false });
+      state.zones.push({ x: state.actor.x, y: state.actor.y, radius: skill.radius ?? 56, delay: skill.telegraph ?? 1, damage: skill.damage ?? 0, source, elapsed: 0, triggered: false, knockback: skill.knockback ?? 0 });
       addEffect(state, { type: 'telegraph', x: state.actor.x, y: state.actor.y, radius: skill.radius ?? 56, duration: skill.telegraph ?? 1, colour: '#ffb86e' });
       break;
     case 'areaStun':
@@ -570,6 +709,11 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
     case 'destroyableGravityOrb':
       areaDamage(state, enemy, skill.radius ?? 100, skill.damage ?? 0, source);
       state.rules.push({ label: skill.type, remaining: skill.duration ?? 2, multiplier: skill.gravityMultiplier ?? 1 });
+      if (skill.stun) {
+        state.actor.stunnedUntil = Math.max(state.actor.stunnedUntil ?? 0, state.time + skill.stun);
+        state.actor.vx = 0;
+        state.actor.vy = 0;
+      }
       break;
     case 'summon':
     case 'summonWave':
@@ -592,15 +736,33 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       break;
     case 'link':
       enemy.linkedTarget = activeEnemies(state).find((candidate) => candidate.instanceId !== enemy.instanceId && distanceBetween(enemy, candidate) <= (skill.linkRange ?? 180))?.instanceId ?? null;
+      if (enemy.linkedTarget) {
+        const target = state.enemies.find((candidate) => candidate.instanceId === enemy.linkedTarget);
+        if (target) target.linkedProtection = enemy.instanceId;
+      }
       addEffect(state, { type: 'link', x: enemy.x, y: enemy.y, radius: skill.linkRange ?? 180, duration: 1.2, colour: '#ff9ae6' });
       break;
     case 'reflectedBeam':
-    case 'reflectedBeamSplit':
+    case 'reflectedBeamSplit': {
+      const beam = { x: enemy.x, y: enemy.y, targetX: state.actor.x, targetY: state.actor.y, radius: 10, duration: skill.duration ?? 3, damagePerSecond: skill.damagePerSecond ?? 24, source, elapsed: 0, continuous: true, triggered: false };
+      state.zones.push(beam);
       addEffect(state, { type: 'beam', x: enemy.x, y: enemy.y, targetX: state.actor.x, targetY: state.actor.y, radius: 10, duration: skill.duration ?? 3, colour: '#bca7ff' });
-      applyPlayerDamage(state, (skill.damagePerSecond ?? 24) * 0.35, source, 'ranged');
       break;
+    }
     case 'split':
-      for (let index = 0; index < (skill.childCount ?? 2); index += 1) spawnSandboxEnemy(state, 'explodingLanternfish', { x: enemy.x + index * 24 - 12, y: enemy.y + 20 });
+      for (let index = 0; index < (skill.childCount ?? 2); index += 1) {
+        spawnSandboxEnemy(state, 'splitLanternfish', {
+          x: enemy.x + index * 24 - 12,
+          y: enemy.y + 20,
+        }, {
+          health: skill.childHealth ?? 28,
+          maxHealth: skill.childHealth ?? 28,
+          moveSpeed: skill.childSpeed ?? 122,
+          radius: Math.max(14, enemy.radius * 0.72),
+          splitGeneration: (enemy.splitGeneration ?? 0) + 1,
+        });
+      }
+      logEvent(state, `${definition.name} 立即分裂出 ${(skill.childCount ?? 2)} 隻小型個體。`, 'warning');
       break;
     case 'rebuildArena':
       enemy.health = Math.min(enemy.maxHealth, enemy.health + enemy.maxHealth * (skill.healPerSecondRatio ?? 0.02) * (skill.duration ?? 8));
@@ -679,6 +841,8 @@ function addKnifeMeteorEffect(state, weapon, start, end, { offset = 0, side = fa
     trailLength: side ? 0.78 : (effect.trailLength ?? 0.82),
     lineWidth: side ? (effect.sideTrailWidth ?? Math.max(2, (effect.lineWidth ?? 6) * 0.42)) : (effect.lineWidth ?? 6),
     headRadius: side ? Math.max(4, (effect.headRadius ?? 7) * 0.58) : (effect.headRadius ?? 7),
+    pathAlpha: effect.pathAlpha ?? 0,
+    lingerMinAlpha: effect.lingerMinAlpha ?? 0.2,
     sparkleCount: side ? 0 : (effect.sparkleCount ?? 0),
     angle: Math.atan2(dy, dx),
     colour: side ? '#e6faff' : '#ffffff',
@@ -752,24 +916,33 @@ export function playerAttack(state) {
 function updateProjectiles(state, dt) {
   state.projectiles = state.projectiles.filter((projectile) => {
     projectile.life -= dt;
+    projectile.age = (projectile.age ?? 0) + dt;
     if (projectile.life <= 0) return false;
-    if (projectile.returnDelay != null && projectile.life <= projectile.returnDelay) projectile.returning = true;
+    if (projectile.returnDelay != null && projectile.age >= projectile.returnDelay) projectile.returning = true;
     const target = projectile.returning && projectile.source === 'enemy' ? state.enemies.find((enemy) => enemy.instanceId === projectile.ownerId) : state.actor;
     if (target && projectile.returning) {
       const angle = angleBetween(projectile, target);
       projectile.vx = Math.cos(angle) * Math.hypot(projectile.vx, projectile.vy);
       projectile.vy = Math.sin(angle) * Math.hypot(projectile.vx, projectile.vy);
     }
+    const previousPosition = { x: projectile.x, y: projectile.y };
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
     if (projectile.source === 'player') {
-      const hit = activeEnemies(state).find((enemy) => distanceBetween(projectile, enemy) <= enemy.radius + projectile.radius);
+      const hit = activeEnemies(state).find((enemy) => distanceToSegment(enemy, previousPosition, projectile) <= enemy.radius + projectile.radius);
       if (hit) {
         damageEnemy(state, hit, projectile.damage, '玩家投射物');
         return false;
       }
-    } else if (distanceBetween(projectile, state.actor) <= state.actor.radius + projectile.radius) {
+    } else if (distanceToSegment(state.actor, previousPosition, projectile) <= state.actor.radius + projectile.radius) {
       applyPlayerDamage(state, projectile.damage, '敵人投射物', projectile.damageType);
+      if (projectile.applies) {
+        state.actor.activeEffects ??= {};
+        state.actor.activeEffects[projectile.applies] = Math.max(
+          state.actor.activeEffects[projectile.applies] ?? 0,
+          projectile.effectDuration || 0,
+        );
+      }
       return false;
     }
     return projectile.x > -40 && projectile.x < SANDBOX_WIDTH + 40 && projectile.y > -40 && projectile.y < SANDBOX_HEIGHT + 40;
@@ -779,9 +952,19 @@ function updateProjectiles(state, dt) {
 function updateZones(state, dt) {
   state.zones = state.zones.filter((zone) => {
     zone.elapsed += dt;
+    if (zone.continuous) {
+      const withinBeam = distanceToSegment(
+        state.actor,
+        { x: zone.x, y: zone.y },
+        { x: zone.targetX, y: zone.targetY },
+      ) <= (zone.radius ?? 10) + state.actor.radius;
+      if (withinBeam) applyPlayerDamage(state, (zone.damagePerSecond ?? 0) * dt, zone.source, 'ranged');
+      return zone.elapsed < (zone.duration ?? 3);
+    }
     if (!zone.triggered && zone.elapsed >= zone.delay) {
       zone.triggered = true;
       areaDamage(state, zone, zone.radius, zone.damage, zone.source);
+      applyKnockback(state, zone, zone.radius, zone.knockback);
       if (zone.oxygenDrain && !state.infiniteResources) state.actor.oxygen = Math.max(0, state.actor.oxygen - zone.oxygenDrain);
     }
     return zone.elapsed < zone.delay + 0.7;
@@ -896,6 +1079,74 @@ function processStationaryKnifeArea(state) {
   });
 }
 
+function updateLinkedSupport(state, enemy, dt) {
+  if (enemy.enemyId !== 'coralBackSeahorse') return;
+  const skill = enemyDefinition(enemy).attacks.find((candidate) => candidate.id === 'lifeLink');
+  const range = skill?.linkRange ?? 180;
+  const target = enemy.linkedTarget
+    ? state.enemies.find((candidate) => candidate.instanceId === enemy.linkedTarget && !candidate.defeated)
+    : activeEnemies(state).find((candidate) => candidate.instanceId !== enemy.instanceId
+      && candidate.tier !== 'miniBoss'
+      && candidate.tier !== 'mutatedMiniBoss'
+      && candidate.tier !== 'finalBoss'
+      && distanceBetween(enemy, candidate) <= range);
+  if (!target) {
+    enemy.linkedTarget = null;
+    return;
+  }
+  enemy.linkedTarget = target.instanceId;
+  target.linkedProtection = enemy.instanceId;
+  const heal = target.maxHealth * (skill?.healPerSecondRatio ?? 0.03) * dt;
+  target.health = Math.min(target.maxHealth, target.health + heal);
+  enemy.health = Math.min(enemy.maxHealth, enemy.health + heal);
+}
+
+function updateEnemyMovement(state, enemy, dt) {
+  const definition = enemyDefinition(enemy);
+  if (!definition || definition.moveSpeed <= 0) return;
+  const distance = distanceBetween(enemy, state.actor);
+  const preferredDistance = getPreferredEnemyDistance(enemy);
+  const speedMultiplier = enemy.activeEffects.speedForm ? 1.7 : 1;
+  if (distance > preferredDistance) {
+    const angle = angleBetween(enemy, state.actor);
+    const speed = (enemy.moveSpeed ?? definition.moveSpeed) * speedMultiplier;
+    enemy.vx = Math.cos(angle) * speed;
+    enemy.vy = Math.sin(angle) * speed;
+    enemy.x = clamp(enemy.x + enemy.vx * dt, 30, SANDBOX_WIDTH - 30);
+    enemy.y = clamp(enemy.y + enemy.vy * dt, 30, SANDBOX_HEIGHT - 30);
+    enemy.state = 'chasing';
+    if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
+  } else {
+    enemy.vx = 0;
+    enemy.vy = 0;
+    enemy.state = 'attacking';
+  }
+}
+
+function attemptContactAttack(state, enemy) {
+  const skill = getContactAttack(enemy);
+  if (!skill || state.time < (enemy.contactAttackCooldownUntil ?? 0)) return;
+  const distance = distanceBetween(enemy, state.actor);
+  const reach = (skill.range ?? skill.radius ?? 44) + enemy.radius + state.actor.radius;
+  if (distance > reach) return;
+  const result = executeEnemySkill(state, enemy.instanceId, skill.id);
+  if (result.ok) enemy.contactAttackCooldownUntil = state.time + Math.max((skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy), 0.38);
+}
+
+function updatePendingEnemySkill(state, enemy, dt) {
+  if (!enemy.pendingSkill) return false;
+  enemy.pendingSkill.remaining -= dt;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.state = 'casting';
+  if (enemy.pendingSkill.remaining > 1e-6) return true;
+  const { skillId } = enemy.pendingSkill;
+  enemy.pendingSkill = null;
+  const result = executeEnemySkill(state, enemy.instanceId, skillId, { resolve: true });
+  if (result.ok) enemy.state = 'attacking';
+  return true;
+}
+
 function updateEnemies(state, dt) {
   activeEnemies(state).forEach((enemy) => {
     const definition = enemyDefinition(enemy);
@@ -904,27 +1155,36 @@ function updateEnemies(state, dt) {
       enemy.activeEffects[key] -= dt;
       if (enemy.activeEffects[key] <= 0) delete enemy.activeEffects[key];
     });
+    const nowEnraged = isEnemyEnraged(enemy);
+    if (nowEnraged && !enemy.enraged) logEvent(state, `${definition.name} 進入怒氣模式：攻擊冷卻縮短。`, 'warning');
+    enemy.enraged = nowEnraged;
     if (enemy.animation !== 'idle' && state.time >= enemy.animationUntil) enemy.animation = 'idle';
+    if (updatePendingEnemySkill(state, enemy, dt)) return;
+    updateLinkedSupport(state, enemy, dt);
     if (updateSuicideCharge(state, enemy, dt)) return;
-    if (definition.moveSpeed > 0) {
-      const distance = distanceBetween(enemy, state.actor);
-      if (distance > 100) {
-        const angle = angleBetween(enemy, state.actor);
-        const speedMultiplier = enemy.activeEffects.speedForm ? 1.7 : 1;
-        enemy.x = clamp(enemy.x + Math.cos(angle) * definition.moveSpeed * speedMultiplier * dt, 30, SANDBOX_WIDTH - 30);
-        enemy.y = clamp(enemy.y + Math.sin(angle) * definition.moveSpeed * speedMultiplier * dt, 30, SANDBOX_HEIGHT - 30);
-      }
-    }
-    if (!state.autoCycle) return;
-    const skill = definition.attacks.find((candidate) => (enemy.cooldowns[candidate.id] ?? 0) <= 0);
-    if (skill && state.time >= (enemy.nextAutoAt ?? 0)) {
-      executeEnemySkill(state, enemy.instanceId, skill.id);
-      // Contact skills often have no authored cooldown because they are tied
-      // to collision state. The sandbox still needs a readable cadence rather
-      // than firing them once every simulation frame.
-      enemy.nextAutoAt = state.time + Math.max(skill.cooldown ?? 0, 1.2);
-    }
+    updateEnemyMovement(state, enemy, dt);
+    attemptContactAttack(state, enemy);
+    if (!state.autoCycle || state.time < (enemy.nextAutoAt ?? 0)) return;
+    const distance = distanceBetween(enemy, state.actor);
+    const ready = getNextReadySkill(enemy, distance);
+    if (!ready) return;
+    const result = executeEnemySkill(state, enemy.instanceId, ready.skill.id);
+    enemy.nextAutoSkillIndex = (ready.index + 1) % definition.attacks.length;
+    // Contact attacks are also handled by collision cadence. Other skills use
+    // a short scheduler gap so zero-cooldown skills remain readable in the lab.
+    enemy.nextAutoAt = state.time + (result.ok ? Math.max(ready.skill.cooldown ?? 0, 0.35) : 0.2);
   });
+}
+
+function updatePlayerStatusEffects(state, dt) {
+  const effects = state.actor.activeEffects ?? {};
+  Object.entries(effects).forEach(([effect, remaining]) => {
+    const next = Math.max(0, remaining - dt);
+    if (effect === 'venom' && !state.invincible) applyPlayerDamage(state, 4 * dt, '毒刺持續傷害', 'venom');
+    effects[effect] = next;
+    if (next <= 0) delete effects[effect];
+  });
+  state.actor.stunnedUntil = Math.max(0, state.actor.stunnedUntil ?? 0);
 }
 
 export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
@@ -939,6 +1199,8 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.energy = MAX_ENERGY;
     state.actor.health = MAX_HEALTH;
   }
+  updatePlayerStatusEffects(state, dt);
+  if (state.actor.inInk && state.time >= (state.actor.inkUntil ?? 0)) state.actor.inInk = false;
   // Keep the sandbox invincibility switch as a wrapper around the official
   // damage gate; all movement, gravity, drag, boundary reflection, oxygen,
   // facing and launch momentum now come from the production step.
@@ -954,6 +1216,10 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     mutateMap: false,
     time: state.time,
   });
+  if ((state.actor.stunnedUntil ?? 0) > state.time) {
+    state.actor.vx = 0;
+    state.actor.vy = 0;
+  }
   physicsEvents
     .filter((event) => event.type === 'oxygenStarvation' || event.type === 'checkpoint')
     .forEach((event) => logEvent(state, event.message, event.type === 'oxygenStarvation' ? 'danger' : 'safe'));
