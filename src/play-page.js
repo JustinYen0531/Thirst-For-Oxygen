@@ -30,6 +30,7 @@ import {
   getPlayerSpriteScaleX,
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
+import { attachSfxVolumeControl, createSfxController } from './sfx.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 
 const MAPS = {
@@ -61,6 +62,8 @@ const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
 const musicController = createMusicController(getMusicTrack({ part: 3, arc: 'descent', mode: 'normal' }));
 attachMusicControls(document.querySelector('#play-music-control'), musicController);
+const sfxController = createSfxController();
+attachSfxVolumeControl(document.querySelector('[aria-labelledby="music-settings-title"]'), sfxController);
 const resetButton = document.querySelector('#play-reset');
 const pauseButton = document.querySelector('#play-pause');
 const loadingMask = document.querySelector('#play-loading');
@@ -427,7 +430,26 @@ function setSettingsOpen(open) {
   if (nextOpen) settingsClose.focus();
 }
 
-function addEvents(events) { events.forEach((event) => { if (event?.message) eventLog.push(event.message); }); if (eventLog.length > 12) eventLog = eventLog.slice(-12); }
+function playSfxForEvents(events) {
+  const soundIds = new Set();
+  events.forEach((event) => {
+    if (!event?.type) return;
+    if (['springJelly', 'wall', 'barrier', 'terrainBoundary', 'layerBoundary', 'spike', 'razor'].includes(event.type)) soundIds.add('impactWet');
+    if (event.type === 'mine' || event.type === 'weightStone') soundIds.add('explosion');
+    if (event.type === 'button') soundIds.add('button');
+    if (event.type === 'checkpoint') soundIds.add('teleport');
+    if (event.type === 'layerPortal' || event.type === 'multiPortal') soundIds.add('teleport');
+    if (event.type === 'bubble' || (event.type === 'oxygen' && event.message?.includes('釋放'))) soundIds.add('waterDrop');
+    if (event.type === 'oxygenStarvation') soundIds.add('impactWet');
+  });
+  soundIds.forEach((soundId) => sfxController.play(soundId));
+}
+
+function addEvents(events) {
+  playSfxForEvents(events);
+  events.forEach((event) => { if (event?.message) eventLog.push(event.message); });
+  if (eventLog.length > 12) eventLog = eventLog.slice(-12);
+}
 function refreshTrajectory(force = false) {
   if (!dragging || !aimPoint || !map || !actor) return;
   const now = performance.now();
@@ -441,24 +463,25 @@ function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (acto
 
 canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
-pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
-unlimitedResourcesButton.addEventListener('click', () => { unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
-settingsToggle.addEventListener('click', () => setSettingsOpen(settingsPanel.hidden));
-settingsClose.addEventListener('click', () => setSettingsOpen(false));
+resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
+pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
+unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
+settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
+settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
 mapSelect.addEventListener('change', () => {
+  sfxController.play('menuSelection');
   mapPart = Number(mapSelect.value) || 3;
   syncMusicTrack();
   loadMap(mapPart);
 });
-musicArcSelect.addEventListener('change', syncMusicTrack);
-musicModeSelect.addEventListener('change', syncMusicTrack);
+musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
+musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'r') resetButton.click();
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
@@ -477,8 +500,11 @@ function simulate(elapsed, now = performance.now()) {
       if (actor.health <= 0) {
         const cause = '生命歸零';
         const death = registerPlayerDeath(actor, cause);
-        if (death.gameOver) eventLog.push(`${cause}：永久死亡。`);
-        else {
+        if (death.gameOver) {
+          sfxController.play('gameOver');
+          eventLog.push(`${cause}：永久死亡。`);
+        } else {
+          sfxController.play('impactWet');
           respawnActor(actor, spawn);
           eventLog.push(`${cause}：失去 1 條命，已回到安全水域。`);
         }
@@ -511,5 +537,8 @@ if (requestedArc === 'ascent20') musicArcSelect.value = requestedArc;
 if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
 syncMusicTrack();
 musicController.start();
+sfxController.startAmbient();
+window.addEventListener('pointerdown', () => sfxController.startAmbient(), { once: true });
+window.addEventListener('keydown', () => sfxController.startAmbient(), { once: true });
 loadMap(mapPart);
 requestAnimationFrame(frame);

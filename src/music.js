@@ -1,15 +1,15 @@
-import mainMenuSource from '../Main Menu.mp3';
-import phase1BossSource from '../Phase 1 (Boss).mp3';
-import phase1BossAscentSource from '../Phase 1 (Boss 2.0).mp3';
-import phase1NormalSource from '../Phase 1 (Normal).mp3';
-import phase1NormalAscentSource from '../Phase 1 (Normal 2.0).mp3';
-import phase2BossSource from '../Phase 2 (Boss).mp3';
-import phase2NormalSource from '../Phase 2 (Normal).mp3';
-import phase2NormalAscentSource from '../Phase 2 (Normal 2.0).mp3';
-import phase3BossSource from '../Phase 3 (Boss).mp3';
-import phase3BossAscentSource from '../Phase 3 (Boss 2.0).mp3';
-import phase3NormalSource from '../Phase 3 (Normal).mp3';
-import phase3NormalAscentSource from '../Phase 3 (Normal 2.0).mp3';
+import mainMenuSource from './assets/audio/music/main-menu.mp3';
+import phase1BossSource from './assets/audio/music/phase-1-boss.mp3';
+import phase1BossAscentSource from './assets/audio/music/phase-1-boss-2.0.mp3';
+import phase1NormalSource from './assets/audio/music/phase-1-normal.mp3';
+import phase1NormalAscentSource from './assets/audio/music/phase-1-normal-2.0.mp3';
+import phase2BossSource from './assets/audio/music/phase-2-boss.mp3';
+import phase2NormalSource from './assets/audio/music/phase-2-normal.mp3';
+import phase2NormalAscentSource from './assets/audio/music/phase-2-normal-2.0.mp3';
+import phase3BossSource from './assets/audio/music/phase-3-boss.mp3';
+import phase3BossAscentSource from './assets/audio/music/phase-3-boss-2.0.mp3';
+import phase3NormalSource from './assets/audio/music/phase-3-normal.mp3';
+import phase3NormalAscentSource from './assets/audio/music/phase-3-normal-2.0.mp3';
 
 const MUSIC_VOLUME_KEY = 'thirst-for-oxygen:music-volume';
 const DEFAULT_VOLUME = 0.55;
