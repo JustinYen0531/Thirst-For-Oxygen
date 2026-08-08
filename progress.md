@@ -641,3 +641,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added the same authored chase/attack cadence to the formal play scene, including blocked-cell stopping and telemetry for enemy health, state, facing, and pending skill casts.
 - Added regression coverage for chase/contact damage, telegraphed attacks, six-second rescue, venom persistence, coral link protection, and formal play damage callbacks.
 - Static-only verification passed: full `npm run check` (100/100 after the workspace's concurrent visor checks were present). Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 77 complete
+
+- Corrected the knife visual contract after static simulation showed that Lv.2/Lv.3 effect objects existed but their side and lingering paths could be missed between frames.
+- Lv.2 now keeps two separated, thinner side-meteor paths visible from the first frame and for 1.15 seconds; Lv.3 keeps its main white meteor slash for 4.2 seconds with a persistent glow and deterministic sparkles.
+- Static-only verification passed: full `npm run check` (100/100), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
