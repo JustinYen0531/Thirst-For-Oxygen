@@ -518,3 +518,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added a live blue embedded DEPTH readout inside the play visor; it reports the diver's current map-row depth in metres and works for existing and future map parts.
 - Replaced the top-right text settings control with a gear-only button and moved the exit action into the settings drawer. Escape now closes the drawer without leaving the play page.
 - Reversed ENERGY fill ordering so energy is consumed from the top bar downward; the final remaining bar stays at the bottom.
+
+## 2026-08-08 — Step 64 complete
+
+- Added a blue embedded LEVEL/EXP readout beside the depth display. It currently shows Level 1 and `EXP 000 / 100`, with a progress bar ready for later experience rewards without inventing a reward rule yet.
+- Moved the entire HP ring left 7px and reset the HP label/value to the exact center of that ring, so both remain visually centered.

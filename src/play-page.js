@@ -69,6 +69,9 @@ const resetButton = document.querySelector('#play-reset');
 const pauseButton = document.querySelector('#play-pause');
 const loadingMask = document.querySelector('#play-loading');
 const depthReadout = document.querySelector('#play-depth-value');
+const levelReadout = document.querySelector('#play-level-value');
+const experienceReadout = document.querySelector('#play-experience-value');
+const experienceFill = document.querySelector('#play-experience-fill');
 const mapTitle = document.querySelector('#play-map-title');
 const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
@@ -106,6 +109,9 @@ let unlimitedResources = false;
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
+const PLAYER_LEVEL = 1;
+const PLAYER_EXPERIENCE = 0;
+const EXPERIENCE_TO_NEXT_LEVEL = 100;
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
@@ -401,6 +407,9 @@ function updateHud() {
   const depthMeters = Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
   depthReadout.textContent = `${String(depthMeters).padStart(3, '0')} m`;
   depthReadout.setAttribute('aria-label', `目前下沉 ${depthMeters} 公尺`);
+  levelReadout.textContent = String(PLAYER_LEVEL).padStart(2, '0');
+  experienceReadout.textContent = `EXP ${String(PLAYER_EXPERIENCE).padStart(3, '0')} / ${EXPERIENCE_TO_NEXT_LEVEL}`;
+  experienceFill.style.width = `${Math.min(100, Math.max(0, PLAYER_EXPERIENCE / EXPERIENCE_TO_NEXT_LEVEL * 100))}%`;
   attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
