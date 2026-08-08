@@ -507,3 +507,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 ## 2026-08-08 — Step 61 complete
 
 - Applied the requested final micro-adjustments relative to the previous HUD layout: O₂ moved right 1px and up 2px, ENERGY moved left 1px and up 4px, and the HP readout moved left 7px.
+
+## 2026-08-08 — Step 62 complete
+
+- Moved O₂ upward another 4px and moved the HP readout left another 7px.
+- Scaled each of the five ENERGY bars to 80% in both dimensions around its center, keeping the five-slot layout and half-step value logic unchanged.
