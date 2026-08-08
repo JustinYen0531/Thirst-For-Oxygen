@@ -84,6 +84,40 @@
   pointer-events: none;
 }
 
+.visor-icon-slots {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.visor-slot {
+  position: absolute;
+  top: 89.4%;
+  width: clamp(46px, 5.7%, 88px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.visor-slot[data-visor-slot="weapon-0"] { left: 21.5%; }
+.visor-slot[data-visor-slot="weapon-1"] { left: 28.5%; }
+.visor-slot[data-visor-slot="weapon-2"] { left: 35.5%; }
+.visor-slot[data-visor-slot="passive-0"] { left: 64.5%; }
+.visor-slot[data-visor-slot="passive-1"] { left: 71.5%; }
+.visor-slot[data-visor-slot="passive-2"] { left: 78.5%; }
+
+.visor-slot img {
+  display: block;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px rgba(83, 231, 255, .6));
+}
+
+.visor-slot img[hidden] { display: none; }
+
 .visor-readout {
   position: absolute;
   z-index: 3;

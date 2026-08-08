@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getEnergyHud, getHealthHud, getOxygenHud } from '../src/visor-hud.js';
+import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudIconPath, getPlayerHudSlots } from '../src/visor-hud.js';
+
+test('player HUD maps the starter knife to the first weapon slot', () => {
+  assert.equal(getPlayerHudIconPath('weapon', 'knife', 1), '/assets/editor/icons/weapons/knife/lv1.png');
+  const slots = getPlayerHudSlots({ weapons: [{ id: 'knife', level: 1 }], passives: [] });
+  assert.equal(slots.length, 6);
+  assert.deepEqual(slots[0], {
+    key: 'weapon-0', kind: 'weapon', index: 0, id: 'knife', level: 1, name: '小刀',
+    path: '/assets/editor/icons/weapons/knife/lv1.png',
+  });
+  assert.equal(slots[1].path, null);
+  assert.equal(slots[3].path, null);
+});
 
 test('oxygen HUD exposes a percentage and normalized fill', () => {
   assert.deepEqual(getOxygenHud(40, 100), { value: 40, ratio: 0.4, label: '40%' });

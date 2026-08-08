@@ -754,3 +754,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 為三個武器槽加入明確的「試射」入口；試射會先套用目前欄位選擇，再只發動該槽武器，讓三叉戟與輕量機槍不必依賴猜測總攻擊按鈕。
 - 輕量機槍彈體繪製改用通用矩形路徑，不再依賴 `CanvasRenderingContext2D.roundRect`；三叉戟保留亮色武器本體、拖尾與等級散射特效。
 - 靜態驗證通過：`npm run check`（138/138）、`npm run build`、`git diff --check`；瀏覽器／Playwright 依指示不執行。
+
+## 2026-08-09 — Step 94 in progress
+
+- 將 24 張玩家武器／被動 Logo 接入正式遊玩頁 HUD 的六個八邊形槽位：左側三格為主動武器，右側三格為被動能力；正式初始 Build 顯示小刀 Lv.1，其餘槽位保持空白。
+- 新增 HUD icon 路徑與六槽位資料契約，讓未來升級只需更換 loadout，不需改 HTML 位置；靜態驗證與 Git 提交待本步完成後執行。

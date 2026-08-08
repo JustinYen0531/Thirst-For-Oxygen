@@ -2,6 +2,29 @@ export const VISOR_HUD_ASSET = '/assets/editor/hud/visor-frame-balanced.png';
 export const ENERGY_SLOT_COUNT = 5;
 export const ENERGY_STEP_COUNT = ENERGY_SLOT_COUNT * 2;
 export const HEALTH_SEGMENT_COUNT = 10;
+export const PLAYER_HUD_SLOT_LAYOUT = Object.freeze([
+  Object.freeze({ key: 'weapon-0', kind: 'weapon', index: 0 }),
+  Object.freeze({ key: 'weapon-1', kind: 'weapon', index: 1 }),
+  Object.freeze({ key: 'weapon-2', kind: 'weapon', index: 2 }),
+  Object.freeze({ key: 'passive-0', kind: 'passive', index: 0 }),
+  Object.freeze({ key: 'passive-1', kind: 'passive', index: 1 }),
+  Object.freeze({ key: 'passive-2', kind: 'passive', index: 2 }),
+]);
+
+export const PLAYER_HUD_ICON_FAMILIES = Object.freeze({
+  weapon: Object.freeze({
+    knife: Object.freeze({ name: '小刀', basePath: '/assets/editor/icons/weapons/knife' }),
+    katana: Object.freeze({ name: '武士刀', basePath: '/assets/editor/icons/weapons/katana' }),
+    trident: Object.freeze({ name: '三叉戟', basePath: '/assets/editor/icons/weapons/trident' }),
+    lightMachineGun: Object.freeze({ name: '輕量機槍', basePath: '/assets/editor/icons/weapons/lightMachineGun' }),
+  }),
+  passive: Object.freeze({
+    oxygenCirculator: Object.freeze({ name: '氧循環器', basePath: '/assets/editor/icons/passives/oxygenCirculator' }),
+    pressureStabilizer: Object.freeze({ name: '潮壓穩定器', basePath: '/assets/editor/icons/passives/pressureStabilizer' }),
+    ecologicalCarapace: Object.freeze({ name: '生態甲殼', basePath: '/assets/editor/icons/passives/ecologicalCarapace' }),
+    abyssalAmplifier: Object.freeze({ name: '深淵增幅器', basePath: '/assets/editor/icons/passives/abyssalAmplifier' }),
+  }),
+});
 
 function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value));
@@ -9,6 +32,28 @@ function clamp(value, minimum, maximum) {
 
 function formatHalf(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+export function getPlayerHudIconPath(kind, id, level = 1) {
+  const family = PLAYER_HUD_ICON_FAMILIES[kind]?.[id];
+  if (!family) return null;
+  const safeLevel = clamp(Math.round(Number(level) || 1), 1, 3);
+  return `${family.basePath}/lv${safeLevel}.png`;
+}
+
+export function getPlayerHudSlots(loadout = {}) {
+  return PLAYER_HUD_SLOT_LAYOUT.map((slot) => {
+    const item = (loadout[slot.kind === 'weapon' ? 'weapons' : 'passives'] ?? [])[slot.index];
+    const family = PLAYER_HUD_ICON_FAMILIES[slot.kind]?.[item?.id];
+    const level = clamp(Math.round(Number(item?.level) || 1), 1, 3);
+    return Object.freeze({
+      ...slot,
+      id: family ? item.id : null,
+      level: family ? level : null,
+      name: family?.name ?? '空槽',
+      path: family ? getPlayerHudIconPath(slot.kind, item.id, level) : null,
+    });
+  });
 }
 
 function getHealthColor(ratio) {
