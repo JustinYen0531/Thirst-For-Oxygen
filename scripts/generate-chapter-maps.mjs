@@ -246,65 +246,139 @@ function addLinkedPortal(map, firstRow, secondRow, prefix, usedCenters) {
   }
 }
 
+function carveWaterCell(map, row, column, region, gravityLevel = 'L1') {
+  if (row < 0 || row >= map.layout.height || column <= 0 || column >= map.layout.width - 1) return;
+  const cell = map.cells[cellKeyFromColumn(column, row)];
+  if (!cell) return;
+  cell.terrain = 'water';
+  cell.gravityLevel = gravityLevel;
+  cell.waterLayer = 'T1';
+  cell.region = region;
+  cell.conditionalGate = null;
+}
+
+function carveRoom(map, { rowStart, rowEnd, columnStart, columnEnd, region, gravityLevel = 'L1' }) {
+  for (let row = rowStart; row <= rowEnd; row += 1) {
+    for (let column = columnStart; column <= columnEnd; column += 1) {
+      carveWaterCell(map, row, column, region, gravityLevel);
+    }
+  }
+}
+
+function carveBroadRoute(map, points, region, gravityLevel = 'L1', radius = 2) {
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const start = points[index];
+    const end = points[index + 1];
+    const steps = Math.max(Math.abs(end.row - start.row), Math.abs(end.column - start.column), 1);
+    for (let step = 0; step <= steps; step += 1) {
+      const progress = step / steps;
+      const row = Math.round(start.row + (end.row - start.row) * progress);
+      const column = Math.round(start.column + (end.column - start.column) * progress);
+      carveRoom(map, {
+        rowStart: row - radius,
+        rowEnd: row + radius,
+        columnStart: column - radius,
+        columnEnd: column + radius,
+        region,
+        gravityLevel,
+      });
+    }
+  }
+}
+
 function paintPart1Terrain(map) {
-  Object.values(map.cells).forEach((cell) => {
-    const column = columnOf(cell);
-    const center = 8 + Math.round(1.7 * Math.sin(cell.r / 9));
-    const halfWidth = cell.r < 16 ? 6 : 5;
-    cell.region = cell.r < 16 ? 'entry-shelf'
-      : cell.r < 34 ? 'kelp-corridor'
-        : cell.r < 54 ? 'buoyancy-grove' : 'forest-threshold';
-    cell.gravityLevel = cell.r < 14 ? 'L0'
-      : (cell.r >= 35 && cell.r <= 43 && column < center ? 'L-1' : 'L1');
-    cell.waterLayer = 'T1';
-    const firstTorricelliSpur = (
-      (cell.r >= 21 && cell.r <= 33 && column >= 15 && column <= 16)
-      || (cell.r >= 32 && cell.r <= 34 && column >= 10 && column <= 16)
-    );
-    const secondTorricelliSpur = (
-      (cell.r >= 52 && cell.r <= 66 && column >= 1 && column <= 2)
-      || (cell.r >= 65 && cell.r <= 67 && column >= 1 && column <= 7)
-    );
-    const outsideRoute = column <= 0 || column >= map.layout.width - 1
-      || (Math.abs(column - center) > halfWidth && !firstTorricelliSpur && !secondTorricelliSpur);
-    const centralFork = cell.r >= 19 && cell.r <= 24 && column >= 7 && column <= 9;
-    const leftRestWall = cell.r >= 37 && cell.r <= 41 && column >= 3 && column <= 5;
-    const rightCanopy = cell.r >= 50 && cell.r <= 55 && column >= 11 && column <= 13;
-    const finalNeedle = cell.r >= 62 && cell.r <= 65 && column === 8;
-    const firstSpurDivider = cell.r >= 20 && cell.r <= 31 && column >= 13 && column <= 14;
-    const firstSpurCap = cell.r === 20 && column >= 15 && column <= 16;
-    const secondSpurDivider = cell.r >= 51 && cell.r <= 64 && column >= 3 && column <= 5;
-    const secondSpurCap = cell.r === 51 && column >= 1 && column <= 2;
-    if (outsideRoute || centralFork || leftRestWall || rightCanopy || finalNeedle
-      || firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap) {
-      makeRock(cell, (firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap)
-        ? 'torricelli-spur-wall'
-        : outsideRoute ? 'forest-wall' : 'forest-island');
-      return;
-    }
-    if (firstTorricelliSpur) {
-      cell.region = 'torricelli-ascent-right';
-      cell.gravityLevel = cell.r <= 26 ? 'L-1' : 'L1';
-    }
-    if (secondTorricelliSpur) {
-      cell.region = 'torricelli-ascent-left';
-      cell.gravityLevel = cell.r <= 57 ? 'L-1' : 'L1';
-    }
-  });
+  Object.values(map.cells).forEach((cell) => makeRock(cell, 'deep-forest-mass'));
+
+  carveRoom(map, { rowStart: 0, rowEnd: 10, columnStart: 6, columnEnd: 11, region: 'entry-basin', gravityLevel: 'L0' });
+
+  // Loop 1: two broad routes around the first forest monolith. Both are easy
+  // to steer through, but they contain different optional rewards.
+  carveBroadRoute(map, [
+    { column: 8, row: 8 }, { column: 4, row: 16 }, { column: 4, row: 29 }, { column: 9, row: 36 },
+  ], 'monolith-west-route');
+  carveBroadRoute(map, [
+    { column: 10, row: 8 }, { column: 13, row: 16 }, { column: 14, row: 29 }, { column: 9, row: 36 },
+  ], 'monolith-east-route');
+  carveBroadRoute(map, [
+    { column: 4, row: 20 }, { column: 1, row: 20 }, { column: 1, row: 14 },
+  ], 'upper-oxygen-grotto', 'L0');
+
+  // A long west-to-east canopy traverse forces macro navigation around a
+  // horizontal rock shelf without reducing the route to a precision tunnel.
+  carveBroadRoute(map, [
+    { column: 9, row: 36 }, { column: 4, row: 44 }, { column: 3, row: 57 },
+    { column: 14, row: 60 }, { column: 13, row: 68 }, { column: 9, row: 72 },
+  ], 'fallen-canopy-traverse');
+
+  // Right Torricelli cavern: four cells wide, separated from all upper paths,
+  // and connected only beneath the reward through the row-58 junction.
+  carveRoom(map, { rowStart: 39, rowEnd: 44, columnStart: 13, columnEnd: 16, region: 'torricelli-ascent-right', gravityLevel: 'L-1' });
+  carveRoom(map, { rowStart: 45, rowEnd: 60, columnStart: 13, columnEnd: 16, region: 'torricelli-ascent-right' });
+  carveRoom(map, { rowStart: 58, rowEnd: 63, columnStart: 11, columnEnd: 16, region: 'torricelli-junction-right' });
+
+  // Loop 2: a large central reef offers two readable routes that rejoin much
+  // later, giving exploration without any one-cell squeezes.
+  carveBroadRoute(map, [
+    { column: 9, row: 72 }, { column: 9, row: 80 }, { column: 9, row: 94 }, { column: 9, row: 100 },
+  ], 'sunken-garden-west');
+  carveBroadRoute(map, [
+    { column: 9, row: 72 }, { column: 14, row: 80 }, { column: 14, row: 94 }, { column: 9, row: 100 },
+  ], 'sunken-garden-east');
+
+  // Left Torricelli cavern: an even longer return climb. Two solid columns
+  // remain between this four-cell shaft and the western garden route.
+  carveRoom(map, { rowStart: 87, rowEnd: 93, columnStart: 1, columnEnd: 4, region: 'torricelli-ascent-left', gravityLevel: 'L-1' });
+  carveRoom(map, { rowStart: 94, rowEnd: 112, columnStart: 1, columnEnd: 4, region: 'torricelli-ascent-left' });
+  carveRoom(map, { rowStart: 110, rowEnd: 115, columnStart: 1, columnEnd: 10, region: 'torricelli-junction-left' });
+
+  // Loop 3: the lower cathedral asks for a long side commitment, then returns
+  // both paths to the same safe checkpoint room.
+  carveBroadRoute(map, [
+    { column: 9, row: 100 }, { column: 9, row: 114 }, { column: 4, row: 122 },
+    { column: 4, row: 132 }, { column: 9, row: 136 },
+  ], 'cathedral-west-route');
+  carveBroadRoute(map, [
+    { column: 9, row: 100 }, { column: 12, row: 110 }, { column: 14, row: 120 },
+    { column: 13, row: 131 }, { column: 9, row: 136 },
+  ], 'cathedral-east-route');
+
+  // Loop 4 and the final threshold keep the closing stretch exploratory
+  // instead of collapsing into a straight victory chute.
+  carveBroadRoute(map, [
+    { column: 9, row: 136 }, { column: 4, row: 143 }, { column: 4, row: 152 }, { column: 9, row: 158 },
+  ], 'threshold-west-route');
+  carveBroadRoute(map, [
+    { column: 9, row: 136 }, { column: 13, row: 143 }, { column: 13, row: 152 }, { column: 9, row: 158 },
+  ], 'threshold-east-route');
+  carveRoom(map, { rowStart: 155, rowEnd: 159, columnStart: 6, columnEnd: 12, region: 'hot-spring-threshold', gravityLevel: 'L0' });
 }
 
 function buildPart1() {
   const map = createAuthoredMap({
     width: 18,
-    height: 72,
+    height: 160,
     metadata: {
       chapter: '下沉篇', part: 1, title: '下沉篇・第一部分｜深海森林入口', difficulty: 'light',
-      designIntent: '寬闊的蛇行教學路線，以森林島礁自然分流；先讀懂彈射、氧氣、上浮水域與檢查點，再進入熱泉。',
-      routeBeats: ['安全入口', '雙側繞行礁', '上浮林間', '補給林床', '熱泉門檻'],
-      mainAxisColumn: 8,
+      designIntent: '超過原長度兩倍的宏觀探索地圖：以大型森林岩體、寬闊環路與長距離橫越製造繞路判斷，不使用微小操作當作難度。',
+      routeBeats: ['安全入口', '雙路巨礁', '橫向倒木棚', '沉沒花園', '托里切利回返洞', '下層教堂', '雙路熱泉門檻'],
+      mainAxisColumn: 9,
+      minimumRouteWidth: 5,
+      originalHeight: 72,
+      explorationLoops: [
+        { id: 'forest-monolith', splitRow: 8, mergeRow: 36, routes: ['west', 'east'] },
+        { id: 'sunken-garden', splitRow: 72, mergeRow: 100, routes: ['west', 'east'] },
+        { id: 'lower-cathedral', splitRow: 100, mergeRow: 136, routes: ['west', 'east'] },
+        { id: 'hot-spring-threshold', splitRow: 136, mergeRow: 158, routes: ['west', 'east'] },
+      ],
+      broadRouteSamples: [
+        { row: 8, column: 9 }, { row: 18, column: 4 }, { row: 18, column: 13 },
+        { row: 44, column: 4 }, { row: 60, column: 9 }, { row: 80, column: 9 },
+        { row: 82, column: 14 }, { row: 112, column: 7 }, { row: 120, column: 14 },
+        { row: 128, column: 4 }, { row: 144, column: 4 }, { row: 144, column: 13 },
+      ],
       torricelliDetours: [
-        { side: 'right', region: 'torricelli-ascent-right', objectRow: 21, objectColumn: 16, junctionRow: 32, junctionColumn: 11, ascentRows: 11, shaftWidth: 2, separationWallWidth: 2 },
-        { side: 'left', region: 'torricelli-ascent-left', objectRow: 52, objectColumn: 1, junctionRow: 65, junctionColumn: 6, ascentRows: 13, shaftWidth: 2, separationWallWidth: 3 },
+        { side: 'right', region: 'torricelli-ascent-right', objectRow: 39, objectColumn: 16, junctionRow: 57, junctionColumn: 12, ascentRows: 18, shaftWidth: 4, separationWallWidth: 3 },
+        { side: 'left', region: 'torricelli-ascent-left', objectRow: 87, objectColumn: 1, junctionRow: 110, junctionColumn: 8, ascentRows: 23, shaftWidth: 4, separationWallWidth: 2 },
       ],
       teachingSequence: [
         '氧氣礦石：先在安全直道練習以足夠速度撞開。',
@@ -318,21 +392,25 @@ function buildPart1() {
     },
   });
   paintPart1Terrain(map);
-  addActor(map, 'playerStart', 3, 8);
-  [[22, 4], [39, 11], [57, 5]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
+  addActor(map, 'playerStart', 3, 9);
+  [[18, 4], [24, 14], [45, 4], [65, 13], [84, 9], [92, 14], [120, 4], [128, 13], [146, 4]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
   const used = new Set();
   [
-    ['oxygen', 7, 7], ['bubble', 13, 11], ['checkpoint', 18, 4],
-    ['torricelli', 21, 16], ['oxygen', 34, 7], ['bubble', 40, 12],
-    ['checkpoint', 47, 5], ['oxygen', 55, 9], ['torricelli', 52, 1],
-    ['checkpoint', 68, 10],
+    ['oxygen', 6, 9], ['bubble', 17, 4], ['oxygen', 25, 14],
+    ['checkpoint', 35, 9], ['torricelli', 39, 16], ['oxygen', 50, 3],
+    ['bubble', 60, 9], ['checkpoint', 72, 9], ['oxygen', 84, 9],
+    ['torricelli', 87, 1], ['bubble', 90, 14], ['oxygen', 96, 9],
+    ['checkpoint', 103, 9], ['oxygen', 118, 14], ['bubble', 126, 4],
+    ['checkpoint', 136, 9], ['oxygen', 146, 13], ['checkpoint', 157, 9],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
-  addEdgeSet(map, 'springJelly', [17, 44]);
-  addEdgeNear(map, 'current', 31, 15, { currentDirection: 5, currentStrength: 1.08 });
-  addEdgeNear(map, 'current', 64, 2, { currentDirection: 4, currentStrength: 1.18 });
-  addEdgeNear(map, 'spike', 62, 2);
-  addEdgeSet(map, 'seaweed', [24, 52]);
-  addEdgeSet(map, 'coralCluster', [10, 65]);
+  addEdgeSet(map, 'springJelly', [15, 42, 78, 118, 144]);
+  addEdgeNear(map, 'current', 57, 15, { currentDirection: 5, currentStrength: 1.08 });
+  addEdgeNear(map, 'current', 109, 2, { currentDirection: 4, currentStrength: 1.18 });
+  addEdgeNear(map, 'current', 65, 9, { currentDirection: 5, currentStrength: 0.92 });
+  addEdgeNear(map, 'current', 128, 13, { currentDirection: 4, currentStrength: 0.98 });
+  addEdgeNear(map, 'spike', 105, 2);
+  addEdgeSet(map, 'seaweed', [26, 55, 90, 126, 150]);
+  addEdgeSet(map, 'coralCluster', [12, 34, 68, 98, 134, 156]);
   return map;
 }
 

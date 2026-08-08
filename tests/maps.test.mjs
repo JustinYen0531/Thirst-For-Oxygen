@@ -59,6 +59,33 @@ function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY }
   return visited;
 }
 
+function shortestDistanceToRow(map, targetRow) {
+  const start = actorsOf(map, 'playerStart')[0]?.key;
+  if (!start) return Number.POSITIVE_INFINITY;
+  const distance = new Map([[start, 0]]);
+  const queue = [start];
+  while (queue.length) {
+    const key = queue.shift();
+    if (map.cells[key].r >= targetRow) return distance.get(key);
+    DIRECTIONS.forEach((_, direction) => {
+      const next = neighborKey(key, direction);
+      if (distance.has(next) || !canTraverse(map, key, next)) return;
+      distance.set(next, distance.get(key) + 1);
+      queue.push(next);
+    });
+  }
+  return Number.POSITIVE_INFINITY;
+}
+
+function contiguousWaterWidth(map, row, column) {
+  let left = column;
+  let right = column;
+  const isWater = (candidate) => map.cells[`${candidate - Math.floor(row / 2)},${row}`]?.terrain === 'water';
+  while (left > 0 && isWater(left - 1)) left -= 1;
+  while (right < map.layout.width - 1 && isWater(right + 1)) right += 1;
+  return right - left + 1;
+}
+
 test('generated descent maps are valid and have one authored player start', () => {
   mapNames.forEach((name) => {
     const map = loadMap(name);
@@ -81,15 +108,16 @@ test('part 1 and part 2 have a connected authored route after gates open', () =>
 test('descent maps form a deliberate difficulty ladder from teaching to final exam', () => {
   const maps = mapNames.map(loadMap);
   const stats = maps.map((map) => ({
-    blocked: Object.values(map.cells).filter((cell) => cell.terrain === 'blocked').length,
     objects: freeObjectsOf(map).length,
     edgeTypes: new Set(Object.values(map.edges).map((edge) => edge.type)),
+    gates: Object.values(map.cells).filter((cell) => cell.conditionalGate).length,
+    l3: Object.values(map.cells).filter((cell) => cell.gravityLevel === 'L3').length,
+    portals: Object.values(map.edges).filter((edge) => edge.type === 'multiPortal').length,
   }));
-  assert.ok(stats[0].blocked < stats[1].blocked && stats[1].blocked < stats[2].blocked);
   assert.ok(stats[0].objects < stats[1].objects && stats[1].objects < stats[2].objects);
   assert.equal(stats[0].edgeTypes.has('multiPortal'), false);
-  assert.equal(stats[1].edgeTypes.has('multiPortal'), true);
-  assert.equal(stats[2].edgeTypes.has('multiPortal'), true);
+  assert.ok(stats[1].gates > 0 && stats[1].l3 > 0 && stats[1].portals > 0);
+  assert.ok(stats[2].portals > stats[1].portals);
 });
 
 test('the trilogy uses every implemented free object and edge interaction', () => {
@@ -113,6 +141,22 @@ test('part 1 teaches recovery and movement before advanced free-object traps', (
   assert.ok(freeObjectsOf(part1).filter(({ object }) => object.kind === 'checkpoint').length >= 3);
 });
 
+test('part 1 doubles only its length and uses broad exploration routes', () => {
+  const part1 = loadMap('下沉篇-第1部分.json');
+  assert.equal(part1.layout.width, 18, 'Part 1 should keep its original horizontal scale');
+  assert.ok(part1.layout.height >= part1.metadata.originalHeight * 2, 'Part 1 height should be at least twice the old 72-row length');
+  assert.equal(part1.layout.height, 160);
+  assert.ok(part1.metadata.explorationLoops.length >= 4, 'Part 1 should contain several split-and-rejoin exploration loops');
+  assert.ok(new Set(Object.values(part1.cells).filter((cell) => cell.terrain === 'water').map((cell) => cell.region)).size >= 12);
+  part1.metadata.broadRouteSamples.forEach(({ row, column }) => {
+    assert.ok(
+      contiguousWaterWidth(part1, row, column) >= part1.metadata.minimumRouteWidth,
+      `row ${row} route should stay broad enough to avoid precision movement`,
+    );
+  });
+  assert.ok(shortestDistanceToRow(part1, part1.layout.height - 2) >= 150, 'even the shortest completion route should remain a long journey');
+});
+
 test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
   const part1 = loadMap('下沉篇-第1部分.json');
   const torricelliObjects = freeObjectsOf(part1).filter(({ object }) => object.kind === 'torricelli');
@@ -125,12 +169,12 @@ test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
     assert.equal(cell.gravityLevel, 'L-1', `${key} should be an upward Torricelli pocket`);
     assert.ok(Math.abs(detour.objectColumn - part1.metadata.mainAxisColumn) >= 6, `${key} should be visibly off the main axis`);
     assert.ok(detour.junctionRow - detour.objectRow >= 7, `${key} should require a meaningful upward return`);
-    assert.equal(detour.shaftWidth, 2, `${key} should sit in a narrow two-column ascent shaft`);
+    assert.ok(detour.shaftWidth >= 4, `${key} should use a broad ascent cavern instead of a precision shaft`);
     assert.ok(detour.separationWallWidth >= 2, `${key} should be separated from the main route by a substantial wall`);
     assert.equal(
       Object.values(part1.cells).filter((candidate) => candidate.r === detour.objectRow && candidate.region === detour.region).length,
-      2,
-      `${key} reward row should read as a narrow room instead of open water`,
+      detour.shaftWidth,
+      `${key} reward row should match its authored cavern width instead of open water`,
     );
     assert.ok(
       DIRECTIONS.filter((_, direction) => part1.cells[neighborKey(key, direction)]?.terrain === 'blocked').length >= 3,
@@ -143,7 +187,7 @@ test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
       `${key} must not be reachable before descending to the lower junction`,
     );
   });
-  assert.equal(Object.values(part1.edges).filter((edge) => edge.type === 'current').length, 2);
+  assert.equal(Object.values(part1.edges).filter((edge) => edge.type === 'current').length, 4);
   assert.equal(Object.values(part1.edges).filter((edge) => edge.type === 'spike').length, 1);
 });
 

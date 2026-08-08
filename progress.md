@@ -592,3 +592,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Responded to the supplied gameplay crop showing that the first Torricelli reward still read as an ordinary open-water pickup. The previous reachability-only proof was insufficient because its three-column shaft and six-column connector did not create a visible local-room silhouette.
 - Rebuilt both Part 1 detours as two-column ascent wells, separated from the main route by two- or three-column rock walls and entered only through narrow bottom tunnels. Each Torricelli object now sits at the capped top with four blocked neighbouring cells.
 - Extended the regression check to enforce shaft width, separation-wall thickness, two-cell reward-row width, and at least three locally blocked neighbours. Static-only verification passed: full `npm run check` (76/76 tests), `npm run build`, and `git diff --check`; browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-09 — Step 71 complete
+
+- Expanded only Part 1's vertical length from 72 to 160 rows while retaining the original 18-column width, following the user's explicit correction that length—not width—must double.
+- Replaced the short corridor with five macro exploration sections containing four split-and-rejoin loops, 16 water regions, large forest-rock masses, long horizontal traverses, optional reward grottoes, and 18 paced resource objects.
+- Kept sampled primary routes at least five Cells wide. Torricelli return caverns are now four Cells wide and require 18- or 23-row upward returns, preserving their risk/reward identity without precision movement.
+- Added static checks for unchanged width, doubled height, exploration-loop count, region variety, broad route cross-sections, and a shortest completion route of at least 150 Cells. Static-only verification passed: focused map checks (10/10), full `npm run check` (78/78 tests), `npm run build`, and `git diff --check`; browser and Playwright remain prohibited by user instruction.
