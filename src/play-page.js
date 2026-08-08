@@ -16,6 +16,7 @@ import {
   launchActor,
   stepPhysics,
 } from './physics.js';
+import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -267,8 +268,8 @@ function drawEdges() {
 }
 
 function drawTrajectory() {
-  if (!dragging || !trajectory.length) return;
-  context.save(); context.strokeStyle = 'rgba(247, 220, 120, .78)'; context.fillStyle = 'rgba(247, 220, 120, .76)'; context.lineWidth = 1.1; context.setLineDash([2.5, 3]); context.beginPath(); trajectory.forEach((point, index) => { if (index === 0) context.moveTo(point.x, point.y); else context.lineTo(point.x, point.y); }); context.stroke(); context.setLineDash([]); trajectory.filter((_, index) => index % 12 === 0).forEach((point) => { context.beginPath(); context.arc(point.x, point.y, 1.6, 0, Math.PI * 2); context.fill(); }); context.restore();
+  if (!dragging || !aimPoint) return;
+  drawLaunchGuide(context, getLaunchGuideGeometry(actor, aimPoint), actor, aimPoint, performance.now() / 1000);
 }
 
 function drawActor() {
@@ -357,22 +358,12 @@ function updateHud() {
 }
 
 function addEvents(events) { events.forEach((event) => { if (event?.message) eventLog.push(event.message); }); if (eventLog.length > 12) eventLog = eventLog.slice(-12); }
-function straightGuidePoints(from, to, steps = 48) {
-  const count = Math.max(1, Math.floor(steps));
-  return Array.from({ length: count }, (_, index) => {
-    const progress = (index + 1) / count;
-    return {
-      x: from.x + (to.x - from.x) * progress,
-      y: from.y + (to.y - from.y) * progress,
-    };
-  });
-}
 function refreshTrajectory(force = false) {
   if (!dragging || !aimPoint || !map || !actor) return;
   const now = performance.now();
   if (!force && now - lastTrajectoryAt < 45) return;
   lastTrajectoryAt = now;
-  trajectory = straightGuidePoints(actor, aimPoint);
+  trajectory = getLaunchGuideGeometry(actor, aimPoint).points;
 }
 function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }

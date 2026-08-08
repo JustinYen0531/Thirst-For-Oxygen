@@ -392,3 +392,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Changed both the play page and map-editor play mode to draw a straight launch guide made only from the actor-to-pointer direction and distance. The guide no longer renders the curved path produced by gravity or current.
 - Kept `launchActor`, runtime physics, and `predictTrajectory` available for actual movement and tests; only the player-facing preview was simplified so gravity remains an experience-based judgment.
 - Updated the player-operation, core-summary, physics-launch, and water-gravity GDD notes to record this intentional information boundary. Static syntax/build checks remain required; browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 48 complete
+
+- Replaced the bare straight launch line with a shared `潮壓脈衝導引`: soft cyan pressure wake, moving gold core, alternating hex pulse markers with asymmetric fins, an animated charge ring at the diver, and a hexagonal echo ring at the aimed landing point.
+- The guide remains strictly collinear with the actor-to-pointer axis; marker count scales with drag distance, but no gravity/current curvature is revealed. Runtime physics and `predictTrajectory` remain untouched for actual movement and tests.
+- Added `src/launch-guide.js` and pure geometry tests. Static verification passed `npm run check` (47/47 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited by user instruction.

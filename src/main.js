@@ -65,6 +65,7 @@ import {
   getPortalGroupId,
   getPortalGroupMidpoint,
 } from './portal.js';
+import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -1668,28 +1669,8 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, rece
 
 function drawTrajectory() {
   if (!state.dragging || state.mode !== 'play' || state.actor.attached) return;
-  const points = Array.from({ length: 48 }, (_, index) => {
-    const progress = (index + 1) / 48;
-    return {
-      x: state.actor.x + (state.dragging.pointer.x - state.actor.x) * progress,
-      y: state.actor.y + (state.dragging.pointer.y - state.actor.y) * progress,
-    };
-  });
-  ctx.save();
-  ctx.fillStyle = 'rgba(255, 239, 112, 0.8)';
-  points.forEach((point, index) => {
-    if (index % 3 !== 0) return;
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  ctx.strokeStyle = '#ffe969';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(state.actor.x, state.actor.y);
-  ctx.lineTo(state.dragging.pointer.x, state.dragging.pointer.y);
-  ctx.stroke();
-  ctx.restore();
+  const geometry = getLaunchGuideGeometry(state.actor, state.dragging.pointer);
+  drawLaunchGuide(ctx, geometry, state.actor, state.dragging.pointer, state.animationTime);
 }
 
 function drawTestActor() {
