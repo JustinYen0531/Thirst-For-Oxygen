@@ -50,6 +50,23 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .arena-toolbar span { flex: 1; min-width: 0; overflow: hidden; color: #a9c4da; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .arena-toolbar button { width: auto; white-space: nowrap; }
 .selected-enemy-card { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 15px; padding: 12px; }
+.progression-card { margin-top: 8px; padding: 12px; border: 1px solid #264b70; border-radius: 7px; background: linear-gradient(135deg, #0c1b2e, #10253b); }
+.progression-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.progression-heading h2 { margin-bottom: 3px; color: #fff1a3; }
+.progression-heading .card-note { max-width: 300px; text-align: right; }
+.progression-readout { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-top: 10px; color: #cce7f5; font-size: 13px; }
+.progression-readout strong { color: #fff1a3; font-size: 17px; }
+.progression-readout span { color: #8fe4ff; font-variant-numeric: tabular-nums; }
+.progression-readout small { flex-basis: 100%; color: #88a9c4; font-size: 11px; }
+.weapon-slots, .upgrade-category-actions, .upgrade-choice-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.weapon-slot, .upgrade-category, .upgrade-choice { min-height: 42px; padding: 7px; border-color: #355a80; background: #0b2035; color: #cbe8f7; font-size: 11px; text-align: left; }
+.weapon-slot.active, .upgrade-category.active { border-color: #f6e66d; color: #fff4b3; background: #3b3a25; box-shadow: 0 0 0 1px rgba(246, 230, 109, .16); }
+.upgrade-category-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.upgrade-choice-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.upgrade-choice { display: flex; flex-direction: column; gap: 5px; min-height: 66px; }
+.upgrade-choice strong { color: #fff1a3; font-size: 12px; }
+.upgrade-choice small { color: #9bb6ce; font-size: 10px; line-height: 1.35; }
+.upgrade-empty { grid-column: 1 / -1; padding: 8px; border: 1px dashed #345d84; border-radius: 5px; color: #88a9c4; font-size: 11px; }
 .placed-enemies-card { margin-top: 8px; padding: 12px; border: 1px solid #264b70; border-radius: 7px; background: #0c1b2e; }
 .placed-enemies-card h2 { margin-bottom: 3px; color: #fff1a3; }
 .card-note { color: #9bb6ce; font-size: 12px; line-height: 1.45; }

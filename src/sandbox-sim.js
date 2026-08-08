@@ -552,24 +552,32 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
 
 export function playerAttack(state) {
   if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade' };
-  const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
-  const cost = weapon.energyCost * (state.actor.derivedStats?.weaponEnergyCostMultiplier ?? 1);
-  if (!state.infiniteResources && state.actor.energy < cost) {
-    logEvent(state, `${WEAPONS[state.build.weaponId].name}：能量不足。`, 'warning');
-    return { ok: false, reason: 'energy' };
+  const weaponDefinition = WEAPONS[state.build.weaponId] ?? WEAPONS.knife;
+  const weapon = { ...weaponDefinition, ...getWeaponStats(state.build.weaponId, state.build.weaponLevel) };
+  state.actor.cooldowns ??= {};
+  const cooldownKey = `weapon:${weaponDefinition.id}`;
+  const cooldownRemaining = state.actor.cooldowns[cooldownKey] ?? 0;
+  if (cooldownRemaining > 0) {
+    logEvent(state, `${weaponDefinition.name} 冷卻中：${cooldownRemaining.toFixed(1)} 秒。`, 'warning');
+    return { ok: false, reason: 'cooldown', remaining: cooldownRemaining };
   }
-  if (!state.infiniteResources) state.actor.energy -= cost;
   const target = state.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyInstanceId && !enemy.defeated) ?? activeEnemies(state)[0];
   if (!target) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
+  const cost = weapon.energyCost * (state.actor.derivedStats?.weaponEnergyCostMultiplier ?? 1);
+  if (!state.infiniteResources && state.actor.energy < cost) {
+    logEvent(state, `${weaponDefinition.name}：能量不足。`, 'warning');
+    return { ok: false, reason: 'energy' };
+  }
+  if (!state.infiniteResources) state.actor.energy -= cost;
   let hit = false;
   if (weapon.type === 'melee') {
     hit = distanceBetween(state.actor, target) <= weapon.range;
-    if (hit) damageEnemy(state, target, weapon.damage, WEAPONS[state.build.weaponId].name);
+    if (hit) damageEnemy(state, target, weapon.damage, weaponDefinition.name);
     addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.25, angle: angleBetween(state.actor, target), colour: '#f6e66d' });
-    if (!hit) logEvent(state, `${WEAPONS[state.build.weaponId].name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
+    if (!hit) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
@@ -579,7 +587,8 @@ export function playerAttack(state) {
       spawnProjectile(state, state.actor, { angle: angle + ratio * spread, speed: weapon.projectileSpeed, range: weapon.range, damage: weapon.damage, source: 'player', damageType: 'player', colour: '#f6e66d' });
     }
   }
-  logEvent(state, `玩家使用 ${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}。`, 'safe');
+  state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
+  logEvent(state, `玩家使用 ${weaponDefinition.name} Lv.${state.build.weaponLevel}。`, 'safe');
   return { ok: true, hit };
 }
 

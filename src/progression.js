@@ -1,13 +1,12 @@
 import {
-  ENEMY_DEFINITIONS,
   PASSIVE_ABILITIES,
   WEAPONS,
   getEnemyExperienceReward as getEnemyExperienceRewardFromData,
 } from './game-data.js';
 
 // The initial knife is free and occupies the first weapon slot. With the
-// existing 3/2/1 slot caps, the normal build has nine post-start level choices
-// (weapon upgrades/acquisitions plus three passive slots).
+// existing 3/2/1 slot caps, the normal build has eleven post-start choices:
+// five remaining weapon upgrades/acquisitions and six passive choices.
 export const PLAYER_START_LEVEL = 1;
 export const MAX_WEAPON_SLOTS = 3;
 export const MAX_PASSIVE_SLOTS = 3;
@@ -23,6 +22,8 @@ export const EXPERIENCE_THRESHOLDS = Object.freeze([
   1330, // Lv.8
   1640, // Lv.9
   1980, // Lv.10
+  2350, // Lv.11
+  2750, // Lv.12
 ]);
 export const PLAYER_MAX_LEVEL = EXPERIENCE_THRESHOLDS.length;
 
@@ -32,10 +33,6 @@ const PASSIVE_IDS = Object.freeze(Object.keys(PASSIVE_ABILITIES));
 
 function clampLevel(level) {
   return Math.max(PLAYER_START_LEVEL, Math.min(PLAYER_MAX_LEVEL, Math.round(Number(level) || PLAYER_START_LEVEL)));
-}
-
-function copyBuildEntries(entries = []) {
-  return entries.map((entry) => ({ id: entry.id, level: Math.max(1, Math.round(Number(entry.level) || 1)) }));
 }
 
 export function getExperienceThreshold(level) {

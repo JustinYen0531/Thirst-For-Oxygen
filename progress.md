@@ -536,3 +536,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Added a blue embedded LEVEL/EXP readout beside the depth display. It currently shows Level 1 and `EXP 000 / 100`, with a progress bar ready for later experience rewards without inventing a reward rule yet.
 - Moved the entire HP ring left 7px and reset the HP label/value to the exact center of that ring, so both remain visually centered.
+
+## 2026-08-08 — Step 65 complete
+
+- Added the adjustable enemy-tier experience contract: defeated enemies create stationary experience orbs at their defeat position, and the player must physically approach to collect them.
+- Added progression state, level thresholds through Lv.12, pending level-up handling, category-first upgrade selection, weapon/passive candidates, active weapon switching, and the sandbox progression HUD.
+- Locked the starting Build to one Lv.1 knife plus up to two additional weapons; the authored weapon cooldown and melee/projectile type now both apply in sandbox attacks.
+- Updated the growth and weapon GDD entries to document the fixed knife, 11 post-start choices, orb rewards, and manual pickup rule. Static-only verification passed: `npm run check` (68/68 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
