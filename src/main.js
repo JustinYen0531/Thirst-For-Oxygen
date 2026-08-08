@@ -1750,6 +1750,8 @@ function renderHud() {
   hudHealth.setAttribute('aria-valuenow', String(Math.round(healthHud.value)));
   hudHealth.classList.remove('is-full', 'is-warning', 'is-critical');
   hudHealth.classList.add(`is-${healthHud.tone}`);
+  hudHealth.style.setProperty('--health-color', healthHud.color);
+  hudHealth.style.setProperty('--health-glow', healthHud.glow);
   hudHealthSegments.forEach((segment, index) => {
     segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
   });

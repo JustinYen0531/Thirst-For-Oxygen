@@ -17,13 +17,16 @@ test('energy HUD rounds to half-slot increments across five slots', () => {
 test('health HUD uses ten clockwise segments and severity tones', () => {
   const full = getHealthHud(100, 100);
   assert.equal(full.tone, 'full');
+  assert.equal(full.color, 'hsl(120 84% 68%)');
   assert.deepEqual(full.fills, Array(10).fill(1));
 
   const warning = getHealthHud(65, 100);
   assert.equal(warning.tone, 'warning');
+  assert.equal(warning.color, 'hsl(78 84% 68%)');
   assert.deepEqual(warning.fills.slice(0, 7), [1, 1, 1, 1, 1, 1, 0.5]);
 
   const critical = getHealthHud(20, 100);
   assert.equal(critical.tone, 'critical');
+  assert.equal(critical.color, 'hsl(24 84% 68%)');
   assert.deepEqual(critical.fills, [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
 });

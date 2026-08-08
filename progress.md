@@ -480,3 +480,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Generated and chroma-keyed the balanced visor frame into `public/assets/editor/hud/visor-frame-balanced.png`; the center viewport and life-dial center are transparent.
 - Replaced the editor Play HUD and standalone play HUD with the visor layout. Oxygen uses a live vertical fill and percentage, energy maps the existing 0–100 value to five slots with 0.5-slot precision, and health uses ten clockwise segments from the bottom plus a live pointer and central value.
 - Static-only checks currently pass: `npm run check` (59/59 tests), `npm run build`, `git diff --check`, and RGBA transparency validation. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 59 complete
+
+- Tuned the approved visor HUD against the supplied play preview: O₂ moved slightly right/up, ENERGY moved slightly left and reduced, and the life core moved slightly right/up.
+- Rotated the ten health markers with their 36-degree positions so they form a decagonal ring instead of ten horizontal dashes.
+- Replaced stepped health colors with continuous hue interpolation from green through yellow to red, while retaining severity classes for fallback styling.
+- Static-only verification passed: `npm run check` (59/59 tests), `npm run build`, and `git diff --check`. The attempted preview connection timed out without interacting with the game; no browser automation was performed.

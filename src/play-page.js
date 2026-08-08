@@ -410,6 +410,8 @@ function updateHud() {
   resourceBars.health.setAttribute('aria-valuenow', String(Math.round(healthHud.value)));
   resourceBars.health.classList.remove('is-full', 'is-warning', 'is-critical');
   resourceBars.health.classList.add(`is-${healthHud.tone}`);
+  resourceBars.health.style.setProperty('--health-color', healthHud.color);
+  resourceBars.health.style.setProperty('--health-glow', healthHud.glow);
   healthSegments.forEach((segment, index) => {
     segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
   });

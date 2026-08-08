@@ -11,6 +11,14 @@ function formatHalf(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function getHealthColor(ratio) {
+  const hue = Math.round(clamp(ratio, 0, 1) * 120);
+  return Object.freeze({
+    color: `hsl(${hue} 84% 68%)`,
+    glow: `hsla(${hue} 90% 65% / 0.92)`,
+  });
+}
+
 export function getOxygenHud(value, maximum) {
   const safeMaximum = Math.max(1, Number(maximum) || 1);
   const safeValue = clamp(Number(value) || 0, 0, safeMaximum);
@@ -43,11 +51,14 @@ export function getHealthHud(value, maximum) {
   const ratio = safeValue / safeMaximum;
   const fills = Array.from({ length: HEALTH_SEGMENT_COUNT }, (_, index) => clamp(ratio * HEALTH_SEGMENT_COUNT - index, 0, 1));
   const tone = safeValue >= safeMaximum ? 'full' : safeValue > safeMaximum * 0.3 ? 'warning' : 'critical';
+  const colours = getHealthColor(ratio);
   return Object.freeze({
     value: safeValue,
     ratio,
     label: `${Math.round(safeValue)}`,
     tone,
+    color: colours.color,
+    glow: colours.glow,
     fills: Object.freeze(fills),
   });
 }
