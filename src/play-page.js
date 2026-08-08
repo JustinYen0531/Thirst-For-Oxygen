@@ -41,6 +41,7 @@ import {
   resolvePlayKatanaSlash,
   stepPlayKatana,
 } from './play-katana.js';
+import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 import {
   PLAY_ENEMY_VISUALS,
@@ -79,6 +80,7 @@ const OBJECT_ASSETS = {
 };
 const EDGE_ASSETS = { springJelly: '/assets/editor/edges/spring-jellyfish.png', spike: '/assets/editor/edges/edge-spike-barrier.png', barrier: '/assets/editor/edges/edge-spike-barrier.png', current: '/assets/editor/edges/edge-spike-barrier.png', layerPortal: '/assets/editor/edges/layer-portal-stair.png', multiPortal: '/assets/editor/edges/multi-portal.png', seaweed: OBJECT_ASSETS.seaweed, coralCluster: OBJECT_ASSETS.coralCluster };
 const PLAYER_ASSETS = { ...PLAYER_ANIMATION_ASSETS };
+const WEAPON_ASSETS = [KATANA_SPRITE];
 const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱', button: 'B' };
 const edgeColors = { springJelly: '#e77dff', spike: '#ff8394', barrier: '#ff9e78', current: '#6fe5ff', layerPortal: '#f4d56d', multiPortal: '#8cc7ff', seaweed: '#76e49c', coralCluster: '#f1a0ff' };
 
@@ -116,7 +118,7 @@ const energySegments = [...resourceBars.energy.querySelectorAll('[data-energy-se
 const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-segment]')];
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const images = new Map();
-[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS), ...Object.values(PLAY_ENEMY_VISUALS)].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS), ...Object.values(PLAY_ENEMY_VISUALS), ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapPart = 3;
@@ -545,42 +547,65 @@ function drawActor() {
 
 function drawKatanaEffects() {
   katanaState.effects.forEach((effect) => {
-    const progress = effect.persistent ? 0 : clamp(effect.elapsed / Math.max(effect.duration, 0.001), 0, 1);
-    const opacity = effect.persistent ? .72 : Math.max(0, 1 - progress);
-    const halfArc = (effect.arcDegrees * Math.PI) / 360;
-    const startAngle = effect.angle - halfArc;
-    const endAngle = effect.angle + halfArc;
-    const radius = effect.type === 'katanaWave'
-      ? effect.innerRadius + (effect.radius - effect.innerRadius) * Math.min(1, progress * 1.35)
-      : effect.radius;
-
-    context.save();
-    context.globalAlpha = opacity;
-    context.lineCap = 'round';
-    context.beginPath();
-    context.arc(effect.x, effect.y, radius, startAngle, endAngle);
-    context.strokeStyle = effect.glowColour;
-    context.lineWidth = effect.type === 'katanaWave' ? effect.thickness : effect.lineWidth + 4;
-    context.shadowColor = effect.glowColour;
-    context.shadowBlur = effect.type === 'katanaWave' ? 10 : 8;
-    context.stroke();
-
-    context.shadowBlur = 0;
-    context.beginPath();
-    context.arc(effect.x, effect.y, radius, startAngle, endAngle);
-    context.strokeStyle = effect.colour;
-    context.lineWidth = effect.type === 'katanaWave' ? effect.lineWidth : effect.lineWidth;
-    context.stroke();
-
-    if (effect.type === 'katanaSlash') {
-      context.beginPath();
-      context.arc(effect.x, effect.y, radius, startAngle, endAngle);
-      context.strokeStyle = effect.coreColour;
-      context.lineWidth = effect.coreLineWidth;
-      context.stroke();
-    }
-    context.restore();
+    const progress = effect.persistent
+      ? (effect.type === 'katanaSwing' ? 0.82 : 0.68)
+      : clamp(effect.elapsed / Math.max(effect.duration, 0.001), 0, 1);
+    if (effect.type === 'katanaSwing') drawKatanaSwing(effect, progress);
+    if (effect.type === 'katanaWave') drawKatanaWave(effect, progress);
   });
+}
+
+function drawKatanaBlade(effect, angle, alpha) {
+  const sprite = images.get(effect.sprite ?? KATANA_SPRITE);
+  const length = effect.weaponLength ?? 72;
+  const thickness = effect.weaponThickness ?? 11.2;
+  const pivot = effect.gripPivot ?? 14;
+  context.save();
+  context.translate(effect.x, effect.y);
+  context.rotate(angle);
+  context.globalAlpha = alpha;
+  context.shadowColor = effect.glowColour ?? '#9be8ff';
+  context.shadowBlur = effect.empowered ? 12 : 6;
+  if (sprite?.complete && sprite.naturalWidth > 0) {
+    context.drawImage(sprite, -pivot, -thickness * 0.5, length, thickness);
+  } else {
+    context.strokeStyle = '#d8fbff';
+    context.lineWidth = 2.2;
+    context.beginPath();
+    context.moveTo(-pivot, 0);
+    context.lineTo(length - pivot, 0);
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawKatanaSwing(effect, progress) {
+  const frames = getKatanaSwingFrames(effect, progress);
+  const fade = effect.persistent ? 1 : Math.max(0.18, 1 - Math.max(0, progress - 0.78) / 0.22);
+  frames.afterimages.forEach((frame) => drawKatanaBlade(effect, frame.angle, frame.alpha * fade));
+  drawKatanaBlade(effect, frames.currentAngle, 0.98 * fade);
+}
+
+function drawKatanaWave(effect, progress) {
+  const pose = getKatanaWavePose(effect, progress);
+  const halfArc = ((effect.arcDegrees ?? 94) * Math.PI) / 360;
+  const opacity = effect.persistent ? 0.78 : Math.max(0, 1 - progress);
+  context.save();
+  context.globalCompositeOperation = 'lighter';
+  context.globalAlpha = opacity;
+  context.lineCap = 'round';
+  context.strokeStyle = effect.colour ?? '#f4fdff';
+  context.shadowColor = effect.glowColour ?? '#b8fbff';
+  context.shadowBlur = 14;
+  context.lineWidth = effect.thickness ?? 9;
+  context.beginPath();
+  context.arc(pose.x, pose.y, pose.radius, pose.angle - halfArc, pose.angle + halfArc);
+  context.stroke();
+  context.shadowBlur = 0;
+  context.strokeStyle = '#ffffff';
+  context.lineWidth = effect.lineWidth ?? 4.5;
+  context.stroke();
+  context.restore();
 }
 
 function drawEnemyHealthBar(enemy, x, y, width, height) {
@@ -714,7 +739,7 @@ function render() {
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawKatanaEffects(); drawTrajectory(); drawActor();
+  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor(); drawKatanaEffects();
   const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();

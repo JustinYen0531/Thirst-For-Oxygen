@@ -695,3 +695,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Connected trident Lv.1–3 to the sandbox projectile pipeline: a stationary diver charges for 1.0 second before automatic firing, Lv.2 applies a 1.35-second stun, and Lv.3 emits a three-projectile spread with a longer glow and burst impact.
 - Added Canvas sprite/trail/impact rendering, stationary-charge telemetry, projectile details in `render_game_to_text`, and regression tests for preview firing, one-second auto-fire, stun, and the Lv.3 burst.
 - Static-only verification passed: `npm run check` (126/126), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped per user instruction.
+
+## 2026-08-09 — Step 85 complete
+
+- Used image generation to create and chroma-key `public/assets/editor/weapons/abyssal-katana.png`: a transparent deep-sea katana with a weathered gunmetal blade, cyan bioluminescent edge, oxidized bronze pressure-ring guard, and navy wrapped grip.
+- Replaced the Lv.1/Lv.2 giant white katana arc with the real katana sprite rotating clockwise around the diver's grip. Five or more historical blade poses trail behind it, with opacity decreasing as their angular distance from the current blade increases.
+- Kept the combat range, damage, cooldown, and Lv.2 post-movement double-damage rules. Lv.3 alone now emits the former white arc as a separate forward-travelling shockwave that can destroy enemy projectiles.
+- Synchronized formal play and sandbox rendering, updated the existing katana GDD and regression contracts, and verified the generated PNG has a real alpha channel. Static-only verification passed: focused katana/progression checks (44/44), full `npm run check` (126/126), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.

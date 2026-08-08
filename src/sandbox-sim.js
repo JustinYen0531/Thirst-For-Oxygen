@@ -32,6 +32,7 @@ import {
   getUpgradeChoices,
   setActiveWeapon,
 } from './progression.js';
+import { getKatanaWavePose } from './katana-visual.js';
 
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
@@ -928,15 +929,15 @@ function isWithinKatanaArc(state, enemy, weapon, angle) {
 }
 
 function katanaWaveContainsPoint(wave, point, progress = 0) {
-  const dx = point.x - wave.x;
-  const dy = point.y - wave.y;
+  const pose = getKatanaWavePose(wave, progress);
+  const dx = point.x - pose.x;
+  const dy = point.y - pose.y;
   const distance = Math.hypot(dx, dy);
-  const radius = (wave.innerRadius ?? 0) + ((wave.radius ?? 0) - (wave.innerRadius ?? 0)) * clamp(progress, 0, 1);
-  const radialDistance = Math.abs(distance - radius);
+  const radialDistance = Math.abs(distance - pose.radius);
   const angle = Math.atan2(dy, dx);
   const arcHalf = ((wave.arcDegrees ?? 90) * Math.PI) / 360;
   return radialDistance <= (wave.thickness ?? 8) * 0.5 + (point.radius ?? 0)
-    && Math.abs(shortestAngleDifference(angle, wave.angle)) <= arcHalf;
+    && Math.abs(shortestAngleDifference(angle, pose.angle)) <= arcHalf;
 }
 
 function addKatanaWave(state, weapon, angle) {
@@ -948,8 +949,9 @@ function addKatanaWave(state, weapon, angle) {
     x: state.actor.x,
     y: state.actor.y,
     angle,
-    innerRadius: wave.innerRadius ?? 20,
-    radius: wave.radius ?? weapon.range + 18,
+    startDistance: wave.startDistance ?? 22,
+    travelDistance: wave.travelDistance ?? 132,
+    radius: wave.radius ?? 22,
     arcDegrees: wave.arcDegrees ?? weapon.hitArcDegrees ?? 100,
     duration: wave.duration ?? 0.24,
     lineWidth: wave.lineWidth ?? 4,
@@ -968,22 +970,25 @@ function performKatanaSlash(state, weapon, target = null) {
   const damageMultiplier = empowered ? (effect.empoweredDamageMultiplier ?? 2) : 1;
   const hitEnemies = activeEnemies(state).filter((enemy) => isWithinKatanaArc(state, enemy, weapon, angle));
   hitEnemies.forEach((enemy) => {
-    damageEnemy(state, enemy, weapon.damage * damageMultiplier, empowered ? '武士刀・強化斬擊' : '武士刀・弧斬');
+    damageEnemy(state, enemy, weapon.damage * damageMultiplier, empowered ? '武士刀・強化揮擊' : '武士刀・順時針揮擊');
   });
   if (empowered) state.actor.katanaEmpoweredNextSlash = false;
   addEffect(state, {
-    type: 'katanaSlash',
-    style: effect.style ?? 'katanaArcSlash',
+    type: 'katanaSwing',
+    style: effect.style ?? 'katanaClockwiseSwing',
     x: state.actor.x,
     y: state.actor.y,
     angle,
-    radius: effect.arcRadius ?? weapon.range,
     arcDegrees: effect.arcDegrees ?? weapon.hitArcDegrees ?? 100,
-    duration: effect.duration ?? 0.18,
-    lineWidth: empowered ? (effect.empoweredLineWidth ?? effect.lineWidth ?? 4) : (effect.lineWidth ?? 3),
-    coreLineWidth: empowered ? (effect.empoweredCoreLineWidth ?? effect.coreLineWidth ?? 2) : (effect.coreLineWidth ?? 1.2),
+    duration: effect.duration ?? 0.3,
+    sprite: effect.sprite,
+    weaponLength: effect.weaponLength ?? 72,
+    weaponThickness: effect.weaponThickness ?? 11.2,
+    gripPivot: effect.gripPivot ?? 14,
+    afterimageCount: effect.afterimageCount ?? 5,
+    afterimageAngleStepDegrees: effect.afterimageAngleStepDegrees ?? 11,
+    afterimageAlpha: effect.afterimageAlpha ?? 0.34,
     colour: empowered ? (effect.empoweredColour ?? effect.colour ?? '#ff5c8a') : (effect.colour ?? '#73d9ff'),
-    coreColour: empowered ? (effect.empoweredCoreColour ?? effect.coreColour ?? '#fff0f5') : (effect.coreColour ?? '#effcff'),
     glowColour: empowered ? (effect.empoweredGlowColour ?? effect.glowColour ?? '#ff9eb8') : (effect.glowColour ?? '#9be8ff'),
     empowered,
     hitCount: hitEnemies.length,
@@ -1011,7 +1016,7 @@ function processKatanaAutoAttack(state) {
   if (!target) return;
   const result = performKatanaSlash(state, weapon, target);
   state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-  if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 自動弧斬命中 ${result.hitCount} 個目標。`, 'safe');
+  if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 順時針揮刀命中 ${result.hitCount} 個目標。`, 'safe');
 }
 
 function projectileDirectionAngle(state, target = null) {
@@ -1123,7 +1128,7 @@ export function playerAttack(state, { auto = false } = {}) {
   }
   const target = state.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyInstanceId && !enemy.defeated) ?? activeEnemies(state)[0];
   const canShowKnifePreview = weapon.type === 'melee' && weapon.effect?.style === 'knifeMeteor';
-  const canShowKatanaPreview = weapon.type === 'melee' && weapon.effect?.style === 'katanaArcSlash';
+  const canShowKatanaPreview = weapon.type === 'melee' && weapon.effect?.style === 'katanaClockwiseSwing';
   const canShowTridentPreview = weaponDefinition.id === 'trident';
   if (!target && !canShowKnifePreview && !canShowKatanaPreview && !canShowTridentPreview) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
@@ -1155,7 +1160,7 @@ export function playerAttack(state, { auto = false } = {}) {
       addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.45, angle: attackAngle, colour: '#f6e66d' });
     }
     if (!hit && target) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
-    if (!target) logEvent(state, `${weaponDefinition.name}：展示瞬發弧斬${canShowKatanaPreview && weapon.effect?.wave ? '與外弧劍氣' : ''}（目前沒有目標）。`, 'safe');
+    if (!target) logEvent(state, `${weaponDefinition.name}：展示刀身順時針揮擊${canShowKatanaPreview && weapon.effect?.wave ? '與白色飛行衝擊波' : ''}（目前沒有目標）。`, 'safe');
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
@@ -1227,7 +1232,7 @@ function updateProjectiles(state, dt) {
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
     if (projectile.source === 'enemy') {
-      const wave = state.effects.find((effect) => effect.type === 'katanaWave' && effect.style === 'katanaOuterArcWave'
+      const wave = state.effects.find((effect) => effect.type === 'katanaWave' && effect.style === 'katanaProjectileWave'
         && effect.elapsed < effect.duration);
       if (wave) {
         const progress = wave.duration > 0 ? wave.elapsed / wave.duration : 1;
@@ -1382,7 +1387,7 @@ function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
       if ((actor.cooldowns[cooldownKey] ?? 0) > 0) return;
       const result = performKatanaSlash(state, weapon, enemy);
       actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-      if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 彈射接近弧斬命中。`, 'safe');
+      if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 彈射接近後順時針揮刀命中。`, 'safe');
       enemy.playerHitCooldownUntil = state.time + 0.28;
       return;
     }

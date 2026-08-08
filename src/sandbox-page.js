@@ -32,6 +32,7 @@ import {
   updateSandboxAim,
 } from './sandbox-sim.js';
 import { getExperienceProgress } from './progression.js';
+import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
@@ -40,6 +41,8 @@ const sprites = document.querySelector('#sandbox-sprites');
 const playerSprite = document.querySelector('#player-sprite');
 const tridentSprite = new Image();
 tridentSprite.src = '/assets/editor/weapons/trident.png';
+const katanaSprite = new Image();
+katanaSprite.src = KATANA_SPRITE;
 const enemySelect = document.querySelector('#enemy-select');
 const weaponSelect = document.querySelector('#weapon-select');
 const weaponLevel = document.querySelector('#weapon-level');
@@ -157,12 +160,15 @@ function setupKatanaShowcase() {
   const result = playerAttack(state);
   if (result.ok) {
     state.effects
-      .filter((effect) => effect.type === 'katanaSlash' || effect.type === 'katanaWave')
-      .forEach((effect) => { effect.duration = Math.max(effect.duration, 6); });
+      .filter((effect) => effect.type === 'katanaSwing' || effect.type === 'katanaWave')
+      .forEach((effect) => {
+        effect.duration = Math.max(effect.duration, 6);
+        effect.showcaseProgress = effect.type === 'katanaSwing' ? 0.82 : 0.68;
+      });
   }
   status.textContent = result.hit
-    ? '武士刀展示已啟動：刷新時已完成近距離弧斬並扣血，斬擊會保留可見一段時間。'
-    : '武士刀展示已啟動：目前目標未在弧斬範圍內。';
+    ? '武士刀展示已啟動：刀身會繞潛水員順時針揮擊，半透明殘影保留揮動方向。'
+    : '武士刀展示已啟動：目前目標未在刀身揮擊範圍內。';
 }
 
 function renderPlacedEnemyList() {
@@ -225,10 +231,10 @@ function playerAttackStatus(result) {
     return `目前沒有可展示的${weapon.name}效果。`;
   }
   if (state.build.weaponId === 'katana') {
-    const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSlash');
+    const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSwing');
     const wave = state.effects.some((effect) => effect.type === 'katanaWave');
-    const power = slash?.empowered ? '強化弧斬（雙倍傷害）' : '瞬發弧斬';
-    return `武士刀 Lv.${state.build.weaponLevel} ${power}${wave ? '＋外弧劍氣' : ''}${result.hit ? '，命中目標。' : '。'} `;
+    const power = slash?.empowered ? '強化順時針揮刀（雙倍傷害）' : '順時針揮刀';
+    return `武士刀 Lv.${state.build.weaponLevel} ${power}${wave ? '＋白色飛行衝擊波' : ''}${result.hit ? '，命中目標。' : '。'} `;
   }
   if (state.build.weaponId === 'knife') return `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出${result.hit ? '並命中目標。' : '。'}`;
   if (state.build.weaponId === 'trident') {
@@ -542,12 +548,12 @@ function renderEffects() {
       renderTridentImpact(effect, progress);
       return;
     }
-    if (effect.type === 'katanaSlash' && effect.style === 'katanaArcSlash') {
-      renderKatanaArcSlash(effect, progress);
+    if (effect.type === 'katanaSwing' && effect.style === 'katanaClockwiseSwing') {
+      renderKatanaSwing(effect, progress);
       return;
     }
-    if (effect.type === 'katanaWave' && effect.style === 'katanaOuterArcWave') {
-      renderKatanaOuterArcWave(effect, progress);
+    if (effect.type === 'katanaWave' && effect.style === 'katanaProjectileWave') {
+      renderKatanaProjectileWave(effect, progress);
       return;
     }
     if (effect.type === 'playerSlash' && effect.style === 'knifeMeteor') {
@@ -581,35 +587,41 @@ function renderEffects() {
   });
 }
 
-function renderKatanaArcSlash(effect, progress) {
-  const fade = Math.max(0, 1 - Math.max(0, Math.min(1, progress)));
-  const arcHalf = ((effect.arcDegrees ?? 110) * Math.PI) / 360;
-  const start = effect.angle - arcHalf;
-  const end = effect.angle + arcHalf;
+function renderKatanaBlade(effect, angle, alpha) {
+  const length = effect.weaponLength ?? 72;
+  const thickness = effect.weaponThickness ?? 11.2;
+  const pivot = effect.gripPivot ?? 14;
   ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = fade;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = effect.colour ?? '#73d9ff';
+  ctx.translate(effect.x, effect.y);
+  ctx.rotate(angle);
+  ctx.globalAlpha = alpha;
   ctx.shadowColor = effect.glowColour ?? effect.colour ?? '#9be8ff';
-  ctx.shadowBlur = effect.empowered ? 20 : 12;
-  ctx.lineWidth = effect.lineWidth ?? 3;
-  ctx.beginPath();
-  ctx.arc(effect.x, effect.y, effect.radius, start, end);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = effect.coreColour ?? '#effcff';
-  ctx.lineWidth = effect.coreLineWidth ?? 1.2;
-  ctx.beginPath();
-  ctx.arc(effect.x, effect.y, effect.radius, start, end);
-  ctx.stroke();
+  ctx.shadowBlur = effect.empowered ? 16 : 7;
+  if (katanaSprite.complete && katanaSprite.naturalWidth > 0) {
+    ctx.drawImage(katanaSprite, -pivot, -thickness * 0.5, length, thickness);
+  } else {
+    ctx.strokeStyle = '#d8fbff';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-pivot, 0);
+    ctx.lineTo(length - pivot, 0);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
-function renderKatanaOuterArcWave(effect, progress) {
+function renderKatanaSwing(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, effect.showcaseProgress ?? progress));
+  const frames = getKatanaSwingFrames(effect, safeProgress);
+  const fade = Math.max(0.14, 1 - Math.max(0, safeProgress - 0.78) / 0.22);
+  frames.afterimages.forEach((frame) => renderKatanaBlade(effect, frame.angle, frame.alpha * fade));
+  renderKatanaBlade(effect, frames.currentAngle, 0.98 * fade);
+}
+
+function renderKatanaProjectileWave(effect, progress) {
   const safeProgress = Math.max(0, Math.min(1, progress));
-  const radius = (effect.innerRadius ?? 24) + ((effect.radius ?? 76) - (effect.innerRadius ?? 24)) * safeProgress;
-  const arcHalf = ((effect.arcDegrees ?? 96) * Math.PI) / 360;
+  const pose = getKatanaWavePose(effect, safeProgress);
+  const arcHalf = ((effect.arcDegrees ?? 94) * Math.PI) / 360;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.globalAlpha = Math.max(0, 1 - safeProgress);
@@ -619,13 +631,13 @@ function renderKatanaOuterArcWave(effect, progress) {
   ctx.shadowBlur = 18;
   ctx.lineWidth = effect.thickness ?? effect.lineWidth ?? 8;
   ctx.beginPath();
-  ctx.arc(effect.x, effect.y, radius, effect.angle - arcHalf, effect.angle + arcHalf);
+  ctx.arc(pose.x, pose.y, pose.radius, pose.angle - arcHalf, pose.angle + arcHalf);
   ctx.stroke();
   ctx.shadowBlur = 0;
   ctx.strokeStyle = '#efffff';
   ctx.lineWidth = Math.max(1.5, (effect.lineWidth ?? 4) * 0.42);
   ctx.beginPath();
-  ctx.arc(effect.x, effect.y, radius, effect.angle - arcHalf, effect.angle + arcHalf);
+  ctx.arc(pose.x, pose.y, pose.radius, pose.angle - arcHalf, pose.angle + arcHalf);
   ctx.stroke();
   ctx.restore();
 }

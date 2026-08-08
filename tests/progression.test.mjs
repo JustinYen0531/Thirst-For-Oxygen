@@ -185,23 +185,26 @@ test('knife Lv.3 keeps its main meteor slash after the sweep finishes', () => {
   assert.equal(lingeringSlash.sparkleCount > 0, true);
 });
 
-test('katana levels use a short arc slash contract instead of knife trails', () => {
+test('katana levels use a clockwise sword sprite contract instead of a white slash arc', () => {
   const levelOne = getWeaponStats('katana', 1);
   const levelTwo = getWeaponStats('katana', 2);
   const levelThree = getWeaponStats('katana', 3);
 
-  assert.equal(levelOne.effect.style, 'katanaArcSlash');
+  assert.equal(levelOne.effect.style, 'katanaClockwiseSwing');
+  assert.match(levelOne.effect.sprite, /abyssal-katana\.png$/);
+  assert.equal(levelOne.effect.afterimageCount >= 5, true);
   assert.equal(levelOne.effect.empowerAfterMovement, undefined);
   assert.ok(levelOne.range >= 48 && levelOne.range <= 56, 'katana should reach roughly two Cells');
   assert.equal(levelTwo.effect.empowerAfterMovement, true);
   assert.equal(levelTwo.effect.empoweredDamageMultiplier, 2);
-  assert.ok(levelTwo.effect.empoweredLineWidth > levelTwo.effect.lineWidth);
-  assert.equal(levelThree.effect.wave.style, 'katanaOuterArcWave');
+  assert.equal(levelTwo.effect.afterimageCount > levelOne.effect.afterimageCount, true);
+  assert.equal(levelThree.effect.wave.style, 'katanaProjectileWave');
+  assert.equal(levelThree.effect.wave.travelDistance > levelThree.effect.wave.startDistance, true);
   assert.equal(levelThree.effect.wave.arcDegrees < 120, true);
   assert.equal(levelThree.effect.wave.thickness > 0, true);
 });
 
-test('katana Lv.1 auto-slashes a nearby enemy with an instant arc', () => {
+test('katana Lv.1 auto-swings the sword clockwise around a nearby enemy', () => {
   const state = createSandboxState();
   setSandboxBuild(state, { weaponId: 'katana', weaponLevel: 1 });
   const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 40, y: state.actor.y }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
@@ -209,12 +212,12 @@ test('katana Lv.1 auto-slashes a nearby enemy with an instant arc', () => {
   stepSandbox(state);
 
   assert.ok(enemy.health < enemy.maxHealth, 'a nearby enemy should be hit automatically');
-  const slash = state.effects.find((effect) => effect.type === 'katanaSlash');
+  const slash = state.effects.find((effect) => effect.type === 'katanaSwing');
   assert.ok(slash);
-  assert.equal(slash.style, 'katanaArcSlash');
+  assert.equal(slash.style, 'katanaClockwiseSwing');
   assert.equal(slash.empowered, false);
   assert.equal(state.effects.some((effect) => effect.style === 'knifeMeteor'), false);
-  assert.ok(slash.duration <= 0.2, 'katana slash should be an instant effect');
+  assert.ok(slash.duration <= 0.3, 'katana swing should remain a quick effect');
 });
 
 test('katana Lv.2 empowers only the next slash after movement', () => {
@@ -232,21 +235,21 @@ test('katana Lv.2 empowers only the next slash after movement', () => {
   assert.equal(result.ok, true);
   assert.equal(enemy.health, 1000 - 38 * 2);
   assert.equal(state.actor.katanaEmpoweredNextSlash, false);
-  const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSlash');
+  const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSwing');
   assert.equal(slash.empowered, true);
   assert.equal(slash.colour, '#ff5c8a');
-  assert.ok(slash.lineWidth > 4.4);
+  assert.equal(slash.afterimageCount, 6);
 });
 
-test('katana Lv.3 sends only an outer arc that destroys enemy projectiles', () => {
+test('katana Lv.3 fires a moving white shockwave that destroys enemy projectiles', () => {
   const state = createSandboxState();
   setSandboxBuild(state, { weaponId: 'katana', weaponLevel: 3 });
   const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 40, y: state.actor.y }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
-  state.projectiles.push({ id: 'enemy-test-projectile', x: state.actor.x + 30, y: state.actor.y, vx: 0, vy: 0, source: 'enemy', radius: 2, damage: 10, life: 5, age: 0 });
+  state.projectiles.push({ id: 'enemy-test-projectile', x: state.actor.x + 50, y: state.actor.y, vx: 0, vy: 0, source: 'enemy', radius: 2, damage: 10, life: 5, age: 0 });
 
   const result = playerAttack(state);
   assert.equal(result.ok, true);
-  assert.ok(state.effects.some((effect) => effect.type === 'katanaWave' && effect.style === 'katanaOuterArcWave'));
+  assert.ok(state.effects.some((effect) => effect.type === 'katanaWave' && effect.style === 'katanaProjectileWave'));
   assert.equal(state.effects.some((effect) => effect.type === 'knifeTrail'), false);
 
   stepSandbox(state);

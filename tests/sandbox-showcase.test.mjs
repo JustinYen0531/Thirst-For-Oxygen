@@ -8,7 +8,7 @@ import {
   stepSandbox,
 } from '../src/sandbox-sim.js';
 
-test('sandbox katana showcase ingredients hit a nearby target with a real arc', () => {
+test('sandbox katana showcase ingredients hit a nearby target with the sword sprite swing', () => {
   const state = createSandboxState();
   setSandboxBuild(state, { weaponId: 'katana', weaponLevel: 1 });
   const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 40, y: state.actor.y }, {
@@ -20,6 +20,6 @@ test('sandbox katana showcase ingredients hit a nearby target with a real arc', 
   const result = playerAttack(state);
   assert.equal(result.hit, true);
   assert.equal(enemy.health, 72);
-  assert.equal(state.effects.some((effect) => effect.type === 'katanaSlash'), true);
+  assert.equal(state.effects.some((effect) => effect.type === 'katanaSwing'), true);
   stepSandbox(state);
 });

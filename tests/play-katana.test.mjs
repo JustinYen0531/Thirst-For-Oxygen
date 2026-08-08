@@ -6,6 +6,7 @@ import {
   resolvePlayKatanaSlash,
   stepPlayKatana,
 } from '../src/play-katana.js';
+import { getKatanaSwingFrames, getKatanaWavePose } from '../src/katana-visual.js';
 
 function createScenario(level) {
   const actor = { x: 100, y: 100, facing: 'right' };
@@ -22,7 +23,7 @@ function createScenario(level) {
   return { state: createPlayKatanaState(level), actor, enemy, enemies: [enemy] };
 }
 
-test('formal play katana Lv.1 hits a nearby enemy and exposes a visible slash effect', () => {
+test('formal play katana Lv.1 hits a nearby enemy and exposes the actual sword swing', () => {
   const scenario = createScenario(1);
   const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies, persistent: true });
 
@@ -30,7 +31,14 @@ test('formal play katana Lv.1 hits a nearby enemy and exposes a visible slash ef
   assert.equal(result.hit, true);
   assert.equal(result.totalDamage, 28);
   assert.equal(scenario.enemy.health, 72);
-  assert.equal(scenario.state.effects.some((effect) => effect.type === 'katanaSlash' && effect.persistent), true);
+  const swing = scenario.state.effects.find((effect) => effect.type === 'katanaSwing' && effect.persistent);
+  assert.ok(swing);
+  assert.equal(swing.style, 'katanaClockwiseSwing');
+  assert.match(swing.sprite, /abyssal-katana\.png$/);
+  assert.equal(swing.afterimageCount >= 5, true);
+  const frames = getKatanaSwingFrames(swing, 0.82);
+  assert.equal(frames.currentAngle > frames.startAngle, true, 'positive Canvas angles produce a clockwise swing');
+  assert.equal(frames.afterimages[0].alpha < frames.afterimages.at(-1).alpha, true, 'farther afterimages must be fainter');
 });
 
 test('katana Lv.2 empowers the next slash after movement and doubles its damage', () => {
@@ -42,15 +50,21 @@ test('katana Lv.2 empowers the next slash after movement and doubles its damage'
   assert.equal(result.totalDamage, 76);
   assert.equal(scenario.enemy.health, 24);
   assert.equal(scenario.state.empowerNextSlash, false);
-  assert.equal(scenario.state.effects[0].lineWidth, 8);
+  assert.equal(scenario.state.effects[0].colour, '#ff5c8a');
+  assert.equal(scenario.state.effects[0].afterimageCount, 6);
 });
 
-test('katana Lv.3 adds a persistent outer arc wave that survives simulation steps', () => {
+test('katana Lv.3 adds a persistent outward projectile wave that survives simulation steps', () => {
   const scenario = createScenario(3);
   const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies, persistent: true });
 
   assert.equal(result.ok, true);
-  assert.equal(scenario.state.effects.some((effect) => effect.type === 'katanaWave' && effect.persistent), true);
+  const wave = scenario.state.effects.find((effect) => effect.type === 'katanaWave' && effect.persistent);
+  assert.ok(wave);
+  assert.equal(wave.style, 'katanaProjectileWave');
+  const start = getKatanaWavePose(wave, 0);
+  const end = getKatanaWavePose(wave, 1);
+  assert.equal(end.x > start.x, true);
   stepPlayKatana(scenario.state, 10);
   assert.equal(scenario.state.effects.some((effect) => effect.type === 'katanaWave' && effect.persistent), true);
 });
