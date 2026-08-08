@@ -43,6 +43,8 @@ const sprites = document.querySelector('#sandbox-sprites');
 const playerSprite = document.querySelector('#player-sprite');
 const tridentSprite = new Image();
 tridentSprite.src = '/assets/editor/weapons/trident.png';
+const lightMachineGunSprite = new Image();
+lightMachineGunSprite.src = '/assets/editor/weapons/light-machine-gun.png';
 const katanaSprite = new Image();
 katanaSprite.src = KATANA_SPRITE;
 const enemySelect = document.querySelector('#enemy-select');
@@ -621,26 +623,39 @@ function renderLightMachineGun(effect, progress) {
   ctx.save();
   ctx.translate(effect.x, effect.y);
   ctx.rotate(angle);
-  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = Math.max(0.18, 1 - Math.max(0, safeProgress - 0.72) / 0.28);
   ctx.shadowColor = effect.gunAccent ?? '#73e6ff';
   ctx.shadowBlur = 12;
-  ctx.fillStyle = effect.gunColour ?? '#263b52';
-  ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.rect(-length * 0.42 + recoil, -width * 0.5, length * 0.58, width);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#111c2c';
-  ctx.fillRect(-length * 0.05 + recoil, width * 0.22, width * 0.62, width * 0.86);
-  ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
-  ctx.beginPath();
-  ctx.moveTo(length * 0.12 + recoil, -width * 0.22);
-  ctx.lineTo(length * 0.68 + recoil, -width * 0.22);
-  ctx.lineTo(length * 0.68 + recoil, width * 0.22);
-  ctx.lineTo(length * 0.12 + recoil, width * 0.22);
-  ctx.stroke();
+  if (lightMachineGunSprite.complete && lightMachineGunSprite.naturalWidth > 0) {
+    const spriteWidth = length * 1.34;
+    const spriteHeight = Math.max(42, width * 3.4);
+    ctx.drawImage(
+      lightMachineGunSprite,
+      -length * 0.47 + recoil,
+      -spriteHeight * 0.5 - width * 0.08,
+      spriteWidth,
+      spriteHeight,
+    );
+  } else {
+    // Keep the vector body as a loading/failure fallback while the generated sprite loads.
+    ctx.fillStyle = effect.gunColour ?? '#263b52';
+    ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(-length * 0.42 + recoil, -width * 0.5, length * 0.58, width);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#111c2c';
+    ctx.fillRect(-length * 0.05 + recoil, width * 0.22, width * 0.62, width * 0.86);
+    ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
+    ctx.beginPath();
+    ctx.moveTo(length * 0.12 + recoil, -width * 0.22);
+    ctx.lineTo(length * 0.68 + recoil, -width * 0.22);
+    ctx.lineTo(length * 0.68 + recoil, width * 0.22);
+    ctx.lineTo(length * 0.12 + recoil, width * 0.22);
+    ctx.stroke();
+  }
   ctx.globalAlpha *= 0.8;
   ctx.strokeStyle = effect.muzzleColour ?? '#d9fbff';
   ctx.lineWidth = 2.6;

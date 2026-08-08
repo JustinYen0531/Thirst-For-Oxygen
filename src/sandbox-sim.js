@@ -1184,6 +1184,7 @@ function beginLightMachineGunBurst(state, weapon, weaponLevel, angle, targetId =
     duration: interval * (shotCount - 1) + 0.24,
     gunLength: effect.gunLength ?? 66,
     gunWidth: effect.gunWidth ?? 14,
+    sprite: effect.sprite ?? '/assets/editor/weapons/light-machine-gun.png',
     gunColour: effect.gunColour ?? '#263b52',
     gunAccent: effect.gunAccent ?? '#73e6ff',
     muzzleColour: effect.muzzleColour ?? '#d9fbff',
