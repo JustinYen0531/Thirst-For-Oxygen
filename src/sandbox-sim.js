@@ -7,21 +7,31 @@ import {
   getWeaponStats,
 } from './game-data.js';
 import {
+  createEmptyMap,
+} from './map-model.js';
+import {
   FIXED_STEP,
-  GAME_GRAVITY,
   MAX_ENERGY,
   MAX_HEALTH,
   MAX_OXYGEN,
-  MAX_SPEED,
-  OXYGEN_STARVATION_DAMAGE_PER_SECOND,
   applyDamage,
   applyEnemyDefeatRewards,
   createTestActor,
-  getLaunchCosts,
-  getLaunchSpeed,
-  getOxygenDrainPerSecond,
+  launchActor,
   setPlayerLoadout,
+  stepPhysics,
 } from './physics.js';
+import {
+  applyUpgradeChoice,
+  collectExperienceOrbs as collectExperienceOrbsFromWorld,
+  createExperienceOrb,
+  createProgressionState,
+  getActiveWeapon,
+  getAvailableUpgradeCategories,
+  getEnemyExperienceReward,
+  getUpgradeChoices,
+  setActiveWeapon,
+} from './progression.js';
 
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
@@ -31,6 +41,22 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
 const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
 const unique = (values) => [...new Set(values)];
+
+// The sandbox is a test harness, but its player must live in the same kind of
+// L1 water field as the official play page. Keep a generous hidden map behind
+// the 960x560 stage so the shared physics can resolve a Cell everywhere the
+// pointer can reach without introducing an editor-specific gravity shortcut.
+const SANDBOX_PHYSICS_ORIGIN = Object.freeze({ x: 18, y: 18 });
+const SANDBOX_PHYSICS_BOUNDS = Object.freeze({ minX: 10, maxX: SANDBOX_WIDTH - 10, minY: 10, maxY: SANDBOX_HEIGHT - 10 });
+
+function createSandboxPhysicsMap() {
+  const map = createEmptyMap({ width: 52, height: 32 });
+  Object.values(map.cells).forEach((cell) => {
+    cell.gravityLevel = 'L1';
+    cell.waterLayer = 'T1';
+  });
+  return map;
+}
 
 function logEvent(state, message, level = 'info') {
   state.logs.unshift({ time: state.time, message, level });
@@ -59,6 +85,81 @@ function addEffect(state, effect) {
     duration: 0.8,
     ...effect,
   });
+}
+
+function syncSandboxBuild(state) {
+  const active = getActiveWeapon(state.progression);
+  state.build = {
+    weaponId: active.id,
+    weaponLevel: active.level,
+    weapons: state.progression.weapons.map((weapon) => ({ ...weapon })),
+    activeWeaponSlot: state.progression.activeWeaponSlot,
+    passives: state.progression.passives.map((passive) => ({ ...passive })),
+  };
+  setPlayerLoadout(state.actor, state.build.passives, active);
+  return state.build;
+}
+
+function openUpgradeChoice(state) {
+  if ((state.progression.pendingLevelUps ?? 0) <= 0) {
+    state.awaitingUpgrade = false;
+    state.upgradeCategory = null;
+    state.upgradeChoices = [];
+    return [];
+  }
+  state.awaitingUpgrade = true;
+  state.upgradeCategory = null;
+  state.upgradeChoices = [];
+  state.upgradeCategories = getAvailableUpgradeCategories(state.progression);
+  if (!state.upgradeCategories.length) {
+    state.progression.pendingLevelUps = 0;
+    state.awaitingUpgrade = false;
+  }
+  return state.upgradeCategories;
+}
+
+export function chooseUpgradeCategory(state, category) {
+  if (!state.awaitingUpgrade) return { ok: false, reason: 'noLevelUp' };
+  const choices = getUpgradeChoices(state.progression, category, 2);
+  if (!choices.length) return { ok: false, reason: 'category' };
+  state.upgradeCategory = category;
+  state.upgradeChoices = choices;
+  return { ok: true, category, choices };
+}
+
+export function chooseUpgrade(state, choice) {
+  if (!state.awaitingUpgrade) return { ok: false, reason: 'noLevelUp' };
+  const result = applyUpgradeChoice(state.progression, choice);
+  if (!result.ok) return result;
+  syncSandboxBuild(state);
+  openUpgradeChoice(state);
+  const definition = result.choice.category === 'weapon' ? WEAPONS[result.choice.id] : PASSIVE_ABILITIES[result.choice.id];
+  logEvent(state, `升級完成：${definition.name} Lv.${result.choice.level}。`, 'safe');
+  if (state.awaitingUpgrade) logEvent(state, '還有新的升級選擇，請先完成 Build。', 'safe');
+  else logEvent(state, '升級選擇完成，玩家可以繼續探索。', 'safe');
+  return { ...result, build: state.build, pendingLevelUps: state.progression.pendingLevelUps };
+}
+
+export function setSandboxActiveWeapon(state, slotOrId) {
+  const active = setActiveWeapon(state.progression, slotOrId);
+  syncSandboxBuild(state);
+  logEvent(state, `切換武器：${WEAPONS[active.id]?.name ?? active.id} Lv.${active.level}。`, 'safe');
+  return active;
+}
+
+function collectSandboxExperience(state) {
+  const result = collectExperienceOrbsFromWorld(state.progression, state.experienceOrbs, state.actor);
+  state.experienceOrbs = result.remaining;
+  result.collected.forEach((orb) => {
+    addEffect(state, { type: 'experience', x: orb.x, y: orb.y, radius: 18, duration: 0.45, colour: '#b7f4ff' });
+    logEvent(state, `拾取經驗光點 +${Math.round(orb.value)}。`, 'safe');
+  });
+  if (result.levelUps > 0) {
+    syncSandboxBuild(state);
+    openUpgradeChoice(state);
+    logEvent(state, `玩家升級至 Lv.${state.progression.level}，請選擇武器或能力。`, 'safe');
+  }
+  return result;
 }
 
 function applyPlayerDamage(state, amount, source, damageType = 'generic') {
@@ -96,6 +197,15 @@ function defeatEnemy(state, enemy) {
   addEffect(state, { type: 'defeat', x: enemy.x, y: enemy.y, radius: 28, duration: 0.7, colour: '#f6e66d' });
   logEvent(state, `${enemyDefinition(enemy).name} 已被擊敗。`, 'safe');
   applyEnemyDefeatRewards(state.actor);
+  const experienceValue = getEnemyExperienceReward(enemy.enemyId);
+  state.experienceOrbs.push(createExperienceOrb(
+    `exp-${state.nextExperienceOrbId++}`,
+    enemy.x,
+    enemy.y,
+    experienceValue,
+    enemy.enemyId,
+  ));
+  logEvent(state, `經驗光點 +${experienceValue} 留在原地，靠近後才會拾取。`, 'safe');
   const split = enemyDefinition(enemy).attacks.find((attack) => attack.type === 'split');
   if (split) {
     for (let index = 0; index < (split.childCount ?? 2); index += 1) {
@@ -180,16 +290,26 @@ export function createSandboxState() {
     nextEnemyId: 1,
     nextProjectileId: 1,
     nextEffectId: 1,
+    nextExperienceOrbId: 1,
     enemies: [],
     projectiles: [],
+    experienceOrbs: [],
     zones: [],
     effects: [],
     logs: [],
     rules: [],
+    physicsMap: createSandboxPhysicsMap(),
+    physicsOrigin: SANDBOX_PHYSICS_ORIGIN,
+    physicsBounds: SANDBOX_PHYSICS_BOUNDS,
     actor,
-    build: { weaponId: 'knife', weaponLevel: 1, passives: [] },
+    progression: createProgressionState(),
+    awaitingUpgrade: false,
+    upgradeCategory: null,
+    upgradeCategories: [],
+    upgradeChoices: [],
+    build: { weaponId: 'knife', weaponLevel: 1, weapons: [{ id: 'knife', level: 1 }], activeWeaponSlot: 0, passives: [] },
   };
-  setPlayerLoadout(actor, [], { id: 'knife', level: 1 });
+  syncSandboxBuild(state);
   logEvent(state, '沙盒已準備：點擊場地放置敵人。');
   return state;
 }
@@ -224,6 +344,7 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
 export function clearSandboxEnemies(state) {
   state.enemies = [];
   state.projectiles = [];
+  state.experienceOrbs = [];
   state.effects = [];
   state.selectedEnemyInstanceId = null;
   state.selectedSkillId = null;
@@ -236,8 +357,16 @@ export function setSandboxBuild(state, { weaponId = 'knife', weaponLevel = 1, pa
   const validPassives = unique(passives
     .filter((ability) => PASSIVE_ABILITIES[ability.id] && Number(ability.level) > 0)
     .map((ability) => ({ id: ability.id, level: clamp(Math.round(Number(ability.level)), 1, PASSIVE_ABILITIES[ability.id].maxLevel) })));
-  state.build = { weaponId: validWeaponId, weaponLevel: validLevel, passives: validPassives };
-  setPlayerLoadout(state.actor, validPassives, { id: validWeaponId, level: validLevel });
+  state.progression.weapons = [{ id: 'knife', level: weaponId === 'knife' ? validLevel : 1 }];
+  if (weaponId !== 'knife') state.progression.weapons.push({ id: validWeaponId, level: validLevel });
+  state.progression.passives = validPassives;
+  state.progression.activeWeaponSlot = weaponId === 'knife' ? 0 : 1;
+  state.progression.pendingLevelUps = 0;
+  state.awaitingUpgrade = false;
+  state.upgradeCategory = null;
+  state.upgradeCategories = [];
+  state.upgradeChoices = [];
+  syncSandboxBuild(state);
   state.actor.health = MAX_HEALTH;
   state.actor.oxygen = MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
@@ -252,6 +381,13 @@ export function resetSandboxPlayer(state) {
   state.actor.health = MAX_HEALTH;
   state.actor.oxygen = MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
+  state.actor.launchMomentumTimer = 0;
+  state.actor.facing = 'right';
+  state.actor.blockedResting = false;
+  state.actor.attached = false;
+  state.actor.invulnerability = 0;
+  state.actor.hurtTimer = 0;
+  state.actor.deathAnimation = null;
   state.actor.dead = false;
   state.actor.gameOver = false;
   state.actor.activeEffects = {};
@@ -261,7 +397,7 @@ export function resetSandboxPlayer(state) {
 }
 
 export function beginSandboxAim(state, point) {
-  if (!point || state.actor.attached || state.actor.dead) return { ok: false, reason: 'unavailable' };
+  if (!point || state.awaitingUpgrade || state.actor.attached || state.actor.dead) return { ok: false, reason: state.awaitingUpgrade ? 'upgrade' : 'unavailable' };
   state.aiming = true;
   state.aimPoint = { x: point.x, y: point.y };
   state.actor.vx = 0;
@@ -281,31 +417,26 @@ export function updateSandboxAim(state, point) {
 export function releaseSandboxAim(state, point = state.aimPoint) {
   if (!state.aiming) return { ok: false, reason: 'notAiming' };
   updateSandboxAim(state, point);
-  const distance = Math.min(420, Math.hypot(state.actor.x - state.aimPoint.x, state.actor.y - state.aimPoint.y));
-  const costs = getLaunchCosts(distance, state.actor);
-  const result = { ok: false, launched: false, distance, costs };
-  if (distance < 5) {
-    result.reason = 'tooClose';
-  } else if (!state.infiniteResources && state.actor.energy < costs.energy) {
-    result.reason = 'energy';
-  } else {
-    const directionX = (state.actor.x - state.aimPoint.x) / distance;
-    const directionY = (state.actor.y - state.aimPoint.y) / distance;
-    const speed = Math.min(MAX_SPEED, getLaunchSpeed(distance));
-    state.actor.vx = directionX * speed;
-    state.actor.vy = directionY * speed;
-    if (!state.infiniteResources) {
-      state.actor.energy = Math.max(0, state.actor.energy - costs.energy);
-    }
-    result.ok = true;
-    result.launched = true;
-    result.speed = speed;
+  const energyBefore = state.actor.energy;
+  if (state.infiniteResources) state.actor.energy = MAX_ENERGY;
+  const launch = launchActor(state.actor, state.aimPoint);
+  if (state.infiniteResources) {
+    state.actor.energy = MAX_ENERGY;
+    state.actor.oxygen = MAX_OXYGEN;
+  }
+  const result = { ok: launch.launched, ...launch };
+  if (launch.launched) {
     addEffect(state, { type: 'launch', x: state.actor.x, y: state.actor.y, radius: 22, duration: 0.35, colour: '#f6e66d' });
-    logEvent(state, `玩家彈射：距離 ${Math.round(distance)}、初速 ${Math.round(speed)}。`, 'safe');
+    logEvent(state, `玩家彈射：距離 ${Math.round(launch.distance)}、初速 ${Math.round(launch.speed)}；正式 L1 物理已接管。`, 'safe');
+  } else if (state.infiniteResources) {
+    state.actor.energy = energyBefore >= MAX_ENERGY ? MAX_ENERGY : energyBefore;
   }
   state.aiming = false;
   state.aimPoint = null;
-  if (!result.launched) logEvent(state, `彈射失敗：${result.reason === 'tooClose' ? '蓄力距離太短' : '能量不足'}。`, 'warning');
+  if (!result.launched) {
+    const reason = result.reason === 'tooClose' ? '蓄力距離太短' : result.reason === 'attached' ? '玩家目前附著中' : '能量不足';
+    logEvent(state, `彈射失敗：${reason}。`, 'warning');
+  }
   return result;
 }
 
@@ -420,6 +551,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
 }
 
 export function playerAttack(state) {
+  if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade' };
   const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
   const cost = weapon.energyCost * (state.actor.derivedStats?.weaponEnergyCostMultiplier ?? 1);
   if (!state.infiniteResources && state.actor.energy < cost) {
@@ -490,41 +622,6 @@ function updateZones(state, dt) {
   });
 }
 
-function updateSandboxActor(state, dt) {
-  const actor = state.actor;
-  if (state.aiming || actor.attached) return;
-  const horizontalDrag = Math.pow(0.96, dt * 60);
-  const verticalDrag = Math.pow(0.998, dt * 60);
-  actor.vx *= horizontalDrag;
-  actor.vy = (actor.vy + GAME_GRAVITY * dt) * verticalDrag;
-  if (Math.abs(actor.vx) < 0.15) actor.vx = 0;
-  const speed = Math.hypot(actor.vx, actor.vy);
-  if (speed > MAX_SPEED) {
-    actor.vx = (actor.vx / speed) * MAX_SPEED;
-    actor.vy = (actor.vy / speed) * MAX_SPEED;
-  }
-  actor.x += actor.vx * dt;
-  actor.y += actor.vy * dt;
-  const minX = actor.radius + 4;
-  const maxX = SANDBOX_WIDTH - actor.radius - 4;
-  const minY = actor.radius + 4;
-  const maxY = SANDBOX_HEIGHT - actor.radius - 4;
-  if (actor.x < minX) {
-    actor.x = minX;
-    actor.vx = Math.abs(actor.vx) * 0.55;
-  } else if (actor.x > maxX) {
-    actor.x = maxX;
-    actor.vx = -Math.abs(actor.vx) * 0.55;
-  }
-  if (actor.y < minY) {
-    actor.y = minY;
-    actor.vy = Math.abs(actor.vy) * 0.55;
-  } else if (actor.y > maxY) {
-    actor.y = maxY;
-    actor.vy = -Math.abs(actor.vy) * 0.42;
-  }
-}
-
 function processPlayerEnemyCollisions(state) {
   const actor = state.actor;
   const speed = Math.hypot(actor.vx, actor.vy);
@@ -578,7 +675,7 @@ function updateEnemies(state, dt) {
 }
 
 export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
-  if (!state.running) return state;
+  if (!state.running || state.awaitingUpgrade) return state;
   state.time += dt;
   state.actor.cooldowns ??= {};
   Object.keys(state.actor.cooldowns ?? {}).forEach((key) => {
@@ -588,17 +685,40 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.oxygen = MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
     state.actor.health = MAX_HEALTH;
-  } else {
-    state.actor.oxygen = Math.max(0, state.actor.oxygen - getOxygenDrainPerSecond(state.actor) * dt);
-    if (state.actor.oxygen <= 0 && (state.actor.cooldowns.oxygenStarvation ?? 0) <= 0) {
-      applyPlayerDamage(state, OXYGEN_STARVATION_DAMAGE_PER_SECOND * dt, 'oxygenStarvation', 'oxygen');
-      state.actor.cooldowns.oxygenStarvation = 0.5;
-    }
   }
-  updateSandboxActor(state, dt);
+  // Keep the sandbox invincibility switch as a wrapper around the official
+  // damage gate; all movement, gravity, drag, boundary reflection, oxygen,
+  // facing and launch momentum now come from the production step.
+  if (state.invincible) state.actor.invulnerability = Math.max(state.actor.invulnerability ?? 0, dt + 0.01);
+  const physicsEvents = state.aiming ? [] : stepPhysics({
+    map: state.physicsMap,
+    chapter: 'chapter1',
+    actor: state.actor,
+    dt,
+    origin: state.physicsOrigin,
+    bounds: state.physicsBounds,
+    mutateMap: false,
+    time: state.time,
+  });
+  physicsEvents
+    .filter((event) => event.type === 'oxygenStarvation' || event.type === 'checkpoint')
+    .forEach((event) => logEvent(state, event.message, event.type === 'oxygenStarvation' ? 'danger' : 'safe'));
+  if (state.actor.health <= 0) {
+    state.actor.health = MAX_HEALTH;
+    state.actor.dead = false;
+    state.actor.gameOver = false;
+    state.actor.invulnerability = 1;
+    logEvent(state, '沙盒自動重置玩家生命，方便繼續驗收。', 'safe');
+  }
+  if (state.infiniteResources) {
+    state.actor.oxygen = MAX_OXYGEN;
+    state.actor.energy = MAX_ENERGY;
+    state.actor.health = MAX_HEALTH;
+  }
   updateEnemies(state, dt);
   processPlayerEnemyCollisions(state);
   updateProjectiles(state, dt);
+  collectSandboxExperience(state);
   updateZones(state, dt);
   state.effects = state.effects.filter((effect) => {
     effect.elapsed += dt;

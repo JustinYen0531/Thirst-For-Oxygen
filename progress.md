@@ -1,5 +1,12 @@
 Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一個要做的是地圖編輯器,因為那也是我製作地圖的方式。請參閱相關的文件。 如果我還沒有生成一個圖片的話,那就使用placeholder的圖案就好了,完全不要花心思在一開始的介面上,能用就行了。 那些效果都要做出來,也就是像什麼重力的邏輯啦,還是什麼物件,都要有相對應的互動邏輯。 另外一般的那種彈射邏輯也要讓我可以測試出來。
 
+## 2026-08-08 — Step 56 — sandbox parity with official play physics
+
+- 沙盒玩家不再使用 P placeholder；改用 `PLAYER_ANIMATION_ASSETS` 的正式潛水夫精靈、方向鏡像與動畫狀態。
+- 沙盒彈射改為直接呼叫正式 `launchActor`，因此長距離初速、能量結算、面向與動量保留都與遊玩頁一致。
+- 沙盒每幀改為直接呼叫正式 `stepPhysics`，並在隱藏的全 L1/T1 水域測試地圖上運算正式重力、水平阻尼、邊界反射與氧氣時鐘；無限資源／無敵仍由沙盒開關包裝。
+- `npm run check`：59 項測試通過；`npm run build`：Vite 建置通過；`git diff --check`：通過。依專案指示未執行瀏覽器／Playwright 驗收。
+
 ## 2026-08-08 — Step 21 in progress
 
 - Moved the twelve committed music tracks into `src/assets/audio/music/` and renamed them to stable kebab-case names. The absent `Phase 2 / Boss 2.0` track remains explicitly absent.

@@ -2,10 +2,20 @@ import { ENEMY_DEFINITIONS, PASSIVE_ABILITIES, WEAPONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
 import { getOxygenSecondsRemaining } from './physics.js';
 import {
+  PLAYER_ANIMATION_ASSETS,
+  getPlayerAnimationFrameIndex,
+  getPlayerAnimationMotion,
+  getPlayerAnimationState,
+  getPlayerFacingDirection,
+  getPlayerSpriteScaleX,
+} from './player-animation.js';
+import {
   SANDBOX_HEIGHT,
   SANDBOX_WIDTH,
   beginSandboxAim,
   clearSandboxEnemies,
+  chooseUpgrade,
+  chooseUpgradeCategory,
   createSandboxState,
   executeEnemySkill,
   getSandboxEnemyIds,
@@ -14,20 +24,26 @@ import {
   releaseSandboxAim,
   resetSandboxPlayer,
   setSandboxBuild,
+  setSandboxActiveWeapon,
   spawnSandboxEnemy,
   stepSandbox,
   updateSandboxAim,
 } from './sandbox-sim.js';
+import { getExperienceProgress } from './progression.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
 const stage = document.querySelector('#sandbox-stage');
 const sprites = document.querySelector('#sandbox-sprites');
-const playerMarker = document.querySelector('#player-marker');
+const playerSprite = document.querySelector('#player-sprite');
 const enemySelect = document.querySelector('#enemy-select');
 const weaponSelect = document.querySelector('#weapon-select');
 const weaponLevel = document.querySelector('#weapon-level');
 const passiveList = document.querySelector('#passive-list');
+const weaponSlots = document.querySelector('#weapon-slots');
+const progressionReadout = document.querySelector('#progression-readout');
+const upgradeCategoryActions = document.querySelector('#upgrade-category-actions');
+const upgradeChoiceList = document.querySelector('#upgrade-choice-list');
 const skillSelect = document.querySelector('#skill-select');
 const skillDescription = document.querySelector('#skill-description');
 const selectedEnemyName = document.querySelector('#selected-enemy-name');
@@ -166,7 +182,60 @@ function applyBuild() {
     .map((select) => ({ id: select.dataset.passiveId, level: Number(select.value) }))
     .filter((ability) => ability.level > 0);
   setSandboxBuild(state, { weaponId: weaponSelect.value, weaponLevel: Number(weaponLevel.value), passives });
-  status.textContent = `已套用 ${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel} 與 ${passives.length} 個被動技能。`;
+  status.textContent = `已套用 ${state.build.weapons.map((weapon) => `${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')} 與 ${passives.length} 個被動技能。`;
+}
+
+function renderProgression() {
+  const progress = getExperienceProgress(state.progression);
+  const orbLabel = state.experienceOrbs.length ? `${state.experienceOrbs.length} 顆留在場上的光點` : '目前沒有留在場上的光點';
+  progressionReadout.innerHTML = `<strong>Player Lv.${progress.level}</strong><span>EXP ${Math.floor(progress.current)} / ${progress.required || 'MAX'}</span><small>${orbLabel}；靠近玩家才會拾取。</small>`;
+  weaponSlots.replaceChildren();
+  state.build.weapons.forEach((weapon, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `weapon-slot${index === state.build.activeWeaponSlot ? ' active' : ''}`;
+    button.dataset.weaponSlot = String(index);
+    button.textContent = `${index + 1}. ${WEAPONS[weapon.id].name} Lv.${weapon.level}`;
+    button.title = '點擊切換目前使用的武器';
+    weaponSlots.append(button);
+  });
+
+  upgradeCategoryActions.replaceChildren();
+  upgradeChoiceList.replaceChildren();
+  if (!state.awaitingUpgrade) {
+    const idle = document.createElement('small');
+    idle.className = 'upgrade-empty';
+    idle.textContent = '擊敗敵人取得光點；升級時會在這裡暫停並提供選擇。';
+    upgradeChoiceList.append(idle);
+    return;
+  }
+  state.upgradeCategories.forEach((category) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.upgradeCategory = category;
+    button.className = `upgrade-category${category === state.upgradeCategory ? ' active' : ''}`;
+    button.textContent = category === 'weapon' ? '武器' : '被動能力';
+    upgradeCategoryActions.append(button);
+  });
+  if (!state.upgradeCategory) {
+    const prompt = document.createElement('small');
+    prompt.className = 'upgrade-empty';
+    prompt.textContent = '已升級：先選擇武器或被動能力。';
+    upgradeChoiceList.append(prompt);
+    return;
+  }
+  state.upgradeChoices.forEach((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'upgrade-choice';
+    button.dataset.upgradeChoice = 'true';
+    button.dataset.upgradeCategory = choice.category;
+    button.dataset.upgradeAction = choice.action;
+    button.dataset.upgradeId = choice.id;
+    button.dataset.upgradeLevel = String(choice.level);
+    button.innerHTML = `<strong>${choice.label}</strong><small>${choice.detail}</small>`;
+    upgradeChoiceList.append(button);
+  });
 }
 
 function canvasPoint(event) {
@@ -214,8 +283,8 @@ function releaseAim(event) {
   const result = releaseSandboxAim(state, canvasPoint(event));
   canvas.releasePointerCapture?.(event.pointerId);
   status.textContent = result.launched
-    ? `彈射成功：初速 ${Math.round(result.speed)}；撞擊敵人會以目前武器造成傷害。`
-    : '彈射失敗：請拉出更長距離，並確認能量足夠。氧氣會依時間倒數。';
+    ? `彈射成功：初速 ${Math.round(result.speed)}；正式遊玩 L1 重力與阻尼已接管。`
+    : `彈射失敗：${result.reason === 'tooClose' ? '請拉出更長距離。' : result.reason === 'attached' ? '玩家目前附著中。' : '能量不足。'}`;
   render();
 }
 
@@ -247,6 +316,30 @@ function renderBackground() {
     ctx.arc(x, y, 1.5 + (index % 3), 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function renderExperienceOrbs() {
+  state.experienceOrbs.forEach((orb) => {
+    const pulse = 0.82 + Math.sin(state.time * 4 + orb.id.length) * 0.12;
+    ctx.save();
+    ctx.globalAlpha = 0.34 + pulse * 0.32;
+    ctx.fillStyle = '#9eeeff';
+    ctx.shadowColor = '#7de9ff';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(orb.x, orb.y, (orb.radius ?? 7) * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = '#e9ffff';
+    ctx.beginPath();
+    ctx.moveTo(orb.x, orb.y - 4);
+    ctx.lineTo(orb.x + 4, orb.y);
+    ctx.lineTo(orb.x, orb.y + 4);
+    ctx.lineTo(orb.x - 4, orb.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
 }
 
 function renderEffects() {
@@ -377,29 +470,48 @@ function renderSprites() {
   sprites.querySelectorAll('[data-instance-id]').forEach((element) => {
     if (!liveIds.has(element.dataset.instanceId)) element.remove();
   });
-  playerMarker.style.left = `${(state.actor.x / SANDBOX_WIDTH) * 100}%`;
-  playerMarker.style.top = `${(state.actor.y / SANDBOX_HEIGHT) * 100}%`;
-  playerMarker.classList.toggle('aiming', state.aiming);
+  const animationState = getPlayerAnimationState(state.actor);
+  const frameIndex = getPlayerAnimationFrameIndex(animationState, state.time, state.actor);
+  const source = PLAYER_ANIMATION_ASSETS[animationState]?.[frameIndex] ?? PLAYER_ANIMATION_ASSETS.swim[0];
+  if (playerSprite.dataset.source !== source) {
+    playerSprite.src = source;
+    playerSprite.dataset.source = source;
+  }
+  const motion = getPlayerAnimationMotion(animationState, state.time, state.actor);
+  const facing = getPlayerFacingDirection(state.actor);
+  const size = Math.max(34, state.actor.radius * 6);
+  playerSprite.width = size;
+  playerSprite.height = size;
+  playerSprite.style.left = `${(state.actor.x / SANDBOX_WIDTH) * 100}%`;
+  playerSprite.style.top = `${((state.actor.y + motion.bob) / SANDBOX_HEIGHT) * 100}%`;
+  playerSprite.style.opacity = String(motion.alpha);
+  playerSprite.style.transform = `translate(-50%, -50%) rotate(${motion.rotation}rad) scaleX(${getPlayerSpriteScaleX(facing, motion.scaleX)}) scaleY(${motion.scaleY})`;
+  playerSprite.classList.toggle('aiming', state.aiming);
 }
 
 function renderTelemetry() {
   const enemy = selectedEnemy();
+  const progress = getExperienceProgress(state.progression);
   playerStats.innerHTML = [
+    ['等級', `Lv.${progress.level}`],
+    ['經驗', `${Math.floor(progress.current)} / ${progress.required || 'MAX'}`],
     ['生命', `${format(state.actor.health)} / 100`],
-    ['氧氣', state.infiniteResources ? '∞' : `${format(getOxygenSecondsRemaining(state.actor))}s`],
+    ['氧氣', state.infiniteResources ? '∞' : `${format(state.actor.oxygen)} / 100（${format(getOxygenSecondsRemaining(state.actor))}s）`],
     ['能量', state.infiniteResources ? '∞' : format(state.actor.energy)],
     ['L1 動量', `${format(state.actor.vx)}, ${format(state.actor.vy)}`],
-    ['武器', `${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}`],
+    ['武器', state.build.weapons.map((weapon, index) => `${index + 1}.${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')],
     ['被動', state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'],
     ['敵人數', `${state.enemies.length}（存活 ${state.enemies.filter((candidate) => !candidate.defeated).length}）`],
   ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
   sandboxLog.innerHTML = state.logs.map((event) => `<li data-level="${event.level}"><time>${event.time.toFixed(1)}s</time> ${event.message}</li>`).join('');
   updateSkillPicker();
   renderPlacedEnemyList();
+  renderProgression();
 }
 
 function render() {
   renderBackground();
+  renderExperienceOrbs();
   renderAimPreview();
   renderEffects();
   renderEnemyMarkers();
@@ -433,6 +545,32 @@ document.querySelector('#pause-toggle').addEventListener('click', (event) => {
 document.querySelector('#invincible-toggle').addEventListener('change', (event) => { state.invincible = event.target.checked; });
 document.querySelector('#infinite-toggle').addEventListener('change', (event) => { state.infiniteResources = event.target.checked; });
 document.querySelector('#auto-toggle').addEventListener('change', (event) => { state.autoCycle = event.target.checked; status.textContent = event.target.checked ? '敵人會自動循環可用技能。' : '敵人自動技能已關閉。'; });
+weaponSlots.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-weapon-slot]');
+  if (!button) return;
+  setSandboxActiveWeapon(state, Number(button.dataset.weaponSlot));
+  status.textContent = `目前使用 ${WEAPONS[state.build.weaponId].name} Lv.${state.build.weaponLevel}。`;
+  render();
+});
+upgradeCategoryActions.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-upgrade-category]');
+  if (!button) return;
+  const result = chooseUpgradeCategory(state, button.dataset.upgradeCategory);
+  status.textContent = result.ok ? '請從兩個合法升級選項中選一個。' : '這個升級類別目前沒有合法選項。';
+  render();
+});
+upgradeChoiceList.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-upgrade-choice]');
+  if (!button) return;
+  const result = chooseUpgrade(state, {
+    category: button.dataset.upgradeCategory,
+    action: button.dataset.upgradeAction,
+    id: button.dataset.upgradeId,
+    level: Number(button.dataset.upgradeLevel),
+  });
+  status.textContent = result.ok ? '升級已套用；可繼續拾取經驗光點。' : '這個升級選項已失效，請重新選擇。';
+  render();
+});
 enemySelect.addEventListener('change', () => { status.textContent = `下一個放置：${ENEMY_DEFINITIONS[enemySelect.value].name}。`; });
 weaponSelect.addEventListener('change', () => {
   const maxLevel = WEAPONS[weaponSelect.value].maxLevel;
@@ -474,8 +612,8 @@ window.addEventListener('keydown', (event) => {
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : `${format(getOxygenSecondsRemaining(state.actor))}s`, energy: state.infiniteResources ? 'infinite' : format(state.actor.energy) },
-  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor) },
+  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   build: state.build,
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), health: format(enemy.health), defeated: enemy.defeated, animation: enemy.animation })),

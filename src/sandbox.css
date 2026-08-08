@@ -44,8 +44,8 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .sandbox-sprite.defeated { opacity: .3; filter: grayscale(1); }
 .sandbox-sprite-fallback { position: absolute; display: grid; place-items: center; transform: translate(-50%, -50%); border: 2px solid #8cdcff; border-radius: 50%; color: #fff2ad; background: radial-gradient(circle, #347ba4, #102b46); font-size: 11px; font-weight: 700; text-align: center; box-shadow: 0 0 14px rgba(116, 218, 255, .4); }
 .sandbox-sprite-fallback.selected { border-color: #f6e66d; box-shadow: 0 0 15px rgba(246, 230, 109, .78); }
-.player-marker { position: absolute; left: 15.6%; top: 50%; display: grid; place-items: center; width: 22px; height: 22px; transform: translate(-50%, -50%); border: 2px solid #fff1a3; border-radius: 50%; color: #fffdf0; background: #c65b70; font-size: 11px; font-weight: 800; pointer-events: none; box-shadow: 0 0 10px rgba(255, 231, 112, .65); }
-.player-marker.aiming { border-color: #f6e66d; background: #b99036; box-shadow: 0 0 0 5px rgba(246, 230, 109, .16), 0 0 18px rgba(246, 230, 109, .9); }
+.sandbox-player-sprite { position: absolute; left: 15.6%; top: 50%; width: 38px; height: 38px; object-fit: contain; transform: translate(-50%, -50%); pointer-events: none; filter: drop-shadow(0 0 5px rgba(198, 248, 255, .8)) drop-shadow(0 4px 8px rgba(0, 0, 0, .48)); }
+.sandbox-player-sprite.aiming { filter: drop-shadow(0 0 5px rgba(246, 230, 109, .98)) drop-shadow(0 0 12px rgba(246, 230, 109, .72)); }
 .arena-toolbar { display: flex; align-items: center; gap: 7px; margin: 8px 0; }
 .arena-toolbar span { flex: 1; min-width: 0; overflow: hidden; color: #a9c4da; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .arena-toolbar button { width: auto; white-space: nowrap; }

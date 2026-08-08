@@ -190,7 +190,26 @@ export const ENEMY_DEFINITIONS = Object.freeze({
   },
 });
 
+// Experience is awarded from the enemy's authored difficulty tier. Keep this
+// table beside the combat definitions so balance changes do not leak into UI
+// code; an individual enemy may override it with `experienceReward` later.
+export const EXPERIENCE_REWARDS_BY_TIER = Object.freeze({
+  1: 14,
+  2: 24,
+  3: 38,
+  4: 58,
+  miniBoss: 150,
+  mutatedMiniBoss: 220,
+  finalBoss: 600,
+});
+
 export const ENEMY_ORDER = Object.freeze(Object.keys(ENEMY_DEFINITIONS));
+
+export function getEnemyExperienceReward(enemyId) {
+  const definition = ENEMY_DEFINITIONS[enemyId];
+  if (!definition) return 0;
+  return definition.experienceReward ?? EXPERIENCE_REWARDS_BY_TIER[definition.tier] ?? 0;
+}
 
 export function getPassiveModifiers(loadout = []) {
   const modifiers = { ...PLAYER_BASE_STATS };

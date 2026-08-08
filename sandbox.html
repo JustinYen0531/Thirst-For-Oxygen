@@ -30,7 +30,7 @@
             <select id="enemy-select"></select>
             <button id="place-enemy" type="button">點擊場地放置</button>
             <button id="clear-enemies" type="button" class="secondary">清除全部敵人</button>
-            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。點住玩家 P 拖曳，放手就會在 L1 重力下彈射。</p>
+            <p class="hint">選擇敵人後點擊中央場地，可連續放置多名敵人。拖住正式潛水夫，會使用與遊玩頁相同的直線彈射、L1 下沉重力、阻尼與氧氣規則。</p>
           </section>
 
           <section class="control-section">
@@ -57,7 +57,7 @@
           <div id="sandbox-stage" class="sandbox-stage" aria-label="敵人驗收場地">
             <canvas id="sandbox-canvas" width="960" height="560"></canvas>
             <div id="sandbox-sprites" class="sandbox-sprites" aria-hidden="true"></div>
-            <div id="player-marker" class="player-marker" aria-label="玩家位置">P</div>
+            <img id="player-sprite" class="sandbox-player-sprite" alt="玩家潛水夫" />
           </div>
           <div class="arena-toolbar">
             <span id="sandbox-status">沙盒已準備。</span>
