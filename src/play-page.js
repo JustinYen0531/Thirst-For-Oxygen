@@ -45,13 +45,14 @@ import {
 } from './play-enemies.js';
 import {
   CONDITIONAL_GATE_GUIDE,
+  acknowledgeDiscoveryGuide,
   createDiscoverySession,
   getEdgeDiscoveryGuide,
   getEnemyDiscoveryGuide,
   getObjectDiscoveryGuide,
   updateDiscoverySession,
 } from './visor-discovery.js';
-import { drawDiscoveryGuides } from './visor-discovery-renderer.js';
+import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -133,6 +134,7 @@ let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
 let activeCollisionSoundKeys = new Set();
 const discoverySession = createDiscoverySession();
+let discoveryAcknowledgementTargets = [];
 const PLAYER_LEVEL = 1;
 const PLAYER_EXPERIENCE = 0;
 const EXPERIENCE_TO_NEXT_LEVEL = 100;
@@ -202,6 +204,7 @@ function setupWorld(nextMap) {
   trajectory = [];
   activeCollisionSoundKeys.clear();
   discoverySession.activeByGuideKey.clear();
+  discoveryAcknowledgementTargets = [];
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
   eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
@@ -607,7 +610,7 @@ function render() {
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
   drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor();
   const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
-  drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
+  discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
 }
 
@@ -695,7 +698,30 @@ function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); retur
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
 function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (actor.y - camera.y) * SCALE }; }
 
-canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
+canvas.addEventListener('pointerdown', (event) => {
+  if (!actor) return;
+  const point = canvasPoint(event);
+  const worldPoint = screenToWorld(point);
+  const acknowledgement = hitTestDiscoveryAcknowledgement(discoveryAcknowledgementTargets, worldPoint);
+  if (acknowledgement) {
+    event.preventDefault();
+    if (acknowledgeDiscoveryGuide(discoverySession, acknowledgement.guideKey)) {
+      sfxController.play('button', { volumeMultiplier: .55 });
+      discoveryAcknowledgementTargets = [];
+      render();
+    }
+    return;
+  }
+  if (paused || actor.dead) return;
+  event.preventDefault();
+  const actorPoint = actorCanvasPoint();
+  if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
+  dragging = true;
+  canvas.setPointerCapture(event.pointerId);
+  aimPoint = worldPoint;
+  refreshTrajectory(true);
+  updateHud();
+});
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
@@ -759,9 +785,10 @@ window.render_game_to_text = () => JSON.stringify({
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
   player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
-  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), state: enemy.state, facing: enemy.facing, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
   totalEnemySpawns: enemies.length,
   totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
+  totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
   discoveries: {
     seen: [...discoverySession.seenGuideKeys],
     active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),

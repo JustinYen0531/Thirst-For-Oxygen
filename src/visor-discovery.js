@@ -81,6 +81,12 @@ export function updateDiscoverySession(session, visibleTargets, timeSeconds) {
   return [...session.activeByGuideKey.values()];
 }
 
+export function acknowledgeDiscoveryGuide(session, guideKey) {
+  if (!session?.activeByGuideKey?.has(guideKey)) return false;
+  session.activeByGuideKey.delete(guideKey);
+  return true;
+}
+
 export function getDiscoveryTypedDescription(activeGuide, timeSeconds, charactersPerSecond = 24) {
   const elapsed = Math.max(0, (Number.isFinite(timeSeconds) ? timeSeconds : 0) - activeGuide.startedAt);
   const characterCount = Math.max(1, Math.floor(elapsed * charactersPerSecond));

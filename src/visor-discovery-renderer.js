@@ -35,21 +35,40 @@ function drawCornerReticle(context, x, y, half, cornerLength) {
   context.stroke();
 }
 
+export function getDiscoveryGuideLayout(active, index, camera, viewport) {
+  const half = Math.max(7, active.size * .58);
+  const placeOnRight = active.x < camera.x + viewport.width * .56;
+  const panelWidth = 66;
+  const panelHeight = 28;
+  const rawPanelX = placeOnRight ? active.x + half + 8 : active.x - half - panelWidth - 8;
+  const panelX = clamp(rawPanelX, camera.x + 3, camera.x + viewport.width - panelWidth - 3);
+  const panelY = clamp(active.y - panelHeight * .5 + (index % 3) * 4, camera.y + 3, camera.y + viewport.height - panelHeight - 3);
+  return {
+    half,
+    placeOnRight,
+    panelX,
+    panelY,
+    panelWidth,
+    panelHeight,
+    ok: { x: panelX + panelWidth - 14, y: panelY + panelHeight - 7, width: 11, height: 4.5 },
+  };
+}
+
+export function hitTestDiscoveryAcknowledgement(hitTargets, point) {
+  return [...hitTargets].reverse().find((target) => (
+    point.x >= target.x
+    && point.x <= target.x + target.width
+    && point.y >= target.y
+    && point.y <= target.y + target.height
+  )) ?? null;
+}
+
 export function drawDiscoveryGuides(context, activeGuides, camera, viewport, timeSeconds) {
-  if (!activeGuides.length) return;
-  const viewLeft = camera.x;
-  const viewTop = camera.y;
-  const viewRight = camera.x + viewport.width;
-  const viewBottom = camera.y + viewport.height;
+  if (!activeGuides.length) return [];
+  const hitTargets = [];
 
   activeGuides.forEach((active, index) => {
-    const half = Math.max(7, active.size * .58);
-    const placeOnRight = active.x < camera.x + viewport.width * .56;
-    const panelWidth = 66;
-    const panelHeight = 24;
-    const rawPanelX = placeOnRight ? active.x + half + 8 : active.x - half - panelWidth - 8;
-    const panelX = clamp(rawPanelX, viewLeft + 3, viewRight - panelWidth - 3);
-    const panelY = clamp(active.y - panelHeight * .5 + (index % 3) * 4, viewTop + 3, viewBottom - panelHeight - 3);
+    const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, ok } = getDiscoveryGuideLayout(active, index, camera, viewport);
     const lineEndX = placeOnRight ? panelX : panelX + panelWidth;
     const typedDescription = getDiscoveryTypedDescription(active, timeSeconds);
     const descriptionLines = splitText(typedDescription);
@@ -86,6 +105,19 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     context.font = '2.7px system-ui, sans-serif';
     context.fillStyle = '#bcefd5';
     descriptionLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, panelY + 11.4 + lineIndex * 4.1));
+
+    context.fillStyle = 'rgba(141, 255, 196, .14)';
+    context.strokeStyle = VISOR_GREEN;
+    context.lineWidth = .45;
+    context.fillRect(ok.x, ok.y, ok.width, ok.height);
+    context.strokeRect(ok.x, ok.y, ok.width, ok.height);
+    context.font = '700 2.7px system-ui, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = '#effff8';
+    context.fillText('OK', ok.x + ok.width * .5, ok.y + ok.height * .5 + .1);
     context.restore();
+    hitTargets.push({ guideKey: active.guideKey, ...ok });
   });
+  return hitTargets;
 }

@@ -8,6 +8,8 @@ import {
   DESCENT_ENEMY_ROSTER,
   DESCENT_LV1_ENEMIES,
   PLAY_ENEMY_RENDER_SCALE,
+  PLAY_ENEMY_ACTIVATION_RADIUS,
+  PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
@@ -15,6 +17,7 @@ import {
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from '../src/play-enemies.js';
+import { getHexCenter } from '../src/map-model.js';
 
 const PART_MAP_PATHS = [
   '../maps/下沉篇/下沉篇-第1部分.json',
@@ -26,19 +29,37 @@ function readMap(relativePath) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8'));
 }
 
-test('all descent map parts expand encounter anchors to the required population', () => {
+test('all descent map parts distribute the required population with sparse authored clusters', () => {
   const allEnemyIds = new Set();
   PART_MAP_PATHS.forEach((relativePath, index) => {
     const part = index + 1;
     const enemies = createPlayEnemies(readMap(relativePath), part, 'chapter1', { x: 36, y: 36 });
     assert.equal(enemies.length, PLAY_ENEMY_TARGETS[part], `Part ${part} should reach its authored population`);
     assert.equal(new Set(enemies.map((enemy) => enemy.spawnCellKey)).size, enemies.length, `Part ${part} should spread enemies across distinct water cells`);
+    assert.equal(enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length, Math.floor(enemies.length * .2), `Part ${part} should reserve only a small share for local clusters`);
     enemies.forEach((enemy) => {
       assert.equal(DESCENT_ENEMY_ROSTER.includes(enemy.enemyId), true, `${enemy.enemyId} must belong to Chapter 1: Descent`);
       allEnemyIds.add(enemy.enemyId);
     });
   });
   assert.deepEqual(new Set(DESCENT_ENEMY_ROSTER), allEnemyIds, 'the three descent parts should use the complete documented nine-enemy roster');
+});
+
+test('enemy distribution protects the player start and covers the map instead of stacking at anchors', () => {
+  PART_MAP_PATHS.forEach((relativePath, index) => {
+    const map = readMap(relativePath);
+    const origin = { x: 36, y: 36 };
+    const enemies = createPlayEnemies(map, index + 1, 'chapter1', origin);
+    const startCell = Object.values(map.cells).find((cell) => cell.actors?.some((actor) => actor.kind === 'playerStart'));
+    const start = getHexCenter(startCell, origin);
+    assert.ok(enemies.every((enemy) => Math.hypot(enemy.x - start.x, enemy.y - start.y) >= PLAY_ENEMY_SPAWN_SAFE_RADIUS), `Part ${index + 1} should keep a safe opening around the player`);
+
+    const rows = enemies.map((enemy) => map.cells[enemy.spawnCellKey].r);
+    const minimum = Math.min(...rows);
+    const maximum = Math.max(...rows);
+    const coveredBands = new Set(rows.map((row) => Math.min(3, Math.floor((row - minimum) / Math.max(1, maximum - minimum + 1) * 4))));
+    assert.equal(coveredBands.size, 4, `Part ${index + 1} should distribute enemies throughout the playable length`);
+  });
 });
 
 test('enemy progression follows the configuration document instead of a made-up tier per map', () => {
@@ -102,5 +123,31 @@ test('play enemies chase the actor and expose a real damage callback', () => {
 
   assert.ok(enemy.x < startX, 'the real play enemy should track the actor');
   assert.ok(damage > 0, 'the real play enemy should eventually call the player damage path');
-  assert.ok(['chasing', 'attacking'].includes(enemy.state));
+  assert.ok(['chasing', 'casting', 'attacking'].includes(enemy.state));
+});
+
+test('physical overlap is harmless until an enemy skill finishes its cast', () => {
+  const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
+  const enemy = enemies.find((candidate) => candidate.enemyId === 'crabGuard');
+  const actor = { x: enemy.x, y: enemy.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
+  let damage = 0;
+
+  updatePlayEnemies([enemy], actor, 1 / 60, 0, (amount) => { damage += amount; });
+  assert.equal(damage, 0, 'touching an enemy body must not deal collision damage');
+  assert.equal(enemy.state, 'casting', 'the enemy should visibly enter a skill cast first');
+  for (let index = 1; index <= 30; index += 1) updatePlayEnemies([enemy], actor, 1 / 60, index / 60, (amount) => { damage += amount; });
+  assert.ok(damage > 0, 'damage should occur only after the skill cast resolves');
+});
+
+test('distant enemies remain dormant instead of converging on the player spawn', () => {
+  const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
+  const enemy = enemies.find((candidate) => candidate.enemyId === 'crabGuard');
+  const actor = { x: enemy.x + PLAY_ENEMY_ACTIVATION_RADIUS + 80, y: enemy.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
+  const start = { x: enemy.x, y: enemy.y };
+  let damage = 0;
+  for (let index = 0; index < 180; index += 1) updatePlayEnemies([enemy], actor, 1 / 60, index / 60, (amount) => { damage += amount; });
+
+  assert.deepEqual({ x: enemy.x, y: enemy.y }, start);
+  assert.equal(enemy.state, 'idle');
+  assert.equal(damage, 0);
 });
