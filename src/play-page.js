@@ -159,15 +159,82 @@ function renderCell(cell, key) {
   context.clip();
   drawImage(activeTilePath(cell), center.x, center.y, TILE_SIZE * 1.78, TILE_SIZE * 2.03, cell.terrain === 'blocked' ? .98 : .86);
   if (cell.waterLayer === 'T2' && cell.terrain !== 'blocked') { context.fillStyle = 'rgba(11, 16, 49, .24)'; context.fillRect(center.x - TILE_SIZE, center.y - TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2); }
-  context.restore();
-  context.save();
-  hexPath(context, cell, .35);
-  context.strokeStyle = cell.terrain === 'blocked' ? 'rgba(1, 5, 12, .94)' : 'rgba(3, 13, 28, .42)';
-  context.lineWidth = cell.terrain === 'blocked' ? 1.25 : .72;
-  context.stroke();
+  if (cell.terrain === 'water') drawWaterMotion(cell, center);
   context.restore();
   (cell.objects ?? []).forEach((object, index) => drawObject(object, center.x + Math.cos(index * 2.5) * 2, center.y + Math.sin(index * 2.5) * 2));
   (cell.freeObjects ?? []).forEach((object) => { const offset = object.offset ?? { x: 0, y: 0 }; drawObject(object, center.x + offset.x, center.y + offset.y); });
+}
+
+function drawWaterMotion(cell, center) {
+  const phase = cell.q * 1.71 + cell.r * 0.93;
+  const time = performance.now() / 1000;
+  const pulse = 0.5 + Math.sin(time * 0.8 + phase) * 0.5;
+  const intensity = 5;
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  for (let index = 0; index < 3; index += 1) {
+    const localPhase = phase + index * 2.07;
+    const angle = localPhase + Math.sin(time * 0.45 + localPhase) * 0.42;
+    const radius = 3.2 + index * 2.2;
+    const x = center.x + Math.cos(localPhase * 0.7 + time * 0.16) * 2.2;
+    const y = center.y + Math.sin(localPhase * 0.8 - time * 0.14) * 2.2;
+    context.strokeStyle = `rgba(193, 235, 255, ${(0.035 + pulse * 0.045) * intensity})`;
+    context.lineWidth = (0.42 * 1.7) / SCALE;
+    context.beginPath();
+    context.arc(x, y, radius, angle, angle + 0.95 + pulse * 0.18);
+    context.stroke();
+  }
+  for (let index = 0; index < 2; index += 1) {
+    const particlePhase = phase + index * 3.1;
+    const x = center.x + Math.sin(time * (0.28 + index * 0.05) + particlePhase) * 7.4;
+    const y = center.y + Math.cos(time * (0.22 + index * 0.04) + particlePhase * 1.3) * 6.2;
+    context.fillStyle = `rgba(218, 247, 255, ${(0.08 + pulse * 0.08) * intensity})`;
+    context.beginPath();
+    context.arc(x, y, (0.42 + pulse * 0.18) * 1.45, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.fillStyle = `rgba(181, 229, 255, ${(0.012 + pulse * 0.018) * intensity})`;
+  context.beginPath();
+  context.arc(center.x + Math.cos(time * 0.22 + phase) * 4.5, center.y + Math.sin(time * 0.19 + phase * 1.2) * 4.5, 4.5 + pulse * 4.5, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+}
+
+const sideVertexIndexes = [[0, 1], [5, 0], [4, 5], [3, 4], [2, 3], [1, 2]];
+function sameSurface(left, right) {
+  if (!left || !right || left.terrain !== right.terrain) return false;
+  return left.terrain === 'blocked'
+    || (left.gravityLevel === right.gravityLevel && (left.waterLayer ?? 'T1') === (right.waterLayer ?? 'T1'));
+}
+
+function drawTerrainBoundaries() {
+  const faintSharedBorder = { width: 0.5 / SCALE, colour: 'rgba(4, 16, 33, 0.23)' };
+  const clearTransitionBorder = { width: 1.25 / SCALE, colour: 'rgba(2, 12, 27, 0.78)' };
+  Object.entries(map.cells).forEach(([key, baseCell]) => {
+    const cell = getActiveCell(map, key, 'chapter1');
+    const center = getHexCenter(cell, origin);
+    if (center.y < camera.y - 40 || center.y > camera.y + canvas.height / SCALE + 40) return;
+    const vertices = getHexVertices(cell, origin);
+    for (let directionIndex = 0; directionIndex <= 2; directionIndex += 1) {
+      const adjacentKey = [
+        `${cell.q + 1},${cell.r}`,
+        `${cell.q + 1},${cell.r - 1}`,
+        `${cell.q},${cell.r - 1}`,
+      ][directionIndex];
+      const adjacent = map.cells[adjacentKey] ? getActiveCell(map, adjacentKey, 'chapter1') : null;
+      if (!adjacent) continue;
+      const [startIndex, endIndex] = sideVertexIndexes[directionIndex];
+      const style = sameSurface(cell, adjacent) ? faintSharedBorder : clearTransitionBorder;
+      context.save();
+      context.lineWidth = style.width;
+      context.strokeStyle = style.colour;
+      context.beginPath();
+      context.moveTo(vertices[startIndex].x, vertices[startIndex].y);
+      context.lineTo(vertices[endIndex].x, vertices[endIndex].y);
+      context.stroke();
+      context.restore();
+    }
+  });
 }
 
 function drawObject(object, x, y) {
@@ -182,7 +249,7 @@ function drawEdges() {
     const from = cellCenter(a); const to = cellCenter(b); const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
     if (mid.y < camera.y - 45 || mid.y > camera.y + canvas.height / SCALE + 45) return;
     const color = edgeColors[edge.type] ?? '#bcecff';
-    context.save(); context.strokeStyle = color; context.lineWidth = edge.type === 'multiPortal' ? 1.5 : 1.05; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3, 3] : []);
+    context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
     context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(to.x, to.y); context.stroke(); context.restore();
     const asset = EDGE_ASSETS[edge.type];
     if (asset) drawImage(asset, mid.x, mid.y, edge.type === 'multiPortal' ? 20 : 16, edge.type === 'multiPortal' ? 16 : 16, .92);
@@ -204,7 +271,7 @@ function render() {
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawEdges(); drawTrajectory(); drawActor(); context.restore();
+  drawTerrainBoundaries(); drawEdges(); drawTrajectory(); drawActor(); context.restore();
 }
 
 function updateHud() {

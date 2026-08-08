@@ -346,3 +346,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Launch previews now share the immutable map, use 48 prediction steps, and throttle pointer recomputation to 45 ms. Added deterministic `render_game_to_text` / `advanceTime` hooks.
 - Pure Node benchmark: 48-step trajectory preview dropped from about 550 ms to 8 ms first-run / 2 ms warm; 240 physics steps on the reference map dropped from about 3 s to about 26 ms.
 - Static-only verification passed: `npm run check` (43/43 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 43 complete
+
+- Synchronized the standalone play renderer with the editor's water presentation: animated local arcs, particles, and slow brightness breathing now run on every visible water Cell.
+- Replaced per-Cell heavy strokes with editor-style shared-side boundaries: same terrain/gravity/layer is faint, transitions are clear, and no artificial outer grid cap is drawn.
+- Static-only verification passed: `npm run check` (43/43 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
