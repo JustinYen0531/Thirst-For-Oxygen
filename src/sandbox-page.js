@@ -906,10 +906,12 @@ function renderKnifeMeteorEffect(effect, progress, side) {
     ctx.lineTo(effect.targetX ?? effect.startX ?? effect.x, effect.targetY ?? effect.startY ?? effect.y);
     ctx.stroke();
   }
-  ctx.shadowBlur = glowBlur;
+  // Keep the tapered trail crisp without asking the GPU to blur every segment;
+  // only the moving head below receives a small, bounded halo.
+  ctx.shadowBlur = 0;
   renderMeteorStroke(effect, headRatio, fade * (side ? 0.9 : 0.96), lineWidth * (side ? 0.9 : 1));
 
-  ctx.shadowBlur = Math.min(glowBlur, side ? 3 : 6);
+  ctx.shadowBlur = Math.min(glowBlur, side ? 2 : 4);
   ctx.globalAlpha = fade * (side ? 0.58 : 0.74);
   ctx.fillStyle = effect.colour ?? '#ffffff';
   ctx.beginPath();
@@ -1194,7 +1196,8 @@ canvas.addEventListener('pointermove', moveAim);
 canvas.addEventListener('pointerup', releaseAim);
 canvas.addEventListener('pointercancel', releaseAim);
 window.addEventListener('keydown', (event) => {
-  if (/^[123]$/.test(event.key)) {
+  const editingControl = event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName);
+  if (!editingControl && /^[123]$/.test(event.key)) {
     const slot = Number(event.key) - 1;
     if (state.build.weapons[slot]) {
       event.preventDefault();

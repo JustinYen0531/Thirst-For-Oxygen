@@ -729,3 +729,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Changed the sandbox's hidden physics field from L1 to L0. Launches now preserve the player's chosen direction without a gravity-induced vertical drift; the formal play map's gravity rules remain unchanged.
 - Updated sandbox telemetry and release status to expose `gravity: "zero"` and `zeroGravity: true`, and added regression coverage for neutral cells, unlimited resources, preserved vertical position, and horizontal momentum.
 - Static-only verification passed: full `npm run check` (130/130), `npm run build`, and `git diff --check`; browser and Playwright remain intentionally skipped by user instruction.
+
+## 2026-08-09 — Step 90 complete
+
+- Reduced sandbox knife light pollution and frame cost: knife trails now use bounded normal alpha compositing, a maximum 8px main glow／4px side glow, six taper segments, six Lv.3 sparkle draws, and a dimmer six-spoke stationary area effect.
+- Moved the three active weapon buttons beside the attack controls. The first slot remains the GDD-required permanent knife slot, while slots 2 and 3 can now be selected by click or the `1`／`2`／`3` shortcuts; each button exposes its current level and pressed state.
+- Added regression coverage for activating every authored weapon slot and for the Lv.3 knife visual budget. Static-only verification passed: full `npm run check` (132/132), `npm run build`, and `git diff --check`; browser／Playwright validation remains intentionally skipped by user instruction.
