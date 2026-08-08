@@ -154,6 +154,23 @@ test('launch velocity is opposite the pull direction', () => {
   assert.equal(getLaunchCosts(420).oxygen, 0, 'long launch should not budget oxygen');
 });
 
+test('energy starts recovering one second after the last launch even while drifting', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  const actor = actorIn(map, '0,0');
+  actor.energy = 20;
+  actor.vx = 40;
+  stepPhysics({ map, actor, origin: ORIGIN, dt: 0.99 });
+  assert.equal(actor.energy, 20, 'energy should wait for the full one-second recovery delay');
+  stepPhysics({ map, actor, origin: ORIGIN, dt: 0.01 });
+  assert.ok(actor.energy > 20, 'energy should recover while the diver is still moving');
+
+  const launch = launchActor(actor, { x: actor.x + 20, y: actor.y });
+  assert.ok(launch.launched);
+  const afterLaunch = actor.energy;
+  stepPhysics({ map, actor, origin: ORIGIN, dt: 0.5 });
+  assert.equal(actor.energy, afterLaunch, 'a new launch should restart the one-second delay');
+});
+
 test('long launches gain extra speed while short launches keep the old scale', () => {
   assert.equal(getLaunchSpeed(80), 116);
   assert.ok(getLaunchSpeed(240) > getLaunchSpeed(80) * 2.5);

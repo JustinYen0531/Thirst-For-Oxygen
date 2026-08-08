@@ -73,6 +73,7 @@ export const MAX_LAUNCH_OXYGEN_COST = 0;
 export const OXYGEN_STARVATION_DAMAGE_PER_SECOND = 3;
 const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
+const ENERGY_RECOVERY_DELAY_SECONDS = 1;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
 // The first pass was intentionally very quiet. Keep the curl/mean-subtraction
 // model, but raise its readable strength to five times that prototype so the
@@ -288,6 +289,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     vx: 0,
     vy: 0,
     launchMomentumTimer: 0,
+    energyRecoveryDelay: ENERGY_RECOVERY_DELAY_SECONDS,
     radius: 6,
     health: MAX_HEALTH,
     oxygen: MAX_OXYGEN,
@@ -419,6 +421,7 @@ export function respawnActor(actor, spawn) {
   actor.invulnerability = 1;
   actor.shieldTimer = 0;
   actor.shieldCooldown = 0;
+  actor.energyRecoveryDelay = ENERGY_RECOVERY_DELAY_SECONDS;
   return true;
 }
 
@@ -435,6 +438,7 @@ export function launchActor(actor, pointer) {
   updateFacingFromVelocity(actor);
   actor.blockedResting = false;
   actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
+  actor.energyRecoveryDelay = ENERGY_RECOVERY_DELAY_SECONDS;
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
   return { launched: true, speed, distance, costs };
 }
@@ -912,12 +916,16 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   });
   actor.gravityImmunity = Math.max(0, actor.gravityImmunity - dt);
   actor.launchMomentumTimer = Math.max(0, (actor.launchMomentumTimer ?? 0) - dt);
+  const nextEnergyRecoveryDelay = Math.max(0, (actor.energyRecoveryDelay ?? 0) - dt);
+  actor.energyRecoveryDelay = nextEnergyRecoveryDelay < 1e-6 ? 0 : nextEnergyRecoveryDelay;
   actor.invulnerability = Math.max(0, actor.invulnerability - dt);
   actor.shieldTimer = Math.max(0, actor.shieldTimer - dt);
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
   processOxygenClock(actor, dt, events);
   if (actor.attached) {
-    actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);
+    if (actor.energyRecoveryDelay <= 0) {
+      actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);
+    }
     return events;
   }
 
@@ -958,7 +966,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
   updateFacingFromVelocity(actor);
   processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
-  if (Math.hypot(actor.vx, actor.vy) < 1) {
+  if (actor.energyRecoveryDelay <= 0) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);
   }
   return events;

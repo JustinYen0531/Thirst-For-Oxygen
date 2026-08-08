@@ -566,6 +566,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Kept L-1 as the inverse of the active arc direction and L0 neutral. Trajectory prediction accepts the same direction option so previews cannot disagree with runtime physics.
 - Added regression coverage for both 下沉篇 and 上升篇 direction rules. Static-only verification passed: `npm run check` (76/76 tests), `npm run build`, and `git diff --check`.
 
+## 2026-08-09 — Step 69 complete
+
+- Replaced velocity/resting-based energy recovery with a launch-action timer: each successful elastic launch starts a one-second delay, then energy recovers continuously even while the diver is still drifting.
+- Seaweed retains its higher recovery rate but now respects the same one-second post-launch delay; failed too-short or energy-starved attempts do not reset the timer.
+- Updated the stamina system and core summary documents to match the implemented rule. Added a regression test for recovery during movement and delay reset after a new launch.
+- Static-only verification passed: `npm run check` (77/77 tests), `npm run build`, and `git diff --check`.
+
 ## 2026-08-09 — Step 68 complete
 
 - Rebuilt Descent Parts 1 and 2 as independent authored routes instead of simplified copies: Part 1 is a forgiving deep-forest teaching route, while Part 2 is a thermal branch-and-gate challenge with an optional portal shortcut.
