@@ -263,6 +263,7 @@ function applyBuild() {
 function playerAttackStatus(result) {
   const weapon = WEAPONS[state.build.weaponId];
   if (!result.ok) {
+    if (result.reason === 'burst') return `輕量機槍連射中，還有 ${Math.ceil(result.remaining / 0.08)} 秒內完成本輪。`;
     if (result.reason === 'cooldown') return `${weapon.name} 仍在冷卻中。`;
     return `目前沒有可展示的${weapon.name}效果。`;
   }
@@ -279,7 +280,8 @@ function playerAttackStatus(result) {
     return `三叉戟 Lv.${state.build.weaponLevel} ${levelLabel}已發射${projectileCount ? `（場上 ${projectileCount} 發）` : ''}${result.hit ? '並命中目標。' : '。'}`;
   }
   if (state.build.weaponId === 'lightMachineGun') {
-    const fired = state.weaponBurst?.shotCount ?? state.effects.find((effect) => effect.type === 'lightMachineGun')?.firedShots ?? 6;
+    const gunEffect = [...state.effects].reverse().find((effect) => effect.type === 'lightMachineGun');
+    const fired = gunEffect?.firedShots ?? 0;
     return `輕量機槍 Lv.${state.build.weaponLevel} 已固定方向連射（${fired}/6 發${state.weaponBurst ? '，連射中' : ''}）。`;
   }
   return `${weapon.name} Lv.${state.build.weaponLevel} 已發動${result.hit ? '並命中目標。' : '。'}`;
@@ -451,6 +453,110 @@ function renderExperienceOrbs() {
   });
 }
 
+function renderLightMachineGunProjectile(projectile) {
+  const visual = projectile.visual ?? {};
+  const angle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
+  const length = visual.bulletLength ?? 18;
+  const width = visual.bulletWidth ?? 5;
+  const colour = visual.bulletColour ?? projectile.colour ?? '#8fe8ff';
+  const outline = visual.bulletOutline ?? '#d9fbff';
+  const style = visual.bulletStyle ?? 'tracer';
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(angle);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  ctx.shadowColor = visual.bulletGlow ?? colour;
+  ctx.shadowBlur = style === 'prism' ? 15 : style === 'outlined' ? 11 : 8;
+  ctx.strokeStyle = visual.bulletGlow ?? outline;
+  ctx.globalAlpha = 0.72;
+  ctx.lineWidth = Math.max(1.5, width * 0.58);
+  ctx.beginPath();
+  ctx.moveTo(-length * 0.9, 0);
+  ctx.lineTo(-length * 0.18, 0);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = colour;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = Math.max(1.1, width * 0.22);
+  ctx.beginPath();
+  if (style === 'prism' || style === 'outlined') {
+    ctx.moveTo(length * 0.58, 0);
+    ctx.lineTo(length * 0.08, -width * 0.62);
+    ctx.lineTo(-length * 0.52, -width * 0.42);
+    ctx.lineTo(-length * 0.7, 0);
+    ctx.lineTo(-length * 0.52, width * 0.42);
+    ctx.lineTo(length * 0.08, width * 0.62);
+  } else {
+    ctx.roundRect(-length * 0.64, -width * 0.5, length * 1.18, width, width * 0.45);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  if (style === 'prism') {
+    ctx.globalAlpha = 0.84;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-length * 0.28, -width * 0.42);
+    ctx.lineTo(length * 0.08, 0);
+    ctx.lineTo(-length * 0.28, width * 0.42);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function renderLightMachineGun(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const recoil = Math.sin(safeProgress * Math.PI * Math.max(1, effect.shotCount ?? 6)) * 2.2;
+  const length = effect.gunLength ?? 66;
+  const width = effect.gunWidth ?? 14;
+  const angle = effect.angle ?? 0;
+  ctx.save();
+  ctx.translate(effect.x, effect.y);
+  ctx.rotate(angle);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = Math.max(0.18, 1 - Math.max(0, safeProgress - 0.72) / 0.28);
+  ctx.shadowColor = effect.gunAccent ?? '#73e6ff';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = effect.gunColour ?? '#263b52';
+  ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(-length * 0.42 + recoil, -width * 0.5, length * 0.58, width, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#111c2c';
+  ctx.fillRect(-length * 0.05 + recoil, width * 0.22, width * 0.62, width * 0.86);
+  ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
+  ctx.beginPath();
+  ctx.moveTo(length * 0.12 + recoil, -width * 0.22);
+  ctx.lineTo(length * 0.68 + recoil, -width * 0.22);
+  ctx.lineTo(length * 0.68 + recoil, width * 0.22);
+  ctx.lineTo(length * 0.12 + recoil, width * 0.22);
+  ctx.stroke();
+  ctx.globalAlpha *= 0.8;
+  ctx.strokeStyle = effect.muzzleColour ?? '#d9fbff';
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(length * 0.68 + recoil, 0);
+  ctx.lineTo(length * 0.92 + recoil, 0);
+  ctx.stroke();
+  if ((effect.firedShots ?? 0) > 0 && safeProgress < 0.82) {
+    const flash = 5 + (effect.firedShots % 2) * 3;
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = effect.muzzleColour ?? '#d9fbff';
+    ctx.beginPath();
+    ctx.moveTo(length * 0.92 + recoil, 0);
+    ctx.lineTo(length * 0.92 + recoil + flash, -flash * 0.5);
+    ctx.lineTo(length * 0.92 + recoil + flash * 0.65, 0);
+    ctx.lineTo(length * 0.92 + recoil + flash, flash * 0.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function renderTridentProjectile(projectile) {
   const visual = projectile.visual ?? {};
   const level = projectile.weaponLevel ?? 1;
@@ -573,6 +679,10 @@ function renderEffects() {
       renderTridentProjectile(projectile);
       return;
     }
+    if (projectile.weaponId === 'lightMachineGun') {
+      renderLightMachineGunProjectile(projectile);
+      return;
+    }
     ctx.save();
     ctx.fillStyle = projectile.colour;
     ctx.shadowColor = projectile.colour;
@@ -584,6 +694,10 @@ function renderEffects() {
   });
   state.effects.forEach((effect) => {
     const progress = effect.elapsed / effect.duration;
+    if (effect.type === 'lightMachineGun' && effect.style === 'lightMachineGun') {
+      renderLightMachineGun(effect, progress);
+      return;
+    }
     if (effect.type === 'tridentImpact') {
       renderTridentImpact(effect, progress);
       return;

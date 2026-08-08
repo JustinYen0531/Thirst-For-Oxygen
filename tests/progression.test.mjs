@@ -287,6 +287,7 @@ test('lanternfish locks a point, waits one second, then detonates', () => {
   assert.deepEqual({ x: enemy.x, y: enemy.y }, target);
   assert.equal(enemy.defeated, false);
 
+  state.actor.x += 100;
   stepSandbox(state, 0.5);
   assert.equal(enemy.defeated, false);
   stepSandbox(state, 0.5);
@@ -510,6 +511,52 @@ test('trident level two stuns on hit and level three fires a three-projectile bu
   assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.weaponId)).size, 1);
   assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.angle)).size, 3);
   assert.ok(levelThree.projectiles.every((projectile) => projectile.weaponLevel === 3));
+});
+
+test('light machine gun fires six rounds on one locked aim direction and charges energy once', () => {
+  const state = createSandboxState();
+  state.infiniteResources = false;
+  setSandboxBuild(state, { weaponId: 'lightMachineGun', weaponLevel: 1 });
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 280, y: state.actor.y + 140 }, { moveSpeed: 0 });
+  const energyBefore = state.actor.energy;
+
+  const result = playerAttack(state);
+  assert.equal(result.ok, true);
+  assert.equal(state.actor.energy, energyBefore - 2);
+  assert.equal(state.projectiles.length, 1, '第一發應該立即出膛');
+  assert.equal(state.weaponBurst?.shotCount, 6);
+  assert.equal(state.weaponBurst?.targetId, enemy.instanceId);
+  const lockedAngle = state.projectiles[0].angle;
+
+  enemy.y = state.actor.y - 220;
+  stepSandbox(state, 0.5);
+  assert.equal(state.projectiles.length, 6);
+  assert.ok(state.projectiles.every((projectile) => Math.abs(projectile.angle - lockedAngle) < 1e-9));
+  assert.equal(state.actor.energy, energyBefore - 2, '連射中的後五發不應重複扣能量');
+  const gun = state.effects.find((effect) => effect.type === 'lightMachineGun');
+  assert.ok(gun);
+  assert.equal(gun.firedShots, 6);
+});
+
+test('light machine gun Lv.2 changes the last three outlines and Lv.3 uses distinct bullet colours', () => {
+  const levelTwo = createSandboxState();
+  setSandboxBuild(levelTwo, { weaponId: 'lightMachineGun', weaponLevel: 2 });
+  playerAttack(levelTwo);
+  stepSandbox(levelTwo, 0.5);
+  const levelTwoShots = [...levelTwo.projectiles].sort((left, right) => left.shotIndex - right.shotIndex);
+  assert.equal(levelTwoShots.length, 6);
+  assert.deepEqual(levelTwoShots.slice(0, 3).map((shot) => shot.visual.bulletStyle), ['tracer', 'tracer', 'tracer']);
+  assert.deepEqual(levelTwoShots.slice(3).map((shot) => shot.visual.bulletStyle), ['outlined', 'outlined', 'outlined']);
+  assert.equal(new Set(levelTwoShots.slice(3).map((shot) => shot.visual.bulletColour)).size, 1);
+
+  const levelThree = createSandboxState();
+  setSandboxBuild(levelThree, { weaponId: 'lightMachineGun', weaponLevel: 3 });
+  playerAttack(levelThree);
+  stepSandbox(levelThree, 0.5);
+  const levelThreeShots = [...levelThree.projectiles].sort((left, right) => left.shotIndex - right.shotIndex);
+  assert.equal(levelThreeShots.length, 6);
+  assert.ok(levelThreeShots.every((shot) => shot.visual.bulletStyle === 'prism'));
+  assert.equal(new Set(levelThreeShots.map((shot) => shot.visual.bulletColour)).size, 6);
 });
 
 test('squid sniper warns before firing and ray bombardment keeps its cast position', () => {
