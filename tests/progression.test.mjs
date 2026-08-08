@@ -455,6 +455,54 @@ test('lobster spear and lionfish scatter each create their authored projectile c
   assert.ok(new Set(lionfishState.projectiles.map((projectile) => projectile.vy)).size > 1);
 });
 
+test('trident can be preview-fired without a target and carries its authored visual contract', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'trident', weaponLevel: 1 });
+
+  const result = playerAttack(state);
+
+  assert.equal(result.ok, true);
+  assert.equal(state.projectiles.length, 1);
+  assert.equal(state.projectiles[0].weaponId, 'trident');
+  assert.equal(state.projectiles[0].weaponLevel, 1);
+  assert.equal(state.projectiles[0].visual.sprite, '/assets/editor/weapons/trident.png');
+});
+
+test('stationary trident waits one second before auto-firing and resets its charge timer', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'trident', weaponLevel: 1 });
+  state.infiniteResources = true;
+
+  stepSandbox(state, 0.98);
+  assert.equal(state.projectiles.length, 0);
+  assert.ok(state.actor.tridentStationaryTime < 1);
+
+  stepSandbox(state, 0.04);
+  assert.equal(state.projectiles.length, 1);
+  assert.equal(state.projectiles[0].weaponId, 'trident');
+  assert.equal(state.actor.tridentStationaryTime, 0);
+});
+
+test('trident level two stuns on hit and level three fires a three-projectile burst', () => {
+  const levelTwo = createSandboxState();
+  setSandboxBuild(levelTwo, { weaponId: 'trident', weaponLevel: 2 });
+  const stunnedEnemy = spawnSandboxEnemy(levelTwo, 'crabGuard', { x: levelTwo.actor.x + 90, y: levelTwo.actor.y }, { moveSpeed: 0 });
+
+  assert.equal(playerAttack(levelTwo).ok, true);
+  stepSandbox(levelTwo, 0.3);
+  assert.ok(stunnedEnemy.stunnedUntil > levelTwo.time);
+  assert.ok(levelTwo.effects.some((effect) => effect.type === 'tridentImpact' && effect.style === 'tridentStun'));
+
+  const levelThree = createSandboxState();
+  setSandboxBuild(levelThree, { weaponId: 'trident', weaponLevel: 3 });
+
+  assert.equal(playerAttack(levelThree).ok, true);
+  assert.equal(levelThree.projectiles.length, 3);
+  assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.weaponId)).size, 1);
+  assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.angle)).size, 3);
+  assert.ok(levelThree.projectiles.every((projectile) => projectile.weaponLevel === 3));
+});
+
 test('squid sniper warns before firing and ray bombardment keeps its cast position', () => {
   const squidState = createSandboxState();
   const squid = spawnSandboxEnemy(squidState, 'squidAssassin', { x: squidState.actor.x + 180, y: squidState.actor.y }, { moveSpeed: 0 });

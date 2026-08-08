@@ -262,6 +262,7 @@ export function chooseUpgrade(state, choice) {
 export function setSandboxActiveWeapon(state, slotOrId) {
   const active = setActiveWeapon(state.progression, slotOrId);
   syncSandboxBuild(state);
+  state.actor.tridentStationaryTime = 0;
   logEvent(state, `切換武器：${WEAPONS[active.id]?.name ?? active.id} Lv.${active.level}。`, 'safe');
   return active;
 }
@@ -378,6 +379,14 @@ function spawnProjectile(state, source, options) {
     applies: options.applies ?? null,
     effectDuration: options.effectDuration ?? 0,
     persistent: Boolean(options.persistent),
+    weaponId: options.weaponId ?? null,
+    weaponLevel: options.weaponLevel ?? null,
+    visual: options.visual ? { ...options.visual } : null,
+    stunDuration: options.stunDuration ?? 0,
+    impactStyle: options.impactStyle ?? null,
+    impactRadius: options.impactRadius ?? 0,
+    impactDuration: options.impactDuration ?? 0,
+    impactRingCount: options.impactRingCount ?? 0,
     spiral: Boolean(options.spiral),
     spiralRate: options.spiralRate ?? 0,
     spiralInterval: options.spiralInterval ?? 0.24,
@@ -482,6 +491,7 @@ export function createSandboxState() {
   const actor = createTestActor({ x: 150, y: SANDBOX_HEIGHT / 2 });
   actor.activeEffects = {};
   actor.katanaEmpoweredNextSlash = false;
+  actor.tridentStationaryTime = 0;
   actor.stunnedUntil = 0;
   const state = {
     time: 0,
@@ -593,6 +603,7 @@ export function setSandboxBuild(state, { weaponId = 'knife', weaponLevel = 1, pa
   state.actor.oxygen = MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
   state.actor.katanaEmpoweredNextSlash = false;
+  state.actor.tridentStationaryTime = 0;
   return state.build;
 }
 
@@ -618,6 +629,7 @@ export function resetSandboxPlayer(state) {
   state.actor.inInk = false;
   state.actor.inkUntil = 0;
   state.actor.katanaEmpoweredNextSlash = false;
+  state.actor.tridentStationaryTime = 0;
   state.aiming = false;
   state.aimPoint = null;
   logEvent(state, '玩家已重置。', 'safe');
@@ -1002,6 +1014,47 @@ function processKatanaAutoAttack(state) {
   if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 自動弧斬命中 ${result.hitCount} 個目標。`, 'safe');
 }
 
+function projectileDirectionAngle(state, target = null) {
+  if (target) return angleBetween(state.actor, target);
+  const velocityLength = Math.hypot(state.actor.vx, state.actor.vy);
+  if (velocityLength > 0) return Math.atan2(state.actor.vy, state.actor.vx);
+  return state.actor.facing === 'left' ? Math.PI : 0;
+}
+
+function addTridentImpactEffect(state, projectile, enemy) {
+  const visual = projectile.visual ?? {};
+  addEffect(state, {
+    type: 'tridentImpact',
+    style: projectile.impactStyle ?? visual.impactStyle ?? 'tridentImpact',
+    x: enemy.x,
+    y: enemy.y,
+    radius: projectile.impactRadius || visual.impactRadius || 20,
+    duration: projectile.impactDuration || visual.impactDuration || 0.35,
+    ringCount: projectile.impactRingCount || visual.impactRingCount || 1,
+    colour: visual.colour ?? '#73e6ff',
+    glowColour: visual.glowColour ?? '#d9fbff',
+    stunDuration: projectile.stunDuration ?? visual.stunDuration ?? 0,
+  });
+}
+
+function processTridentAutoAttack(state, dt) {
+  if (state.build.weaponId !== 'trident' || state.aiming || state.actor.attached || state.actor.dead) {
+    state.actor.tridentStationaryTime = 0;
+    return;
+  }
+  const weapon = getWeaponStats('trident', state.build.weaponLevel);
+  const effect = weapon.effect ?? {};
+  const speed = Math.hypot(state.actor.vx, state.actor.vy);
+  if (speed > (effect.stationarySpeedThreshold ?? 8)) {
+    state.actor.tridentStationaryTime = 0;
+    return;
+  }
+  state.actor.tridentStationaryTime = (state.actor.tridentStationaryTime ?? 0) + dt;
+  if (state.actor.tridentStationaryTime < (effect.stationaryDelay ?? 1)) return;
+  const result = playerAttack(state, { auto: true });
+  if (result.ok || result.reason === 'energy' || result.reason === 'cooldown') state.actor.tridentStationaryTime = 0;
+}
+
 function knifeSwipeSegment(state, weapon, target = null) {
   const direction = knifeDirection(state, target);
   const targetDistance = target ? Math.hypot(target.x - state.actor.x, target.y - state.actor.y) : 0;
@@ -1057,7 +1110,7 @@ function addKnifeMeteorEffects(state, weapon, start, end) {
   }
 }
 
-export function playerAttack(state) {
+export function playerAttack(state, { auto = false } = {}) {
   if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade' };
   const weaponDefinition = WEAPONS[state.build.weaponId] ?? WEAPONS.knife;
   const weapon = { ...weaponDefinition, ...getWeaponStats(state.build.weaponId, state.build.weaponLevel) };
@@ -1071,7 +1124,8 @@ export function playerAttack(state) {
   const target = state.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyInstanceId && !enemy.defeated) ?? activeEnemies(state)[0];
   const canShowKnifePreview = weapon.type === 'melee' && weapon.effect?.style === 'knifeMeteor';
   const canShowKatanaPreview = weapon.type === 'melee' && weapon.effect?.style === 'katanaArcSlash';
-  if (!target && !canShowKnifePreview && !canShowKatanaPreview) {
+  const canShowTridentPreview = weaponDefinition.id === 'trident';
+  if (!target && !canShowKnifePreview && !canShowKatanaPreview && !canShowTridentPreview) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
@@ -1105,14 +1159,33 @@ export function playerAttack(state) {
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
-    const angle = angleBetween(state.actor, target);
+    const angle = projectileDirectionAngle(state, target);
+    const visual = weapon.effect ?? {};
     for (let index = 0; index < count; index += 1) {
       const ratio = count === 1 ? 0 : index / (count - 1) - 0.5;
-      spawnProjectile(state, state.actor, { angle: angle + ratio * spread, speed: weapon.projectileSpeed, range: weapon.range, damage: weapon.damage, source: 'player', damageType: 'player', colour: '#f6e66d' });
+      spawnProjectile(state, state.actor, {
+        angle: angle + ratio * spread,
+        speed: weapon.projectileSpeed,
+        range: weapon.range,
+        damage: weapon.damage,
+        source: 'player',
+        damageType: 'player',
+        colour: visual.colour ?? '#f6e66d',
+        radius: visual.projectileRadius,
+        weaponId: weaponDefinition.id,
+        weaponLevel: state.build.weaponLevel,
+        visual,
+        stunDuration: visual.stunDuration,
+        impactStyle: visual.impactStyle,
+        impactRadius: visual.impactRadius,
+        impactDuration: visual.impactDuration,
+        impactRingCount: visual.impactRingCount,
+      });
     }
+    if (weaponDefinition.id === 'trident') state.actor.tridentStationaryTime = 0;
   }
   state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-  logEvent(state, `玩家使用 ${weaponDefinition.name} Lv.${state.build.weaponLevel}。`, 'safe');
+  logEvent(state, `${auto ? '三叉戟自動發射' : '玩家使用'} ${weaponDefinition.name} Lv.${state.build.weaponLevel}。`, 'safe');
   return { ok: true, hit };
 }
 
@@ -1169,7 +1242,23 @@ function updateProjectiles(state, dt) {
     if (projectile.source === 'player') {
       const hit = activeEnemies(state).find((enemy) => distanceToSegment(enemy, previousPosition, projectile) <= enemy.radius + projectile.radius);
       if (hit) {
-        damageEnemy(state, hit, projectile.damage, '玩家投射物');
+        const isTrident = projectile.weaponId === 'trident';
+        const appliedDamage = damageEnemy(
+          state,
+          hit,
+          projectile.damage,
+          isTrident ? `三叉戟 Lv.${projectile.weaponLevel ?? 1}` : '玩家投射物',
+        );
+        if (isTrident && appliedDamage > 0) {
+          if (projectile.stunDuration > 0) {
+            hit.stunnedUntil = Math.max(hit.stunnedUntil ?? 0, state.time + projectile.stunDuration);
+            hit.vx = 0;
+            hit.vy = 0;
+            hit.state = 'stunned';
+            logEvent(state, `${enemyDefinition(hit).name} 被三叉戟 Lv.${projectile.weaponLevel ?? 1} 暈眩 ${projectile.stunDuration.toFixed(1)} 秒。`, 'safe');
+          }
+          addTridentImpactEffect(state, projectile, hit);
+        }
         return false;
       }
     } else if (distanceToSegment(state.actor, previousPosition, projectile) <= state.actor.radius + projectile.radius) {
@@ -1551,6 +1640,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   updateEnemies(state, dt);
   markKatanaMovement(state, previousPosition);
   processKatanaAutoAttack(state);
+  processTridentAutoAttack(state, dt);
   processKnifeMovementEffect(state, previousPosition);
   processPlayerEnemyCollisions(state, previousPosition);
   processStationaryKnifeArea(state);

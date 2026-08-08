@@ -682,3 +682,16 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Connected the katana contract to the formal `play.html` scene instead of leaving it sandbox-only. Every map load now places a deterministic nearby showcase enemy, applies an initial katana slash to its health, and keeps the slash arc (plus Lv.3 outer sword-qi arc) visible after refresh.
 - Added formal-play enemy health bars, hit flash feedback, katana telemetry, and Node regression coverage for visible Lv.1 damage, Lv.2 double damage, and persistent Lv.3 outer arc effects.
 - Static-only verification passed: full `npm run check` (122/122), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped per user instruction.
+
+## 2026-08-09 — Step 83 in progress
+
+- The user-provided screenshot was identified as the sandbox route: its dashed player interaction circle and yellow selected-enemy ring are sandbox-only, so the previous formal-play fix did not address the visible page.
+- Added a sandbox-only refresh showcase that selects katana Lv.1, places a stationary crab 40 px in front of the diver, applies real auto-slash damage, and keeps the initial slash arc visible long enough to inspect. Core simulation defaults remain unchanged for existing tests.
+- Static-only verification and scoped Git commit/push remain to be completed. Browser/Playwright validation remains intentionally skipped per user instruction.
+
+## 2026-08-09 — Step 84 complete
+
+- Generated and chroma-keyed `public/assets/editor/weapons/trident.png` as the shared deep-sea trident sprite; Lv.2 and Lv.3 stay data-driven so their size, glow, trail and burst treatment can be tuned without a second source image.
+- Connected trident Lv.1–3 to the sandbox projectile pipeline: a stationary diver charges for 1.0 second before automatic firing, Lv.2 applies a 1.35-second stun, and Lv.3 emits a three-projectile spread with a longer glow and burst impact.
+- Added Canvas sprite/trail/impact rendering, stationary-charge telemetry, projectile details in `render_game_to_text`, and regression tests for preview firing, one-second auto-fire, stun, and the Lv.3 burst.
+- Static-only verification passed: `npm run check` (126/126), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped per user instruction.

@@ -38,6 +38,8 @@ const ctx = canvas.getContext('2d');
 const stage = document.querySelector('#sandbox-stage');
 const sprites = document.querySelector('#sandbox-sprites');
 const playerSprite = document.querySelector('#player-sprite');
+const tridentSprite = new Image();
+tridentSprite.src = '/assets/editor/weapons/trident.png';
 const enemySelect = document.querySelector('#enemy-select');
 const weaponSelect = document.querySelector('#weapon-select');
 const weaponLevel = document.querySelector('#weapon-level');
@@ -74,6 +76,8 @@ function populateControls() {
     option.textContent = weapon.name;
     weaponSelect.append(option);
   });
+  weaponSelect.value = state.build.weaponId;
+  weaponLevel.value = String(state.build.weaponLevel);
   Object.values(PASSIVE_ABILITIES).forEach((ability) => {
     const row = document.createElement('div');
     row.className = 'passive-row';
@@ -136,6 +140,31 @@ function updateSkillPicker() {
   skillDescription.textContent = encyclopedia?.attacks.find((skill) => skill.id === state.selectedSkillId)?.description ?? '';
 }
 
+function setupKatanaShowcase() {
+  setSandboxBuild(state, { weaponId: 'katana', weaponLevel: 1 });
+  const target = spawnSandboxEnemy(state, 'crabGuard', {
+    x: state.actor.x + 40,
+    y: state.actor.y,
+  }, {
+    moveSpeed: 0,
+    health: 100,
+    maxHealth: 100,
+  });
+  if (target) {
+    target.showcaseKatanaTarget = true;
+    state.selectedEnemyInstanceId = target.instanceId;
+  }
+  const result = playerAttack(state);
+  if (result.ok) {
+    state.effects
+      .filter((effect) => effect.type === 'katanaSlash' || effect.type === 'katanaWave')
+      .forEach((effect) => { effect.duration = Math.max(effect.duration, 6); });
+  }
+  status.textContent = result.hit
+    ? '武士刀展示已啟動：刷新時已完成近距離弧斬並扣血，斬擊會保留可見一段時間。'
+    : '武士刀展示已啟動：目前目標未在弧斬範圍內。';
+}
+
 function renderPlacedEnemyList() {
   placedEnemyList.replaceChildren();
   if (!state.enemies.length) {
@@ -192,7 +221,7 @@ function applyBuild() {
 function playerAttackStatus(result) {
   const weapon = WEAPONS[state.build.weaponId];
   if (!result.ok) {
-    if (result.reason === 'cooldown') return `${weapon.name} 斬擊仍在冷卻中。`;
+    if (result.reason === 'cooldown') return `${weapon.name} 仍在冷卻中。`;
     return `目前沒有可展示的${weapon.name}效果。`;
   }
   if (state.build.weaponId === 'katana') {
@@ -202,6 +231,11 @@ function playerAttackStatus(result) {
     return `武士刀 Lv.${state.build.weaponLevel} ${power}${wave ? '＋外弧劍氣' : ''}${result.hit ? '，命中目標。' : '。'} `;
   }
   if (state.build.weaponId === 'knife') return `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出${result.hit ? '並命中目標。' : '。'}`;
+  if (state.build.weaponId === 'trident') {
+    const projectileCount = state.projectiles.filter((projectile) => projectile.weaponId === 'trident').length;
+    const levelLabel = state.build.weaponLevel >= 3 ? '閃耀三叉戟爆發' : state.build.weaponLevel === 2 ? '暈眩三叉戟' : '深海三叉戟';
+    return `三叉戟 Lv.${state.build.weaponLevel} ${levelLabel}已發射${projectileCount ? `（場上 ${projectileCount} 發）` : ''}${result.hit ? '並命中目標。' : '。'}`;
+  }
   return `${weapon.name} Lv.${state.build.weaponLevel} 已發動${result.hit ? '並命中目標。' : '。'}`;
 }
 
@@ -371,6 +405,111 @@ function renderExperienceOrbs() {
   });
 }
 
+function renderTridentProjectile(projectile) {
+  const visual = projectile.visual ?? {};
+  const level = projectile.weaponLevel ?? 1;
+  const angle = projectile.angle ?? Math.atan2(projectile.vy, projectile.vx);
+  const scale = visual.spriteScale ?? 0.72;
+  const width = 64 * scale;
+  const height = 42 * scale;
+  const trailLength = visual.trailLength ?? 24;
+  const trailWidth = visual.trailWidth ?? 2.4;
+  const glowColour = visual.glowColour ?? '#d9fbff';
+  const colour = visual.colour ?? projectile.colour ?? '#73e6ff';
+  ctx.save();
+  ctx.translate(projectile.x, projectile.y);
+  ctx.rotate(angle);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  ctx.shadowColor = glowColour;
+  ctx.shadowBlur = level >= 3 ? 18 : level === 2 ? 13 : 9;
+  const trailSegments = level >= 3 ? 8 : level === 2 ? 6 : 4;
+  for (let index = 0; index < trailSegments; index += 1) {
+    const ratio = index / trailSegments;
+    const tail = -width * 0.18 - trailLength * ratio;
+    const head = tail - Math.max(8, trailLength / trailSegments);
+    ctx.globalAlpha = (1 - ratio) * (level >= 3 ? 0.82 : 0.62);
+    ctx.strokeStyle = index % 2 === 0 ? glowColour : colour;
+    ctx.lineWidth = Math.max(1, trailWidth * (1 - ratio * 0.55));
+    ctx.beginPath();
+    ctx.moveTo(tail, 0);
+    ctx.lineTo(head, 0);
+    ctx.stroke();
+  }
+  if (tridentSprite.complete && tridentSprite.naturalWidth > 0) {
+    ctx.globalAlpha = 0.98;
+    ctx.shadowBlur = level >= 3 ? 22 : level === 2 ? 16 : 10;
+    ctx.drawImage(tridentSprite, -width * 0.5, -height * 0.5, width, height);
+  } else {
+    ctx.globalAlpha = 0.98;
+    ctx.strokeStyle = '#efffff';
+    ctx.lineWidth = Math.max(2, trailWidth * 0.9);
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.42, 0);
+    ctx.lineTo(width * 0.35, 0);
+    ctx.moveTo(width * 0.05, 0);
+    ctx.lineTo(width * 0.34, -height * 0.34);
+    ctx.moveTo(width * 0.12, 0);
+    ctx.lineTo(width * 0.42, 0);
+    ctx.moveTo(width * 0.05, 0);
+    ctx.lineTo(width * 0.34, height * 0.34);
+    ctx.stroke();
+  }
+  if (level >= 3) {
+    ctx.globalAlpha = 0.72;
+    ctx.strokeStyle = '#fff1a6';
+    ctx.lineWidth = 1.4;
+    for (let index = 0; index < 4; index += 1) {
+      const offset = 8 + index * 5;
+      ctx.beginPath();
+      ctx.moveTo(-offset, -offset * 0.42);
+      ctx.lineTo(-offset - 5, -offset * 0.64);
+      ctx.moveTo(-offset, offset * 0.42);
+      ctx.lineTo(-offset - 5, offset * 0.64);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function renderTridentImpact(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const ringCount = Math.max(1, effect.ringCount ?? 1);
+  const radius = effect.radius ?? 20;
+  const glowColour = effect.glowColour ?? '#d9fbff';
+  const colour = effect.colour ?? '#73e6ff';
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = Math.max(0, 1 - safeProgress) * 0.9;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = glowColour;
+  ctx.shadowBlur = effect.style === 'tridentBurst' ? 22 : 14;
+  for (let index = 0; index < ringCount; index += 1) {
+    const ringProgress = Math.min(1, safeProgress + index * 0.12);
+    const ringRadius = radius * (0.28 + ringProgress * (0.72 + index * 0.14));
+    ctx.strokeStyle = index % 2 === 0 ? glowColour : colour;
+    ctx.lineWidth = Math.max(1.4, 4 - safeProgress * 2.4 - index * 0.45);
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (effect.stunDuration > 0) {
+    ctx.strokeStyle = '#fff5b5';
+    ctx.lineWidth = 2;
+    const sparkCount = effect.style === 'tridentBurst' ? 8 : 6;
+    for (let index = 0; index < sparkCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / sparkCount + safeProgress * 0.8;
+      const inner = radius * (0.32 + safeProgress * 0.15);
+      const outer = radius * (0.7 + safeProgress * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(effect.x + Math.cos(angle) * inner, effect.y + Math.sin(angle) * inner);
+      ctx.lineTo(effect.x + Math.cos(angle) * outer, effect.y + Math.sin(angle) * outer);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function renderEffects() {
   state.zones.forEach((zone) => {
     ctx.save();
@@ -384,6 +523,10 @@ function renderEffects() {
     ctx.restore();
   });
   state.projectiles.forEach((projectile) => {
+    if (projectile.weaponId === 'trident') {
+      renderTridentProjectile(projectile);
+      return;
+    }
     ctx.save();
     ctx.fillStyle = projectile.colour;
     ctx.shadowColor = projectile.colour;
@@ -395,6 +538,10 @@ function renderEffects() {
   });
   state.effects.forEach((effect) => {
     const progress = effect.elapsed / effect.duration;
+    if (effect.type === 'tridentImpact') {
+      renderTridentImpact(effect, progress);
+      return;
+    }
     if (effect.type === 'katanaSlash' && effect.style === 'katanaArcSlash') {
       renderKatanaArcSlash(effect, progress);
       return;
@@ -724,6 +871,7 @@ function renderTelemetry() {
     ['氧氣', state.infiniteResources ? '∞' : `${format(state.actor.oxygen)} / 100（${format(getOxygenSecondsRemaining(state.actor))}s）`],
     ['能量', state.infiniteResources ? '∞' : format(state.actor.energy)],
     ['L1 動量', `${format(state.actor.vx)}, ${format(state.actor.vy)}`],
+    ['三叉戟蓄力', state.build.weaponId === 'trident' ? `${format(state.actor.tridentStationaryTime)} / 1.0s` : '未裝備'],
     ['武器', state.build.weapons.map((weapon, index) => `${index + 1}.${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')],
     ['被動', state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'],
     ['敵人數', `${state.enemies.length}（存活 ${state.enemies.filter((candidate) => !candidate.defeated).length}）`],
@@ -847,7 +995,7 @@ window.addEventListener('keydown', (event) => {
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   build: state.build,
   progression: {
@@ -864,7 +1012,7 @@ window.render_game_to_text = () => JSON.stringify({
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, hidden: enemy.hidden, stunned: Math.max(0, (enemy.stunnedUntil ?? 0) - state.time), rescueCompleted: enemy.rescueCompleted, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, beacon: enemy.beacon ? { x: format(enemy.beacon.targetX), y: format(enemy.beacon.targetY), remaining: format(enemy.beacon.remaining) } : null, linkedTargets: enemy.linkedTargets, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
-  projectiles: state.projectiles.length,
+  projectiles: state.projectiles.map((projectile) => ({ id: projectile.id, weapon: projectile.weaponId, level: projectile.weaponLevel, x: format(projectile.x), y: format(projectile.y), stun: format(projectile.stunDuration), life: format(projectile.life) })),
   effects: state.effects.map((effect) => ({
     type: effect.type,
     style: effect.style,
@@ -885,6 +1033,7 @@ window.advanceTime = (milliseconds) => {
   return window.render_game_to_text();
 };
 
+setupKatanaShowcase();
 populateControls();
 render();
 requestAnimationFrame(tick);
