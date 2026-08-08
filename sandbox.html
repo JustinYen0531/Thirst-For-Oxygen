@@ -46,9 +46,8 @@
           <section class="control-section">
             <h2>測試開關</h2>
             <label class="toggle"><input id="invincible-toggle" type="checkbox" /> 無敵模式</label>
-            <label class="toggle"><input id="infinite-toggle" type="checkbox" /> 無限氧氣／能量</label>
             <label class="toggle"><input id="auto-toggle" type="checkbox" /> 敵人自動循環技能</label>
-            <button id="reset-player" type="button" class="secondary">重置玩家與資源</button>
+            <button id="reset-player" type="button" class="secondary">重置玩家</button>
             <button id="pause-toggle" type="button" class="secondary">暫停</button>
           </section>
         </aside>
@@ -99,16 +98,6 @@
           </section>
         </section>
 
-        <aside class="sandbox-panel telemetry-panel">
-          <section class="telemetry-section">
-            <h2>玩家狀態</h2>
-            <dl id="player-stats" class="stat-grid"></dl>
-          </section>
-          <section class="telemetry-section">
-            <h2>技能事件</h2>
-            <ol id="sandbox-log" class="sandbox-log"></ol>
-          </section>
-        </aside>
       </section>
     </main>
     <script type="module" src="/src/sandbox-page.js"></script>

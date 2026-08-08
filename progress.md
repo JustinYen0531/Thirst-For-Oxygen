@@ -709,3 +709,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Katana damage now applies to every active enemy inside the weapon radius, while preserving one swing animation and one damage instance per enemy.
 - Added distinct katana Lv.2 gold / empowered pink and Lv.3 violet colour contracts. Knife Lv.1/Lv.2/Lv.3 now expose cyan / amber / violet trail, glow, sparkle, and area colours.
 - Static-only verification passed: focused katana/progression checks (45/45), full `npm run check` (127/127), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped by user instruction.
+
+## 2026-08-09 — Step 87 complete
+
+- Simplified the sandbox information hierarchy: removed the right-side player-status and skill-event telemetry panel, removed the visible infinite oxygen/energy toggle, and renamed the reset action to `重置玩家`.
+- The sandbox now keeps oxygen and energy unlimited internally so combat previews are not blocked by resource management, while the central arena uses the freed right-side width through a two-column layout.
+- Static-only verification passed: removed-DOM reference scan, `npm run check` (127/127), `npm run build`, and no browser/Playwright validation per user instruction.

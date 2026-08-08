@@ -56,10 +56,9 @@ const skillDescription = document.querySelector('#skill-description');
 const selectedEnemyName = document.querySelector('#selected-enemy-name');
 const selectedEnemyStats = document.querySelector('#selected-enemy-stats');
 const placedEnemyList = document.querySelector('#placed-enemy-list');
-const playerStats = document.querySelector('#player-stats');
-const sandboxLog = document.querySelector('#sandbox-log');
 const status = document.querySelector('#sandbox-status');
 const state = createSandboxState();
+state.infiniteResources = true;
 let placementMode = false;
 let lastFrame = performance.now();
 
@@ -879,27 +878,6 @@ function renderSprites() {
   playerSprite.classList.toggle('aiming', state.aiming);
 }
 
-function renderTelemetry() {
-  const enemy = selectedEnemy();
-  const progress = getExperienceProgress(state.progression);
-  playerStats.innerHTML = [
-    ['等級', `Lv.${progress.level}`],
-    ['經驗', `${Math.floor(progress.current)} / ${progress.required || 'MAX'}`],
-    ['生命', `${format(state.actor.health)} / 100`],
-    ['氧氣', state.infiniteResources ? '∞' : `${format(state.actor.oxygen)} / 100（${format(getOxygenSecondsRemaining(state.actor))}s）`],
-    ['能量', state.infiniteResources ? '∞' : format(state.actor.energy)],
-    ['L1 動量', `${format(state.actor.vx)}, ${format(state.actor.vy)}`],
-    ['三叉戟蓄力', state.build.weaponId === 'trident' ? `${format(state.actor.tridentStationaryTime)} / 1.0s` : '未裝備'],
-    ['武器', state.build.weapons.map((weapon, index) => `${index + 1}.${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')],
-    ['被動', state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'],
-    ['敵人數', `${state.enemies.length}（存活 ${state.enemies.filter((candidate) => !candidate.defeated).length}）`],
-  ].map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('');
-  sandboxLog.innerHTML = state.logs.map((event) => `<li data-level="${event.level}"><time>${event.time.toFixed(1)}s</time> ${event.message}</li>`).join('');
-  updateSkillPicker();
-  renderPlacedEnemyList();
-  renderProgression();
-}
-
 function render() {
   renderBackground();
   renderExperienceOrbs();
@@ -908,7 +886,9 @@ function render() {
   renderEnemyMarkers();
   renderSprites();
   renderEffects();
-  renderTelemetry();
+  updateSkillPicker();
+  renderPlacedEnemyList();
+  renderProgression();
 }
 
 function tick(now) {
@@ -939,7 +919,6 @@ document.querySelector('#pause-toggle').addEventListener('click', (event) => {
   status.textContent = state.running ? '沙盒繼續運行。' : '沙盒已暫停；可逐一閱讀場上狀態。';
 });
 document.querySelector('#invincible-toggle').addEventListener('change', (event) => { state.invincible = event.target.checked; });
-document.querySelector('#infinite-toggle').addEventListener('change', (event) => { state.infiniteResources = event.target.checked; });
 document.querySelector('#auto-toggle').addEventListener('change', (event) => { state.autoCycle = event.target.checked; status.textContent = event.target.checked ? '敵人會自動循環可用技能。' : '敵人自動技能已關閉。'; });
 weaponSlots.addEventListener('click', (event) => {
   const button = event.target.closest('[data-weapon-slot]');
