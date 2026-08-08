@@ -42,6 +42,9 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .build-slot-heading small { flex: 0 0 auto; color: #7ea5c1; font-size: 9px; }
 .build-slot-selectors { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .build-slot-selectors select { width: 100%; min-width: 0; padding: 4px 3px; font-size: 10px; }
+.build-slot-preview { margin-top: 5px; padding: 4px 3px; border-color: #4c83a8; color: #bfeaff; background: #123653; font-size: 10px; }
+.build-slot-preview:hover:not(:disabled) { border-color: #f6e66d; color: #fff4b3; background: #3b3a25; }
+.build-slot-preview:disabled { cursor: not-allowed; opacity: .42; }
 .sandbox-main { min-width: 0; }
 .sandbox-stage { position: relative; overflow: hidden; border: 0; border-radius: 0; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
 .sandbox-resource-hud { pointer-events: none; }

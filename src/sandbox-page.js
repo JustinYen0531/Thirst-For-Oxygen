@@ -22,6 +22,7 @@ import {
   getSandboxEnemyIds,
   isSandboxPlayerHit,
   listSandboxSkills,
+  playerAttack,
   playerAttackAllWeapons,
   releaseSandboxAim,
   resetSandboxPlayer,
@@ -94,6 +95,7 @@ function renderBuildControls() {
     slotDataset,
     levelDataset,
     ariaLabel,
+    previewDataset = null,
   }) {
     container.replaceChildren();
     container.className = 'build-list build-slot-group';
@@ -134,6 +136,15 @@ function renderBuildControls() {
       selectors.className = 'build-slot-selectors';
       selectors.append(select, level);
       column.append(heading, selectors);
+      if (previewDataset) {
+        const preview = document.createElement('button');
+        preview.type = 'button';
+        preview.className = 'build-slot-preview';
+        preview.dataset[previewDataset] = String(slot);
+        preview.textContent = '試射';
+        preview.disabled = !select.value;
+        column.append(preview);
+      }
       columns.append(column);
     }
     container.append(columns);
@@ -146,6 +157,7 @@ function renderBuildControls() {
     slotDataset: 'buildWeaponSlot',
     levelDataset: 'buildWeaponLevel',
     ariaLabel: '武器',
+    previewDataset: 'buildPreviewWeaponSlot',
   });
   renderSlotGroup(passiveList, {
     title: '被動能力槽位',
@@ -280,6 +292,36 @@ function applyBuild() {
   setSandboxBuild(state, { weapons, activeWeaponSlot: state.build.activeWeaponSlot, passives, allowEmpty: true });
   renderBuildControls();
   status.textContent = `已套用武器 ${state.build.weapons.length ? state.build.weapons.map((weapon) => `${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、') : '無'}；被動 ${state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'}。`;
+}
+
+function previewWeaponStatus(result, weapon) {
+  if (!result.ok) {
+    if (result.reason === 'cooldown') return `${weapon.name} 仍在冷卻中。`;
+    if (result.reason === 'burst') return `${weapon.name} 連射尚未完成。`;
+    return `${weapon.name} 目前無法試射。`;
+  }
+  if (weapon.id === 'trident') return `三叉戟 Lv.${weapon.level} 已發射${weapon.level >= 3 ? '三發散射' : '一發'}，請看潛水員前方的亮色投射物。`;
+  if (weapon.id === 'lightMachineGun') return `輕量機槍 Lv.${weapon.level} 已開始六連射，子彈會沿固定方向連續出膛。`;
+  return `${weapon.name} Lv.${weapon.level} 已開始試射。`;
+}
+
+function previewWeaponSlot(slot) {
+  const selectedWeapon = weaponBuildList.querySelector(`[data-build-weapon-slot="${slot}"]`)?.value;
+  if (!selectedWeapon) {
+    status.textContent = '這個槽位目前是空的，先選一把武器再試射。';
+    return;
+  }
+  applyBuild();
+  const weapon = state.build.weapons[slot];
+  if (!weapon) {
+    status.textContent = '這個槽位目前無法試射，請重新套用 Build。';
+    render();
+    return;
+  }
+  setSandboxActiveWeapon(state, slot);
+  const result = playerAttack(state, { weaponId: weapon.id, weaponLevel: weapon.level });
+  status.textContent = previewWeaponStatus(result, { ...WEAPONS[weapon.id], level: weapon.level });
+  render();
 }
 
 function playerAttackAllStatus(result) {
@@ -526,7 +568,7 @@ function renderLightMachineGunProjectile(projectile) {
     ctx.lineTo(-length * 0.52, width * 0.42);
     ctx.lineTo(length * 0.08, width * 0.62);
   } else {
-    ctx.roundRect(-length * 0.64, -width * 0.5, length * 1.18, width, width * 0.45);
+    ctx.rect(-length * 0.64, -width * 0.5, length * 1.18, width);
   }
   ctx.closePath();
   ctx.fill();
@@ -561,7 +603,7 @@ function renderLightMachineGun(effect, progress) {
   ctx.strokeStyle = effect.gunAccent ?? '#73e6ff';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(-length * 0.42 + recoil, -width * 0.5, length * 0.58, width, 4);
+  ctx.rect(-length * 0.42 + recoil, -width * 0.5, length * 0.58, width);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#111c2c';
@@ -1125,6 +1167,11 @@ document.querySelector('#pause-toggle').addEventListener('click', (event) => {
 });
 document.querySelector('#invincible-toggle').addEventListener('change', (event) => { state.invincible = event.target.checked; });
 document.querySelector('#auto-toggle').addEventListener('change', (event) => { state.autoCycle = event.target.checked; status.textContent = event.target.checked ? '敵人會自動循環可用技能。' : '敵人自動技能已關閉。'; });
+weaponBuildList.addEventListener('click', (event) => {
+  const preview = event.target.closest('[data-build-preview-weapon-slot]');
+  if (!preview) return;
+  previewWeaponSlot(Number(preview.dataset.buildPreviewWeaponSlot));
+});
 weaponSlots.addEventListener('click', (event) => {
   const button = event.target.closest('[data-weapon-slot]');
   if (!button) return;
@@ -1158,6 +1205,8 @@ weaponBuildList.addEventListener('change', (event) => {
   if (!select) return;
   const level = weaponBuildList.querySelector(`[data-build-weapon-level="${select.dataset.buildWeaponSlot}"]`);
   if (level) level.disabled = Number(select.dataset.buildWeaponSlot) > 0 && !select.value;
+  const preview = weaponBuildList.querySelector(`[data-build-preview-weapon-slot="${select.dataset.buildWeaponSlot}"]`);
+  if (preview) preview.disabled = !select.value;
 });
 passiveList.addEventListener('change', (event) => {
   const select = event.target.closest('select[data-build-passive-slot]');
