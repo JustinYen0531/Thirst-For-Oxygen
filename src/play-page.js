@@ -22,6 +22,7 @@ import {
   stepPhysics,
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
+import { getEdgeAttachmentGeometry } from './edge-attachment.js';
 import {
   PLAYER_ANIMATION_ASSETS,
   getPlayerAnimationFrameIndex,
@@ -312,23 +313,37 @@ function drawEdges() {
   allMapEdges(map).forEach(({ a, b, key }) => {
     const edge = getActiveEdge(map, key, 'chapter1') ?? getEdgeBetween(map, a, b, 'chapter1');
     if (!edge || edge.type === 'none') return;
-    const from = cellCenter(a); const to = cellCenter(b); const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+    const fromCell = getActiveCell(map, a, 'chapter1');
+    const toCell = getActiveCell(map, b, 'chapter1');
+    const from = cellCenter(a);
+    const to = cellCenter(b);
+    const geometry = getEdgeAttachmentGeometry(from, to, fromCell?.terrain, toCell?.terrain, {
+      edgeLength: HEX_SIZE,
+      blockedInset: 1.25,
+    });
+    if (!geometry) return;
+    const mid = geometry.midpoint;
     if (mid.y < camera.y - 45 || mid.y > camera.y + canvas.height / SCALE + 45) return;
     const color = edgeColors[edge.type] ?? '#bcecff';
     context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
-    context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(to.x, to.y); context.stroke(); context.restore();
+    context.beginPath(); context.moveTo(geometry.edgeStart.x, geometry.edgeStart.y); context.lineTo(geometry.edgeEnd.x, geometry.edgeEnd.y); context.stroke(); context.restore();
     const asset = EDGE_ASSETS[edge.type];
     if (!asset) return;
     const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
-    let renderX = mid.x;
-    let renderY = mid.y;
-    let rotation = 0;
+    const isAnchoredPlant = edge.type === 'seaweed' || edge.type === 'coralCluster';
+    const pointsIntoWater = edge.type === 'spike' || edge.type === 'barrier' || edge.type === 'current';
+    const sitsInsideWall = pointsIntoWater || edge.type === 'springJelly';
+    let renderX = sitsInsideWall ? geometry.attachmentPoint.x : mid.x;
+    let renderY = sitsInsideWall ? geometry.attachmentPoint.y : mid.y;
+    let rotation = pointsIntoWater
+      ? geometry.pointsIntoOpenAngle
+      : isAnchoredPlant
+        ? geometry.growsIntoOpenAngle
+        : geometry.tangentAngle;
     if (isPortal) {
       // Align the long axis to the shared hex edge (the tangent), keeping the
       // portal centered on the boundary instead of floating over a cell.
-      rotation = Math.atan2(to.y - from.y, to.x - from.x) + Math.PI / 2;
-      const fromCell = getActiveCell(map, a, 'chapter1');
-      const toCell = getActiveCell(map, b, 'chapter1');
+      rotation = geometry.tangentAngle;
       const blockedCell = fromCell?.terrain === 'blocked' ? fromCell : toCell?.terrain === 'blocked' ? toCell : null;
       const waterCell = blockedCell === fromCell ? toCell : fromCell;
       if (blockedCell && waterCell) {
@@ -339,7 +354,9 @@ function drawEdges() {
         renderY += ((waterCenter.y - blockedCenter.y) / distance) * 2;
       }
     }
-    drawImage(asset, renderX, renderY, isPortal ? 22 : 16, edge.type === 'multiPortal' ? 9 : isPortal ? 18 : 16, .92, rotation);
+    const width = isPortal ? 22 : isAnchoredPlant ? 16 : HEX_SIZE * 1.04;
+    const height = edge.type === 'multiPortal' ? 9 : isPortal ? 18 : isAnchoredPlant ? 16 : width * .625;
+    drawImage(asset, renderX, renderY, width, height, .92, rotation);
   });
 }
 

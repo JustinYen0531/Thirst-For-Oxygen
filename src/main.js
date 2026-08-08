@@ -66,6 +66,7 @@ import {
   getPortalGroupMidpoint,
 } from './portal.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
+import { getEdgeAttachmentGeometry } from './edge-attachment.js';
 import {
   PLAYER_ANIMATION_ASSETS,
   PLAYER_ANIMATION_IMAGE_KEYS,
@@ -1410,25 +1411,37 @@ function drawEdges() {
     const isAnchoredPlant = ['seaweed', 'coralCluster'].includes(edge.type);
     const cellA = getActiveCell(state.map, a, state.chapter);
     const cellB = getActiveCell(state.map, b, state.chapter);
+    const attachment = getEdgeAttachmentGeometry(centerA, centerB, cellA.terrain, cellB.terrain, {
+      edgeLength: HEX_SIZE,
+      blockedInset: 1.25 * size,
+    });
+    if (!attachment) return;
     const shared = getSharedEdgePoints({ a, b });
     if (edge.type === 'layerPortal' && shared) {
       drawLayerPortal(shared, centerA, centerB, cellA, cellB, size);
       return;
     }
-    const opensTowardA = cellB.terrain === 'blocked' && cellA.terrain !== 'blocked';
-    const attachmentAngle = tangentAngle + (opensTowardA ? Math.PI : 0);
+    const pointsIntoWater = ['spike', 'barrier'].includes(edge.type);
+    const sitsInsideWall = pointsIntoWater || edge.type === 'springJelly';
+    const attachmentPoint = sitsInsideWall ? attachment.attachmentPoint : midpoint;
+    const attachmentAngle = pointsIntoWater
+      ? attachment.pointsIntoOpenAngle
+      : isAnchoredPlant
+        ? attachment.growsIntoOpenAngle
+        : tangentAngle;
     const receivesHelp = state.mode === 'play' && (
       (edge.type === 'coralCluster' && isActorNearEdgeAttachment(state.actor, state.map, state.chapter, state.origin, 'coralCluster'))
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const width = edgeLength * (isAnchoredPlant ? 1.18 : 1.04) * size;
+      const fitsOneWallSegment = ['springJelly', 'spike', 'barrier'].includes(edge.type);
+      const width = (fitsOneWallSegment ? HEX_SIZE * 1.04 : edgeLength * (isAnchoredPlant ? 1.18 : 1.04)) * size;
       const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
-      drawOutlinedEdgeImage(edgeImage, midpoint, attachmentAngle, width, height, edge.type, receivesHelp);
+      drawOutlinedEdgeImage(edgeImage, attachmentPoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
-    if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', midpoint.x, midpoint.y, { font: 'bold 7px system-ui' });
-    if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', midpoint.x, midpoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
-    if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', midpoint.x, midpoint.y, { font: 'bold 9px system-ui' });
+    if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', attachmentPoint.x, attachmentPoint.y, { font: 'bold 7px system-ui' });
+    if (edge.type === 'spike' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▲', attachmentPoint.x, attachmentPoint.y + 1, { font: 'bold 7px system-ui', fill: '#ffb5aa' });
+    if (edge.type === 'barrier' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('▌', attachmentPoint.x, attachmentPoint.y, { font: 'bold 9px system-ui' });
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === MULTI_PORTAL_EDGE_TYPE && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('⟷', midpoint.x, midpoint.y, { font: 'bold 9px system-ui', fill: '#d4a8ff' });
