@@ -125,6 +125,17 @@ test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
     assert.equal(cell.gravityLevel, 'L-1', `${key} should be an upward Torricelli pocket`);
     assert.ok(Math.abs(detour.objectColumn - part1.metadata.mainAxisColumn) >= 6, `${key} should be visibly off the main axis`);
     assert.ok(detour.junctionRow - detour.objectRow >= 7, `${key} should require a meaningful upward return`);
+    assert.equal(detour.shaftWidth, 2, `${key} should sit in a narrow two-column ascent shaft`);
+    assert.ok(detour.separationWallWidth >= 2, `${key} should be separated from the main route by a substantial wall`);
+    assert.equal(
+      Object.values(part1.cells).filter((candidate) => candidate.r === detour.objectRow && candidate.region === detour.region).length,
+      2,
+      `${key} reward row should read as a narrow room instead of open water`,
+    );
+    assert.ok(
+      DIRECTIONS.filter((_, direction) => part1.cells[neighborKey(key, direction)]?.terrain === 'blocked').length >= 3,
+      `${key} should visibly sit against a sealed cap and side wall`,
+    );
     assert.equal(reachableKeysWithOpenedGates(part1).has(key), true, `${key} should be reachable through its lower junction`);
     assert.equal(
       reachableKeysWithOpenedGates(part1, { maxRow: detour.junctionRow - 1 }).has(key),

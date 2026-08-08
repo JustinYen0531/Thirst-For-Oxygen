@@ -579,3 +579,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Corrected Part 1's Torricelli-space interpretation: each reward is now an L-1 pocket at least six columns off the main axis, sealed from above so the player must first descend past its junction and then reverse upward by seven or eight rows.
 - The first right-side detour teaches the reversal with a downward return current. The second left-side detour is longer and combines a stronger return current with a spike at the narrow throat.
 - Added a focused structural test that proves neither Torricelli reward can be reached without first descending to its lower junction. Static-only verification passed: focused map checks (9/9), full `npm run check` (75/75 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-09 — Step 70 complete
+
+- Responded to the supplied gameplay crop showing that the first Torricelli reward still read as an ordinary open-water pickup. The previous reachability-only proof was insufficient because its three-column shaft and six-column connector did not create a visible local-room silhouette.
+- Rebuilt both Part 1 detours as two-column ascent wells, separated from the main route by two- or three-column rock walls and entered only through narrow bottom tunnels. Each Torricelli object now sits at the capped top with four blocked neighbouring cells.
+- Extended the regression check to enforce shaft width, separation-wall thickness, two-cell reward-row width, and at least three locally blocked neighbours. Static-only verification passed: full `npm run check` (76/76 tests), `npm run build`, and `git diff --check`; browser and Playwright checks remain prohibited by user instruction.

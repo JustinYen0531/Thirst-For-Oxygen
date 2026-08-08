@@ -258,12 +258,12 @@ function paintPart1Terrain(map) {
       : (cell.r >= 35 && cell.r <= 43 && column < center ? 'L-1' : 'L1');
     cell.waterLayer = 'T1';
     const firstTorricelliSpur = (
-      (cell.r >= 23 && cell.r <= 33 && column >= 14 && column <= 16)
-      || (cell.r >= 31 && cell.r <= 34 && column >= 11 && column <= 16)
+      (cell.r >= 21 && cell.r <= 33 && column >= 15 && column <= 16)
+      || (cell.r >= 32 && cell.r <= 34 && column >= 10 && column <= 16)
     );
     const secondTorricelliSpur = (
-      (cell.r >= 55 && cell.r <= 66 && column >= 1 && column <= 3)
-      || (cell.r >= 64 && cell.r <= 67 && column >= 2 && column <= 7)
+      (cell.r >= 52 && cell.r <= 66 && column >= 1 && column <= 2)
+      || (cell.r >= 65 && cell.r <= 67 && column >= 1 && column <= 7)
     );
     const outsideRoute = column <= 0 || column >= map.layout.width - 1
       || (Math.abs(column - center) > halfWidth && !firstTorricelliSpur && !secondTorricelliSpur);
@@ -271,10 +271,10 @@ function paintPart1Terrain(map) {
     const leftRestWall = cell.r >= 37 && cell.r <= 41 && column >= 3 && column <= 5;
     const rightCanopy = cell.r >= 50 && cell.r <= 55 && column >= 11 && column <= 13;
     const finalNeedle = cell.r >= 62 && cell.r <= 65 && column === 8;
-    const firstSpurDivider = cell.r >= 21 && cell.r <= 30 && column >= 12 && column <= 13;
-    const firstSpurCap = cell.r >= 21 && cell.r <= 22 && column >= 14 && column <= 16;
-    const secondSpurDivider = cell.r >= 53 && cell.r <= 63 && column >= 4 && column <= 5;
-    const secondSpurCap = cell.r >= 53 && cell.r <= 54 && column >= 1 && column <= 3;
+    const firstSpurDivider = cell.r >= 20 && cell.r <= 31 && column >= 13 && column <= 14;
+    const firstSpurCap = cell.r === 20 && column >= 15 && column <= 16;
+    const secondSpurDivider = cell.r >= 51 && cell.r <= 64 && column >= 3 && column <= 5;
+    const secondSpurCap = cell.r === 51 && column >= 1 && column <= 2;
     if (outsideRoute || centralFork || leftRestWall || rightCanopy || finalNeedle
       || firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap) {
       makeRock(cell, (firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap)
@@ -284,11 +284,11 @@ function paintPart1Terrain(map) {
     }
     if (firstTorricelliSpur) {
       cell.region = 'torricelli-ascent-right';
-      cell.gravityLevel = cell.r <= 27 ? 'L-1' : 'L1';
+      cell.gravityLevel = cell.r <= 26 ? 'L-1' : 'L1';
     }
     if (secondTorricelliSpur) {
       cell.region = 'torricelli-ascent-left';
-      cell.gravityLevel = cell.r <= 59 ? 'L-1' : 'L1';
+      cell.gravityLevel = cell.r <= 57 ? 'L-1' : 'L1';
     }
   });
 }
@@ -303,8 +303,8 @@ function buildPart1() {
       routeBeats: ['安全入口', '雙側繞行礁', '上浮林間', '補給林床', '熱泉門檻'],
       mainAxisColumn: 8,
       torricelliDetours: [
-        { side: 'right', objectRow: 24, objectColumn: 15, junctionRow: 31, junctionColumn: 12, ascentRows: 7 },
-        { side: 'left', objectRow: 56, objectColumn: 2, junctionRow: 64, junctionColumn: 6, ascentRows: 8 },
+        { side: 'right', region: 'torricelli-ascent-right', objectRow: 21, objectColumn: 16, junctionRow: 32, junctionColumn: 11, ascentRows: 11, shaftWidth: 2, separationWallWidth: 2 },
+        { side: 'left', region: 'torricelli-ascent-left', objectRow: 52, objectColumn: 1, junctionRow: 65, junctionColumn: 6, ascentRows: 13, shaftWidth: 2, separationWallWidth: 3 },
       ],
       teachingSequence: [
         '氧氣礦石：先在安全直道練習以足夠速度撞開。',
@@ -323,14 +323,14 @@ function buildPart1() {
   const used = new Set();
   [
     ['oxygen', 7, 7], ['bubble', 13, 11], ['checkpoint', 18, 4],
-    ['torricelli', 24, 15], ['oxygen', 34, 7], ['bubble', 40, 12],
-    ['checkpoint', 47, 5], ['oxygen', 55, 9], ['torricelli', 56, 2],
+    ['torricelli', 21, 16], ['oxygen', 34, 7], ['bubble', 40, 12],
+    ['checkpoint', 47, 5], ['oxygen', 55, 9], ['torricelli', 52, 1],
     ['checkpoint', 68, 10],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
   addEdgeSet(map, 'springJelly', [17, 44]);
-  addEdgeNear(map, 'current', 30, 15, { currentDirection: 5, currentStrength: 1.08 });
-  addEdgeNear(map, 'current', 63, 2, { currentDirection: 4, currentStrength: 1.18 });
-  addEdgeNear(map, 'spike', 61, 2);
+  addEdgeNear(map, 'current', 31, 15, { currentDirection: 5, currentStrength: 1.08 });
+  addEdgeNear(map, 'current', 64, 2, { currentDirection: 4, currentStrength: 1.18 });
+  addEdgeNear(map, 'spike', 62, 2);
   addEdgeSet(map, 'seaweed', [24, 52]);
   addEdgeSet(map, 'coralCluster', [10, 65]);
   return map;
