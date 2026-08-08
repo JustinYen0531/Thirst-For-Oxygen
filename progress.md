@@ -1,5 +1,12 @@
 Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一個要做的是地圖編輯器,因為那也是我製作地圖的方式。請參閱相關的文件。 如果我還沒有生成一個圖片的話,那就使用placeholder的圖案就好了,完全不要花心思在一開始的介面上,能用就行了。 那些效果都要做出來,也就是像什麼重力的邏輯啦,還是什麼物件,都要有相對應的互動邏輯。 另外一般的那種彈射邏輯也要讓我可以測試出來。
 
+## 2026-08-08 — Step 20 in progress
+
+- Added `src/music.js` as the shared music contract and controller. It maps Phase 1–3 Normal/Boss tracks, the available ascent `2.0` tracks, and `Main Menu.mp3`; the missing `Phase 2 (Boss 2.0).mp3` remains explicitly unavailable rather than falling back to another track.
+- Main Menu starts at 1:15 when playback is allowed. All tracks use fade-out, a short delay, and fade-in from 0:00 for the next loop. Volume is persisted in local storage and exposed on the home and play pages.
+- Play page now exposes music-only selectors for descent/ascent `2.0` and Normal/Boss. The ascent `2.0` option is labeled as pending acceptance and does not claim the maps are complete.
+- Browser/Playwright validation remains intentionally skipped per user instruction. Static syntax/build checks and Git upload are still required.
+
 ## 2026-08-07 — Step 1 in progress
 
 - User selected native Canvas + JavaScript (no engine dependency).

@@ -36,6 +36,17 @@ h1 em { color: #9befff; font-style: normal; text-shadow: 0 0 20px rgba(63, 206, 
 .map-picker { display: grid; gap: 7px; margin-top: 17px; color: #8faecc; font-size: .67rem; letter-spacing: .08em; }
 select { width: 100%; border: 1px solid rgba(119, 232, 255, .4); border-radius: 7px; padding: 10px 9px; color: #e8f5ff; background: #0a2746; outline: none; }
 select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 255, .16); }
+#play-music-control { margin-top: 17px; }
+.music-control { padding: 12px; border: 1px solid rgba(119, 232, 255, .2); border-radius: 8px; background: rgba(4, 17, 32, .45); }
+.music-control-heading, .music-control-actions { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.music-control-heading span, .music-control-actions label span { color: #7fa2c3; font-size: .6rem; letter-spacing: .1em; }
+.music-control-heading strong { color: var(--gold); font-size: .68rem; font-weight: 500; }
+.music-control-actions { margin-top: 9px; }
+.music-control-actions button { min-width: 63px; padding: 7px 6px; border: 1px solid rgba(119, 232, 255, .38); border-radius: 5px; color: #bcecff; background: #0c2b4b; cursor: pointer; font-size: .63rem; }
+.music-control-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.music-control-actions label { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
+.music-control-actions input { width: 100%; min-width: 40px; accent-color: var(--cyan); }
+.music-control small { display: block; margin-top: 7px; color: #86a6c4; font-size: .58rem; line-height: 1.45; }
 .play-actions { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7px; margin: 11px 0 19px; }
 .play-actions button { cursor: pointer; border-radius: 7px; padding: 9px 6px; font-size: .72rem; }
 .action-primary { border: 1px solid #f7dc78; color: #161d2b; background: linear-gradient(135deg, #f7dc78, #d9a94e); }

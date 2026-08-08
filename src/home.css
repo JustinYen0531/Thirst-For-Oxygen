@@ -37,6 +37,17 @@ a { color: inherit; text-decoration: none; }
 .primary-action span { font-size: 0.76rem; }
 .secondary-action { border: 1px solid rgba(140, 239, 255, 0.38); color: var(--aqua); }
 .primary-action:hover, .primary-action:focus-visible, .secondary-action:hover, .secondary-action:focus-visible { transform: translateY(-1px); outline: none; }
+#home-music-control { max-width: 570px; margin-top: 19px; }
+.music-control { padding: 13px 14px; border: 1px solid rgba(140, 239, 255, 0.24); border-radius: 6px; background: rgba(5, 24, 46, 0.72); }
+.music-control-heading, .music-control-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.music-control-heading span, .music-control-actions label span { color: rgba(199, 232, 250, 0.55); font-size: 0.68rem; letter-spacing: 0.1em; }
+.music-control-heading strong { color: var(--aqua); font-size: 0.76rem; font-weight: 500; }
+.music-control-actions { margin-top: 10px; }
+.music-control-actions button { min-width: 74px; padding: 7px 9px; border: 1px solid rgba(140, 239, 255, 0.38); border-radius: 4px; color: var(--paper); background: rgba(33, 112, 174, 0.35); cursor: pointer; font-size: 0.68rem; }
+.music-control-actions button:disabled { cursor: not-allowed; opacity: 0.45; }
+.music-control-actions label { display: inline-flex; align-items: center; gap: 8px; flex: 1; }
+.music-control-actions input { width: min(220px, 100%); accent-color: var(--aqua); }
+.music-control small { display: block; margin-top: 8px; color: rgba(199, 232, 250, 0.46); font-size: 0.65rem; }
 .hero-note { display: flex; align-items: center; gap: 8px; margin: 22px 0 0; color: rgba(199, 232, 250, 0.52); font-size: 0.74rem; }
 .signal-dot { width: 7px; height: 7px; border-radius: 50%; background: #86ffbd; box-shadow: 0 0 13px #86ffbd; }
 .hero-aquarium { position: relative; min-height: 360px; overflow: hidden; border: 1px solid rgba(119, 206, 255, 0.34); border-radius: 9px; background: radial-gradient(circle at 50% 42%, rgba(56, 169, 255, 0.28), transparent 23%), linear-gradient(145deg, rgba(16, 69, 111, 0.72), rgba(4, 18, 40, 0.92) 68%); box-shadow: inset 0 0 70px rgba(11, 108, 183, 0.2), 0 18px 60px rgba(0, 0, 0, 0.3); }

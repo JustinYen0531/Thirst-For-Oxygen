@@ -27,6 +27,7 @@ import {
   getPlayerAnimationPosition,
   getPlayerAnimationState,
 } from './player-animation.js';
+import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
@@ -53,6 +54,10 @@ const edgeColors = { springJelly: '#e77dff', spike: '#ff8394', barrier: '#ff9e78
 const canvas = document.querySelector('#play-canvas');
 const context = canvas.getContext('2d');
 const mapSelect = document.querySelector('#play-map-select');
+const musicArcSelect = document.querySelector('#play-music-arc');
+const musicModeSelect = document.querySelector('#play-music-mode');
+const musicController = createMusicController(getMusicTrack({ part: 3, arc: 'descent', mode: 'normal' }));
+attachMusicControls(document.querySelector('#play-music-control'), musicController);
 const resetButton = document.querySelector('#play-reset');
 const pauseButton = document.querySelector('#play-pause');
 const loadingMask = document.querySelector('#play-loading');
@@ -403,7 +408,16 @@ canvas.addEventListener('lostpointercapture', () => { dragging = false; trajecto
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
-mapSelect.addEventListener('change', () => loadMap(mapSelect.value));
+function syncMusicTrack() {
+  musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
+}
+mapSelect.addEventListener('change', () => {
+  mapPart = Number(mapSelect.value) || 3;
+  syncMusicTrack();
+  loadMap(mapPart);
+});
+musicArcSelect.addEventListener('change', syncMusicTrack);
+musicModeSelect.addEventListener('change', syncMusicTrack);
 window.addEventListener('keydown', (event) => { if (event.key.toLowerCase() === 'r') resetButton.click(); if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); } if (event.key === 'Escape') window.location.href = '/home.html'; });
 
 function simulate(elapsed, now = performance.now()) {
@@ -443,5 +457,11 @@ function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame)
 
 const requestedPart = new URLSearchParams(window.location.search).get('part');
 if (requestedPart && MAPS[requestedPart]) { mapSelect.value = requestedPart; mapPart = Number(requestedPart); }
+const requestedArc = new URLSearchParams(window.location.search).get('arc');
+const requestedMode = new URLSearchParams(window.location.search).get('mode');
+if (requestedArc === 'ascent20') musicArcSelect.value = requestedArc;
+if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
+syncMusicTrack();
+musicController.start();
 loadMap(mapPart);
 requestAnimationFrame(frame);

@@ -36,6 +36,24 @@
             </select>
           </label>
 
+          <label class="map-picker" for="play-music-arc">
+            <span>音樂篇章</span>
+            <select id="play-music-arc">
+              <option value="descent" selected>下沉篇</option>
+              <option value="ascent20">上升篇 2.0（待驗收）</option>
+            </select>
+          </label>
+
+          <label class="map-picker" for="play-music-mode">
+            <span>音樂情境</span>
+            <select id="play-music-mode">
+              <option value="normal" selected>Normal／Auto Scroller</option>
+              <option value="boss">Boss 戰</option>
+            </select>
+          </label>
+
+          <div id="play-music-control"></div>
+
           <div class="play-actions">
             <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
             <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
