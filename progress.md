@@ -407,6 +407,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - The guide remains strictly collinear with the actor-to-pointer axis; marker count scales with drag distance, but no gravity/current curvature is revealed. Runtime physics and `predictTrajectory` remain untouched for actual movement and tests.
 - Added `src/launch-guide.js` and pure geometry tests. Static verification passed `npm run check` (47/47 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited by user instruction.
 
+## 2026-08-08 — Step 51 complete
+
+- Replaced the four single-frame diver state assets in runtime use with four six-frame sprite groups: swim, hurt, death, and fast ascent.
+- Generated 3×2 work sheets, removed the chroma-key background, sliced each group into six independent 512×512 RGBA PNGs, and added four GIF previews at 12 FPS.
+- Swimming frames now alternate the flippers and lightly sway the arms/hoses; hurt, death, and fast ascent each have their own six-frame sequence.
+- Sprite artwork is authored facing left. Runtime preserves the left-facing frames for left launches and mirrors them for rightward motion; the current pale-white silhouette outline remains enabled.
+- Static-only verification passed: `npm run check` (51/51 tests), `npm run build`, `git diff --check`, six-frame/count checks for all four groups, and transparent-corner validation for all 24 PNGs. Browser and Playwright checks remain prohibited by user instruction.
+
 ## 2026-08-08 — Step 50 complete
 
 - Removed the remaining visual position jump at blocked terrain and sealed water-layer boundaries: collision resolution now returns to the previous physics position instead of teleporting to a normal-offset point.

@@ -1,8 +1,11 @@
+const PLAYER_ANIMATION_ROOT = '/assets/editor/actors/player';
+const framePaths = (action) => Object.freeze(Array.from({ length: 6 }, (_, index) => `${PLAYER_ANIMATION_ROOT}/${action}/player-diver__${action}__${String(index + 1).padStart(2, '0')}.png`));
+
 export const PLAYER_ANIMATION_ASSETS = Object.freeze({
-  swim: '/assets/editor/actors/player-diver-swim.png',
-  hurt: '/assets/editor/actors/player-diver-hurt.png',
-  death: '/assets/editor/actors/player-diver-death.png',
-  fastAscent: '/assets/editor/actors/player-diver-fast-ascent.png',
+  swim: framePaths('swim'),
+  hurt: framePaths('hurt'),
+  death: framePaths('death'),
+  fastAscent: framePaths('fast-ascent'),
 });
 
 export const PLAYER_ANIMATION_IMAGE_KEYS = Object.freeze({
@@ -15,6 +18,8 @@ export const PLAYER_ANIMATION_IMAGE_KEYS = Object.freeze({
 export const PLAYER_HURT_DURATION = 0.42;
 export const PLAYER_DEATH_DURATION = 0.9;
 export const FAST_ASCENT_VELOCITY = -55;
+export const PLAYER_ANIMATION_FPS = 12;
+export const PLAYER_ANIMATION_FRAME_COUNT = 6;
 
 export function getPlayerAnimationState(actor) {
   if (!actor) return 'swim';
@@ -29,6 +34,23 @@ export function getPlayerAnimationPosition(actor) {
     return { x: actor.deathAnimation.x, y: actor.deathAnimation.y };
   }
   return { x: actor?.x ?? 0, y: actor?.y ?? 0 };
+}
+
+export function getPlayerAnimationFrameIndex(animationState, time = 0, actor = null) {
+  if (animationState === 'hurt') {
+    const progress = 1 - Math.max(0, Math.min(PLAYER_HURT_DURATION, actor?.hurtTimer ?? 0)) / PLAYER_HURT_DURATION;
+    return Math.max(0, Math.min(PLAYER_ANIMATION_FRAME_COUNT - 1, Math.floor(progress * PLAYER_ANIMATION_FRAME_COUNT)));
+  }
+  if (animationState === 'death') {
+    return Math.max(0, Math.min(PLAYER_ANIMATION_FRAME_COUNT - 1, Math.floor((actor?.deathAnimation?.elapsed ?? 0) * PLAYER_ANIMATION_FPS)));
+  }
+  return Math.floor(Math.max(0, time) * PLAYER_ANIMATION_FPS) % PLAYER_ANIMATION_FRAME_COUNT;
+}
+
+export function getPlayerFacingDirection(actor) {
+  if ((actor?.vx ?? 0) < -1) return 'left';
+  if ((actor?.vx ?? 0) > 1) return 'right';
+  return actor?.facing ?? 'right';
 }
 
 export function getPlayerAnimationMotion(animationState, time = 0, actor = null) {

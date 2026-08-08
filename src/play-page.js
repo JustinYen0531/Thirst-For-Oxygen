@@ -21,6 +21,8 @@ import {
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import {
   PLAYER_ANIMATION_ASSETS,
+  getPlayerAnimationFrameIndex,
+  getPlayerFacingDirection,
   getPlayerAnimationMotion,
   getPlayerAnimationPosition,
   getPlayerAnimationState,
@@ -35,7 +37,7 @@ const MAPS = {
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
 const TILE_SIZE = 24;
-const PLAYER_ASSET = PLAYER_ANIMATION_ASSETS.swim;
+const PLAYER_ASSET = PLAYER_ANIMATION_ASSETS.swim[0];
 const TILE_ASSETS = {
   'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
@@ -63,7 +65,7 @@ const unlimitedResourcesButton = document.querySelector('#play-unlimited-resourc
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
-Object.values({ ...PLAYER_ASSETS, ...TILE_ASSETS, ...OBJECT_ASSETS, ...EDGE_ASSETS }).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS)].forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapPart = 3;
@@ -294,11 +296,13 @@ function drawActor() {
   if (!actor) return;
   const time = performance.now();
   const animationState = getPlayerAnimationState(actor);
-  const animationPath = PLAYER_ASSETS[animationState] ?? PLAYER_ASSET;
+  const frameIndex = getPlayerAnimationFrameIndex(animationState, time / 1000, actor);
+  const animationPath = PLAYER_ASSETS[animationState]?.[frameIndex] ?? PLAYER_ASSET;
   const image = images.get(animationPath);
   const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
   const motion = getPlayerAnimationMotion(animationState, time / 1000, actor);
   const anchor = getPlayerAnimationPosition(actor);
+  const facing = getPlayerFacingDirection(actor);
   const height = Math.max(22, actor.radius * 3.1);
   const width = imageReady ? height * image.naturalWidth / image.naturalHeight : height * .78;
 
@@ -314,7 +318,7 @@ function drawActor() {
   context.save();
   context.translate(anchor.x, anchor.y + motion.bob);
   context.rotate(motion.rotation);
-  context.scale(motion.scaleX, motion.scaleY);
+  context.scale(facing === 'left' ? motion.scaleX : -motion.scaleX, motion.scaleY);
   if (imageReady) {
     drawImageWithSilhouetteOutline(image, 0, 0, width, height, motion.alpha, .62, motion.glow === '#ffb7a1' ? 'rgba(255, 243, 239, 0.9)' : 'rgba(246, 252, 255, 0.88)');
   } else {
@@ -427,7 +431,7 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'world origin is top-left; x right, y down',
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), dragging } : null,
+  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
   unlimitedResources,
   paused,
 });

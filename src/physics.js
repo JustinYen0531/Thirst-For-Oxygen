@@ -261,6 +261,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     derivedStats: getPlayerDerivedStats(abilities, MAX_OXYGEN),
     dead: false,
     gameOver: false,
+    facing: 'right',
     hurtTimer: 0,
     deathAnimation: null,
     invulnerability: 0,
@@ -352,7 +353,7 @@ export function applyEnemyDefeatRewards(actor) {
 
 export function registerPlayerDeath(actor, cause = 'damage') {
   if (actor.dead || actor.gameOver) return { livesRemaining: actor.lives, gameOver: actor.gameOver, cause };
-  actor.deathAnimation = { x: actor.x, y: actor.y, timer: PLAYER_DEATH_DURATION, cause };
+  actor.deathAnimation = { x: actor.x, y: actor.y, timer: PLAYER_DEATH_DURATION, elapsed: 0, cause };
   actor.dead = true;
   actor.health = 0;
   actor.lives = Math.max(0, actor.lives - 1);
@@ -392,6 +393,7 @@ export function launchActor(actor, pointer) {
   const speed = getLaunchSpeed(distance);
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
+  if (Math.abs(direction.x) > 0.08) actor.facing = direction.x < 0 ? 'left' : 'right';
   actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
   actor.oxygen = clamp(actor.oxygen - costs.oxygen, 0, maxOxygenFor(actor));
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
@@ -843,6 +845,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.hurtTimer = Math.max(0, (actor.hurtTimer ?? 0) - dt);
   if (actor.deathAnimation) {
     actor.deathAnimation.timer = Math.max(0, actor.deathAnimation.timer - dt);
+    actor.deathAnimation.elapsed = Math.min(PLAYER_DEATH_DURATION, (actor.deathAnimation.elapsed ?? 0) + dt);
     if (actor.deathAnimation.timer <= 0 && !actor.dead && !actor.gameOver) actor.deathAnimation = null;
   }
   Object.keys(actor.cooldowns).forEach((key) => {
@@ -874,6 +877,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   const horizontalDrag = Math.pow(HORIZONTAL_WATER_DRAG, dt * 60);
   const verticalDrag = Math.pow(VERTICAL_WATER_DRAG, dt * 60);
   actor.vx = (actor.vx + (current.x + microflow.x + special.x) * dt) * horizontalDrag;
+  if (Math.abs(actor.vx) > 1) actor.facing = actor.vx < 0 ? 'left' : 'right';
   if (Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
   actor.vy = (actor.vy + (zoneGravity + current.y + microflow.y + special.y) * dt) * verticalDrag;
   const speed = Math.hypot(actor.vx, actor.vy);

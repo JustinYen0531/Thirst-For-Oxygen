@@ -57,6 +57,9 @@ import {
 } from '../src/game-data.js';
 import {
   FAST_ASCENT_VELOCITY,
+  PLAYER_ANIMATION_ASSETS,
+  getPlayerAnimationFrameIndex,
+  getPlayerFacingDirection,
   getPlayerAnimationPosition,
   getPlayerAnimationState,
 } from '../src/player-animation.js';
@@ -648,6 +651,14 @@ test('player animation states prioritize death, hurt, fast ascent, and swimming'
   actor.deathAnimation = { x: 321, y: 123, timer: 0.4 };
   assert.equal(getPlayerAnimationState(actor), 'death');
   assert.deepEqual(getPlayerAnimationPosition(actor), { x: 321, y: 123 });
+  assert.equal(getPlayerAnimationFrameIndex('swim', 0), 0);
+  assert.equal(getPlayerAnimationFrameIndex('swim', 0.5), 0);
+  actor.deathAnimation = null;
+  actor.vx = -80;
+  assert.equal(getPlayerFacingDirection(actor), 'left');
+  actor.vx = 80;
+  assert.equal(getPlayerFacingDirection(actor), 'right');
+  assert.equal(Object.values(PLAYER_ANIMATION_ASSETS).every((frames) => frames.length === 6), true);
 });
 
 test('all defined weapons, passive abilities, and enemy attack contracts are numeric', () => {

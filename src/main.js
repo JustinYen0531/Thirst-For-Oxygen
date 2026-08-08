@@ -69,6 +69,8 @@ import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import {
   PLAYER_ANIMATION_ASSETS,
   PLAYER_ANIMATION_IMAGE_KEYS,
+  getPlayerAnimationFrameIndex,
+  getPlayerFacingDirection,
   getPlayerAnimationMotion,
   getPlayerAnimationPosition,
   getPlayerAnimationState,
@@ -167,11 +169,11 @@ const edgeImagePaths = {
   multiPortal: '/assets/editor/edges/multi-portal.png',
 };
 const actorImagePaths = {
-  playerStart: PLAYER_ANIMATION_ASSETS.swim,
-  playerSwim: PLAYER_ANIMATION_ASSETS.swim,
-  playerHurt: PLAYER_ANIMATION_ASSETS.hurt,
-  playerDeath: PLAYER_ANIMATION_ASSETS.death,
-  playerFastAscent: PLAYER_ANIMATION_ASSETS.fastAscent,
+  playerStart: PLAYER_ANIMATION_ASSETS.swim[0],
+  playerSwim: PLAYER_ANIMATION_ASSETS.swim[0],
+  playerHurt: PLAYER_ANIMATION_ASSETS.hurt[0],
+  playerDeath: PLAYER_ANIMATION_ASSETS.death[0],
+  playerFastAscent: PLAYER_ANIMATION_ASSETS.fastAscent[0],
 };
 const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths, ...actorImagePaths };
 const paletteLabels = {
@@ -217,6 +219,14 @@ const actorImages = Object.fromEntries(Object.entries(actorImagePaths).map(([kin
   image.src = source;
   return [kind, image];
 }));
+const actorAnimationImages = Object.fromEntries(Object.entries(PLAYER_ANIMATION_ASSETS).map(([animationState, sources]) => [
+  animationState,
+  sources.map((source) => {
+    const image = new Image();
+    image.src = source;
+    return image;
+  }),
+]));
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
 conditionalGateImage.addEventListener('load', () => render());
 Object.values(terrainImages).forEach((image) => image.addEventListener('load', () => render()));
@@ -224,6 +234,7 @@ Object.values(objectImages).forEach((image) => image.addEventListener('load', ()
 Object.values(componentImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(edgeImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(actorImages).forEach((image) => image.addEventListener('load', () => render()));
+Object.values(actorAnimationImages).flat().forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
   playerStart: 'D',
   enemySpawn: 'E',
@@ -774,15 +785,17 @@ function drawPlayerDiver(position, height, options = {}) {
   const gameplay = options.gameplay === true;
   const animationState = options.animationState ?? (gameplay ? getPlayerAnimationState(actor) : 'swim');
   const imageKey = PLAYER_ANIMATION_IMAGE_KEYS[animationState] ?? PLAYER_ANIMATION_IMAGE_KEYS.swim;
-  const image = actorImages[imageKey] ?? actorImages.playerStart;
+  const frameIndex = getPlayerAnimationFrameIndex(animationState, time, actor);
+  const image = actorAnimationImages[animationState]?.[frameIndex] ?? actorImages[imageKey] ?? actorImages.playerStart;
   const motion = getPlayerAnimationMotion(animationState, time, actor);
   const anchor = gameplay ? getPlayerAnimationPosition(actor) : position;
+  const facing = getPlayerFacingDirection(actor);
   const width = height * ((image?.naturalWidth || 1122) / (image?.naturalHeight || 1402));
   const alpha = options.alpha ?? motion.alpha;
   ctx.save();
   ctx.translate(anchor.x, anchor.y + motion.bob);
   ctx.rotate(motion.rotation);
-  ctx.scale(motion.scaleX, motion.scaleY);
+  ctx.scale(facing === 'left' ? motion.scaleX : -motion.scaleX, motion.scaleY);
   if (gameplay) {
     const pulse = 0.5 + Math.sin(time * 3.4) * 0.5;
     ctx.save();
@@ -2923,6 +2936,7 @@ window.render_game_to_text = () => {
       energy: formatNumber(state.actor.energy), attached: state.actor.attached,
       lives: state.actor.lives, maxLives: state.actor.maxLives, gameOver: state.actor.gameOver,
       animation: getPlayerAnimationState(state.actor),
+      facing: getPlayerFacingDirection(state.actor),
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
