@@ -439,3 +439,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Empty oxygen now applies gradual health starvation damage instead of immediate death. Empty energy does not kill or cancel a launch; the existing idle-rest recovery requires the player to stop moving.
 - Moved editor and standalone-play resource HUDs to the bottom in the requested order: oxygen left, health center, energy right. The top-left readout now shows Attempts.
 - Static-only verification passed: `npm run check` (52/52 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 53 complete
+
+- Rebalanced oxygen per launch: the planned budget is `distance × 0.025`, so a 200 px medium launch budgets about 5 O₂ and a full 420 px launch about 10.5 O₂. The budget is still charged progressively from actual travel distance rather than removed at release.
+- Reordered both HUDs to health left, oxygen center, energy right, while Attempts remains top-left. Launch logs now show the planned oxygen budget.
+- Made launch-facing a hard rule: the actor keeps the left/right direction chosen by the latest horizontal launch instead of being flipped by current drift or reflection.
+- Added a stationary rest animation for low-speed players that have contacted an impassable obstacle; the swim frame and body motion freeze so the legs no longer kick against the wall.
+- Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

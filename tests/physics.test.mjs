@@ -133,6 +133,8 @@ test('launch velocity is opposite the pull direction', () => {
   assert.ok(launch.speed > 100, 'launch speed should include the requested five-times momentum boost');
   assert.equal(actor.oxygen, oxygenBefore, 'oxygen is charged from actual travel, not upfront');
   assert.equal(actor.energy, 100 - ENERGY_COST_PER_LAUNCH, 'one launch should settle one fixed energy cost');
+  assert.ok(Math.abs(getLaunchCosts(200).oxygen - 5) < 0.0001, 'medium launch should budget about 5 oxygen');
+  assert.ok(getLaunchCosts(420).oxygen >= 10, 'long launch should budget about 10 oxygen');
 });
 
 test('long launches gain extra speed while short launches keep the old scale', () => {
@@ -144,7 +146,7 @@ test('long launches gain extra speed while short launches keep the old scale', (
 test('launch only requires energy and aiming is free', () => {
   let actor = createTestActor({ x: 200, y: 200 });
   const costs = getLaunchCosts(80);
-  assert.equal(costs.oxygen, 0);
+  assert.ok(costs.oxygen > 0);
   actor.oxygen = 0;
   assert.ok(launchActor(actor, { x: 120, y: 200 }).launched, 'oxygen starvation does not prevent movement');
 
@@ -164,24 +166,24 @@ test('oxygen follows travel distance and starvation drains health slowly', () =>
   patchCell(map, '1,0', { gravityLevel: 'L0' });
   patchCell(map, '2,0', { gravityLevel: 'L0' });
   const actor = actorIn(map, '1,0');
-  actor.vx = 60;
+  const launch = launchActor(actor, { x: actor.x - 200, y: actor.y });
+  assert.ok(launch.launched);
   const beforeOxygen = actor.oxygen;
   stepPhysics({ map, actor, origin: ORIGIN });
-  const expectedTravel = Math.hypot(actor.vx, actor.vy) * FIXED_STEP;
   assert.ok(actor.oxygen < beforeOxygen);
-  assert.ok(beforeOxygen - actor.oxygen < 1, 'movement oxygen cost should stay small');
-  assert.ok(OXYGEN_COST_PER_DISTANCE < 0.001, 'movement oxygen rate should be substantially reduced');
+  assert.ok(beforeOxygen - actor.oxygen > 0.01, 'oxygen should visibly change during a launch');
+  assert.ok(OXYGEN_COST_PER_DISTANCE >= 0.02);
 
   actor.oxygen = 0;
   actor.health = MAX_HEALTH;
   actor.vx = 0;
   actor.vy = 0;
+  actor.energy = 100;
   const beforeHealth = actor.health;
   stepPhysics({ map, actor, origin: ORIGIN });
   assert.ok(actor.health < beforeHealth, 'empty oxygen should slowly damage health');
   assert.ok(actor.health > beforeHealth - OXYGEN_STARVATION_DAMAGE_PER_SECOND, 'starvation damage should be gradual');
   assert.equal(actor.energy, 100, 'resting with zero velocity still allows energy recovery');
-  assert.ok(expectedTravel >= 0);
 });
 
 test('all primary motion limits use the 0.1 simulation scale', () => {
@@ -686,11 +688,28 @@ test('player animation states prioritize death, hurt, fast ascent, and swimming'
   assert.equal(getPlayerAnimationFrameIndex('swim', 0), 0);
   assert.equal(getPlayerAnimationFrameIndex('swim', 0.5), 0);
   actor.deathAnimation = null;
+  actor.facing = 'left';
+  actor.vx = 80;
+  assert.equal(getPlayerFacingDirection(actor), 'left');
+  actor.facing = 'right';
   actor.vx = -80;
+  assert.equal(getPlayerFacingDirection(actor), 'right');
+  actor.vx = 0;
+  actor.vy = 0;
+  actor.hurtTimer = 0;
+  actor.blockedResting = true;
+  assert.equal(getPlayerAnimationState(actor), 'rest');
+  assert.equal(Object.values(PLAYER_ANIMATION_ASSETS).every((frames) => frames.length === 6), true);
+});
+
+test('launch direction is a hard facing rule until the next launch', () => {
+  const actor = createTestActor({ x: 200, y: 200 });
+  const launch = launchActor(actor, { x: 280, y: 200 });
+  assert.ok(launch.launched);
+  assert.ok(actor.vx < 0);
   assert.equal(getPlayerFacingDirection(actor), 'left');
   actor.vx = 80;
-  assert.equal(getPlayerFacingDirection(actor), 'right');
-  assert.equal(Object.values(PLAYER_ANIMATION_ASSETS).every((frames) => frames.length === 6), true);
+  assert.equal(getPlayerFacingDirection(actor), 'left');
 });
 
 test('all defined weapons, passive abilities, and enemy attack contracts are numeric', () => {

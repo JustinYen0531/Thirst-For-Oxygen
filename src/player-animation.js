@@ -3,6 +3,7 @@ const framePaths = (action) => Object.freeze(Array.from({ length: 6 }, (_, index
 
 export const PLAYER_ANIMATION_ASSETS = Object.freeze({
   swim: framePaths('swim'),
+  rest: framePaths('swim'),
   hurt: framePaths('hurt'),
   death: framePaths('death'),
   fastAscent: framePaths('fast-ascent'),
@@ -10,6 +11,7 @@ export const PLAYER_ANIMATION_ASSETS = Object.freeze({
 
 export const PLAYER_ANIMATION_IMAGE_KEYS = Object.freeze({
   swim: 'playerSwim',
+  rest: 'playerSwim',
   hurt: 'playerHurt',
   death: 'playerDeath',
   fastAscent: 'playerFastAscent',
@@ -25,6 +27,7 @@ export function getPlayerAnimationState(actor) {
   if (!actor) return 'swim';
   if (actor.gameOver || actor.dead || (actor.deathAnimation?.timer ?? 0) > 0) return 'death';
   if ((actor.hurtTimer ?? 0) > 0) return 'hurt';
+  if (actor.blockedResting && Math.hypot(actor.vx ?? 0, actor.vy ?? 0) < 1.5) return 'rest';
   if (actor.vy <= FAST_ASCENT_VELOCITY) return 'fastAscent';
   return 'swim';
 }
@@ -37,6 +40,7 @@ export function getPlayerAnimationPosition(actor) {
 }
 
 export function getPlayerAnimationFrameIndex(animationState, time = 0, actor = null) {
+  if (animationState === 'rest') return 0;
   if (animationState === 'hurt') {
     const progress = 1 - Math.max(0, Math.min(PLAYER_HURT_DURATION, actor?.hurtTimer ?? 0)) / PLAYER_HURT_DURATION;
     return Math.max(0, Math.min(PLAYER_ANIMATION_FRAME_COUNT - 1, Math.floor(progress * PLAYER_ANIMATION_FRAME_COUNT)));
@@ -48,6 +52,7 @@ export function getPlayerAnimationFrameIndex(animationState, time = 0, actor = n
 }
 
 export function getPlayerFacingDirection(actor) {
+  if (actor?.facing === 'left' || actor?.facing === 'right') return actor.facing;
   if ((actor?.vx ?? 0) < -1) return 'left';
   if ((actor?.vx ?? 0) > 1) return 'right';
   return actor?.facing ?? 'right';
@@ -55,6 +60,16 @@ export function getPlayerFacingDirection(actor) {
 
 export function getPlayerAnimationMotion(animationState, time = 0, actor = null) {
   const speed = Math.hypot(actor?.vx ?? 0, actor?.vy ?? 0);
+  if (animationState === 'rest') {
+    return {
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      bob: 0,
+      alpha: 1,
+      glow: '#c6f8ff',
+    };
+  }
   if (animationState === 'hurt') {
     return {
       rotation: -0.1 + Math.sin(time * 34) * 0.035,

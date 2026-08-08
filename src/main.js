@@ -2756,7 +2756,7 @@ canvas.addEventListener('pointerup', (event) => {
   const pointer = eventPoint(event);
   const launch = launchActor(state.actor, pointer);
   if (launch.launched) {
-    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣依移動距離計算。` }]);
+    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣最多 -${launch.costs.oxygen.toFixed(1)}（隨移動結算）。` }]);
   } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
     const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
     recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法彈射，請補給或原地休息。` }]);
@@ -2896,7 +2896,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === ' ' && state.mode === 'play') {
     event.preventDefault();
     const launch = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
-    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣依移動距離計算。` }]);
+    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣最多 -${launch.costs.oxygen.toFixed(1)}（隨移動結算）。` }]);
     else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
       const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
       recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法快速彈射。` }]);

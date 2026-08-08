@@ -58,6 +58,7 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .resource-row i { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: #061323; }
 .resource-row b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #69e7ff, #2f8dce); transition: width .2s ease; }
 .resource-row:nth-child(1) b { background: linear-gradient(90deg, #ff9f92, #ef5e75); }
+.resource-row:nth-child(2) b { background: linear-gradient(90deg, #69e7ff, #2f8dce); }
 .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
 .resource-toggle { width: 100%; margin-top: 11px; cursor: pointer; border: 1px solid rgba(247, 220, 120, .42); border-radius: 7px; padding: 9px 8px; color: #d5e8f8; background: #0b2742; font-size: .69rem; transition: .2s ease; }
 .resource-toggle.is-active { border-color: #f7dc78; color: #172136; background: linear-gradient(135deg, #f7dc78, #d9a94e); box-shadow: 0 0 18px rgba(247, 220, 120, .2); }
@@ -77,8 +78,8 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-resource-hud .resource-row { display: grid; grid-template-columns: 34px 33px 1fr; align-items: center; gap: 6px; color: #b0c9e1; font-size: .68rem; }
 .play-resource-hud .resource-row strong { color: white; font-size: .7rem; text-align: right; }
 .play-resource-hud .resource-row i { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: #061323; }
-.play-resource-hud .resource-row b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #69e7ff, #2f8dce); transition: width .2s ease; }
-.play-resource-hud .resource-row:nth-child(2) b { background: linear-gradient(90deg, #ff9f92, #ef5e75); }
+.play-resource-hud .resource-row b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff9f92, #ef5e75); transition: width .2s ease; }
+.play-resource-hud .resource-row:nth-child(2) b { background: linear-gradient(90deg, #69e7ff, #2f8dce); }
 .play-resource-hud .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
 .loading-mask { position: absolute; inset: 0; display: grid; place-items: center; color: #b9eefe; font-size: .85rem; letter-spacing: .12em; background: rgba(5, 20, 37, .86); transition: opacity .3s ease; }
 .loading-mask.is-hidden { opacity: 0; pointer-events: none; }
