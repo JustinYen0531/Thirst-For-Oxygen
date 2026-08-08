@@ -171,7 +171,8 @@ function setupWorld(nextMap) {
   aimPoint = null;
   trajectory = [];
   activeCollisionSoundKeys.clear();
-  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `${enemies.length} 個小怪出生點已啟動。`];
+  const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
+  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
   updateCamera();
@@ -647,6 +648,7 @@ window.render_game_to_text = () => JSON.stringify({
   player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
   enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), state: enemy.state })),
   totalEnemySpawns: enemies.length,
+  totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
   unlimitedResources,
   paused,
 });

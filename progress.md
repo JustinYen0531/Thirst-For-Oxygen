@@ -616,6 +616,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-09 — Step 74 complete
 
+- Corrected Step 73 after the user pointed to `GDD/05_內容/敵人/敵人配置.md`: all three current maps belong to Chapter 1 Descent and must use its documented 2 Lv.1 enemies, 4 core Lv.2 enemies, and 3 elite Lv.3 enemies. Removed Chapter 2-only split, symbiotic, and mutated enemies from these maps.
+- Reinterpreted each authored `enemySpawn` as an encounter-group anchor. Nearby distinct passable Cells now expand those anchors into 40 enemies in Part 1, 40 in Part 2, and 48 in Part 3, instead of stacking many sprites on nine, four, or six coordinates.
+- Part 1 establishes both Lv.1 enemies before transitioning into the complete four-enemy core pool. Part 2 keeps the complete core pool and introduces all three Descent elites. Part 3 keeps the core pool while increasing elite presence.
+- Doubled both enemy render size and radius. Focused configuration checks passed (4/4), full `npm run check` passed (88/88), `npm run build` passed, and `git diff --check` passed. Browser and Playwright remain prohibited by user instruction.
+
+## 2026-08-09 — Step 74 complete
+
 - Added explicit Canvas-only knife upgrade profiles: Lv.1 path slash, Lv.2 two side trails at 70% main damage, and Lv.3 stationary area damage with a fixed tick interval.
 - Added distinct Lv.1/Lv.2/Lv.3 arc, trail, and accent visuals without image assets.
 - Enlarged the sandbox diver interaction zone, made diver control the default, and made enemy placement an explicit opt-in mode.
