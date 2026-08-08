@@ -759,3 +759,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 將 24 張玩家武器／被動 Logo 接入正式遊玩頁 HUD 的六個八邊形槽位：左側三格為主動武器，右側三格為被動能力；正式初始 Build 顯示小刀 Lv.1，其餘槽位保持空白。
 - 新增 HUD icon 路徑與六槽位資料契約，讓未來升級只需更換 loadout，不需改 HTML 位置；靜態驗證與 Git 提交待本步完成後執行。
+
+## 2026-08-09 — Step 95 in progress
+
+- 將同一套六格 Logo HUD 接入敵人驗收沙盒；左側三格即時讀取 `state.build.weapons`，右側三格即時讀取 `state.build.passives`。
+- 沙盒空 Build 時槽位維持空白；套用 Build 或升級後，HUD 與沙盒實際已裝備資料同步，並把 `hudLoadout` 納入沙盒文字狀態輸出。
+
+## 2026-08-09 — Step 95 complete
+
+- 正式遊玩頁的 canvas 改放進 HUD 鏡片內框專用 viewport，依 HUD 素材透明區縮小並保持 1200×680 原始比例；畫面不再繪製到兩側資源模組或底部 HP 核心的後方。
+- 保留 canvas 的實際 DOM 矩形作為拖曳／彈射座標基準，縮放只改可視版面，不改遊戲物理與輸入方向；沙盒驗收頁維持原有圖層配置。
+- 靜態驗證通過：`npm run check`（139/139）、`npm run build`、`git diff --check`；瀏覽器／Playwright 依指示不執行。
