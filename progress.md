@@ -380,3 +380,15 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the diver sprite with an opaque black visor that hides the face, while preserving the ancient carved-stone armor, cyan core, bubbles, and transparent background.
 - Updated the play instructions and initial event text to refer to the diver.
 - Static-only verification passed: `npm run check`, `npm run build`, `git diff --check`, and RGBA/alpha validation of `public/assets/editor/actors/player-diver.png`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 47 complete
+
+- Traced the remaining upward drift to authored `current` Edges: diagonal current vectors were still injecting a vertical acceleration after water microflow `y` had been removed.
+- Current Edges now keep their horizontal nudge but return `y: 0`; vertical motion is limited to launch impulse, Cell gravity, and explicit collision responses.
+- Added a regression test for a diagonal current and reran static checks: `npm run check` (45/45 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 47 complete
+
+- Changed both the play page and map-editor play mode to draw a straight launch guide made only from the actor-to-pointer direction and distance. The guide no longer renders the curved path produced by gravity or current.
+- Kept `launchActor`, runtime physics, and `predictTrajectory` available for actual movement and tests; only the player-facing preview was simplified so gravity remains an experience-based judgment.
+- Updated the player-operation, core-summary, physics-launch, and water-gravity GDD notes to record this intentional information boundary. Static syntax/build checks remain required; browser validation remains prohibited by user instruction.

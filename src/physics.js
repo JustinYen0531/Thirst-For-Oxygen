@@ -440,7 +440,6 @@ export function isActorNearEdgeAttachment(actor, map, chapter, origin, type, rad
 function applyCurrentAcceleration(map, cellKey, chapter) {
   if (!cellKey) return { x: 0, y: 0 };
   let x = 0;
-  let y = 0;
   DIRECTIONS.forEach((_, directionIndex) => {
     const adjacent = neighborKey(cellKey, directionIndex);
     if (!map.cells[adjacent]) return;
@@ -449,9 +448,12 @@ function applyCurrentAcceleration(map, cellKey, chapter) {
     const vector = getDirectionVector(edge.currentDirection);
     const magnitude = CURRENT_ACCELERATION * edge.currentStrength;
     x += vector.x * magnitude;
-    y += vector.y * magnitude;
   });
-  return { x, y };
+  // Authored current Edges may point diagonally for their visual language, but
+  // they must not become a second gravity source. Keep their gameplay effect
+  // as a horizontal nudge; vertical motion is owned by launch impulse and the
+  // active Cell's gravity only.
+  return { x, y: 0 };
 }
 
 function processBoundary(actor, bounds, events) {

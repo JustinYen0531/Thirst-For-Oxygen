@@ -307,6 +307,15 @@ test('current applies horizontal acceleration from an Edge', () => {
   assert.ok(actor.vx > 0.1, 'eastward current should add positive x velocity at the slowed scale');
 });
 
+test('diagonal current never adds hidden vertical lift', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0' });
+  patchEdge(map, '0,0', '1,0', { type: 'current', currentDirection: 1, currentStrength: 1.5 });
+  const actor = actorIn(map, '0,0');
+  stepPhysics({ map, actor, origin: ORIGIN });
+  assert.equal(actor.vy, 0, 'a diagonal current must not change vertical velocity');
+});
+
 test('water layer boundaries block until a layer portal is installed', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
   patchCell(map, '0,0', { gravityLevel: 'L0', waterLayer: 'T1' });
