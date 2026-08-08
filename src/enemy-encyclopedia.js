@@ -21,8 +21,8 @@ const VISUALS = {
   nautilusOracle: { idle: gif('base-float-move'), actions: { shortThrust: gif('attack-relic-cast'), coralMortar: gif('skill-coral-bombardment'), dualCoreMagic: gif('skill-twin-core-shot') } },
   arcTideRay: { idle: gif('base-float-move'), actions: { wingRam: gif('attack-fin-blade'), arcTideBombardment: gif('attack-arc-tide-bombardment') } },
   mutantMantisShrimp: { idle: gif('base-float-move'), actions: { mutantPunch: gif('attack-tracking-punch'), mutantGroundSmash: gif('skill-pressure-arena'), mutantBeaconAssault: gif('skill-beacon-afterimage') } },
-  mutantNautilusOracle: { idle: gif('base-float-move-v2'), actions: { mutantCoralMortar: gif('attack-overloaded-relic'), mutantDualCoreMagic: gif('skill-360-core-scatter'), persistentCoreVolley: gif('skill-everlasting-core') } },
-  mutantArcTideRay: { idle: gif('base-float-move-v2'), actions: { mutantWingRam: gif('attack-pressure-blade-aftershock'), mutantArcTideBombardment: gif('skill-secondary-pressure-burst') } },
+  mutantNautilusOracle: { idle: gif('base-float-move-v3'), actions: { mutantCoralMortar: gif('attack-overloaded-relic'), mutantDualCoreMagic: gif('skill-360-core-scatter'), persistentCoreVolley: gif('skill-everlasting-core') } },
+  mutantArcTideRay: { idle: gif('base-float-move-v3'), actions: { mutantWingRam: gif('attack-pressure-blade-aftershock'), mutantArcTideBombardment: gif('skill-secondary-pressure-burst') } },
 };
 
 const TIER_LABELS = Object.freeze({
