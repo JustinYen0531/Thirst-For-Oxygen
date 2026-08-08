@@ -406,3 +406,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Replaced the bare straight launch line with a shared `潮壓脈衝導引`: soft cyan pressure wake, moving gold core, alternating hex pulse markers with asymmetric fins, an animated charge ring at the diver, and a hexagonal echo ring at the aimed landing point.
 - The guide remains strictly collinear with the actor-to-pointer axis; marker count scales with drag distance, but no gravity/current curvature is revealed. Runtime physics and `predictTrajectory` remain untouched for actual movement and tests.
 - Added `src/launch-guide.js` and pure geometry tests. Static verification passed `npm run check` (47/47 tests), `npm run build`, and `git diff --check`. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 50 complete
+
+- Removed the remaining visual position jump at blocked terrain and sealed water-layer boundaries: collision resolution now returns to the previous physics position instead of teleporting to a normal-offset point.
+- Kept horizontal blocking/reflection and the no-upward-lift velocity guard; explicit spring and mine bounce behavior remains unchanged.
+- Added a regression test for collision position correction. Static-only verification passed: `npm run check` (50/50 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.

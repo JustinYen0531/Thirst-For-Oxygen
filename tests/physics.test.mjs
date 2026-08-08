@@ -562,6 +562,23 @@ test('blocked terrain cannot turn downward motion into hidden upward lift', () =
   assert.ok(actor.vy >= 0, 'a blocked wall must not create upward velocity in a downward-gravity Cell');
 });
 
+test('blocked terrain collision does not teleport the player upward', () => {
+  const map = createEmptyMap({ width: 2, height: 2 });
+  patchCell(map, '0,0', { gravityLevel: 'L1' });
+  patchCell(map, '0,1', { terrain: 'blocked' });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 140;
+  actor.vy = 140;
+  let events = [];
+  let collisionStepY = actor.y;
+  for (let index = 0; index < 30 && !events.some((event) => event.type === 'terrainBoundary'); index += 1) {
+    collisionStepY = actor.y;
+    events = events.concat(stepPhysics({ map, actor, origin: ORIGIN }));
+  }
+  assert.ok(events.some((event) => event.type === 'terrainBoundary'));
+  assert.ok(actor.y >= collisionStepY, 'collision resolution must not jump the player to a smaller y position');
+});
+
 test('multi-edge portals pair equal edge groups and teleport the actor', () => {
   const map = createEmptyMap({ width: 12, height: 3 });
   const origin = { x: 120, y: 120 };

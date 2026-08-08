@@ -501,7 +501,7 @@ function processBoundary(actor, bounds, events) {
   if (collided) addEvent(events, 'wall', '碰到測試區邊界：速度已反彈。');
 }
 
-function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events) {
+function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events, previousPosition = null) {
   if (!fromKey || !toKey || fromKey === toKey) return;
   const edge = getEdgeBetween(map, fromKey, toKey, chapter);
   const fromCell = getActiveCell(map, fromKey, chapter);
@@ -559,8 +559,8 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.72);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
-    actor.x = from.x + normal.x * 8;
-    actor.y = from.y + normal.y * 8;
+    actor.x = previousPosition?.x ?? (from.x + normal.x * 8);
+    actor.y = previousPosition?.y ?? (from.y + normal.y * 8);
     addEvent(events, 'terrainBoundary', '不可通行障礙物：已阻擋並反彈玩家。');
     return;
   }
@@ -571,8 +571,8 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.68);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
-    actor.x = from.x + normal.x * 8;
-    actor.y = from.y + normal.y * 8;
+    actor.x = previousPosition?.x ?? (from.x + normal.x * 8);
+    actor.y = previousPosition?.y ?? (from.y + normal.y * 8);
     addEvent(events, 'layerBoundary', `水域層級邊界：T${fromLayer.slice(1)} 與 T${toLayer.slice(1)} 之間沒有層間轉接門。`);
     return;
   }
@@ -597,7 +597,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
   } else addEvent(events, 'barrier', '障礙 Edge 阻擋：速度已反彈。');
 }
 
-function processTerrainContact(map, actor, cellKey, chapter, origin, events) {
+function processTerrainContact(map, actor, cellKey, chapter, origin, events, previousPosition = null) {
   const cell = getActiveCell(map, cellKey, chapter);
   if (!cell || cell.terrain !== 'water') return false;
   const from = getHexCenter(cell, origin);
@@ -617,9 +617,14 @@ function processTerrainContact(map, actor, cellKey, chapter, origin, events) {
     const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.72);
     actor.vx = reflected.x;
     actor.vy = reflected.y;
-    const safeDistance = Math.max(0, boundaryDistance - actor.radius - 0.2);
-    actor.x = from.x + normal.x * safeDistance;
-    actor.y = from.y + normal.y * safeDistance;
+    if (previousPosition) {
+      actor.x = previousPosition.x;
+      actor.y = previousPosition.y;
+    } else {
+      const safeDistance = Math.max(0, boundaryDistance - actor.radius - 0.2);
+      actor.x = from.x + normal.x * safeDistance;
+      actor.y = from.y + normal.y * safeDistance;
+    }
     addEvent(events, 'terrainBoundary', '不可通行障礙物：接觸邊界後反彈。');
     return true;
   }
@@ -877,12 +882,13 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.vx = (actor.vx / speed) * speedLimit;
     actor.vy = (actor.vy / speed) * speedLimit;
   }
+  const previousPosition = { x: actor.x, y: actor.y };
   actor.x += actor.vx * dt;
   actor.y += actor.vy * dt;
   processBoundary(actor, bounds, events);
   const after = findCellContainingPoint(map, actor, chapter, origin);
-  const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events);
-  if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events);
+  const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events, previousPosition);
+  if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
   // Consume oxygen before contact rewards so Checkpoint and oxygen sources can
   // fulfill their documented promise of restoring the resource to its maximum.
   actor.oxygen = Math.max(0, actor.oxygen - (OXYGEN_DRAIN_PER_SECOND + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
