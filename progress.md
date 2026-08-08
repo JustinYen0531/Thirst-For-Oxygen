@@ -770,3 +770,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式遊玩頁的 canvas 改放進 HUD 鏡片內框專用 viewport，依 HUD 素材透明區縮小並保持 1200×680 原始比例；畫面不再繪製到兩側資源模組或底部 HP 核心的後方。
 - 保留 canvas 的實際 DOM 矩形作為拖曳／彈射座標基準，縮放只改可視版面，不改遊戲物理與輸入方向；沙盒驗收頁維持原有圖層配置。
 - 靜態驗證通過：`npm run check`（139/139）、`npm run build`、`git diff --check`；瀏覽器／Playwright 依指示不執行。
+
+## 2026-08-09 — Step 96 complete
+
+- 根據實際 HUD 截圖修正過度保守的鏡片安全區：canvas 由 `inset: 14.5% 13.6% 29.5%` 放大為 `inset: 9% 8% 15%`，不再縮成中央小矩形。
+- 現在遊戲畫面接近整個鏡片開口；只保留外框邊界，底部 HP 核心維持作為 HUD 疊層，不再用它把整個可玩畫面壓縮掉。
+- 靜態驗證通過：`npm run check`（140/140）、`npm run build`、`git diff --check`；瀏覽器／Playwright 依指示不執行。
