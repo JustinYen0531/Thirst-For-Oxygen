@@ -113,7 +113,9 @@ function updateSkillPicker() {
   const definition = ENEMY_DEFINITIONS[enemy.enemyId];
   const encyclopedia = encyclopediaById[enemy.enemyId];
   selectedEnemyName.textContent = `${definition.name}${enemy.defeated ? '（已擊敗）' : ''}`;
-  selectedEnemyStats.textContent = `生命 ${Math.round(enemy.health)} / ${enemy.maxHealth}｜角色 ${definition.role}｜移速 ${definition.moveSpeed}`;
+  const cast = enemy.pendingSkill ? `｜讀條 ${enemy.pendingSkill.skillId} ${Math.max(0, enemy.pendingSkill.remaining).toFixed(1)}s` : '';
+  const beacon = enemy.beacon ? `｜信標 ${Math.max(0, enemy.beacon.remaining).toFixed(1)}s` : '';
+  selectedEnemyStats.textContent = `生命 ${Math.round(enemy.health)} / ${enemy.maxHealth}｜角色 ${definition.role}｜移速 ${definition.moveSpeed}｜狀態 ${enemy.state}${cast}${beacon}`;
   const skills = listSandboxSkills(enemy.enemyId);
   const optionSignature = skills.map((skill) => `${skill.id}:${skill.name}:${skill.type}`).join('|');
   if (skillSelect.dataset.signature !== optionSignature) {
@@ -861,7 +863,7 @@ window.render_game_to_text = () => JSON.stringify({
   },
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
-  enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
+  enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, hidden: enemy.hidden, stunned: Math.max(0, (enemy.stunnedUntil ?? 0) - state.time), rescueCompleted: enemy.rescueCompleted, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, beacon: enemy.beacon ? { x: format(enemy.beacon.targetX), y: format(enemy.beacon.targetY), remaining: format(enemy.beacon.remaining) } : null, linkedTargets: enemy.linkedTargets, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
   projectiles: state.projectiles.length,
   effects: state.effects.map((effect) => ({
     type: effect.type,

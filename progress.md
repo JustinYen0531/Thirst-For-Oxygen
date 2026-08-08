@@ -661,3 +661,18 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Lv.2 marks the next slash after movement as empowered: it changes colour, becomes visibly thicker, and applies double damage once. Lv.3 inherits that state and adds an outward expanding sword-qi effect rendered as only the outer arc; it removes enemy projectiles intersecting that arc.
 - Added sandbox rendering, dynamic attack feedback, focused progression coverage, and clarified `GDD/05_內容/武器/武士刀.md`. A pre-existing sandbox enemy-instance tier omission was also repaired because the current link-support regression depended on that field.
 - Focused progression tests pass (27/27). Full static check, build, diff check, scoped Git commit, and push remain to be completed. Browser/Playwright validation remains intentionally skipped per user instruction.
+
+## 2026-08-09 — Step 80 complete
+
+- Replaced marker-centred packs with a deterministic map-length distribution: 80% of regular enemies occupy evenly stratified water Cells, while 20% are nearby companions forming occasional small clusters. All spawns remain distinct and preserve the documented Chapter 1 roster progression.
+- Added a 216-world-unit player-start safe radius and a 168-unit enemy activation radius, so no regular enemy starts in the opening viewport and distant enemies remain dormant instead of converging on the player from across the map.
+- Removed the apparent touch-damage behavior by requiring every damaging enemy action to enter an authored or minimum 0.32-second cast before resolving. Physical sprite overlap alone does not damage the player.
+- Added a clickable `OK` control to the lower-right corner of first-contact visor panels. It wins input priority over launch dragging and acknowledges that guide for the rest of the current page session.
+- Static-only verification passed: focused enemy/discovery checks (13/13), full `npm run check` (119/119), `npm run build`, and scoped `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 81 complete
+
+- Re-audited the authored Chapter 1 small-enemy skills instead of treating the previous green check as proof: the sandbox now has regression coverage for every Lv.1/Lv.2/Lv.3 encounter family, including spear/scatter projectiles, sniper telegraph, ray cast-position locking, mantis stun, coral healing/linking, delayed beacon assault, mortar spread, dual-core spiral shots, and split descendants.
+- Aligned Part 2's runtime population with its current 38 eligible water Cells and guaranteed all three documented Lv.3 Descent elites are introduced even with sparse authored encounter anchors.
+- Formal play keeps the same chase, cast-window, direct damage, knockback, and blocked-cell stopping path; the sandbox remains the detailed skill acceptance surface with `render_game_to_text` telemetry.
+- Static-only verification passed: focused enemy/progression checks (45/45), full `npm run check` (119/119), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.

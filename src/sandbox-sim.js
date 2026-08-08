@@ -715,7 +715,11 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       }
       break;
     case 'melee':
-      if (distance <= (skill.range ?? 48) + enemy.radius + state.actor.radius) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
+      if (distance <= (skill.range ?? 48) + enemy.radius + state.actor.radius) {
+        const damage = skill.id === 'shortThrust' ? 0 : (skill.damage ?? 0);
+        applyPlayerDamage(state, damage, source, 'melee');
+        if (skill.id === 'shortThrust') applyKnockback(state, enemy, skill.range ?? 42, 96);
+      }
       addEffect(state, { type: 'slash', x: enemy.x, y: enemy.y, radius: skill.range ?? 48, duration: 0.4, angle: angleBetween(enemy, state.actor), colour: '#ff8d8d' });
       break;
     case 'dash':

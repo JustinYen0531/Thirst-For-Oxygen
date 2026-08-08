@@ -1,6 +1,6 @@
 import { ENEMY_DEFINITIONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
-import { findCellContainingPoint, getActiveCell, getHexCenter } from './map-model.js';
+import { HEX_SIZE, findCellContainingPoint, getActiveCell, getHexCenter } from './map-model.js';
 
 export const DESCENT_LV1_ENEMIES = Object.freeze(['explodingLanternfish', 'juvenileSeahorseCaller']);
 export const DESCENT_CORE_ENEMIES = Object.freeze(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin']);
@@ -22,6 +22,8 @@ export const PLAY_ENEMY_POOLS = Object.freeze({
 
 export const PLAY_ENEMY_TARGETS = Object.freeze({ 1: 40, 2: 40, 3: 48 });
 export const PLAY_ENEMY_RENDER_SCALE = 2;
+export const PLAY_ENEMY_SPAWN_SAFE_RADIUS = HEX_SIZE * 18;
+export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 14;
 
 const encyclopediaById = Object.freeze(Object.fromEntries(
   ENEMY_ENCYCLOPEDIA.map((entry) => [entry.id, entry]),
@@ -68,12 +70,90 @@ function getWaterCandidates(map, chapter) {
   });
 }
 
-function candidateScore(candidate, marker, origin) {
-  const position = getHexCenter(candidate.cell, origin);
-  const anchor = getHexCenter(marker.cell, origin);
-  const regionPenalty = candidate.cell.region === marker.cell.region ? 0 : 100000;
-  const occupiedPenalty = (candidate.cell.objects?.length || candidate.cell.freeObjects?.length) ? 10000 : 0;
-  return regionPenalty + occupiedPenalty + (position.x - anchor.x) ** 2 + (position.y - anchor.y) ** 2;
+function cellDistance(left, right, origin) {
+  const leftPosition = getHexCenter(left.cell, origin);
+  const rightPosition = getHexCenter(right.cell, origin);
+  return Math.hypot(leftPosition.x - rightPosition.x, leftPosition.y - rightPosition.y);
+}
+
+function minimumCellDistance(candidate, selected, origin) {
+  if (!selected.length) return Infinity;
+  return Math.min(...selected.map((entry) => cellDistance(candidate, entry, origin)));
+}
+
+function isClearSpawnCell(candidate) {
+  return !(candidate.cell.objects?.length || candidate.cell.freeObjects?.length || candidate.cell.conditionalGate);
+}
+
+function getDistributedSpawnCells(map, chapter, origin, targetCount, markers) {
+  const allCandidates = getWaterCandidates(map, chapter);
+  const playerStarts = Object.keys(map.cells).flatMap((cellKey) => {
+    const cell = getActiveCell(map, cellKey, chapter);
+    return cell?.actors?.some((actor) => actor.kind === 'playerStart') ? [{ cellKey, cell }] : [];
+  });
+  const safeCandidates = allCandidates.filter((candidate) => (
+    playerStarts.every((start) => cellDistance(candidate, start, origin) >= PLAY_ENEMY_SPAWN_SAFE_RADIUS)
+  ));
+  const candidates = safeCandidates.length >= targetCount ? safeCandidates : allCandidates;
+  const ordered = [...candidates].sort((left, right) => (
+    left.cell.r - right.cell.r
+    || cellColumn(left.cell) - cellColumn(right.cell)
+  ));
+  const clusterCount = Math.min(Math.floor(targetCount * .2), targetCount - 1);
+  const spreadCount = targetCount - clusterCount;
+  const spread = [];
+  const usedCellKeys = new Set();
+
+  for (let index = 0; index < spreadCount; index += 1) {
+    const bandStart = Math.floor(index * ordered.length / spreadCount);
+    const bandEnd = Math.max(bandStart + 1, Math.floor((index + 1) * ordered.length / spreadCount));
+    const band = ordered.slice(bandStart, bandEnd).filter((candidate) => !usedCellKeys.has(candidate.cellKey));
+    const selected = (band.length ? band : ordered.filter((candidate) => !usedCellKeys.has(candidate.cellKey)))
+      .sort((left, right) => (
+        Number(isClearSpawnCell(right)) - Number(isClearSpawnCell(left))
+        || minimumCellDistance(right, spread, origin) - minimumCellDistance(left, spread, origin)
+        || cellColumn(left.cell) - cellColumn(right.cell)
+      ))[0];
+    if (!selected) break;
+    usedCellKeys.add(selected.cellKey);
+    spread.push({ ...selected, spawnPattern: 'spread' });
+  }
+
+  const preferredClusterCenters = [];
+  markers.forEach((marker) => {
+    const nearest = spread
+      .filter((candidate) => !preferredClusterCenters.includes(candidate))
+      .sort((left, right) => cellDistance(left, marker, origin) - cellDistance(right, marker, origin))[0];
+    if (nearest) preferredClusterCenters.push(nearest);
+  });
+  while (preferredClusterCenters.length < clusterCount) {
+    const candidate = spread
+      .filter((entry) => !preferredClusterCenters.includes(entry))
+      .sort((left, right) => (
+        minimumCellDistance(right, preferredClusterCenters, origin) - minimumCellDistance(left, preferredClusterCenters, origin)
+      ))[0];
+    if (!candidate) break;
+    preferredClusterCenters.push(candidate);
+  }
+
+  const clustered = [];
+  preferredClusterCenters.slice(0, clusterCount).forEach((center) => {
+    const unused = ordered.filter((candidate) => !usedCellKeys.has(candidate.cellKey));
+    const nearby = unused.filter((candidate) => cellDistance(candidate, center, origin) <= HEX_SIZE * 2.6);
+    const companion = (nearby.length ? nearby : unused)
+      .sort((left, right) => (
+        cellDistance(left, center, origin) - cellDistance(right, center, origin)
+        || Number(left.cell.region !== center.cell.region) - Number(right.cell.region !== center.cell.region)
+        || Number(isClearSpawnCell(right)) - Number(isClearSpawnCell(left))
+      ))[0];
+    if (!companion) return;
+    usedCellKeys.add(companion.cellKey);
+    clustered.push({ ...companion, spawnPattern: 'cluster' });
+  });
+
+  return [...spread, ...clustered]
+    .slice(0, targetCount)
+    .sort((left, right) => left.cell.r - right.cell.r || cellColumn(left.cell) - cellColumn(right.cell));
 }
 
 export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = { x: 0, y: 0 }) {
@@ -96,45 +176,30 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
   if (!markers.length) return [];
 
   const targetCount = PLAY_ENEMY_TARGETS[part];
-  const baseGroupSize = Math.floor(targetCount / markers.length);
-  const largerGroupCount = targetCount % markers.length;
-  const candidates = getWaterCandidates(map, chapter);
-  const usedCellKeys = new Set();
-  const enemies = [];
+  const spawnCells = getDistributedSpawnCells(map, chapter, origin, targetCount, markers);
+  const localCounts = new Map();
 
-  markers.forEach((marker, encounterIndex) => {
-    const groupSize = baseGroupSize + (encounterIndex < largerGroupCount ? 1 : 0);
-    const nearbyCells = candidates
-      .filter((candidate) => !usedCellKeys.has(candidate.cellKey))
-      .sort((left, right) => (
-        candidateScore(left, marker, origin) - candidateScore(right, marker, origin)
-        || left.cell.r - right.cell.r
-        || cellColumn(left.cell) - cellColumn(right.cell)
-      ));
-
-    for (let localIndex = 0; localIndex < groupSize; localIndex += 1) {
-      const candidate = nearbyCells.find(({ cellKey }) => !usedCellKeys.has(cellKey));
-      const spawnCellKey = candidate?.cellKey ?? marker.cellKey;
-      const spawnCell = candidate?.cell ?? marker.cell;
-      if (candidate) usedCellKeys.add(candidate.cellKey);
-      const globalIndex = enemies.length;
+  return spawnCells.map((spawn, globalIndex) => {
+      const encounterIndex = Math.min(markers.length - 1, Math.floor(globalIndex * markers.length / spawnCells.length));
+      const marker = markers[encounterIndex];
+      const localIndex = localCounts.get(encounterIndex) ?? 0;
+      localCounts.set(encounterIndex, localIndex + 1);
       const configuredEnemyId = encounterEnemyId(part, encounterIndex, markers.length, localIndex, globalIndex);
       const enemyId = isDescentEnemy(marker.marker.enemyId) ? marker.marker.enemyId : configuredEnemyId;
       const definition = ENEMY_DEFINITIONS[enemyId];
-      const position = getHexCenter(spawnCell, origin);
-      const repeatedOffset = candidate ? { x: 0, y: 0 } : {
-        x: Math.cos(localIndex * 2.4) * (3 + localIndex),
-        y: Math.sin(localIndex * 2.4) * (3 + localIndex),
-      };
-      enemies.push({
-        instanceId: `map-enemy-${marker.cellKey}-${marker.markerIndex}-${localIndex}`,
+      const position = getHexCenter(spawn.cell, origin);
+      return {
+        instanceId: `map-enemy-${spawn.cellKey}-${globalIndex}`,
         enemyId,
         name: definition.name,
         tier: definition.tier,
         anchorCellKey: marker.cellKey,
-        spawnCellKey,
-        x: position.x + repeatedOffset.x,
-        y: position.y + repeatedOffset.y,
+        spawnCellKey: spawn.cellKey,
+        spawnPattern: spawn.spawnPattern,
+        x: position.x,
+        y: position.y,
+        homeX: position.x,
+        homeY: position.y,
         health: definition.maxHealth,
         maxHealth: definition.maxHealth,
         moveSpeed: definition.moveSpeed ?? 0,
@@ -143,18 +208,16 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
         radius: (4.5 + definition.tier * 0.65) * PLAY_ENEMY_RENDER_SCALE,
         renderSize: (12 + definition.tier * 1.8) * PLAY_ENEMY_RENDER_SCALE,
         visual: PLAY_ENEMY_VISUALS[enemyId] ?? encyclopediaById[enemyId]?.visuals?.idle ?? null,
-        phase: ((spawnCell.q * 31 + spawnCell.r * 17 + globalIndex * 13) % 360) * Math.PI / 180,
+        phase: ((spawn.cell.q * 31 + spawn.cell.r * 17 + globalIndex * 13) % 360) * Math.PI / 180,
         state: 'idle',
         facing: 'left',
+        alerted: false,
         cooldowns: {},
         nextSkillIndex: 0,
         pendingSkill: null,
         defeated: false,
-      });
-    }
+      };
   });
-
-  return enemies;
 }
 
 const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -197,7 +260,14 @@ function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
     return;
   }
   if (skill.type === 'contact' || skill.type === 'melee') {
-    if (distance <= attackReach(enemy, skill)) playEnemyDamage(actor, skill.damage, source, onDamage);
+    if (distance <= attackReach(enemy, skill)) {
+      const angle = angleBetween(enemy, actor);
+      if (skill.id === 'shortThrust' || skill.id === 'wingRam') {
+        actor.vx += Math.cos(angle) * 96;
+        actor.vy += Math.sin(angle) * 96;
+      }
+      if (skill.id !== 'shortThrust') playEnemyDamage(actor, skill.damage, source, onDamage);
+    }
     return;
   }
   // The play page intentionally keeps projectiles lightweight: the sandbox
@@ -224,6 +294,17 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
     const definition = ENEMY_DEFINITIONS[enemy.enemyId];
     if (!definition) return;
     Object.keys(enemy.cooldowns).forEach((key) => { enemy.cooldowns[key] = Math.max(0, enemy.cooldowns[key] - dt); });
+    const distance = distanceBetween(enemy, actor);
+    if (!enemy.pendingSkill) {
+      if (distance <= PLAY_ENEMY_ACTIVATION_RADIUS) enemy.alerted = true;
+      else if (distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35) enemy.alerted = false;
+      if (!enemy.alerted) {
+        enemy.vx = 0;
+        enemy.vy = 0;
+        enemy.state = 'idle';
+        return;
+      }
+    }
     if (enemy.pendingSkill) {
       enemy.pendingSkill.remaining -= dt;
       enemy.vx = 0;
@@ -236,7 +317,6 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
       enemy.state = enemy.defeated ? 'defeated' : 'attacking';
       return;
     }
-    const distance = distanceBetween(enemy, actor);
     const preferred = preferredDistance(enemy, definition);
     if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
       const angle = angleBetween(enemy, actor);
@@ -274,7 +354,8 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
     const { skill, index } = selected;
     enemy.nextSkillIndex = (index + 1) % attacks.length;
     enemy.cooldowns[skill.id] = skill.cooldown ?? 0.6;
-    const castTime = skill.type === 'lobbed' || skill.type === 'suicideCharge' ? 0 : Number(skill.castTime ?? skill.telegraph ?? 0);
+    const authoredCastTime = Number(skill.castTime ?? skill.telegraph ?? skill.detonationDelay ?? 0);
+    const castTime = authoredCastTime > 0 ? authoredCastTime : skill.damage > 0 ? .32 : 0;
     if (castTime > 0) {
       enemy.pendingSkill = { skillId: skill.id, remaining: castTime };
       enemy.state = 'casting';

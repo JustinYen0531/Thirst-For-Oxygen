@@ -353,6 +353,140 @@ test('coral seahorse automatically links and protects a nearby ally', () => {
   assert.equal(crab.health, before, '生命連結中的目標應該先解除支援才能受傷');
 });
 
+test('juvenile seahorse begins its rescue cast when the diver enters its radius', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'juvenileSeahorseCaller', { x: state.actor.x + 150, y: state.actor.y });
+
+  stepSandbox(state);
+  assert.equal(enemy.pendingSkill?.skillId, 'callForHelp');
+  assert.equal(state.enemies.length, 1, '援軍應該先等待求援倒數');
+  for (let index = 0; index < 360; index += 1) stepSandbox(state);
+  assert.equal(enemy.rescueCompleted, true);
+  assert.equal(state.enemies.length, 3);
+});
+
+test('coral seahorse remains invulnerable while multiple Lv.2 allies are linked', () => {
+  const state = createSandboxState();
+  const coral = spawnSandboxEnemy(state, 'coralBackSeahorse', { x: state.actor.x + 100, y: state.actor.y }, { moveSpeed: 0 });
+  const first = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 120, y: state.actor.y }, { moveSpeed: 0, health: 1000, maxHealth: 1000 });
+  const second = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 140, y: state.actor.y }, { moveSpeed: 0, health: 1000, maxHealth: 1000 });
+
+  stepSandbox(state);
+  assert.deepEqual(new Set(coral.linkedTargets), new Set([first.instanceId, second.instanceId]));
+  state.selectedEnemyInstanceId = coral.instanceId;
+  const before = coral.health;
+  playerAttack(state);
+  assert.equal(coral.health, before, '支援目標存在時珊瑚背海馬本體不可受傷');
+});
+
+test('mantis beacon assault marks a locked point before the delayed jump', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'mantisShrimpBrute', { x: state.actor.x + 160, y: state.actor.y }, { moveSpeed: 0 });
+
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'beaconAssault').ok, true);
+  assert.equal(enemy.beacon?.remaining, 0.8);
+  assert.equal(state.actor.health, 100);
+  stepSandbox(state, 0.8);
+  assert.equal(enemy.beacon, null);
+  assert.ok(state.actor.health < 100, '信標突襲完成後才應該造成傷害');
+  assert.ok(state.logs.some((entry) => entry.message.includes('投出信標')));
+});
+
+test('nautilus mortar bursts into a spread and dual-core magic emits a spiral stream', () => {
+  const mortarState = createSandboxState();
+  const mortar = spawnSandboxEnemy(mortarState, 'nautilusOracle', { x: mortarState.actor.x + 300, y: mortarState.actor.y }, { moveSpeed: 0 });
+  executeEnemySkill(mortarState, mortar.instanceId, 'coralMortar');
+  stepSandbox(mortarState, 1.1);
+  assert.equal(mortarState.projectiles.length, 3);
+  assert.ok(mortarState.projectiles.every((projectile) => projectile.source === 'enemy'));
+
+  const magicState = createSandboxState();
+  const oracle = spawnSandboxEnemy(magicState, 'nautilusOracle', { x: magicState.actor.x + 300, y: magicState.actor.y }, { moveSpeed: 0 });
+  executeEnemySkill(magicState, oracle.instanceId, 'dualCoreMagic');
+  assert.equal(magicState.projectiles.filter((projectile) => projectile.spiral).length, 2);
+  stepSandbox(magicState, 0.35);
+  assert.ok(magicState.projectiles.some((projectile) => !projectile.spiral), '雙核應該沿途發射小子彈');
+});
+
+test('nautilus short thrust pushes instead of dealing direct damage', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'nautilusOracle', { x: state.actor.x + 35, y: state.actor.y }, { moveSpeed: 0 });
+  const before = state.actor.vx;
+
+  executeEnemySkill(state, enemy.instanceId, 'shortThrust');
+
+  assert.equal(state.actor.health, 100);
+  assert.ok(state.actor.vx < before, '短距離刺擊應把玩家往外推');
+});
+
+test('squid shadow slash hides during its cast and leaves ink after the hit', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'squidAssassin', { x: state.actor.x + 180, y: state.actor.y }, { moveSpeed: 0 });
+
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'inkShadowSlash').pending, true);
+  assert.equal(enemy.hidden, true);
+  stepSandbox(state, 0.7);
+  assert.equal(enemy.hidden, false);
+  assert.equal(state.actor.inInk, true);
+});
+
+test('split lanternfish descendants shrink their contact explosion radius', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'splitLanternfish', { x: state.actor.x + 20, y: state.actor.y }, { moveSpeed: 0, splitGeneration: 1 });
+
+  executeEnemySkill(state, enemy.instanceId, 'splitRush');
+  stepSandbox(state, 0.3);
+  const area = state.effects.find((effect) => effect.type === 'area');
+  assert.ok(area);
+  assert.ok(area.radius < 48);
+});
+
+test('lobster spear and lionfish scatter each create their authored projectile counts', () => {
+  const lobsterState = createSandboxState();
+  const lobster = spawnSandboxEnemy(lobsterState, 'lobsterSoldier', { x: lobsterState.actor.x + 180, y: lobsterState.actor.y }, { moveSpeed: 0 });
+  executeEnemySkill(lobsterState, lobster.instanceId, 'spearThrow');
+  assert.equal(lobsterState.projectiles.length, 1);
+  assert.equal(lobsterState.projectiles[0].damage, 24);
+
+  const lionfishState = createSandboxState();
+  const lionfish = spawnSandboxEnemy(lionfishState, 'lionfishGunner', { x: lionfishState.actor.x + 180, y: lionfishState.actor.y }, { moveSpeed: 0 });
+  executeEnemySkill(lionfishState, lionfish.instanceId, 'spineScatter');
+  assert.equal(lionfishState.projectiles.length, 5);
+  assert.ok(new Set(lionfishState.projectiles.map((projectile) => projectile.vy)).size > 1);
+});
+
+test('squid sniper warns before firing and ray bombardment keeps its cast position', () => {
+  const squidState = createSandboxState();
+  const squid = spawnSandboxEnemy(squidState, 'squidAssassin', { x: squidState.actor.x + 180, y: squidState.actor.y }, { moveSpeed: 0 });
+  assert.equal(executeEnemySkill(squidState, squid.instanceId, 'inkGunSnipe').pending, true);
+  assert.equal(squidState.projectiles.length, 0);
+  stepSandbox(squidState, 0.99);
+  stepSandbox(squidState, 0.02);
+  assert.equal(squidState.projectiles.length, 1);
+
+  const rayState = createSandboxState();
+  const ray = spawnSandboxEnemy(rayState, 'arcTideRay', { x: rayState.actor.x + 200, y: rayState.actor.y }, { moveSpeed: 0 });
+  const castPoint = { x: rayState.actor.x, y: rayState.actor.y };
+  executeEnemySkill(rayState, ray.instanceId, 'arcTideBombardment');
+  rayState.actor.x += 90;
+  rayState.actor.y += 30;
+  assert.deepEqual({ x: rayState.zones[0].x, y: rayState.zones[0].y }, castPoint);
+});
+
+test('mantis ground smash stuns and coral pulse heals nearby allies', () => {
+  const state = createSandboxState();
+  const mantis = spawnSandboxEnemy(state, 'mantisShrimpBrute', { x: state.actor.x + 40, y: state.actor.y }, { moveSpeed: 0 });
+  assert.equal(executeEnemySkill(state, mantis.instanceId, 'groundSmash').pending, true);
+  stepSandbox(state, 0.8);
+  assert.ok(state.actor.stunnedUntil > state.time);
+  assert.ok(state.logs.some((entry) => entry.message.includes('震海重擊')));
+
+  const coral = spawnSandboxEnemy(state, 'coralBackSeahorse', { x: state.actor.x + 40, y: state.actor.y }, { moveSpeed: 0 });
+  const ally = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 50, y: state.actor.y }, { moveSpeed: 0, health: 20, maxHealth: 100 });
+  executeEnemySkill(state, coral.instanceId, 'coralPulse');
+  assert.ok(ally.health > 20);
+});
+
 test('experience orbs stay stationary until the player enters pickup range', () => {
   const progression = createProgressionState();
   const orb = createExperienceOrb('exp-1', 100, 100, 100, 'crabGuard');
