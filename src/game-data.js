@@ -323,9 +323,34 @@ export const WEAPONS = Object.freeze({
   lightMachineGun: {
     id: 'lightMachineGun', name: '輕量機槍', type: 'projectile', maxLevel: 3,
     levels: {
-      1: { damage: 8, projectileSpeed: 430, range: 420, cooldown: 0.14, energyCost: 2, projectileCount: 1, spreadDegrees: 4 },
-      2: { damage: 11, projectileSpeed: 460, range: 450, cooldown: 0.12, energyCost: 2, projectileCount: 1, spreadDegrees: 5 },
-      3: { damage: 14, projectileSpeed: 490, range: 480, cooldown: 0.1, energyCost: 2, projectileCount: 2, spreadDegrees: 8 },
+      1: {
+        damage: 8, projectileSpeed: 430, range: 420, cooldown: 0.72, energyCost: 2,
+        burstCount: 6, burstInterval: 0.085,
+        effect: {
+          style: 'lightMachineGun', gunLength: 66, gunWidth: 14, gunColour: '#263b52', gunAccent: '#73e6ff',
+          muzzleColour: '#d9fbff', bulletStyle: 'tracer', bulletLength: 18, bulletWidth: 5,
+          bulletColour: '#8fe8ff', bulletOutline: '#d9fbff', bulletGlow: '#73e6ff',
+        },
+      },
+      2: {
+        damage: 11, projectileSpeed: 460, range: 450, cooldown: 0.72, energyCost: 2,
+        burstCount: 6, burstInterval: 0.08,
+        effect: {
+          style: 'lightMachineGun', gunLength: 70, gunWidth: 15, gunColour: '#3d314b', gunAccent: '#ffbd6e',
+          muzzleColour: '#fff0c2', bulletStyle: 'tracer', alternateBulletStyle: 'outlined', bulletLength: 20, bulletWidth: 6,
+          bulletColour: '#ffd08a', bulletOutline: '#fff0c2', alternateBulletColour: '#ff8fd8', alternateBulletOutline: '#ffe2ff', bulletGlow: '#ffbd6e',
+        },
+      },
+      3: {
+        damage: 14, projectileSpeed: 490, range: 480, cooldown: 0.72, energyCost: 2,
+        burstCount: 6, burstInterval: 0.075,
+        effect: {
+          style: 'lightMachineGun', gunLength: 74, gunWidth: 16, gunColour: '#392f5b', gunAccent: '#c1a2ff',
+          muzzleColour: '#fff0ff', bulletStyle: 'prism', bulletLength: 22, bulletWidth: 7,
+          bulletPalette: ['#8fe8ff', '#b8a1ff', '#ff8fd8', '#fff0a8', '#8dffc8', '#73d9ff'],
+          bulletOutline: '#fff7ff', bulletGlow: '#d7c5ff',
+        },
+      },
     },
   },
 });

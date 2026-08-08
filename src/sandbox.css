@@ -29,12 +29,14 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .control-section:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 .control-section button + button { margin-top: 6px; }
 .hint { margin-top: 8px; color: #83a0b9; font-size: 11px; line-height: 1.45; }
+.build-rule-hint { margin: 0 0 8px; }
 .toggle { display: flex; align-items: center; gap: 7px; margin: 8px 0; color: #d4e6f7; }
 .toggle input { width: auto; accent-color: #f6e66d; }
-.passive-list { display: grid; gap: 6px; margin: 10px 0; }
-.passive-row { display: grid; grid-template-columns: 1fr 62px; gap: 5px; align-items: center; padding: 6px; border: 1px solid #203f5e; border-radius: 5px; background: #09182a; }
-.passive-row label { margin: 0; color: #d6e8f7; }
-.passive-row select { padding: 4px; font-size: 11px; }
+.build-list, .passive-list { display: grid; gap: 6px; margin: 8px 0; }
+.build-slot-row { padding: 6px; border: 1px solid #203f5e; border-radius: 5px; background: #09182a; }
+.build-slot-row label { margin: 0 0 4px; color: #d6e8f7; font-size: 10px; }
+.build-slot-selectors { display: grid; grid-template-columns: minmax(0, 1fr) 58px; gap: 5px; }
+.build-slot-selectors select { min-width: 0; padding: 4px; font-size: 11px; }
 .sandbox-main { min-width: 0; }
 .sandbox-stage { position: relative; overflow: hidden; border: 1px solid #345d84; border-radius: 7px; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
 #sandbox-canvas { display: block; width: 100%; height: auto; background: #081725; cursor: crosshair; touch-action: none; }

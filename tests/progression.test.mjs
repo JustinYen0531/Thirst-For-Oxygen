@@ -55,6 +55,7 @@ test('sandbox enemy defeat drops a stationary orb instead of granting instant ex
 
   assert.equal(playerAttack(state).ok, true);
   assert.equal(state.progression.totalExperience, 0);
+  assert.equal(state.enemies.length, 0, '擊敗的敵人不應該留下屍體阻擋沙盒');
   assert.equal(state.experienceOrbs.length, 1);
   assert.deepEqual(
     state.experienceOrbs[0],
@@ -290,6 +291,7 @@ test('lanternfish locks a point, waits one second, then detonates', () => {
   assert.equal(enemy.defeated, false);
   stepSandbox(state, 0.5);
   assert.equal(enemy.defeated, true);
+  assert.equal(state.enemies.includes(enemy), false, '死亡敵人應該從沙盒場景移除');
   assert.equal(state.experienceOrbs.length, 1);
 });
 
@@ -578,6 +580,37 @@ test('level-up choices can upgrade the knife or acquire a second weapon', () => 
   assert.equal(progression.pendingLevelUps, 0);
   assert.equal(setActiveWeapon(progression, 'trident').id, 'trident');
   assert.equal(progression.activeWeaponSlot, 1);
+});
+
+test('sandbox accepts the authored three weapon and three passive slots with 3/2/1 caps', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 3 },
+      { id: 'trident', level: 2 },
+      { id: 'katana', level: 3 },
+    ],
+    activeWeaponSlot: 1,
+    passives: [
+      { id: 'oxygenCirculator', level: 3 },
+      { id: 'pressureStabilizer', level: 3 },
+      { id: 'abyssalAmplifier', level: 3 },
+    ],
+  });
+
+  assert.deepEqual(state.build.weapons, [
+    { id: 'knife', level: 3 },
+    { id: 'trident', level: 2 },
+    { id: 'katana', level: 1 },
+  ]);
+  assert.deepEqual(state.build.passives, [
+    { id: 'oxygenCirculator', level: 3 },
+    { id: 'pressureStabilizer', level: 2 },
+    { id: 'abyssalAmplifier', level: 1 },
+  ]);
+  assert.equal(state.build.activeWeaponSlot, 1);
+  assert.deepEqual(state.actor.activeWeapon, { id: 'trident', level: 2 });
+  assert.equal(state.actor.abilities.length, 3);
 });
 
 test('weapon slots enforce the 3/2/1 level caps while preserving the knife', () => {

@@ -35,10 +35,8 @@
 
           <section class="control-section">
             <h2>玩家 Build</h2>
-            <label for="weapon-select">武器</label>
-            <select id="weapon-select"></select>
-            <label for="weapon-level">武器等級</label>
-            <select id="weapon-level"><option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option></select>
+            <p class="hint build-rule-hint">武器與被動各有三個槽位，固定為 Lv.3／Lv.2／Lv.1；第一個武器槽永遠保留小刀。</p>
+            <div id="weapon-build-list" class="build-list" aria-label="武器 Build 槽位"></div>
             <div id="passive-list" class="passive-list"></div>
             <button id="apply-build" type="button">套用 Build</button>
           </section>

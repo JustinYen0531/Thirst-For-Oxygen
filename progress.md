@@ -715,3 +715,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Simplified the sandbox information hierarchy: removed the right-side player-status and skill-event telemetry panel, removed the visible infinite oxygen/energy toggle, and renamed the reset action to `重置玩家`.
 - The sandbox now keeps oxygen and energy unlimited internally so combat previews are not blocked by resource management, while the central arena uses the freed right-side width through a two-column layout.
 - Static-only verification passed: removed-DOM reference scan, `npm run check` (127/127), `npm run build`, and no browser/Playwright validation per user instruction.
+
+## 2026-08-09 — Step 88 complete
+
+- Corrected the sandbox Build contract to expose three weapon slots and three passive slots with the GDD-fixed Lv.3／Lv.2／Lv.1 caps; the first weapon slot remains the permanent knife slot, while the sandbox opens with a full 3/2/1 preview Build.
+- Kept the legacy single-weapon `setSandboxBuild` call shape for focused weapon tests, while adding normalized multi-slot input for the actual Build panel and active-slot switching.
+- Removed defeated enemies from the sandbox scene immediately after rewards and split handling, leaving only the short defeat effect and stationary experience orb instead of a blocking corpse.
+- Added regression coverage for normalized weapon/passive slots and corpse removal; focused physics/progression tests passed 88/88. Full static verification passed: `npm run check` (128/128), `npm run build`, and `git diff --check`; browser/Playwright validation remains intentionally skipped.

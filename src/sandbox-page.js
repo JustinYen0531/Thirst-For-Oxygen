@@ -31,7 +31,7 @@ import {
   stepSandbox,
   updateSandboxAim,
 } from './sandbox-sim.js';
-import { getExperienceProgress } from './progression.js';
+import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
@@ -44,8 +44,7 @@ tridentSprite.src = '/assets/editor/weapons/trident.png';
 const katanaSprite = new Image();
 katanaSprite.src = KATANA_SPRITE;
 const enemySelect = document.querySelector('#enemy-select');
-const weaponSelect = document.querySelector('#weapon-select');
-const weaponLevel = document.querySelector('#weapon-level');
+const weaponBuildList = document.querySelector('#weapon-build-list');
 const passiveList = document.querySelector('#passive-list');
 const weaponSlots = document.querySelector('#weapon-slots');
 const progressionReadout = document.querySelector('#progression-readout');
@@ -64,6 +63,70 @@ let lastFrame = performance.now();
 
 const encyclopediaById = Object.fromEntries(ENEMY_ENCYCLOPEDIA.map((enemy) => [enemy.id, enemy]));
 const format = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
+const BUILD_SLOT_LABELS = Object.freeze(['主槽', '副槽', '副副槽']);
+
+function createOption(value, label) {
+  const option = document.createElement('option');
+  option.value = value;
+  option.textContent = label;
+  return option;
+}
+
+function renderBuildControls() {
+  weaponBuildList.replaceChildren();
+  for (let slot = 0; slot < BUILD_SLOT_LEVEL_CAPS.length; slot += 1) {
+    const entry = state.build.weapons[slot] ?? null;
+    const row = document.createElement('div');
+    row.className = 'build-slot-row';
+    const label = document.createElement('label');
+    label.textContent = `武器 ${BUILD_SLOT_LABELS[slot]}（Lv.${BUILD_SLOT_LEVEL_CAPS[slot]} 上限）`;
+    const selectors = document.createElement('div');
+    selectors.className = 'build-slot-selectors';
+    const select = document.createElement('select');
+    select.dataset.buildWeaponSlot = String(slot);
+    select.setAttribute('aria-label', `武器${BUILD_SLOT_LABELS[slot]}`);
+    if (slot > 0) select.append(createOption('', '未裝備'));
+    Object.values(WEAPONS)
+      .filter((weapon) => slot === 0 ? weapon.id === 'knife' : weapon.id !== 'knife')
+      .forEach((weapon) => select.append(createOption(weapon.id, weapon.name)));
+    select.value = entry?.id ?? (slot === 0 ? 'knife' : '');
+    const level = document.createElement('select');
+    level.dataset.buildWeaponLevel = String(slot);
+    level.setAttribute('aria-label', `武器${BUILD_SLOT_LABELS[slot]}等級`);
+    for (let value = 1; value <= BUILD_SLOT_LEVEL_CAPS[slot]; value += 1) level.append(createOption(String(value), `Lv.${value}`));
+    level.value = String(Math.min(entry?.level ?? 1, BUILD_SLOT_LEVEL_CAPS[slot]));
+    level.disabled = slot > 0 && !select.value;
+    selectors.append(select, level);
+    row.append(label, selectors);
+    weaponBuildList.append(row);
+  }
+
+  passiveList.replaceChildren();
+  for (let slot = 0; slot < BUILD_SLOT_LEVEL_CAPS.length; slot += 1) {
+    const entry = state.build.passives[slot] ?? null;
+    const row = document.createElement('div');
+    row.className = 'build-slot-row';
+    const label = document.createElement('label');
+    label.textContent = `被動 ${BUILD_SLOT_LABELS[slot]}（Lv.${BUILD_SLOT_LEVEL_CAPS[slot]} 上限）`;
+    const selectors = document.createElement('div');
+    selectors.className = 'build-slot-selectors';
+    const select = document.createElement('select');
+    select.dataset.buildPassiveSlot = String(slot);
+    select.setAttribute('aria-label', `被動${BUILD_SLOT_LABELS[slot]}`);
+    select.append(createOption('', '未裝備'));
+    Object.values(PASSIVE_ABILITIES).forEach((ability) => select.append(createOption(ability.id, ability.name)));
+    select.value = entry?.id ?? '';
+    const level = document.createElement('select');
+    level.dataset.buildPassiveLevel = String(slot);
+    level.setAttribute('aria-label', `被動${BUILD_SLOT_LABELS[slot]}等級`);
+    for (let value = 1; value <= BUILD_SLOT_LEVEL_CAPS[slot]; value += 1) level.append(createOption(String(value), `Lv.${value}`));
+    level.value = String(Math.min(entry?.level ?? 1, BUILD_SLOT_LEVEL_CAPS[slot]));
+    level.disabled = !select.value;
+    selectors.append(select, level);
+    row.append(label, selectors);
+    passiveList.append(row);
+  }
+}
 
 function populateControls() {
   getSandboxEnemyIds().forEach((enemyId) => {
@@ -72,32 +135,7 @@ function populateControls() {
     option.textContent = `${ENEMY_DEFINITIONS[enemyId].name} · ${ENEMY_DEFINITIONS[enemyId].role}`;
     enemySelect.append(option);
   });
-  Object.values(WEAPONS).forEach((weapon) => {
-    const option = document.createElement('option');
-    option.value = weapon.id;
-    option.textContent = weapon.name;
-    weaponSelect.append(option);
-  });
-  weaponSelect.value = state.build.weaponId;
-  weaponLevel.value = String(state.build.weaponLevel);
-  Object.values(PASSIVE_ABILITIES).forEach((ability) => {
-    const row = document.createElement('div');
-    row.className = 'passive-row';
-    const label = document.createElement('label');
-    label.textContent = ability.name;
-    label.htmlFor = `passive-${ability.id}`;
-    const select = document.createElement('select');
-    select.id = `passive-${ability.id}`;
-    select.dataset.passiveId = ability.id;
-    for (let level = 0; level <= ability.maxLevel; level += 1) {
-      const option = document.createElement('option');
-      option.value = level;
-      option.textContent = level === 0 ? '關閉' : `Lv.${level}`;
-      select.append(option);
-    }
-    row.append(label, select);
-    passiveList.append(row);
-  });
+  renderBuildControls();
   updateSkillPicker();
 }
 
@@ -142,32 +180,21 @@ function updateSkillPicker() {
   skillDescription.textContent = encyclopedia?.attacks.find((skill) => skill.id === state.selectedSkillId)?.description ?? '';
 }
 
-function setupKatanaShowcase() {
-  setSandboxBuild(state, { weaponId: 'katana', weaponLevel: 1 });
-  const target = spawnSandboxEnemy(state, 'crabGuard', {
-    x: state.actor.x + 40,
-    y: state.actor.y,
-  }, {
-    moveSpeed: 0,
-    health: 100,
-    maxHealth: 100,
+function setupSandboxDefaultBuild() {
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 3 },
+      { id: 'trident', level: 2 },
+      { id: 'katana', level: 1 },
+    ],
+    activeWeaponSlot: 0,
+    passives: [
+      { id: 'oxygenCirculator', level: 3 },
+      { id: 'pressureStabilizer', level: 2 },
+      { id: 'abyssalAmplifier', level: 1 },
+    ],
   });
-  if (target) {
-    target.showcaseKatanaTarget = true;
-    state.selectedEnemyInstanceId = target.instanceId;
-  }
-  const result = playerAttack(state);
-  if (result.ok) {
-    state.effects
-      .filter((effect) => effect.type === 'katanaSwing' || effect.type === 'katanaWave')
-      .forEach((effect) => {
-        effect.duration = Math.max(effect.duration, 6);
-        effect.showcaseProgress = effect.type === 'katanaSwing' ? 0.82 : 0.68;
-      });
-  }
-  status.textContent = result.hit
-    ? '武士刀展示已啟動：刀身會繞潛水員順時針揮擊，半透明殘影保留揮動方向。'
-    : '武士刀展示已啟動：目前目標未在刀身揮擊範圍內。';
+  status.textContent = '沙盒已準備：已載入完整武器／被動 Lv.3、Lv.2、Lv.1 Build。';
 }
 
 function renderPlacedEnemyList() {
@@ -216,11 +243,21 @@ function renderPlacedEnemyList() {
 }
 
 function applyBuild() {
-  const passives = [...passiveList.querySelectorAll('select[data-passive-id]')]
-    .map((select) => ({ id: select.dataset.passiveId, level: Number(select.value) }))
-    .filter((ability) => ability.level > 0);
-  setSandboxBuild(state, { weaponId: weaponSelect.value, weaponLevel: Number(weaponLevel.value), passives });
-  status.textContent = `已套用 ${state.build.weapons.map((weapon) => `${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')} 與 ${passives.length} 個被動技能。`;
+  const weapons = [...weaponBuildList.querySelectorAll('select[data-build-weapon-slot]')]
+    .map((select) => ({
+      id: select.value,
+      level: Number(weaponBuildList.querySelector(`[data-build-weapon-level="${select.dataset.buildWeaponSlot}"]`)?.value ?? 1),
+    }))
+    .filter((weapon) => weapon.id);
+  const passives = [...passiveList.querySelectorAll('select[data-build-passive-slot]')]
+    .map((select) => ({
+      id: select.value,
+      level: Number(passiveList.querySelector(`[data-build-passive-level="${select.dataset.buildPassiveSlot}"]`)?.value ?? 1),
+    }))
+    .filter((ability) => ability.id);
+  setSandboxBuild(state, { weapons, activeWeaponSlot: state.build.activeWeaponSlot, passives });
+  renderBuildControls();
+  status.textContent = `已套用武器 ${state.build.weapons.map((weapon) => `${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')}；被動 ${state.build.passives.length ? state.build.passives.map((passive) => `${PASSIVE_ABILITIES[passive.id].name} Lv.${passive.level}`).join('、') : '無'}。`;
 }
 
 function playerAttackStatus(result) {
@@ -240,6 +277,10 @@ function playerAttackStatus(result) {
     const projectileCount = state.projectiles.filter((projectile) => projectile.weaponId === 'trident').length;
     const levelLabel = state.build.weaponLevel >= 3 ? '閃耀三叉戟爆發' : state.build.weaponLevel === 2 ? '暈眩三叉戟' : '深海三叉戟';
     return `三叉戟 Lv.${state.build.weaponLevel} ${levelLabel}已發射${projectileCount ? `（場上 ${projectileCount} 發）` : ''}${result.hit ? '並命中目標。' : '。'}`;
+  }
+  if (state.build.weaponId === 'lightMachineGun') {
+    const fired = state.weaponBurst?.shotCount ?? state.effects.find((effect) => effect.type === 'lightMachineGun')?.firedShots ?? 6;
+    return `輕量機槍 Lv.${state.build.weaponLevel} 已固定方向連射（${fired}/6 發${state.weaponBurst ? '，連射中' : ''}）。`;
   }
   return `${weapon.name} Lv.${state.build.weaponLevel} 已發動${result.hit ? '並命中目標。' : '。'}`;
 }
@@ -943,14 +984,22 @@ upgradeChoiceList.addEventListener('click', (event) => {
     id: button.dataset.upgradeId,
     level: Number(button.dataset.upgradeLevel),
   });
+  if (result.ok) renderBuildControls();
   status.textContent = result.ok ? '升級已套用；可繼續拾取經驗光點。' : '這個升級選項已失效，請重新選擇。';
   render();
 });
 enemySelect.addEventListener('change', () => { status.textContent = `下一個放置：${ENEMY_DEFINITIONS[enemySelect.value].name}。`; });
-weaponSelect.addEventListener('change', () => {
-  const maxLevel = WEAPONS[weaponSelect.value].maxLevel;
-  weaponLevel.value = String(Math.min(Number(weaponLevel.value), maxLevel));
-  [...weaponLevel.options].forEach((option) => { option.hidden = Number(option.value) > maxLevel; });
+weaponBuildList.addEventListener('change', (event) => {
+  const select = event.target.closest('select[data-build-weapon-slot]');
+  if (!select) return;
+  const level = weaponBuildList.querySelector(`[data-build-weapon-level="${select.dataset.buildWeaponSlot}"]`);
+  if (level) level.disabled = Number(select.dataset.buildWeaponSlot) > 0 && !select.value;
+});
+passiveList.addEventListener('change', (event) => {
+  const select = event.target.closest('select[data-build-passive-slot]');
+  if (!select) return;
+  const level = passiveList.querySelector(`[data-build-passive-level="${select.dataset.buildPassiveSlot}"]`);
+  if (level) level.disabled = !select.value;
 });
 skillSelect.addEventListener('change', () => {
   state.selectedSkillId = skillSelect.value;
@@ -994,6 +1043,7 @@ window.render_game_to_text = () => JSON.stringify({
   mode: 'sandbox',
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
+  weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
   build: state.build,
   progression: {
     ...getExperienceProgress(state.progression),
@@ -1009,7 +1059,7 @@ window.render_game_to_text = () => JSON.stringify({
   experienceOrbs: state.experienceOrbs.map((orb) => ({ id: orb.id, x: format(orb.x), y: format(orb.y), value: orb.value, source: orb.source })),
   flags: { invincible: state.invincible, infiniteResources: state.infiniteResources, autoCycle: state.autoCycle, enemyPlacementMode: placementMode, running: state.running },
   enemies: state.enemies.map((enemy) => ({ id: enemy.instanceId, enemy: enemy.enemyId, x: format(enemy.x), y: format(enemy.y), vx: format(enemy.vx), vy: format(enemy.vy), health: format(enemy.health), defeated: enemy.defeated, state: enemy.state, facing: enemy.facing, enraged: enemy.enraged, hidden: enemy.hidden, stunned: Math.max(0, (enemy.stunnedUntil ?? 0) - state.time), rescueCompleted: enemy.rescueCompleted, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: format(enemy.pendingSkill.remaining) } : null, beacon: enemy.beacon ? { x: format(enemy.beacon.targetX), y: format(enemy.beacon.targetY), remaining: format(enemy.beacon.remaining) } : null, linkedTargets: enemy.linkedTargets, linkedTarget: enemy.linkedTarget, linkedProtection: enemy.linkedProtection, animation: enemy.animation })),
-  projectiles: state.projectiles.map((projectile) => ({ id: projectile.id, weapon: projectile.weaponId, level: projectile.weaponLevel, x: format(projectile.x), y: format(projectile.y), stun: format(projectile.stunDuration), life: format(projectile.life) })),
+  projectiles: state.projectiles.map((projectile) => ({ id: projectile.id, weapon: projectile.weaponId, level: projectile.weaponLevel, shotIndex: projectile.shotIndex, style: projectile.visual?.bulletStyle, colour: projectile.visual?.bulletColour ?? projectile.colour, x: format(projectile.x), y: format(projectile.y), stun: format(projectile.stunDuration), life: format(projectile.life) })),
   effects: state.effects.map((effect) => ({
     type: effect.type,
     style: effect.style,
@@ -1030,7 +1080,7 @@ window.advanceTime = (milliseconds) => {
   return window.render_game_to_text();
 };
 
-setupKatanaShowcase();
+setupSandboxDefaultBuild();
 populateControls();
 render();
 requestAnimationFrame(tick);

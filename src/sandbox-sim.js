@@ -26,6 +26,7 @@ import {
   collectExperienceOrbs as collectExperienceOrbsFromWorld,
   createExperienceOrb,
   createProgressionState,
+  BUILD_SLOT_LEVEL_CAPS,
   getActiveWeapon,
   getAvailableUpgradeCategories,
   getEnemyExperienceReward,
@@ -46,6 +47,32 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
 const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
 const unique = (values) => [...new Set(values)];
+
+function normalizeBuildEntries(entries, definitions, maxEntries, { ensureKnife = false } = {}) {
+  const source = Array.isArray(entries) ? entries : [];
+  const normalized = [];
+  if (ensureKnife) {
+    const requestedKnife = source.find((entry) => entry?.id === 'knife');
+    const knifeLevel = clamp(
+      Math.round(Number(requestedKnife?.level) || 1),
+      1,
+      Math.min(definitions.knife?.maxLevel ?? 1, BUILD_SLOT_LEVEL_CAPS[0]),
+    );
+    normalized.push({ id: 'knife', level: knifeLevel });
+  }
+  source.forEach((entry) => {
+    const id = entry?.id;
+    if (!definitions[id] || normalized.some((owned) => owned.id === id) || normalized.length >= maxEntries) return;
+    const slotCap = BUILD_SLOT_LEVEL_CAPS[normalized.length] ?? BUILD_SLOT_LEVEL_CAPS[BUILD_SLOT_LEVEL_CAPS.length - 1];
+    const level = clamp(
+      Math.round(Number(entry.level) || 1),
+      1,
+      Math.min(definitions[id].maxLevel ?? 1, slotCap),
+    );
+    normalized.push({ id, level });
+  });
+  return normalized;
+}
 
 function distanceToSegment(point, start, end) {
   const dx = end.x - start.x;
@@ -358,6 +385,8 @@ function defeatEnemy(state, enemy) {
     }
     logEvent(state, `${enemyDefinition(enemy).name} 死亡分裂成 ${(split.childCount ?? 2)} 隻更快的小型個體。`, 'warning');
   }
+  if (state.selectedEnemyInstanceId === enemy.instanceId) state.selectedEnemyInstanceId = null;
+  state.enemies = state.enemies.filter((candidate) => candidate !== enemy);
 }
 
 function spawnProjectile(state, source, options) {
@@ -382,6 +411,8 @@ function spawnProjectile(state, source, options) {
     persistent: Boolean(options.persistent),
     weaponId: options.weaponId ?? null,
     weaponLevel: options.weaponLevel ?? null,
+    shotIndex: options.shotIndex ?? null,
+    burstId: options.burstId ?? null,
     visual: options.visual ? { ...options.visual } : null,
     stunDuration: options.stunDuration ?? 0,
     impactStyle: options.impactStyle ?? null,
@@ -507,6 +538,7 @@ export function createSandboxState() {
     nextEnemyId: 1,
     nextProjectileId: 1,
     nextEffectId: 1,
+    nextWeaponBurstId: 1,
     nextExperienceOrbId: 1,
     enemies: [],
     projectiles: [],
@@ -525,6 +557,7 @@ export function createSandboxState() {
     upgradeCategories: [],
     upgradeChoices: [],
     build: { weaponId: 'knife', weaponLevel: 1, weapons: [{ id: 'knife', level: 1 }], activeWeaponSlot: 0, passives: [] },
+    weaponBurst: null,
   };
   syncSandboxBuild(state);
   logEvent(state, '沙盒已準備：點擊場地放置敵人。');
@@ -579,21 +612,40 @@ export function clearSandboxEnemies(state) {
   state.projectiles = [];
   state.experienceOrbs = [];
   state.effects = [];
+  state.weaponBurst = null;
   state.selectedEnemyInstanceId = null;
   state.selectedSkillId = null;
   logEvent(state, '已清除沙盒敵人與場上技能效果。');
 }
 
-export function setSandboxBuild(state, { weaponId = 'knife', weaponLevel = 1, passives = [] } = {}) {
+export function setSandboxBuild(state, {
+  weaponId = 'knife',
+  weaponLevel = 1,
+  weapons = null,
+  activeWeaponSlot = null,
+  passives = [],
+} = {}) {
   const validWeaponId = WEAPONS[weaponId] ? weaponId : 'knife';
   const validLevel = clamp(Math.round(Number(weaponLevel) || 1), 1, WEAPONS[validWeaponId].maxLevel);
-  const validPassives = unique(passives
-    .filter((ability) => PASSIVE_ABILITIES[ability.id] && Number(ability.level) > 0)
-    .map((ability) => ({ id: ability.id, level: clamp(Math.round(Number(ability.level)), 1, PASSIVE_ABILITIES[ability.id].maxLevel) })));
-  state.progression.weapons = [{ id: 'knife', level: weaponId === 'knife' ? validLevel : 1 }];
-  if (weaponId !== 'knife') state.progression.weapons.push({ id: validWeaponId, level: validLevel });
+  const requestedWeapons = Array.isArray(weapons)
+    ? weapons
+    : [{ id: 'knife', level: weaponId === 'knife' ? validLevel : 1 }, ...(weaponId !== 'knife' ? [{ id: validWeaponId, level: validLevel }] : [])];
+  const validWeapons = Array.isArray(weapons)
+    ? normalizeBuildEntries(requestedWeapons, WEAPONS, 3, { ensureKnife: true })
+    : requestedWeapons;
+  const validPassives = normalizeBuildEntries(
+    unique(passives
+      .filter((ability) => PASSIVE_ABILITIES[ability.id] && Number(ability.level) > 0)
+      .map((ability) => ({ id: ability.id, level: Number(ability.level) }))),
+    PASSIVE_ABILITIES,
+    3,
+  );
+  state.progression.weapons = validWeapons;
   state.progression.passives = validPassives;
-  state.progression.activeWeaponSlot = weaponId === 'knife' ? 0 : 1;
+  const requestedActiveSlot = activeWeaponSlot == null
+    ? (Array.isArray(weapons) ? 0 : (weaponId === 'knife' ? 0 : 1))
+    : Math.round(Number(activeWeaponSlot));
+  state.progression.activeWeaponSlot = clamp(requestedActiveSlot, 0, Math.max(0, validWeapons.length - 1));
   state.progression.pendingLevelUps = 0;
   state.awaitingUpgrade = false;
   state.upgradeCategory = null;
@@ -605,6 +657,7 @@ export function setSandboxBuild(state, { weaponId = 'knife', weaponLevel = 1, pa
   state.actor.energy = MAX_ENERGY;
   state.actor.katanaEmpoweredNextSlash = false;
   state.actor.tridentStationaryTime = 0;
+  state.weaponBurst = null;
   return state.build;
 }
 
@@ -1057,6 +1110,102 @@ function processTridentAutoAttack(state, dt) {
   if (result.ok || result.reason === 'energy' || result.reason === 'cooldown') state.actor.tridentStationaryTime = 0;
 }
 
+function getLightMachineGunShotVisual(weapon, shotIndex) {
+  const effect = weapon.effect ?? {};
+  const level = weapon.level ?? 1;
+  const visual = { ...effect };
+  if (level === 2 && shotIndex >= 3) {
+    visual.bulletStyle = effect.alternateBulletStyle ?? 'outlined';
+    visual.bulletColour = effect.alternateBulletColour ?? effect.bulletColour;
+    visual.bulletOutline = effect.alternateBulletOutline ?? effect.bulletOutline;
+  }
+  if (level >= 3 && Array.isArray(effect.bulletPalette) && effect.bulletPalette.length) {
+    visual.bulletColour = effect.bulletPalette[shotIndex % effect.bulletPalette.length];
+  }
+  return visual;
+}
+
+function fireLightMachineGunShot(state, burst, shotIndex) {
+  const weapon = { ...WEAPONS.lightMachineGun, ...getWeaponStats('lightMachineGun', burst.weaponLevel), level: burst.weaponLevel };
+  const visual = getLightMachineGunShotVisual(weapon, shotIndex);
+  spawnProjectile(state, state.actor, {
+    angle: burst.angle,
+    speed: weapon.projectileSpeed,
+    range: weapon.range,
+    damage: weapon.damage,
+    source: 'player',
+    damageType: 'player',
+    colour: visual.bulletColour ?? '#8fe8ff',
+    radius: Math.max(3, (visual.bulletWidth ?? 5) * 0.5),
+    weaponId: 'lightMachineGun',
+    weaponLevel: burst.weaponLevel,
+    shotIndex,
+    burstId: burst.id,
+    visual,
+  });
+  const muzzle = state.effects.find((effect) => effect.id === burst.effectId);
+  if (muzzle) muzzle.firedShots = shotIndex + 1;
+}
+
+function beginLightMachineGunBurst(state, weapon, weaponLevel, angle, targetId = null) {
+  const effect = weapon.effect ?? {};
+  const shotCount = Math.max(1, Math.round(weapon.burstCount ?? 6));
+  const interval = Math.max(0.02, Number(weapon.burstInterval ?? 0.08));
+  const id = state.nextWeaponBurstId++;
+  const gunEffect = addEffect(state, {
+    type: 'lightMachineGun',
+    style: effect.style ?? 'lightMachineGun',
+    x: state.actor.x,
+    y: state.actor.y,
+    angle,
+    duration: interval * (shotCount - 1) + 0.24,
+    gunLength: effect.gunLength ?? 66,
+    gunWidth: effect.gunWidth ?? 14,
+    gunColour: effect.gunColour ?? '#263b52',
+    gunAccent: effect.gunAccent ?? '#73e6ff',
+    muzzleColour: effect.muzzleColour ?? '#d9fbff',
+    shotCount,
+    firedShots: 0,
+    weaponLevel,
+  });
+  const burst = {
+    id,
+    weaponId: 'lightMachineGun',
+    weaponLevel,
+    angle,
+    targetId,
+    shotCount,
+    interval,
+    nextShotIndex: 1,
+    nextShotAt: state.time + interval,
+    finishAt: state.time + interval * (shotCount - 1) + 0.18,
+    effectId: gunEffect.id,
+  };
+  state.weaponBurst = burst;
+  fireLightMachineGunShot(state, burst, 0);
+  return burst;
+}
+
+function updateLightMachineGunBurst(state) {
+  const burst = state.weaponBurst;
+  if (!burst) return;
+  if (state.build.weaponId !== 'lightMachineGun' || state.build.weaponLevel !== burst.weaponLevel) {
+    state.weaponBurst = null;
+    return;
+  }
+  const muzzle = state.effects.find((effect) => effect.id === burst.effectId);
+  if (muzzle) {
+    muzzle.x = state.actor.x;
+    muzzle.y = state.actor.y;
+  }
+  while (burst.nextShotIndex < burst.shotCount && state.time + 1e-8 >= burst.nextShotAt) {
+    fireLightMachineGunShot(state, burst, burst.nextShotIndex);
+    burst.nextShotIndex += 1;
+    burst.nextShotAt += burst.interval;
+  }
+  if (burst.nextShotIndex >= burst.shotCount && state.time >= burst.finishAt) state.weaponBurst = null;
+}
+
 function knifeSwipeSegment(state, weapon, target = null) {
   const direction = knifeDirection(state, target);
   const targetDistance = target ? Math.hypot(target.x - state.actor.x, target.y - state.actor.y) : 0;
@@ -1120,6 +1269,9 @@ export function playerAttack(state, { auto = false } = {}) {
   const weapon = { ...weaponDefinition, ...getWeaponStats(state.build.weaponId, state.build.weaponLevel) };
   state.actor.cooldowns ??= {};
   const cooldownKey = `weapon:${weaponDefinition.id}`;
+  if (state.weaponBurst?.weaponId === weaponDefinition.id) {
+    return { ok: false, reason: 'burst', remaining: Math.max(0, state.weaponBurst.finishAt - state.time) };
+  }
   const cooldownRemaining = state.actor.cooldowns[cooldownKey] ?? 0;
   if (cooldownRemaining > 0) {
     logEvent(state, `${weaponDefinition.name} 冷卻中：${cooldownRemaining.toFixed(1)} 秒。`, 'warning');
@@ -1129,7 +1281,8 @@ export function playerAttack(state, { auto = false } = {}) {
   const canShowKnifePreview = weapon.type === 'melee' && weapon.effect?.style === 'knifeMeteor';
   const canShowKatanaPreview = weapon.type === 'melee' && weapon.effect?.style === 'katanaClockwiseSwing';
   const canShowTridentPreview = weaponDefinition.id === 'trident';
-  if (!target && !canShowKnifePreview && !canShowKatanaPreview && !canShowTridentPreview) {
+  const canShowLightMachineGunPreview = weaponDefinition.id === 'lightMachineGun';
+  if (!target && !canShowKnifePreview && !canShowKatanaPreview && !canShowTridentPreview && !canShowLightMachineGunPreview) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
@@ -1161,6 +1314,13 @@ export function playerAttack(state, { auto = false } = {}) {
     if (!hit && target) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
     if (!target) logEvent(state, `${weaponDefinition.name}：展示刀身順時針揮擊${canShowKatanaPreview && weapon.effect?.wave ? '與白色飛行衝擊波' : ''}（目前沒有目標）。`, 'safe');
   } else {
+    if (weaponDefinition.id === 'lightMachineGun') {
+      const angle = projectileDirectionAngle(state, target);
+      const burst = beginLightMachineGunBurst(state, weapon, state.build.weaponLevel, angle, target?.instanceId ?? null);
+      state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0.72;
+      logEvent(state, `${auto ? '自動發射' : '玩家使用'} 輕量機槍 Lv.${state.build.weaponLevel}：固定方向六發連射。`, 'safe');
+      return { ok: true, hit: false, burstCount: burst.shotCount, angle, targetId: burst.targetId };
+    }
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
     const angle = projectileDirectionAngle(state, target);
@@ -1601,6 +1761,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   Object.keys(state.actor.cooldowns ?? {}).forEach((key) => {
     state.actor.cooldowns[key] = Math.max(0, state.actor.cooldowns[key] - dt);
   });
+  updateLightMachineGunBurst(state);
   if (state.infiniteResources) {
     state.actor.oxygen = MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
