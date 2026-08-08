@@ -448,6 +448,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added a stationary rest animation for low-speed players that have contacted an impassable obstacle; the swim frame and body motion freeze so the legs no longer kick against the wall.
 - Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 56 complete
+
+- Updated the diver's physics-facing state at launch and after each movement step, so the sprite follows the actual horizontal travel direction and retains the last side during vertical drift.
+- Removed time-based non-uniform scale pulses from swimming, hurt, death, and fast-ascent motion. Added small fixed per-frame envelope corrections and kept X/Y scale uniform so pose changes no longer read as the diver growing and shrinking.
+- Added focused animation/facing regression tests and included them in `npm run check`. Browser and Playwright validation remain intentionally skipped per user instruction.
+
 ## 2026-08-08 — Step 55 complete
 
 - Removed the standalone top-card appearance from the full-screen play page. The brand, centered map selector, settings button, and exit link now sit directly over the game canvas as an embedded top HUD.

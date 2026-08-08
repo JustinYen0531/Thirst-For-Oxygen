@@ -703,16 +703,6 @@ test('player animation states prioritize death, hurt, fast ascent, and swimming'
   assert.equal(Object.values(PLAYER_ANIMATION_ASSETS).every((frames) => frames.length === 6), true);
 });
 
-test('launch direction is a hard facing rule until the next launch', () => {
-  const actor = createTestActor({ x: 200, y: 200 });
-  const launch = launchActor(actor, { x: 280, y: 200 });
-  assert.ok(launch.launched);
-  assert.ok(actor.vx < 0);
-  assert.equal(getPlayerFacingDirection(actor), 'left');
-  actor.vx = 80;
-  assert.equal(getPlayerFacingDirection(actor), 'left');
-});
-
 test('all defined weapons, passive abilities, and enemy attack contracts are numeric', () => {
   assert.deepEqual(Object.keys(WEAPONS), ['knife', 'katana', 'trident', 'lightMachineGun']);
   Object.values(WEAPONS).forEach((weapon) => {

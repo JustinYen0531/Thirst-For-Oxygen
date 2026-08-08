@@ -67,6 +67,7 @@ const MICROFLOW_VECTOR_SCALE = 18;
 const HORIZONTAL_WATER_DRAG = 0.96;
 const VERTICAL_WATER_DRAG = 0.998;
 const HORIZONTAL_STOP_SPEED = 0.15;
+const FACING_SPEED_THRESHOLD = 1;
 export const WORLD_BOUNDS = Object.freeze({ minX: 24, maxX: 976, minY: 24, maxY: 656 });
 const microflowRegionCache = new WeakMap();
 const microflowMeanCache = new WeakMap();
@@ -88,6 +89,11 @@ export function getOxygenSecondsRemaining(actor) {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function updateFacingFromVelocity(actor) {
+  if ((actor?.vx ?? 0) < -FACING_SPEED_THRESHOLD) actor.facing = 'left';
+  else if ((actor?.vx ?? 0) > FACING_SPEED_THRESHOLD) actor.facing = 'right';
 }
 
 function reflect(velocity, normal, multiplier = 0.72) {
@@ -408,8 +414,7 @@ export function launchActor(actor, pointer) {
   const speed = getLaunchSpeed(distance);
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
-  if (direction.x < 0) actor.facing = 'left';
-  else if (direction.x > 0) actor.facing = 'right';
+  updateFacingFromVelocity(actor);
   actor.blockedResting = false;
   actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
@@ -926,6 +931,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   const after = findCellContainingPoint(map, actor, chapter, origin);
   const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events, previousPosition);
   if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
+  updateFacingFromVelocity(actor);
   processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
   if (Math.hypot(actor.vx, actor.vy) < 1) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);

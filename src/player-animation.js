@@ -1,6 +1,16 @@
 const PLAYER_ANIMATION_ROOT = '/assets/editor/actors/player';
 const framePaths = (action) => Object.freeze(Array.from({ length: 6 }, (_, index) => `${PLAYER_ANIMATION_ROOT}/${action}/player-diver__${action}__${String(index + 1).padStart(2, '0')}.png`));
 
+// The six source frames share a 512px canvas, but their authored alpha
+// envelopes are not identical. These small per-frame presentation factors
+// keep the diver's visible body at a stable size without removing pose motion.
+const PLAYER_ANIMATION_FRAME_SCALES = Object.freeze({
+  swim: Object.freeze([0.984, 1.019, 1.012, 0.988, 1.071, 0.976]),
+  hurt: Object.freeze([1.005, 1, 1, 1.049, 0.987, 0.989]),
+  death: Object.freeze([0.836, 0.863, 1.022, 1.105, 0.979, 1.093]),
+  fastAscent: Object.freeze([0.967, 1.035, 1.049, 1.052, 0.914, 0.967]),
+});
+
 export const PLAYER_ANIMATION_ASSETS = Object.freeze({
   swim: framePaths('swim'),
   rest: framePaths('swim'),
@@ -51,6 +61,12 @@ export function getPlayerAnimationFrameIndex(animationState, time = 0, actor = n
   return Math.floor(Math.max(0, time) * PLAYER_ANIMATION_FPS) % PLAYER_ANIMATION_FRAME_COUNT;
 }
 
+export function getPlayerAnimationFrameScale(animationState, frameIndex = 0) {
+  const scales = PLAYER_ANIMATION_FRAME_SCALES[animationState] ?? PLAYER_ANIMATION_FRAME_SCALES.swim;
+  const safeIndex = Math.max(0, Math.min(scales.length - 1, Math.floor(Number.isFinite(frameIndex) ? frameIndex : 0)));
+  return scales[safeIndex] ?? 1;
+}
+
 export function getPlayerFacingDirection(actor) {
   if (actor?.facing === 'left' || actor?.facing === 'right') return actor.facing;
   if ((actor?.vx ?? 0) < -1) return 'left';
@@ -60,11 +76,13 @@ export function getPlayerFacingDirection(actor) {
 
 export function getPlayerAnimationMotion(animationState, time = 0, actor = null) {
   const speed = Math.hypot(actor?.vx ?? 0, actor?.vy ?? 0);
+  const frameIndex = getPlayerAnimationFrameIndex(animationState, time, actor);
+  const frameScale = getPlayerAnimationFrameScale(animationState, frameIndex);
   if (animationState === 'rest') {
     return {
       rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: frameScale,
+      scaleY: frameScale,
       bob: 0,
       alpha: 1,
       glow: '#c6f8ff',
@@ -73,8 +91,8 @@ export function getPlayerAnimationMotion(animationState, time = 0, actor = null)
   if (animationState === 'hurt') {
     return {
       rotation: -0.1 + Math.sin(time * 34) * 0.035,
-      scaleX: 1 + Math.sin(time * 28) * 0.025,
-      scaleY: 1 - Math.sin(time * 28) * 0.025,
+      scaleX: frameScale,
+      scaleY: frameScale,
       bob: Math.sin(time * 20) * 0.35,
       alpha: 0.86 + Math.abs(Math.sin(time * 26)) * 0.14,
       glow: '#ffb7a1',
@@ -83,8 +101,8 @@ export function getPlayerAnimationMotion(animationState, time = 0, actor = null)
   if (animationState === 'death') {
     return {
       rotation: -0.28 + Math.sin(time * 1.8) * 0.04,
-      scaleX: 1 + Math.sin(time * 2.1) * 0.015,
-      scaleY: 1 - Math.sin(time * 2.1) * 0.015,
+      scaleX: frameScale,
+      scaleY: frameScale,
       bob: Math.sin(time * 2.2) * 0.45,
       alpha: actor?.gameOver ? 0.84 : 0.72,
       glow: '#9aaabd',
@@ -93,8 +111,8 @@ export function getPlayerAnimationMotion(animationState, time = 0, actor = null)
   if (animationState === 'fastAscent') {
     return {
       rotation: Math.sin(time * 12) * 0.018,
-      scaleX: 0.96 + Math.sin(time * 10) * 0.025,
-      scaleY: 1.03 - Math.sin(time * 10) * 0.025,
+      scaleX: frameScale,
+      scaleY: frameScale,
       bob: -Math.abs(Math.sin(time * 5)) * 0.6,
       alpha: 1,
       glow: '#d8fbff',
@@ -102,8 +120,8 @@ export function getPlayerAnimationMotion(animationState, time = 0, actor = null)
   }
   return {
     rotation: Math.sin(time * 1.35 + (actor?.y ?? 0) * 0.008) * 0.025 + Math.max(-0.06, Math.min(0.06, (actor?.vy ?? 0) * 0.002)),
-    scaleX: 1 + Math.sin(time * 2.4) * 0.012,
-    scaleY: 1 - Math.sin(time * 2.4) * 0.012,
+    scaleX: frameScale,
+    scaleY: frameScale,
     bob: Math.sin(time * 1.8 + (actor?.x ?? 0) * 0.01) * (speed > 1 ? 0.7 : 0.35),
     alpha: 0.98,
     glow: '#c6f8ff',
