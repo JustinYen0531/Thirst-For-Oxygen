@@ -75,9 +75,9 @@ const experienceFill = document.querySelector('#play-experience-fill');
 const mapTitle = document.querySelector('#play-map-title');
 const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
-const help = document.querySelector('#play-help');
 const eventsList = document.querySelector('#play-events');
 const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
+const ambientToggle = document.querySelector('#play-ambient-toggle');
 const attemptsReadout = document.querySelector('#play-attempts');
 const settingsToggle = document.querySelector('#play-settings-toggle');
 const settingsPanel = document.querySelector('#play-settings');
@@ -106,9 +106,11 @@ let trajectory = [];
 let lastTrajectoryAt = -Infinity;
 let paused = false;
 let unlimitedResources = false;
+let ambientEnabled = true;
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
+let activeCollisionSoundKeys = new Set();
 const PLAYER_LEVEL = 1;
 const PLAYER_EXPERIENCE = 0;
 const EXPERIENCE_TO_NEXT_LEVEL = 100;
@@ -117,7 +119,7 @@ function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
 function cellCenter(key) { return getHexCenter(getActiveCell(map, key, 'chapter1'), origin); }
 function hexPath(ctx, cell, pad = 0) { const center = getHexCenter(cell, origin); const vertices = getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
-function drawImage(path, x, y, width, height, alpha = 1) { const image = images.get(path); if (!image?.complete || !image.naturalWidth) return false; context.save(); context.globalAlpha = alpha; context.drawImage(image, x - width / 2, y - height / 2, width, height); context.restore(); return true; }
+function drawImage(path, x, y, width, height, alpha = 1, rotation = 0) { const image = images.get(path); if (!image?.complete || !image.naturalWidth) return false; context.save(); context.globalAlpha = alpha; context.translate(x, y); context.rotate(rotation); context.drawImage(image, -width / 2, -height / 2, width, height); context.restore(); return true; }
 function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, radius = 0.55, colour = 'rgba(246, 252, 255, 0.88)') {
   context.save();
   context.globalAlpha = alpha;
@@ -151,9 +153,9 @@ function setupWorld(nextMap) {
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
   trajectory = [];
+  activeCollisionSoundKeys.clear();
   eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
-  help.textContent = '按住潛水夫並拖曳，瞄準方向後放開即可彈射。短距離與長距離的初速度會有明顯差異；相機在地圖左右外緣自動固定。';
   loadingMask.classList.add('is-hidden');
   updateCamera();
   updateHud();
@@ -175,7 +177,6 @@ async function loadMap(part) {
   } catch (error) {
     eventLog = [`地圖載入失敗：${error.message}`];
     eventsList.innerHTML = `<li>${eventLog[0]}</li>`;
-    help.textContent = '請先執行 npm run generate:maps，確認 maps/下沉篇 目錄存在。';
     loadingMask.textContent = '地圖載入失敗';
   }
 }
@@ -311,7 +312,28 @@ function drawEdges() {
     context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
     context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(to.x, to.y); context.stroke(); context.restore();
     const asset = EDGE_ASSETS[edge.type];
-    if (asset) drawImage(asset, mid.x, mid.y, edge.type === 'multiPortal' ? 20 : 16, edge.type === 'multiPortal' ? 16 : 16, .92);
+    if (!asset) return;
+    const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
+    let renderX = mid.x;
+    let renderY = mid.y;
+    let rotation = 0;
+    if (isPortal) {
+      // Align the long axis to the shared hex edge (the tangent), keeping the
+      // portal centered on the boundary instead of floating over a cell.
+      rotation = Math.atan2(to.y - from.y, to.x - from.x) + Math.PI / 2;
+      const fromCell = getActiveCell(map, a, 'chapter1');
+      const toCell = getActiveCell(map, b, 'chapter1');
+      const blockedCell = fromCell?.terrain === 'blocked' ? fromCell : toCell?.terrain === 'blocked' ? toCell : null;
+      const waterCell = blockedCell === fromCell ? toCell : fromCell;
+      if (blockedCell && waterCell) {
+        const blockedCenter = getHexCenter(blockedCell, origin);
+        const waterCenter = getHexCenter(waterCell, origin);
+        const distance = Math.hypot(waterCenter.x - blockedCenter.x, waterCenter.y - blockedCenter.y) || 1;
+        renderX += ((waterCenter.x - blockedCenter.x) / distance) * 2;
+        renderY += ((waterCenter.y - blockedCenter.y) / distance) * 2;
+      }
+    }
+    drawImage(asset, renderX, renderY, isPortal ? 22 : 16, edge.type === 'multiPortal' ? 9 : isPortal ? 18 : 16, .92, rotation);
   });
 }
 
@@ -446,11 +468,17 @@ function setSettingsOpen(open) {
   if (nextOpen) settingsClose.focus();
 }
 
+const COLLISION_SOUND_TYPES = new Set(['springJelly', 'wall', 'barrier', 'terrainBoundary', 'layerBoundary', 'spike', 'razor']);
+
 function playSfxForEvents(events) {
   const soundIds = new Set();
+  const collisionKeys = new Set();
   events.forEach((event) => {
     if (!event?.type) return;
-    if (['springJelly', 'wall', 'barrier', 'terrainBoundary', 'layerBoundary', 'spike', 'razor'].includes(event.type)) soundIds.add('impactWet');
+    if (COLLISION_SOUND_TYPES.has(event.type)) {
+      collisionKeys.add(`${event.type}:${event.collisionKey ?? 'default'}`);
+      return;
+    }
     if (event.type === 'mine' || event.type === 'weightStone') soundIds.add('explosion');
     if (event.type === 'button') soundIds.add('button');
     if (event.type === 'checkpoint') soundIds.add('teleport');
@@ -458,6 +486,8 @@ function playSfxForEvents(events) {
     if (event.type === 'bubble' || (event.type === 'oxygen' && event.message?.includes('釋放'))) soundIds.add('waterDrop');
     if (event.type === 'oxygenStarvation') soundIds.add('impactWet');
   });
+  if ([...collisionKeys].some((key) => !activeCollisionSoundKeys.has(key))) soundIds.add('impactWet');
+  activeCollisionSoundKeys = collisionKeys;
   soundIds.forEach((soundId) => sfxController.play(soundId));
 }
 
@@ -482,9 +512,10 @@ canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPo
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
+ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
 exitButton.addEventListener('click', () => { sfxController.play('button'); window.location.href = '/home.html'; });
@@ -554,7 +585,7 @@ if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
 syncMusicTrack();
 musicController.start();
 sfxController.startAmbient();
-window.addEventListener('pointerdown', () => sfxController.startAmbient(), { once: true });
-window.addEventListener('keydown', () => sfxController.startAmbient(), { once: true });
+window.addEventListener('pointerdown', () => { if (ambientEnabled) sfxController.startAmbient(); }, { once: true });
+window.addEventListener('keydown', () => { if (ambientEnabled) sfxController.startAmbient(); }, { once: true });
 loadMap(mapPart);
 requestAnimationFrame(frame);

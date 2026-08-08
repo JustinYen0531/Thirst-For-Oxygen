@@ -14,15 +14,6 @@
           <span class="brand-glyph" aria-hidden="true">◈</span>
           <span><strong>THIRST FOR OXYGEN</strong><small>ABYSSAL AQUARIUM / PLAY</small></span>
         </a>
-        <label class="top-map-picker" for="play-map-select">
-          <span class="chapter-picker-label">地圖章節</span>
-          <span class="sr-only">選擇地圖部分</span>
-          <select id="play-map-select" aria-label="選擇地圖部分">
-            <option value="1">下沉篇・第一部分（輕）</option>
-            <option value="2">下沉篇・第二部分（中）</option>
-            <option value="3" selected>下沉篇・第三部分</option>
-          </select>
-        </label>
         <div class="play-topbar-actions">
           <button class="settings-toggle" id="play-settings-toggle" type="button" aria-label="開啟遊玩設定" title="設定" aria-expanded="false" aria-controls="play-settings"><span class="gear-icon" aria-hidden="true">⚙</span></button>
         </div>
@@ -33,6 +24,15 @@
           <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
           <div class="play-stage-frame">
             <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇地圖遊玩畫面"></canvas>
+            <label class="top-map-picker" for="play-map-select">
+              <span class="chapter-picker-label">地圖章節</span>
+              <span class="sr-only">選擇地圖部分</span>
+              <select id="play-map-select" aria-label="選擇地圖部分">
+                <option value="1">下沉篇・第一部分（輕）</option>
+                <option value="2">下沉篇・第二部分（中）</option>
+                <option value="3" selected>下沉篇・第三部分</option>
+              </select>
+            </label>
             <div class="depth-readout" aria-label="目前下沉深度"><span class="depth-label">DEPTH</span><output id="play-depth-value" class="depth-value">000 m</output></div>
             <div class="level-readout" aria-label="目前等級與經驗進度"><div class="level-heading"><span class="level-label">LEVEL</span><output id="play-level-value" class="level-value">01</output><output id="play-experience-value" class="experience-value">EXP 000 / 100</output></div><div class="experience-track" aria-hidden="true"><b id="play-experience-fill"></b></div></div>
             <p class="play-attempts" id="play-attempts">Attempts 3/3</p>
@@ -60,7 +60,6 @@
               </div>
             </div>
             <div class="loading-mask" id="play-loading">正在潛入水域…</div>
-            <p class="play-help" id="play-help">按住潛水夫並拖曳，瞄準方向後放開即可彈射。每次彈射消耗約 5 能量；氧氣以時間倒數，滿氧約 40 秒，不受彈射距離影響。氧氣歸零會慢慢扣生命，能量歸零需停止移動休息。</p>
           </div>
         </section>
       </section>
@@ -94,6 +93,7 @@
             <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
           </div>
           <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
+          <button class="resource-toggle" id="play-ambient-toggle" type="button" aria-pressed="true">◉ 潛水環境音（240 秒循環）：開</button>
           <button class="action-secondary settings-exit" id="play-exit" type="button">↩ 離開遊玩</button>
         </section>
         <section class="camera-card">

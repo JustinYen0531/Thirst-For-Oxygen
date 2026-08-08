@@ -127,8 +127,8 @@ function isOnCooldown(actor, key) {
   return (actor.cooldowns[key] ?? 0) > 0;
 }
 
-function addEvent(events, type, message) {
-  events.push({ type, message });
+function addEvent(events, type, message, details = {}) {
+  events.push({ type, message, ...details });
 }
 
 function launchDistance(actor, pointer) {
@@ -501,27 +501,32 @@ function applyCurrentAcceleration(map, cellKey, chapter) {
 
 function processBoundary(actor, bounds, events) {
   let collided = false;
+  const collisionSides = [];
   if (actor.x - actor.radius < bounds.minX) {
     actor.x = bounds.minX + actor.radius;
     actor.vx = Math.abs(actor.vx) * 0.72;
     collided = true;
+    collisionSides.push('left');
   }
   if (actor.x + actor.radius > bounds.maxX) {
     actor.x = bounds.maxX - actor.radius;
     actor.vx = -Math.abs(actor.vx) * 0.72;
     collided = true;
+    collisionSides.push('right');
   }
   if (actor.y - actor.radius < bounds.minY) {
     actor.y = bounds.minY + actor.radius;
     actor.vy = Math.abs(actor.vy) * 0.72;
     collided = true;
+    collisionSides.push('top');
   }
   if (actor.y + actor.radius > bounds.maxY) {
     actor.y = bounds.maxY - actor.radius;
     actor.vy = -Math.abs(actor.vy) * 0.72;
     collided = true;
+    collisionSides.push('bottom');
   }
-  if (collided) addEvent(events, 'wall', '碰到測試區邊界：速度已反彈。');
+  if (collided) addEvent(events, 'wall', '碰到測試區邊界：速度已反彈。', { collisionKey: collisionSides.join('+') || 'wall' });
 }
 
 function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events, previousPosition = null) {

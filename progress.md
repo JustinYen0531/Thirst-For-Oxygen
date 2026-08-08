@@ -543,3 +543,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added progression state, level thresholds through Lv.12, pending level-up handling, category-first upgrade selection, weapon/passive candidates, active weapon switching, and the sandbox progression HUD.
 - Locked the starting Build to one Lv.1 knife plus up to two additional weapons; the authored weapon cooldown and melee/projectile type now both apply in sandbox attacks.
 - Updated the growth and weapon GDD entries to document the fixed knife, 11 post-start choices, orb rewards, and manual pickup rule. Static-only verification passed: `npm run check` (68/68 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-08 — Step 66 complete
+
+- Embedded the chapter picker inside the full-screen map stage, above the LEVEL 01 card; moved DEPTH down and right so the visor machinery cannot cover it, and removed the bottom instructional strip.
+- Rotated portal artwork along the shared hex edge and nudged it toward the water side when the neighboring cell is blocked, making the edge attachment read as a mounted transition instead of a floating overlap.
+- Added collision-entry sound deduplication: wall and other contact sounds play once when entering a collision and stay quiet while the player remains held against it.
+- Added a Settings toggle for the existing 240-second underwater ambience loop; it starts on interaction when autoplay is unavailable and can be turned off/on explicitly.
+- Static-only verification passed: `npm run check` (68/68 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

@@ -83,7 +83,6 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-resource-hud .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
 .loading-mask { position: absolute; inset: 0; display: grid; place-items: center; color: #b9eefe; font-size: .85rem; letter-spacing: .12em; background: rgba(5, 20, 37, .86); transition: opacity .3s ease; }
 .loading-mask.is-hidden { opacity: 0; pointer-events: none; }
-.play-help { margin: 9px 7px 0; color: #86a6c4; font-size: .68rem; line-height: 1.6; }
 @media (max-width: 980px) { .play-layout { grid-template-columns: 1fr; } .play-sidebar { display: grid; grid-template-columns: 1.1fr 1fr; column-gap: 16px; } .play-sidebar > .eyebrow, .play-sidebar > h1, .play-sidebar > .intro { grid-column: 1; } .map-picker, .play-actions, .resource-stack, .camera-card, .event-card { grid-column: 2; } .play-sidebar > .intro { margin-bottom: 0; } .play-stage-frame, #play-canvas { min-height: 420px; } }
 @media (max-width: 650px) { .play-shell { width: calc(100% - 18px); padding-top: 9px; } .play-topbar { align-items: flex-start; flex-direction: column; } .play-nav { justify-content: flex-start; } .play-sidebar { display: block; } .play-sidebar h1 br { display: none; } .play-stage-frame, #play-canvas { min-height: 340px; } .stage-meta { flex-wrap: wrap; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
@@ -120,7 +119,6 @@ body { min-width: 0; }
 .experience-track b { display: block; width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3a9fe0, #9cf3ff); box-shadow: 0 0 8px rgba(69, 210, 255, .8); transition: width .18s linear; }
 .play-stage-frame { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: inset 0 0 70px rgba(29, 135, 190, .2); }
 #play-canvas { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; }
-.play-help { position: absolute; right: 18px; bottom: 78px; left: 18px; z-index: 3; margin: 0; padding: 7px 10px; border-color: rgba(119, 232, 255, .28); color: #c5e4f6; font-size: .68rem; pointer-events: none; }
 .play-settings { position: fixed; top: 78px; right: 16px; bottom: 16px; z-index: 20; display: block; width: min(360px, calc(100vw - 32px)); overflow-y: auto; padding: 18px; border: 1px solid rgba(119, 232, 255, .5); border-radius: 12px; background: linear-gradient(180deg, rgba(7, 28, 52, .98), rgba(5, 17, 32, .98)); box-shadow: 0 24px 80px rgba(0, 0, 0, .52), inset 0 1px rgba(198, 244, 255, .08); }
 .play-settings[hidden] { display: none; }
 .settings-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -146,14 +144,13 @@ body { min-width: 0; }
   .top-map-picker select { padding: 5px 0; font-size: .63rem; }
 .settings-toggle { width: 33px; min-height: 33px; padding: 6px; font-size: .63rem; }
   .stage-meta { top: 8px; right: 9px; left: 9px; flex-wrap: wrap; font-size: .58rem; }
-  .play-help { right: 9px; bottom: 74px; left: 9px; font-size: .6rem; }
   .play-settings { top: 72px; right: 8px; bottom: 8px; width: calc(100vw - 16px); }
 }
 
 /* The chapter selector is part of the full-screen play surface: it reads as
    a compact navigation console, while the map remains visible behind it. */
 .top-map-picker {
-  top: 10px;
+  top: clamp(84px, 12%, 128px);
   left: 50%;
   right: auto;
   display: grid;
@@ -166,6 +163,7 @@ body { min-width: 0; }
   background: linear-gradient(180deg, rgba(8, 34, 61, .88), rgba(5, 20, 38, .74));
   box-shadow: 0 10px 30px rgba(0, 0, 0, .25), inset 0 1px rgba(206, 249, 255, .1);
   transform: translateX(-50%);
+  z-index: 6;
 }
 .top-map-picker::after {
   position: absolute;
@@ -193,10 +191,12 @@ body { min-width: 0; }
 }
 .top-map-picker select:focus { border-color: transparent; box-shadow: none; outline: none; }
 .play-attempts { z-index: 5; }
+.depth-readout { top: clamp(146px, 20%, 195px); left: clamp(72px, 14%, 210px); z-index: 6; }
+.level-readout { top: clamp(206px, 30%, 270px); z-index: 6; }
 
 @media (max-width: 650px) {
   .top-map-picker {
-    top: 7px;
+    top: 52px;
     right: 45px;
     left: 45px;
     width: auto;
@@ -206,4 +206,6 @@ body { min-width: 0; }
   }
   .top-map-picker select { font-size: .65rem; }
   .chapter-picker-label { font-size: .46rem; }
+  .depth-readout { top: 108px; left: 70px; }
+  .level-readout { top: 158px; }
 }
