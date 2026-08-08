@@ -37,7 +37,7 @@ import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 const MAPS = {
   1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
   2: { path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分（中）' },
-  3: { path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分（範本）' },
+  3: { path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分' },
 };
 // A 4x world scale intentionally shows only about 60% of the reference map's
 // horizontal span, leaving room for the camera to keep the player readable.

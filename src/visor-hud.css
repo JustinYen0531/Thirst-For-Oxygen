@@ -18,13 +18,16 @@
   z-index: 2;
   content: '';
   pointer-events: none;
-  opacity: .24;
+  opacity: .34;
   mix-blend-mode: screen;
+  -webkit-backdrop-filter: saturate(1.08) brightness(1.03);
+  backdrop-filter: saturate(1.08) brightness(1.03);
   background:
+    linear-gradient(116deg, rgba(224, 253, 255, .1) 0, transparent 18%, transparent 38%, rgba(210, 250, 255, .055) 47%, transparent 56%, transparent 80%, rgba(224, 253, 255, .075) 100%),
     radial-gradient(ellipse at 7% 46%, rgba(185, 246, 255, .18) 0, rgba(185, 246, 255, .06) 9%, transparent 24%),
     radial-gradient(ellipse at 93% 46%, rgba(185, 246, 255, .18) 0, rgba(185, 246, 255, .06) 9%, transparent 24%),
     linear-gradient(108deg, transparent 0 6%, rgba(218, 252, 255, .12) 7%, transparent 9% 91%, rgba(218, 252, 255, .12) 93%, transparent 94%),
-    linear-gradient(180deg, rgba(208, 248, 255, .1), transparent 12% 86%, rgba(208, 248, 255, .06));
+    linear-gradient(180deg, rgba(208, 248, 255, .13), transparent 12% 86%, rgba(208, 248, 255, .08));
 }
 
 .visor-surround {
