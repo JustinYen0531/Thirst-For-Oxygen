@@ -1,0 +1,132 @@
+import { getWeaponStats } from './game-data.js';
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
+const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
+
+function shortestAngleDifference(left, right) {
+  return Math.atan2(Math.sin(left - right), Math.cos(left - right));
+}
+export function createPlayKatanaState(level = 1) {
+  return {
+    level: clamp(Math.round(Number(level) || 1), 1, 3),
+    cooldown: 0,
+    empowerNextSlash: false,
+    effects: [],
+    slashCount: 0,
+    lastHitCount: 0,
+    lastDamage: 0,
+  };
+}
+
+export function markPlayKatanaMovement(state, distance) {
+  const weapon = getWeaponStats('katana', state.level);
+  if (weapon.effect?.empowerAfterMovement && distance >= 1.5) state.empowerNextSlash = true;
+}
+
+export function stepPlayKatana(state, dt) {
+  state.cooldown = Math.max(0, state.cooldown - dt);
+  state.effects = state.effects.filter((effect) => {
+    effect.elapsed += dt;
+    return effect.persistent || effect.elapsed < effect.duration;
+  });
+  return state;
+}
+
+function isWithinArc(actor, enemy, weapon, angle) {
+  const effect = weapon.effect ?? {};
+  const reach = weapon.range + Math.min(8, (enemy.radius ?? 0) * 0.25);
+  const arcDegrees = effect.arcDegrees ?? weapon.hitArcDegrees ?? 100;
+  return distanceBetween(actor, enemy) <= reach
+    && Math.abs(shortestAngleDifference(angleBetween(actor, enemy), angle)) <= (arcDegrees * Math.PI) / 360;
+}
+
+function activeEnemies(enemies) {
+  return enemies.filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+}
+
+function nearestEnemy(actor, enemies) {
+  return activeEnemies(enemies)
+    .sort((left, right) => distanceBetween(actor, left) - distanceBetween(actor, right))[0] ?? null;
+}
+
+function addSlashEffect(state, actor, weapon, angle, empowered, hitCount, damage, persistent = false) {
+  const effect = weapon.effect ?? {};
+  state.effects.push({
+    type: 'katanaSlash',
+    style: effect.style ?? 'katanaArcSlash',
+    x: actor.x,
+    y: actor.y,
+    angle,
+    radius: effect.arcRadius ?? weapon.range,
+    arcDegrees: effect.arcDegrees ?? weapon.hitArcDegrees ?? 100,
+    duration: persistent ? Number.POSITIVE_INFINITY : (effect.duration ?? 0.18),
+    elapsed: 0,
+    persistent,
+    lineWidth: empowered ? (effect.empoweredLineWidth ?? effect.lineWidth ?? 4) : (effect.lineWidth ?? 3),
+    coreLineWidth: empowered ? (effect.empoweredCoreLineWidth ?? effect.coreLineWidth ?? 2) : (effect.coreLineWidth ?? 1.2),
+    colour: empowered ? (effect.empoweredColour ?? effect.colour ?? '#ff5c8a') : (effect.colour ?? '#73d9ff'),
+    coreColour: empowered ? (effect.empoweredCoreColour ?? effect.coreColour ?? '#fff0f5') : (effect.coreColour ?? '#effcff'),
+    glowColour: empowered ? (effect.empoweredGlowColour ?? effect.glowColour ?? '#ff9eb8') : (effect.glowColour ?? '#9be8ff'),
+    empowered,
+    hitCount,
+    damage,
+  });
+  const wave = effect.wave;
+  if (!wave) return;
+  state.effects.push({
+    type: 'katanaWave',
+    style: wave.style,
+    x: actor.x,
+    y: actor.y,
+    angle,
+    innerRadius: wave.innerRadius ?? 24,
+    radius: wave.radius ?? weapon.range + 18,
+    arcDegrees: wave.arcDegrees ?? weapon.hitArcDegrees ?? 100,
+    duration: persistent ? Number.POSITIVE_INFINITY : (wave.duration ?? 0.24),
+    elapsed: 0,
+    persistent,
+    lineWidth: wave.lineWidth ?? 4,
+    thickness: wave.thickness ?? 8,
+    colour: wave.colour ?? '#70f6ff',
+    glowColour: wave.glowColour ?? '#b8fbff',
+    destroyedProjectiles: 0,
+  });
+}
+
+export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, persistent = false, targetId = null } = {}) {
+  if (!state || !actor || !Array.isArray(enemies)) return { ok: false, reason: 'missingState' };
+  if (!force && state.cooldown > 0) return { ok: false, reason: 'cooldown', remaining: state.cooldown };
+  const weapon = getWeaponStats('katana', state.level);
+  const target = targetId
+    ? activeEnemies(enemies).find((enemy) => enemy.instanceId === targetId) ?? null
+    : nearestEnemy(actor, enemies);
+  const angle = target ? angleBetween(actor, target) : (actor.facing === 'left' ? Math.PI : 0);
+  const empowered = Boolean(weapon.effect?.empowerAfterMovement && state.empowerNextSlash);
+  const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
+  const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon, angle));
+  const damage = weapon.damage * multiplier;
+  hitEnemies.forEach((enemy) => {
+    enemy.health = Math.max(0, enemy.health - damage);
+    enemy.hitFlash = 0.22;
+    if (enemy.health <= 0) {
+      enemy.defeated = true;
+      enemy.state = 'defeated';
+    }
+  });
+  if (empowered) state.empowerNextSlash = false;
+  state.cooldown = weapon.cooldown ?? 0.7;
+  state.slashCount += 1;
+  state.lastHitCount = hitEnemies.length;
+  state.lastDamage = hitEnemies.length * damage;
+  addSlashEffect(state, actor, weapon, angle, empowered, hitEnemies.length, damage, persistent);
+  return {
+    ok: true,
+    hit: hitEnemies.length > 0,
+    hitCount: hitEnemies.length,
+    damage,
+    totalDamage: hitEnemies.length * damage,
+    empowered,
+    targetId: target?.instanceId ?? null,
+  };
+}

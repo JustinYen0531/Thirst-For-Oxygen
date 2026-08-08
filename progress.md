@@ -676,3 +676,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Aligned Part 2's runtime population with its current 38 eligible water Cells and guaranteed all three documented Lv.3 Descent elites are introduced even with sparse authored encounter anchors.
 - Formal play keeps the same chase, cast-window, direct damage, knockback, and blocked-cell stopping path; the sandbox remains the detailed skill acceptance surface with `render_game_to_text` telemetry.
 - Static-only verification passed: focused enemy/progression checks (45/45), full `npm run check` (119/119), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 82 complete
+
+- Connected the katana contract to the formal `play.html` scene instead of leaving it sandbox-only. Every map load now places a deterministic nearby showcase enemy, applies an initial katana slash to its health, and keeps the slash arc (plus Lv.3 outer sword-qi arc) visible after refresh.
+- Added formal-play enemy health bars, hit flash feedback, katana telemetry, and Node regression coverage for visible Lv.1 damage, Lv.2 double damage, and persistent Lv.3 outer arc effects.
+- Static-only verification passed: full `npm run check` (122/122), `npm run build`, and `git diff --check`. Browser/Playwright validation remains intentionally skipped per user instruction.

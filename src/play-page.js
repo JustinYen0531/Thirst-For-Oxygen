@@ -35,6 +35,12 @@ import {
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 import { attachSfxVolumeControl, createSfxController } from './sfx.js';
+import {
+  createPlayKatanaState,
+  markPlayKatanaMovement,
+  resolvePlayKatanaSlash,
+  stepPlayKatana,
+} from './play-katana.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
 import {
   PLAY_ENEMY_VISUALS,
@@ -138,6 +144,8 @@ let discoveryAcknowledgementTargets = [];
 const PLAYER_LEVEL = 1;
 const PLAYER_EXPERIENCE = 0;
 const EXPERIENCE_TO_NEXT_LEVEL = 100;
+const INITIAL_KATANA_LEVEL = clamp(Number(new URLSearchParams(window.location.search).get('katanaLevel')) || 1, 1, 3);
+let katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
@@ -190,6 +198,25 @@ function chooseSpawn(nextMap) {
   return getHexCenter(safe[0] ?? Object.values(nextMap.cells)[0], origin);
 }
 
+function prepareKatanaShowcaseTarget() {
+  const target = enemies
+    .filter((enemy) => !enemy.defeated && Number(enemy.health) > 0)
+    .sort((left, right) => Math.hypot(left.x - spawn.x, left.y - spawn.y) - Math.hypot(right.x - spawn.x, right.y - spawn.y))[0];
+  if (!target) return null;
+  const targetX = clamp(spawn.x + 44, physicsBounds.minX + 16, physicsBounds.maxX - 16);
+  const targetY = clamp(spawn.y, physicsBounds.minY + 16, physicsBounds.maxY - 16);
+  Object.assign(target, {
+    x: targetX,
+    y: targetY,
+    homeX: targetX,
+    homeY: targetY,
+    moveSpeed: 0,
+    alerted: true,
+    katanaShowcase: true,
+  });
+  return target;
+}
+
 function setupWorld(nextMap) {
   map = nextMap;
   origin = { x: 36, y: 36 };
@@ -197,7 +224,18 @@ function setupWorld(nextMap) {
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
   actor = createTestActor(spawn);
+  actor.activeWeapon = { id: 'katana', level: INITIAL_KATANA_LEVEL };
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
+  katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
+  const showcaseTarget = prepareKatanaShowcaseTarget();
+  const showcaseSlash = resolvePlayKatanaSlash({
+    state: katanaState,
+    actor,
+    enemies,
+    force: true,
+    persistent: true,
+    targetId: showcaseTarget?.instanceId ?? null,
+  });
   worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
@@ -206,7 +244,12 @@ function setupWorld(nextMap) {
   discoverySession.activeByGuideKey.clear();
   discoveryAcknowledgementTargets = [];
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
-  eventLog = ['拖曳潛水夫，放開即可彈射。', `${MAPS[mapPart].label} 已載入。`, `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`];
+  eventLog = [
+    '拖曳潛水夫，放開即可彈射。',
+    `${MAPS[mapPart].label} 已載入。`,
+    `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`,
+    `武士刀 Lv.${katanaState.level} 已示範：${showcaseSlash.hit ? `命中 ${showcaseSlash.hitCount} 隻，造成 ${showcaseSlash.totalDamage} 傷害` : '等待近距離目標'}`,
+  ];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
   updateCamera();
@@ -500,10 +543,72 @@ function drawActor() {
   }
 }
 
+function drawKatanaEffects() {
+  katanaState.effects.forEach((effect) => {
+    const progress = effect.persistent ? 0 : clamp(effect.elapsed / Math.max(effect.duration, 0.001), 0, 1);
+    const opacity = effect.persistent ? .72 : Math.max(0, 1 - progress);
+    const halfArc = (effect.arcDegrees * Math.PI) / 360;
+    const startAngle = effect.angle - halfArc;
+    const endAngle = effect.angle + halfArc;
+    const radius = effect.type === 'katanaWave'
+      ? effect.innerRadius + (effect.radius - effect.innerRadius) * Math.min(1, progress * 1.35)
+      : effect.radius;
+
+    context.save();
+    context.globalAlpha = opacity;
+    context.lineCap = 'round';
+    context.beginPath();
+    context.arc(effect.x, effect.y, radius, startAngle, endAngle);
+    context.strokeStyle = effect.glowColour;
+    context.lineWidth = effect.type === 'katanaWave' ? effect.thickness : effect.lineWidth + 4;
+    context.shadowColor = effect.glowColour;
+    context.shadowBlur = effect.type === 'katanaWave' ? 10 : 8;
+    context.stroke();
+
+    context.shadowBlur = 0;
+    context.beginPath();
+    context.arc(effect.x, effect.y, radius, startAngle, endAngle);
+    context.strokeStyle = effect.colour;
+    context.lineWidth = effect.type === 'katanaWave' ? effect.lineWidth : effect.lineWidth;
+    context.stroke();
+
+    if (effect.type === 'katanaSlash') {
+      context.beginPath();
+      context.arc(effect.x, effect.y, radius, startAngle, endAngle);
+      context.strokeStyle = effect.coreColour;
+      context.lineWidth = effect.coreLineWidth;
+      context.stroke();
+    }
+    context.restore();
+  });
+}
+
+function drawEnemyHealthBar(enemy, x, y, width, height) {
+  const ratio = clamp(Number(enemy.health) / Math.max(Number(enemy.maxHealth) || 1, 1), 0, 1);
+  context.save();
+  context.globalAlpha = .94;
+  context.fillStyle = 'rgba(4, 10, 20, .9)';
+  context.fillRect(x - width * .5, y - height * .5, width, height);
+  context.fillStyle = enemy.hitFlash > 0 ? '#fff0f5' : '#ff6f91';
+  context.fillRect(x - width * .5 + .6, y - height * .5 + .6, Math.max(0, (width - 1.2) * ratio), height - 1.2);
+  context.strokeStyle = enemy.katanaShowcase ? '#ff9eb8' : 'rgba(255, 255, 255, .55)';
+  context.lineWidth = .7;
+  context.strokeRect(x - width * .5, y - height * .5, width, height);
+  if (enemy.hitFlash > 0) {
+    context.globalAlpha = Math.min(1, enemy.hitFlash * 5);
+    context.strokeStyle = '#fff8fb';
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.arc(x, y, Math.max(width, height) * .62, 0, Math.PI * 2);
+    context.stroke();
+  }
+  context.restore();
+}
+
 function drawEnemies() {
   const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
   enemies.forEach((enemy) => {
-    if (!isPlayEnemyVisible(enemy, camera, viewport)) return;
+    if (enemy.defeated || !isPlayEnemyVisible(enemy, camera, viewport)) return;
     const pose = getPlayEnemyPose(enemy, worldTime);
     const guide = getEnemyDiscoveryGuide(enemy.enemyId);
     const image = images.get(enemy.visual);
@@ -511,6 +616,7 @@ function drawEnemies() {
     const height = enemy.renderSize;
     const rawRatio = imageReady ? image.naturalWidth / image.naturalHeight : 1;
     const width = height * clamp(rawRatio, 0.72, 1.65);
+    drawEnemyHealthBar(enemy, pose.x, pose.y - height * .62, Math.max(18, width * .72), 3.1);
 
     context.save();
     context.globalCompositeOperation = 'screen';
@@ -608,7 +714,7 @@ function render() {
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor();
+  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawKatanaEffects(); drawTrajectory(); drawActor();
   const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
@@ -758,8 +864,18 @@ function simulate(elapsed, now = performance.now()) {
     while (accumulator >= FIXED_STEP) {
       worldTime += FIXED_STEP;
       refillUnlimitedResources();
+      const previousPosition = { x: actor.x, y: actor.y };
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
+      markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
       updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
+      stepPlayKatana(katanaState, FIXED_STEP);
+      const katanaAttack = resolvePlayKatanaSlash({ state: katanaState, actor, enemies });
+      if (katanaAttack.ok && katanaAttack.hit) {
+        eventLog.push(`武士刀 Lv.${katanaState.level}${katanaAttack.empowered ? ' 強化' : ''}斬擊命中 ${katanaAttack.hitCount} 隻，造成 ${katanaAttack.totalDamage} 傷害。`);
+      }
+      enemies.forEach((enemy) => {
+        enemy.hitFlash = Math.max(0, (enemy.hitFlash ?? 0) - FIXED_STEP);
+      });
       if (actor.health <= 0) {
         const cause = '生命歸零';
         const death = registerPlayerDeath(actor, cause);
@@ -784,8 +900,9 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'world origin is top-left; x right, y down',
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging } : null,
-  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon } : null,
+  katana: { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) },
+  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, katanaShowcase: Boolean(enemy.katanaShowcase), state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
   totalEnemySpawns: enemies.length,
   totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
   totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
