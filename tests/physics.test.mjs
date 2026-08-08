@@ -170,7 +170,7 @@ test('oxygen follows travel distance and starvation drains health slowly', () =>
   const expectedTravel = Math.hypot(actor.vx, actor.vy) * FIXED_STEP;
   assert.ok(actor.oxygen < beforeOxygen);
   assert.ok(beforeOxygen - actor.oxygen < 1, 'movement oxygen cost should stay small');
-  assert.ok(OXYGEN_COST_PER_DISTANCE < 0.02);
+  assert.ok(OXYGEN_COST_PER_DISTANCE < 0.001, 'movement oxygen rate should be substantially reduced');
 
   actor.oxygen = 0;
   actor.health = MAX_HEALTH;
