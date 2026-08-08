@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thirst for Oxygen — 遊玩</title>
+    <link rel="stylesheet" href="/src/play.css" />
+  </head>
+  <body>
+    <main class="play-shell">
+      <header class="play-topbar">
+        <a class="brand-lockup" href="/home.html" aria-label="回到水下主控台">
+          <span class="brand-glyph" aria-hidden="true">◈</span>
+          <span><strong>THIRST FOR OXYGEN</strong><small>ABYSSAL AQUARIUM / PLAY DECK</small></span>
+        </a>
+        <nav class="play-nav" aria-label="主導航">
+          <a href="/home.html">主控台</a>
+          <a href="/">地圖編輯器</a>
+          <a href="/enemy-encyclopedia.html">敵人圖鑑</a>
+          <a href="/sandbox.html">敵人沙盒</a>
+        </nav>
+      </header>
+
+      <section class="play-layout" aria-label="地圖遊玩測試">
+        <aside class="play-sidebar">
+          <p class="eyebrow">PLAY / MAP PREVIEW</p>
+          <h1>下沉篇<br /><em>試玩甲板</em></h1>
+          <p class="intro">直接在范本地圖上測試水域重力、彈射與邊緣互動。出生點暫不寫入地圖，這裡會自動放在中央的安全水域。</p>
+
+          <label class="map-picker" for="play-map-select">
+            <span>選擇地圖部分</span>
+            <select id="play-map-select">
+              <option value="1">下沉篇・第一部分（輕）</option>
+              <option value="2">下沉篇・第二部分（中）</option>
+              <option value="3" selected>下沉篇・第三部分（範本）</option>
+            </select>
+          </label>
+
+          <div class="play-actions">
+            <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
+            <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
+          </div>
+
+          <div class="resource-stack" aria-label="主角狀態">
+            <div class="resource-row"><span>生命</span><strong id="play-health-value">100</strong><i><b id="play-health"></b></i></div>
+            <div class="resource-row"><span>氧氣</span><strong id="play-oxygen-value">100</strong><i><b id="play-oxygen"></b></i></div>
+            <div class="resource-row"><span>能量</span><strong id="play-energy-value">100</strong><i><b id="play-energy"></b></i></div>
+          </div>
+
+          <div class="camera-card">
+            <span>鏡頭狀態</span>
+            <strong id="play-camera-readout">主角 60% 錨點</strong>
+            <small id="play-map-title">正在載入地圖…</small>
+          </div>
+
+          <div class="event-card">
+            <span>測試紀錄</span>
+            <ol id="play-events"><li>拖曳主角，放開即可彈射。</li></ol>
+          </div>
+        </aside>
+
+        <section class="play-stage-wrap">
+          <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
+          <div class="play-stage-frame">
+            <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇地圖遊玩畫面"></canvas>
+            <div class="loading-mask" id="play-loading">正在潛入水域…</div>
+          </div>
+          <p class="play-help" id="play-help">按住 P 圓形主角並拖曳，瞄準方向後放開。短距離與長距離的初速度會有明顯差異；相機在地圖左右外緣自動固定。</p>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/src/play-page.js"></script>
+  </body>
+</html>
