@@ -59,6 +59,9 @@ const HORIZONTAL_WATER_DRAG = 0.96;
 const VERTICAL_WATER_DRAG = 0.998;
 const HORIZONTAL_STOP_SPEED = 0.15;
 export const WORLD_BOUNDS = Object.freeze({ minX: 24, maxX: 976, minY: 24, maxY: 656 });
+const microflowRegionCache = new WeakMap();
+const microflowMeanCache = new WeakMap();
+const contactObjectCache = new WeakMap();
 
 function maxOxygenFor(actor) {
   return actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
@@ -128,27 +131,46 @@ function sameMicroflowSurface(left, right) {
 export function getMicroflowRegionKeys({ map, startKey, chapter = 'chapter1' }) {
   const start = getActiveCell(map, startKey, chapter);
   if (!start || start.terrain !== 'water') return [];
-  const region = [];
-  const queue = [startKey];
-  const visited = new Set(queue);
-  while (queue.length) {
-    const key = queue.shift();
-    const cell = getActiveCell(map, key, chapter);
-    if (!sameMicroflowSurface(start, cell)) continue;
-    region.push(key);
-    DIRECTIONS.forEach((_, directionIndex) => {
-      const adjacentKey = neighborKey(key, directionIndex);
-      if (visited.has(adjacentKey) || !map.cells[adjacentKey]) return;
-      const edge = getEdgeBetween(map, key, adjacentKey, chapter);
-      if (edge.blocksPassage) return;
-      const adjacent = getActiveCell(map, adjacentKey, chapter);
-      if (sameMicroflowSurface(start, adjacent)) {
-        visited.add(adjacentKey);
-        queue.push(adjacentKey);
+  let chapterCache = microflowRegionCache.get(map)?.get(chapter);
+  if (!chapterCache) {
+    chapterCache = new Map();
+    const visited = new Set();
+    Object.keys(map.cells).forEach((rootKey) => {
+      if (visited.has(rootKey)) return;
+      const root = getActiveCell(map, rootKey, chapter);
+      if (!root || root.terrain !== 'water') { visited.add(rootKey); return; }
+      const region = [];
+      const queue = [rootKey];
+      visited.add(rootKey);
+      while (queue.length) {
+        const key = queue.shift();
+        const cell = getActiveCell(map, key, chapter);
+        if (!sameMicroflowSurface(root, cell)) continue;
+        region.push(key);
+        DIRECTIONS.forEach((_, directionIndex) => {
+          const adjacentKey = neighborKey(key, directionIndex);
+          if (visited.has(adjacentKey) || !map.cells[adjacentKey]) return;
+          const edge = getEdgeBetween(map, key, adjacentKey, chapter);
+          if (edge.blocksPassage) return;
+          const adjacent = getActiveCell(map, adjacentKey, chapter);
+          if (sameMicroflowSurface(root, adjacent)) {
+            visited.add(adjacentKey);
+            queue.push(adjacentKey);
+          }
+        });
       }
+      region.forEach((key) => chapterCache.set(key, region));
     });
+    const mapCache = microflowRegionCache.get(map) ?? new Map();
+    mapCache.set(chapter, chapterCache);
+    microflowRegionCache.set(map, mapCache);
   }
-  return region;
+  return chapterCache.get(startKey) ?? [];
+}
+
+function invalidateMicroflowCache(map) {
+  microflowRegionCache.delete(map);
+  microflowMeanCache.delete(map);
 }
 
 export function getMicroflowAcceleration({ map, cellKey, position, chapter = 'chapter1', origin, time = 0 }) {
@@ -156,13 +178,22 @@ export function getMicroflowAcceleration({ map, cellKey, position, chapter = 'ch
   if (!cell || cell.terrain !== 'water' || !Number.isFinite(time)) return { x: 0, y: 0 };
   const regionKeys = getMicroflowRegionKeys({ map, startKey: cellKey, chapter });
   if (!regionKeys.length) return { x: 0, y: 0 };
-  const mean = regionKeys.reduce((total, key) => {
-    const center = getHexCenter(getActiveCell(map, key, chapter), origin);
-    const vector = sampleMicroflowVector(center, time);
-    return { x: total.x + vector.x, y: total.y + vector.y };
-  }, { x: 0, y: 0 });
-  mean.x /= regionKeys.length;
-  mean.y /= regionKeys.length;
+  const regionId = `${chapter}:${regionKeys[0]}`;
+  const timeBucket = Math.floor(time * 12);
+  let mapMeanCache = microflowMeanCache.get(map);
+  if (!mapMeanCache) { mapMeanCache = new Map(); microflowMeanCache.set(map, mapMeanCache); }
+  const meanKey = `${regionId}:${timeBucket}`;
+  let mean = mapMeanCache.get(meanKey);
+  if (!mean) {
+    mean = regionKeys.reduce((total, key) => {
+      const center = getHexCenter(getActiveCell(map, key, chapter), origin);
+      const vector = sampleMicroflowVector(center, time);
+      return { x: total.x + vector.x, y: total.y + vector.y };
+    }, { x: 0, y: 0 });
+    mean.x /= regionKeys.length;
+    mean.y /= regionKeys.length;
+    mapMeanCache.set(meanKey, mean);
+  }
   const local = sampleMicroflowVector(position, time);
   return {
     x: (local.x - mean.x) * MICROFLOW_ACCELERATION,
@@ -378,7 +409,18 @@ export function toggleSeaweedAttachment(actor, map, chapter, origin) {
 }
 
 export function isActorNearEdgeAttachment(actor, map, chapter, origin, type, radius = EDGE_ATTACHMENT_HELP_RADIUS) {
-  return allMapEdges(map).some(({ a, b }) => {
+  const current = findCellContainingPoint(map, actor, chapter, origin);
+  if (!current) return false;
+  const candidateKeys = [current.key, ...DIRECTIONS.map((_, index) => neighborKey(current.key, index))];
+  const candidateEdges = new Set();
+  candidateKeys.forEach((key) => {
+    DIRECTIONS.forEach((_, directionIndex) => {
+      const adjacent = neighborKey(key, directionIndex);
+      if (map.cells[adjacent]) candidateEdges.add(edgeKey(key, adjacent));
+    });
+  });
+  return [...candidateEdges].some((key) => {
+    const [a, b] = key.split('|');
     const edge = getEdgeBetween(map, a, b, chapter);
     if (edge.type !== type) return false;
     const centerA = getHexCenter(getActiveCell(map, a, chapter), origin);
@@ -481,7 +523,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     addEvent(events, 'multiPortal', `多邊傳送門：已傳送至另一端 Edge（${portalTarget.key}）。`);
     return;
   }
-  if (entersBlockedTerrain) {
+  if (entersBlockedTerrain && edge.type === 'none') {
     const from = getHexCenter(fromCell, origin);
     const to = getHexCenter(toCell, origin);
     const normal = unitVector(from, to);
@@ -526,6 +568,35 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
   } else addEvent(events, 'barrier', '障礙 Edge 阻擋：速度已反彈。');
 }
 
+function processTerrainContact(map, actor, cellKey, chapter, origin, events) {
+  const cell = getActiveCell(map, cellKey, chapter);
+  if (!cell || cell.terrain !== 'water') return false;
+  const from = getHexCenter(cell, origin);
+  for (let directionIndex = 0; directionIndex < DIRECTIONS.length; directionIndex += 1) {
+    const adjacentKey = neighborKey(cellKey, directionIndex);
+    const adjacent = getActiveCell(map, adjacentKey, chapter);
+    if (!adjacent || adjacent.terrain !== 'blocked') continue;
+    const edge = getEdgeBetween(map, cellKey, adjacentKey, chapter);
+    if (edge.type !== 'none' || edge.blocksPassage) continue;
+    const to = getHexCenter(adjacent, origin);
+    const normal = unitVector(from, to);
+    const centerDistance = Math.hypot(to.x - from.x, to.y - from.y);
+    const boundaryDistance = centerDistance / 2;
+    const distanceIntoSide = (actor.x - from.x) * normal.x + (actor.y - from.y) * normal.y;
+    const approaching = actor.vx * normal.x + actor.vy * normal.y > 0;
+    if (distanceIntoSide + actor.radius <= boundaryDistance || !approaching) continue;
+    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.72);
+    actor.vx = reflected.x;
+    actor.vy = reflected.y;
+    const safeDistance = Math.max(0, boundaryDistance - actor.radius - 0.2);
+    actor.x = from.x + normal.x * safeDistance;
+    actor.y = from.y + normal.y * safeDistance;
+    addEvent(events, 'terrainBoundary', '不可通行障礙物：接觸邊界後反彈。');
+    return true;
+  }
+  return false;
+}
+
 function removeContactObject(map, contact, chapter) {
   const ownerKey = contact.ownerKey ?? contact.key;
   const editable = getActiveCell(map, ownerKey, chapter);
@@ -546,6 +617,7 @@ function openConditionalGate(map, gateKey, chapter, events, mutateMap) {
     gravityLevel: 'L1',
     conditionalGate: { ...gate.conditionalGate, opened: true },
   }, chapter);
+  invalidateMicroflowCache(map);
   return true;
 }
 
@@ -558,6 +630,7 @@ function toggleConditionalGate(map, gateKey, chapter, mutateMap) {
     gravityLevel: 'L1',
     conditionalGate: { ...gate.conditionalGate, opened },
   }, chapter);
+  invalidateMicroflowCache(map);
   return true;
 }
 
@@ -572,6 +645,26 @@ function markButtonPressed(map, contact, chapter, pressed = true) {
   patchCell(map, ownerKey, { [property]: nextObjects }, chapter);
 }
 
+function getContactObjects(map, chapter, origin) {
+  let chapterCache = contactObjectCache.get(map);
+  if (!chapterCache) { chapterCache = new Map(); contactObjectCache.set(map, chapterCache); }
+  const revision = Number(map.__physicsRevision) || 0;
+  const cached = chapterCache.get(chapter);
+  if (cached?.revision === revision) return cached.contacts;
+  const contacts = [];
+  Object.entries(map.cells).forEach(([key]) => {
+    const objectCell = getActiveCell(map, key, chapter);
+    const center = getHexCenter(objectCell, origin);
+    objectCell.objects.forEach((object, index) => contacts.push({ key: `${key}:object:${index}`, ownerKey: key, objectCell, object, position: center, hitRadius: getFreeObjectHitRadius(object), index, free: false }));
+    (objectCell.freeObjects ?? []).forEach((object, index) => {
+      const offset = object.offset ?? { x: 0, y: 0 };
+      contacts.push({ key: `${key}:free:${index}`, ownerKey: key, objectCell, object, position: { x: center.x + offset.x, y: center.y + offset.y }, hitRadius: getFreeObjectHitRadius(object), free: true, index });
+    });
+  });
+  chapterCache.set(chapter, { revision, contacts });
+  return contacts;
+}
+
 function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) {
   actor.safe = false;
   actor.inInk = false;
@@ -584,28 +677,13 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   actor.inInk = cell.overlays.includes('ink');
   if (actor.inInk) actor.inkVisionRange = getFreeObjectSetting({ kind: 'ink' }, 'visibilityRadius');
   if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
-  const contactObjects = [];
-  Object.entries(map.cells).forEach(([key]) => {
-    const objectCell = getActiveCell(map, key, chapter);
-    const center = getHexCenter(objectCell, origin);
-    objectCell.objects.forEach((object, index) => contactObjects.push({ key: `${key}:object:${index}`, ownerKey: key, objectCell, object, position: center, hitRadius: getFreeObjectHitRadius(object), index, free: false }));
-    (objectCell.freeObjects ?? []).forEach((object, index) => {
-      const offset = object.offset ?? { x: 0, y: 0 };
-      contactObjects.push({
-        key: `${key}:free:${index}`,
-        ownerKey: key,
-        objectCell,
-        object,
-        position: { x: center.x + offset.x, y: center.y + offset.y },
-        hitRadius: getFreeObjectHitRadius(object),
-        free: true,
-        index,
-      });
-    });
-  });
+  const contactObjects = getContactObjects(map, chapter, origin);
 
   const activeToggleButtons = new Set();
   contactObjects.forEach(({ key, ownerKey, objectCell, object, position, hitRadius, free, index }) => {
+      const liveCell = getActiveCell(map, ownerKey, chapter);
+      const liveObjects = free ? (liveCell?.freeObjects ?? []) : (liveCell?.objects ?? []);
+      if (!liveObjects.includes(object)) return;
       if (object.kind === 'ink' && Math.hypot(actor.x - position.x, actor.y - position.y) <= actor.radius + hitRadius) {
         actor.inInk = true;
         const range = getFreeObjectSetting(object, 'visibilityRadius');
@@ -767,7 +845,8 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.y += actor.vy * dt;
   processBoundary(actor, bounds, events);
   const after = findCellContainingPoint(map, actor, chapter, origin);
-  processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events);
+  const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events);
+  if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events);
   // Consume oxygen before contact rewards so Checkpoint and oxygen sources can
   // fulfill their documented promise of restoring the resource to its maximum.
   actor.oxygen = Math.max(0, actor.oxygen - (OXYGEN_DRAIN_PER_SECOND + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
@@ -779,12 +858,14 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
 }
 
 export function predictTrajectory({ map, chapter, actor, pointer, origin, steps = 120, time = null }) {
-  const previewMap = JSON.parse(JSON.stringify(map));
+  // The preview never mutates Cells or objects, so sharing the immutable map
+  // avoids cloning thousands of Cells on every pointer move.
+  const previewMap = map;
   const ghost = JSON.parse(JSON.stringify(actor));
   if (!launchActor(ghost, pointer).launched) return [];
   const points = [];
   for (let index = 0; index < steps; index += 1) {
-    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: true, time: Number.isFinite(time) ? time + index * FIXED_STEP : null });
+    stepPhysics({ map: previewMap, chapter, actor: ghost, origin, mutateMap: false, time: Number.isFinite(time) ? time + index * FIXED_STEP : null });
     points.push({ x: ghost.x, y: ghost.y });
   }
   return points;

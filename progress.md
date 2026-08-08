@@ -338,3 +338,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Fixed: water-to-blocked transitions reflect the actor, the play page chooses a true map-centre water spawn, 4x world scale shows roughly 60% of the map horizontally, and pointer capture/drag handling is hardened.
 - Added `window.render_game_to_text` and `window.advanceTime` hooks for deterministic play-state inspection.
 - Static-only verification passed: `npm run check` (41/41 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.
+
+## 2026-08-08 — Step 42 complete
+
+- Play feedback exposed two runtime problems: terrain contact was only checked after Cell-centre crossing, and each launch preview rescanned the full 2,808-Cell map.
+- Added direct water-to-blocked hex contact reflection, cached connected microflow regions and means, nearby odd-r point lookup, nearby Edge attachment lookup, and revision-aware object caches.
+- Launch previews now share the immutable map, use 48 prediction steps, and throttle pointer recomputation to 45 ms. Added deterministic `render_game_to_text` / `advanceTime` hooks.
+- Pure Node benchmark: 48-step trajectory preview dropped from about 550 ms to 8 ms first-run / 2 ms warm; 240 physics steps on the reference map dropped from about 3 s to about 26 ms.
+- Static-only verification passed: `npm run check` (43/43 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited per user instruction.

@@ -212,6 +212,13 @@ test('zoomed screen coordinates map back to the intended world Cell', () => {
   assert.deepEqual(worldPoint, { x: 600, y: 390 });
 });
 
+test('odd-r point lookup only needs nearby row and column candidates', () => {
+  const map = createEmptyMap({ width: 24, height: 117 });
+  const target = cellKeyFromColumn(12, 58);
+  const point = getHexCenter(getActiveCell(map, target), ORIGIN);
+  assert.equal(findCellContainingPoint(map, point, 'chapter1', ORIGIN).key, target);
+});
+
 test('new authoring map is empty and every water Cell starts at L0', () => {
   const map = createBlankMap();
   const errors = validateMap(map).filter((result) => result.level === 'error');

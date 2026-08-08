@@ -210,6 +210,8 @@ export function patchCell(map, key, patch, chapter = 'chapter1') {
   const target = getEditableCell(map, key, chapter);
   if (!target) return false;
   Object.assign(target, clone(patch));
+  const revision = Number(map.__physicsRevision) || 0;
+  Object.defineProperty(map, '__physicsRevision', { value: revision + 1, writable: true, configurable: true, enumerable: false });
   return true;
 }
 
@@ -323,10 +325,27 @@ export function getEdgeBetween(map, a, b, chapter = 'chapter1') {
 }
 
 export function findCellContainingPoint(map, point, chapter = 'chapter1', origin) {
+  const renderOrigin = origin ?? { x: 78, y: 86 };
+  if (map.layout?.rowLayout === 'odd-r rectangle') {
+    const rowEstimate = Math.round((point.y - renderOrigin.y) / (HEX_SIZE * 1.5));
+    const columnEstimate = Math.round((point.x - renderOrigin.x) / (HEX_SIZE * Math.sqrt(3)));
+    for (let row = rowEstimate - 2; row <= rowEstimate + 2; row += 1) {
+      for (let column = columnEstimate - 2; column <= columnEstimate + 2; column += 1) {
+        const key = cellKeyFromColumn(column, row);
+        const cell = getActiveCell(map, key, chapter);
+        if (!cell) continue;
+        const center = getHexCenter(cell, renderOrigin);
+        const dx = Math.abs(point.x - center.x) / (Math.sqrt(3) * HEX_SIZE / 2);
+        const dy = Math.abs(point.y - center.y) / HEX_SIZE;
+        if (dy <= 1 && Math.sqrt(3) * dx + dy <= 2) return { key, cell };
+      }
+    }
+    return null;
+  }
   for (const key of Object.keys(map.cells)) {
     const cell = getActiveCell(map, key, chapter);
     if (!cell) continue;
-    const center = getHexCenter(cell, origin);
+    const center = getHexCenter(cell, renderOrigin);
     const dx = Math.abs(point.x - center.x) / (Math.sqrt(3) * HEX_SIZE / 2);
     const dy = Math.abs(point.y - center.y) / HEX_SIZE;
     if (dy <= 1 && Math.sqrt(3) * dx + dy <= 2) return { key, cell };

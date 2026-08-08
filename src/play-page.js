@@ -65,6 +65,7 @@ let camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
 let dragging = false;
 let aimPoint = null;
 let trajectory = [];
+let lastTrajectoryAt = -Infinity;
 let paused = false;
 let lastFrame = performance.now();
 let accumulator = 0;
@@ -215,15 +216,22 @@ function updateHud() {
 }
 
 function addEvents(events) { events.forEach((event) => { if (event?.message) eventLog.push(event.message); }); if (eventLog.length > 12) eventLog = eventLog.slice(-12); }
+function refreshTrajectory(force = false) {
+  if (!dragging || !aimPoint || !map || !actor) return;
+  const now = performance.now();
+  if (!force && now - lastTrajectoryAt < 45) return;
+  lastTrajectoryAt = now;
+  trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 48, time: null });
+}
 function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
 function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (actor.y - camera.y) * SCALE }; }
 
-canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 110, time: performance.now() / 1000 }); updateHud(); });
-canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 110, time: performance.now() / 1000 }); });
+canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
+canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
-canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; });
-canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; });
+canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
+canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 mapSelect.addEventListener('change', () => loadMap(mapSelect.value));
