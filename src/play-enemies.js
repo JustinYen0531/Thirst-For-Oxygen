@@ -242,9 +242,9 @@ function canUsePlaySkill(enemy, skill, distance) {
   return true;
 }
 
-function playEnemyDamage(actor, amount, source, onDamage) {
+function playEnemyDamage(actor, amount, source, onDamage, damageType = 'generic') {
   if (!amount || actor.dead || actor.invulnerability > 0) return;
-  if (typeof onDamage === 'function') onDamage(amount, source);
+  if (typeof onDamage === 'function') onDamage(amount, source, damageType);
   else actor.health = Math.max(0, actor.health - amount);
   actor.hurtTimer = Math.max(actor.hurtTimer ?? 0, 0.18);
 }
@@ -252,11 +252,12 @@ function playEnemyDamage(actor, amount, source, onDamage) {
 function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
   const distance = distanceBetween(enemy, actor);
   const source = `${enemy.name}・${skill.name}`;
+  const damageType = ['contact', 'melee', 'teleportMelee', 'dash', 'suicideCharge'].includes(skill.type) ? 'generic' : 'ranged';
   if (skill.type === 'teleportMelee' || skill.type === 'dash') {
     const angle = angleBetween(enemy, actor);
     enemy.x = actor.x - Math.cos(angle) * 28;
     enemy.y = actor.y - Math.sin(angle) * 28;
-    if (distanceBetween(enemy, actor) <= attackReach(enemy, { ...skill, range: skill.range ?? 56 })) playEnemyDamage(actor, skill.damage, source, onDamage);
+    if (distanceBetween(enemy, actor) <= attackReach(enemy, { ...skill, range: skill.range ?? 56 })) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
     return;
   }
   if (skill.type === 'contact' || skill.type === 'melee') {
@@ -266,7 +267,7 @@ function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
         actor.vx += Math.cos(angle) * 96;
         actor.vy += Math.sin(angle) * 96;
       }
-      if (skill.id !== 'shortThrust') playEnemyDamage(actor, skill.damage, source, onDamage);
+      if (skill.id !== 'shortThrust') playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
     }
     return;
   }
@@ -274,16 +275,16 @@ function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
   // owns their full swept collision model, while the authored encounter still
   // needs a deterministic ranged hit cadence in the real map.
   if (skill.type === 'lobbed' || skill.type === 'areaStun' || skill.type === 'gravityField') {
-    if (distance <= (skill.radius ?? 96) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage);
+    if (distance <= (skill.radius ?? 96) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
     return;
   }
   if (skill.type === 'suicideCharge') {
-    if (distance <= (skill.radius ?? 52) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage);
+    if (distance <= (skill.radius ?? 52) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
     enemy.defeated = true;
     enemy.health = 0;
     return;
   }
-  if (skill.damage > 0) playEnemyDamage(actor, skill.damage, source, onDamage);
+  if (skill.damage > 0) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
 }
 
 /** Advance authored descent enemies in the real play scene. */

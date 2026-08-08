@@ -41,6 +41,19 @@ test('formal play katana Lv.1 hits a nearby enemy and exposes the actual sword s
   assert.equal(frames.afterimages[0].alpha < frames.afterimages.at(-1).alpha, true, 'farther afterimages must be fainter');
 });
 
+test('formal play katana applies the active passive damage multiplier', () => {
+  const scenario = createScenario(1);
+  const result = resolvePlayKatanaSlash({
+    state: scenario.state,
+    actor: scenario.actor,
+    enemies: scenario.enemies,
+    damageMultiplier: 1.3,
+  });
+
+  assert.equal(result.totalDamage, 36.4);
+  assert.equal(scenario.enemy.health, 63.6);
+});
+
 test('katana Lv.2 empowers the next slash after movement and doubles its damage', () => {
   const scenario = createScenario(2);
   markPlayKatanaMovement(scenario.state, 4);

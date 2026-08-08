@@ -95,7 +95,7 @@ function addSlashEffect(state, actor, weapon, angle, empowered, hitCount, damage
   });
 }
 
-export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, persistent = false, targetId = null } = {}) {
+export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, persistent = false, targetId = null, damageMultiplier = 1 } = {}) {
   if (!state || !actor || !Array.isArray(enemies)) return { ok: false, reason: 'missingState' };
   if (!force && state.cooldown > 0) return { ok: false, reason: 'cooldown', remaining: state.cooldown };
   const weapon = getWeaponStats('katana', state.level);
@@ -106,7 +106,7 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   const empowered = Boolean(weapon.effect?.empowerAfterMovement && state.empowerNextSlash);
   const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
   const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon));
-  const damage = weapon.damage * multiplier;
+  const damage = weapon.damage * multiplier * Math.max(0, Number(damageMultiplier) || 1);
   hitEnemies.forEach((enemy) => {
     enemy.health = Math.max(0, enemy.health - damage);
     enemy.hitFlash = 0.22;

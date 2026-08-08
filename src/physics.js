@@ -354,6 +354,10 @@ export function setPlayerLoadout(actor, abilities = [], weapon = { id: 'knife', 
   actor.abilities = abilities.map((ability) => ({ ...ability }));
   actor.activeWeapon = { ...weapon };
   actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen);
+  actor.oxygen = Math.min(
+    Number.isFinite(actor.oxygen) ? actor.oxygen : actor.derivedStats.maxOxygen,
+    actor.derivedStats.maxOxygen,
+  );
   return actor.derivedStats;
 }
 
@@ -361,7 +365,7 @@ export function applyDamage(actor, amount, source = 'unknown', damageType = 'gen
   if (actor.gameOver || actor.dead || actor.invulnerability > 0 || actor.shieldTimer > 0) return { applied: 0, source, damageType, blocked: true };
   let multiplier = 1;
   if (damageType === 'ranged') multiplier *= actor.derivedStats?.rangedDamageTakenMultiplier ?? 1;
-  if (actor.oxygen < MAX_OXYGEN * 0.5) multiplier *= actor.derivedStats?.lowOxygenDamageTakenMultiplier ?? 1;
+  if (actor.oxygen < maxOxygenFor(actor) * 0.5) multiplier *= actor.derivedStats?.lowOxygenDamageTakenMultiplier ?? 1;
   const damage = Math.max(0, amount * multiplier);
   actor.health = Math.max(0, actor.health - damage);
   if (damage > 0) actor.hurtTimer = PLAYER_HURT_DURATION;
@@ -922,6 +926,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.shieldTimer = Math.max(0, actor.shieldTimer - dt);
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
   processOxygenClock(actor, dt, events);
+  actor.derivedStats = getPlayerDerivedStats(actor.abilities ?? [], actor.oxygen);
   if (actor.attached) {
     if (actor.energyRecoveryDelay <= 0) {
       actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);

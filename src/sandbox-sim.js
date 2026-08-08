@@ -652,7 +652,7 @@ export function setSandboxBuild(state, {
   state.upgradeChoices = [];
   syncSandboxBuild(state);
   state.actor.health = MAX_HEALTH;
-  state.actor.oxygen = MAX_OXYGEN;
+  state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
   state.actor.katanaEmpoweredNextSlash = false;
   state.actor.tridentStationaryTime = 0;
@@ -666,7 +666,7 @@ export function resetSandboxPlayer(state) {
   state.actor.vx = 0;
   state.actor.vy = 0;
   state.actor.health = MAX_HEALTH;
-  state.actor.oxygen = MAX_OXYGEN;
+  state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
   state.actor.launchMomentumTimer = 0;
   state.actor.facing = 'right';
@@ -722,7 +722,7 @@ export function releaseSandboxAim(state, point = state.aimPoint) {
   const launch = launchActor(state.actor, state.aimPoint);
   if (state.infiniteResources) {
     state.actor.energy = MAX_ENERGY;
-    state.actor.oxygen = MAX_OXYGEN;
+    state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   }
   const result = { ok: launch.launched, ...launch };
   if (launch.launched) {
@@ -1763,7 +1763,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   });
   updateLightMachineGunBurst(state);
   if (state.infiniteResources) {
-    state.actor.oxygen = MAX_OXYGEN;
+    state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
   }
   updatePlayerStatusEffects(state, dt);
@@ -1798,7 +1798,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     logEvent(state, '沙盒自動重置玩家生命，方便繼續驗收。', 'safe');
   }
   if (state.infiniteResources) {
-    state.actor.oxygen = MAX_OXYGEN;
+    state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
   }
   updateEnemies(state, dt);

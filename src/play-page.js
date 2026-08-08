@@ -240,6 +240,7 @@ function setupWorld(nextMap) {
     force: true,
     persistent: true,
     targetId: showcaseTarget?.instanceId ?? null,
+    damageMultiplier: actor.derivedStats?.currentDamageMultiplier ?? 1,
   });
   worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
@@ -263,7 +264,7 @@ function setupWorld(nextMap) {
 
 function refillUnlimitedResources() {
   if (!unlimitedResources || !actor) return;
-  actor.oxygen = MAX_OXYGEN;
+  actor.oxygen = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   actor.energy = MAX_ENERGY;
 }
 
@@ -464,9 +465,9 @@ function drawEdges() {
   });
 }
 
-function applyPlayEnemyDamage(amount, source) {
+function applyPlayEnemyDamage(amount, source, damageType = 'generic') {
   if (!actor || unlimitedResources) return;
-  const result = applyDamage(actor, amount, source, 'enemy');
+  const result = applyDamage(actor, amount, source, damageType);
   if (result.applied > 0) eventLog.push(`受到 ${Math.round(result.applied)} 傷害 · ${source}`);
 }
 
@@ -903,7 +904,12 @@ function simulate(elapsed, now = performance.now()) {
       markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
       updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
       stepPlayKatana(katanaState, FIXED_STEP);
-      const katanaAttack = resolvePlayKatanaSlash({ state: katanaState, actor, enemies });
+      const katanaAttack = resolvePlayKatanaSlash({
+        state: katanaState,
+        actor,
+        enemies,
+        damageMultiplier: actor.derivedStats?.currentDamageMultiplier ?? 1,
+      });
       if (katanaAttack.ok && katanaAttack.hit) {
         eventLog.push(`武士刀 Lv.${katanaState.level}${katanaAttack.empowered ? ' 強化' : ''}斬擊命中 ${katanaAttack.hitCount} 隻，造成 ${katanaAttack.totalDamage} 傷害。`);
       }

@@ -58,6 +58,7 @@ import {
   calculateWeaponDamage,
   createEnemyState,
   getPassiveModifiers,
+  getPlayerDerivedStats,
   getWeaponStats,
   getWeaponUseCost,
 } from '../src/game-data.js';
@@ -795,6 +796,39 @@ test('passive recovery and shield thresholds are numerical gameplay rules', () =
   applyDamage(actor, 20, 'test', 'generic');
   assert.ok(actor.shieldTimer > 0);
   assert.equal(applyDamage(actor, 20, 'test', 'generic').blocked, true);
+});
+
+test('all four passive abilities apply their authored gameplay effects', () => {
+  const oxygenStats = getPlayerDerivedStats([{ id: 'oxygenCirculator', level: 3 }], 55);
+  assert.equal(oxygenStats.maxOxygen, 120);
+  assert.equal(oxygenStats.lowOxygenDamageTakenMultiplier, 0.85);
+  const oxygenActor = createTestActor();
+  oxygenActor.derivedStats = oxygenStats;
+  oxygenActor.oxygen = 55;
+  assert.equal(applyDamage(oxygenActor, 20, 'low-oxygen test').applied, 17);
+
+  const pressureStats = getPlayerDerivedStats([{ id: 'pressureStabilizer', level: 3 }]);
+  const pressureActor = createTestActor();
+  pressureActor.derivedStats = pressureStats;
+  pressureActor.energy = 0;
+  pressureActor.oxygen = 0;
+  assert.equal(getLaunchCosts(100, pressureActor).energy, 3.5);
+  const pressureRewards = applyEnemyDefeatRewards(pressureActor);
+  assert.equal(pressureRewards.energy.recovered, 8);
+  assert.equal(pressureRewards.oxygen.recovered, 4);
+
+  const carapaceActor = createTestActor();
+  carapaceActor.derivedStats = getPlayerDerivedStats([{ id: 'ecologicalCarapace', level: 3 }]);
+  assert.equal(applyDamage(carapaceActor, 20, 'ranged test', 'ranged').applied, 16);
+  carapaceActor.health = MAX_HEALTH;
+  const shieldHit = applyDamage(carapaceActor, 25, 'shield test');
+  assert.equal(shieldHit.applied, 25);
+  assert.equal(carapaceActor.shieldTimer, 2);
+  assert.equal(applyDamage(carapaceActor, 1, 'shield test').blocked, true);
+
+  const amplifierLoadout = [{ id: 'abyssalAmplifier', level: 3 }];
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 100 }) - 26.91) < 1e-9);
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 40 }) - 23.4) < 1e-9);
 });
 
 test('sandbox can run every defined enemy skill without a missing implementation', () => {
