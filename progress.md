@@ -426,3 +426,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Changed the launch preview from a pointer-ended line into a real forward range preview: the dashed path now mirrors the pull distance in the opposite direction, while the solid path remains attached to the pulled pointer.
 - Capped the visible forward range at the same 420px launch limit used by physics, retained the gyro/hex endpoint, and added a grey diver silhouette with a subtle breathing pulse at the predicted landing point. Gravity and current are intentionally absent from the preview.
 - Added regression coverage for diagonal alignment, forward endpoint projection, and over-cap pulls. Static-only verification passed: `npm run check` (51/51 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+## 2026-08-08 — Step 52 complete
+
+- Separated launch energy from movement oxygen: each launch settles a fixed 5-energy cost, aiming is free, and oxygen now follows actual physics travel distance with a deliberately reduced `0.01` per-pixel rate.
+- Empty oxygen now applies gradual health starvation damage instead of immediate death. Empty energy does not kill or cancel a launch; the existing idle-rest recovery requires the player to stop moving.
+- Moved editor and standalone-play resource HUDs to the bottom in the requested order: oxygen left, health center, energy right. The top-left readout now shows Attempts.
+- Static-only verification passed: `npm run check` (52/52 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.

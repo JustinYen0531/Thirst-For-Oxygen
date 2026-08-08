@@ -41,11 +41,6 @@
             <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
           </div>
 
-          <div class="resource-stack" aria-label="主角狀態">
-            <div class="resource-row"><span>生命</span><strong id="play-health-value">100</strong><i><b id="play-health"></b></i></div>
-            <div class="resource-row"><span>氧氣</span><strong id="play-oxygen-value">100</strong><i><b id="play-oxygen"></b></i></div>
-            <div class="resource-row"><span>能量</span><strong id="play-energy-value">100</strong><i><b id="play-energy"></b></i></div>
-          </div>
           <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
 
           <div class="camera-card">
@@ -64,9 +59,15 @@
           <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
           <div class="play-stage-frame">
             <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇地圖遊玩畫面"></canvas>
+            <p class="play-attempts" id="play-attempts">Attempts 3/3</p>
+            <div class="play-resource-hud" aria-label="主角狀態">
+              <div class="resource-row"><span>氧氣</span><strong id="play-oxygen-value">100</strong><i><b id="play-oxygen"></b></i></div>
+              <div class="resource-row"><span>生命</span><strong id="play-health-value">100</strong><i><b id="play-health"></b></i></div>
+              <div class="resource-row"><span>能量</span><strong id="play-energy-value">100</strong><i><b id="play-energy"></b></i></div>
+            </div>
             <div class="loading-mask" id="play-loading">正在潛入水域…</div>
           </div>
-          <p class="play-help" id="play-help">按住潛水夫並拖曳，瞄準方向後放開即可彈射。短距離與長距離的初速度會有明顯差異；相機在地圖左右外緣自動固定。</p>
+          <p class="play-help" id="play-help">按住潛水夫並拖曳，瞄準方向後放開即可彈射。每次彈射消耗約 5 能量，氧氣依實際移動距離逐步消耗；氧氣歸零會慢慢扣生命，能量歸零需停止移動休息。</p>
         </section>
       </section>
     </main>

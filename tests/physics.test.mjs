@@ -27,6 +27,9 @@ import {
   MAX_SPEED,
   MAX_LAUNCH_SPEED,
   LAUNCH_MOMENTUM_MULTIPLIER,
+  ENERGY_COST_PER_LAUNCH,
+  OXYGEN_COST_PER_DISTANCE,
+  OXYGEN_STARVATION_DAMAGE_PER_SECOND,
   SIMULATION_SPEED_SCALE,
   createTestActor,
   drainAimEnergy,
@@ -121,14 +124,15 @@ test('L-1 accelerates upward and L0 preserves inertia', () => {
 
 test('launch velocity is opposite the pull direction', () => {
   const actor = createTestActor({ x: 200, y: 200 });
+  const oxygenBefore = actor.oxygen;
   const launch = launchActor(actor, { x: 120, y: 200 });
   assert.ok(launch.launched);
   assert.ok(launch.speed > 0);
   assert.ok(actor.vx > 0);
   assert.equal(actor.vy, 0);
   assert.ok(launch.speed > 100, 'launch speed should include the requested five-times momentum boost');
-  assert.ok(actor.oxygen < 100, 'launch should consume oxygen');
-  assert.ok(actor.energy < 100, 'launch should consume energy');
+  assert.equal(actor.oxygen, oxygenBefore, 'oxygen is charged from actual travel, not upfront');
+  assert.equal(actor.energy, 100 - ENERGY_COST_PER_LAUNCH, 'one launch should settle one fixed energy cost');
 });
 
 test('long launches gain extra speed while short launches keep the old scale', () => {
@@ -137,19 +141,47 @@ test('long launches gain extra speed while short launches keep the old scale', (
   assert.ok(getLaunchSpeed(420) > getLaunchSpeed(240));
 });
 
-test('launch requires both oxygen and energy, while aiming consumes energy', () => {
-  const actor = createTestActor({ x: 200, y: 200 });
+test('launch only requires energy and aiming is free', () => {
+  let actor = createTestActor({ x: 200, y: 200 });
   const costs = getLaunchCosts(80);
-  actor.oxygen = costs.oxygen - 0.01;
-  assert.equal(launchActor(actor, { x: 120, y: 200 }).reason, 'oxygen');
+  assert.equal(costs.oxygen, 0);
+  actor.oxygen = 0;
+  assert.ok(launchActor(actor, { x: 120, y: 200 }).launched, 'oxygen starvation does not prevent movement');
 
-  actor.oxygen = 100;
+  actor = createTestActor({ x: 200, y: 200 });
   actor.energy = costs.energy - 0.01;
   assert.equal(launchActor(actor, { x: 120, y: 200 }).reason, 'energy');
 
   actor.energy = 10;
+  const energyBeforeAim = actor.energy;
   drainAimEnergy(actor, 0.5);
-  assert.ok(actor.energy < 10);
+  assert.equal(actor.energy, energyBeforeAim, 'holding aim must not spend energy');
+});
+
+test('oxygen follows travel distance and starvation drains health slowly', () => {
+  const map = createEmptyMap({ width: 3, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0' });
+  patchCell(map, '1,0', { gravityLevel: 'L0' });
+  patchCell(map, '2,0', { gravityLevel: 'L0' });
+  const actor = actorIn(map, '1,0');
+  actor.vx = 60;
+  const beforeOxygen = actor.oxygen;
+  stepPhysics({ map, actor, origin: ORIGIN });
+  const expectedTravel = Math.hypot(actor.vx, actor.vy) * FIXED_STEP;
+  assert.ok(actor.oxygen < beforeOxygen);
+  assert.ok(beforeOxygen - actor.oxygen < 1, 'movement oxygen cost should stay small');
+  assert.ok(OXYGEN_COST_PER_DISTANCE < 0.02);
+
+  actor.oxygen = 0;
+  actor.health = MAX_HEALTH;
+  actor.vx = 0;
+  actor.vy = 0;
+  const beforeHealth = actor.health;
+  stepPhysics({ map, actor, origin: ORIGIN });
+  assert.ok(actor.health < beforeHealth, 'empty oxygen should slowly damage health');
+  assert.ok(actor.health > beforeHealth - OXYGEN_STARVATION_DAMAGE_PER_SECOND, 'starvation damage should be gradual');
+  assert.equal(actor.energy, 100, 'resting with zero velocity still allows energy recovery');
+  assert.ok(expectedTravel >= 0);
 });
 
 test('all primary motion limits use the 0.1 simulation scale', () => {

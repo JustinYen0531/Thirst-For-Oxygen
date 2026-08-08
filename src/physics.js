@@ -42,14 +42,11 @@ const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const LAUNCH_MOMENTUM_DURATION = 0.75;
 const LAUNCH_LINEAR_DISTANCE = 90;
 const LAUNCH_LONG_DISTANCE_GAIN = 0.05;
-const LAUNCH_OXYGEN_BASE_COST = 2;
-const LAUNCH_OXYGEN_COST_PER_PIXEL = 0.055;
-const LAUNCH_ENERGY_BASE_COST = 3;
-const LAUNCH_ENERGY_COST_PER_PIXEL = 0.08;
-const AIM_ENERGY_PER_SECOND = 9;
+export const ENERGY_COST_PER_LAUNCH = 5;
+export const OXYGEN_COST_PER_DISTANCE = 0.01;
+export const OXYGEN_STARVATION_DAMAGE_PER_SECOND = 3;
 const IDLE_ENERGY_RECOVERY_PER_SECOND = 8;
 const SEAWEED_ENERGY_RECOVERY_PER_SECOND = 12;
-const OXYGEN_DRAIN_PER_SECOND = 0.15;
 const CURRENT_ACCELERATION = 74 * SIMULATION_SPEED_SCALE;
 // The first pass was intentionally very quiet. Keep the curl/mean-subtraction
 // model, but raise its readable strength to five times that prototype so the
@@ -227,19 +224,19 @@ export function getLaunchSpeed(distance) {
 }
 
 export function getLaunchCosts(distance, actor = null) {
-  const oxygenMultiplier = actor?.derivedStats?.launchOxygenCostMultiplier ?? 1;
   const energyMultiplier = actor?.derivedStats?.launchEnergyCostMultiplier ?? 1;
   return {
-    oxygen: (LAUNCH_OXYGEN_BASE_COST + distance * LAUNCH_OXYGEN_COST_PER_PIXEL) * oxygenMultiplier,
-    energy: (LAUNCH_ENERGY_BASE_COST + distance * LAUNCH_ENERGY_COST_PER_PIXEL) * energyMultiplier,
+    // Oxygen is charged from actual travel distance in stepPhysics. Keeping
+    // this field at zero preserves the public cost contract for HUD/events
+    // without charging the whole launch up front.
+    oxygen: 0,
+    energy: ENERGY_COST_PER_LAUNCH * energyMultiplier,
   };
 }
 
-export function drainAimEnergy(actor, dt = FIXED_STEP) {
-  const multiplier = actor.derivedStats?.aimEnergyCostMultiplier ?? 1;
-  const used = Math.min(actor.energy, AIM_ENERGY_PER_SECOND * multiplier * dt);
-  actor.energy = Math.max(0, actor.energy - used);
-  return used;
+export function drainAimEnergy() {
+  // Aiming is free. Energy is settled once, when the launch is released.
+  return 0;
 }
 
 export function createTestActor(position = { x: 180, y: 180 }) {
@@ -387,7 +384,6 @@ export function launchActor(actor, pointer) {
   const distance = launchDistance(actor, pointer);
   if (distance < 5) return { launched: false, reason: 'tooClose' };
   const costs = getLaunchCosts(distance, actor);
-  if (actor.oxygen < costs.oxygen) return { launched: false, reason: 'oxygen', costs };
   if (actor.energy < costs.energy) return { launched: false, reason: 'energy', costs };
   const direction = unitVector(pointer, actor);
   const speed = getLaunchSpeed(distance);
@@ -395,7 +391,6 @@ export function launchActor(actor, pointer) {
   actor.vy = direction.y * speed;
   if (Math.abs(direction.x) > 0.08) actor.facing = direction.x < 0 ? 'left' : 'right';
   actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
-  actor.oxygen = clamp(actor.oxygen - costs.oxygen, 0, maxOxygenFor(actor));
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
   return { launched: true, speed, distance, costs };
 }
@@ -887,15 +882,25 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.vy = (actor.vy / speed) * speedLimit;
   }
   const previousPosition = { x: actor.x, y: actor.y };
+  const travelDistance = Math.hypot(actor.vx, actor.vy) * dt;
   actor.x += actor.vx * dt;
   actor.y += actor.vy * dt;
   processBoundary(actor, bounds, events);
   const after = findCellContainingPoint(map, actor, chapter, origin);
   const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events, previousPosition);
   if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
-  // Consume oxygen before contact rewards so Checkpoint and oxygen sources can
-  // fulfill their documented promise of restoring the resource to its maximum.
-  actor.oxygen = Math.max(0, actor.oxygen - (OXYGEN_DRAIN_PER_SECOND + Math.hypot(actor.vx, actor.vy) / 3000) * dt);
+  // Oxygen follows actual attempted travel distance, not launch distance and
+  // not elapsed time while resting. The deliberately small factor keeps long
+  // traversal affordable while still making movement matter.
+  const oxygenMultiplier = actor.derivedStats?.launchOxygenCostMultiplier ?? 1;
+  actor.oxygen = Math.max(0, actor.oxygen - travelDistance * OXYGEN_COST_PER_DISTANCE * oxygenMultiplier);
+  if (actor.oxygen <= 0 && !isOnCooldown(actor, 'oxygenStarvation')) {
+    const damage = applyDamage(actor, OXYGEN_STARVATION_DAMAGE_PER_SECOND * dt, 'oxygenStarvation', 'oxygen');
+    if (damage.applied > 0) {
+      actor.cooldowns.oxygenStarvation = 0.5;
+      addEvent(events, 'oxygenStarvation', `氧氣耗盡：生命 -${damage.applied.toFixed(1)}，請尋找氧氣補給。`);
+    }
+  }
   processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
   if (Math.hypot(actor.vx, actor.vy) < 1) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);

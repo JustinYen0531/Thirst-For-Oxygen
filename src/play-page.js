@@ -62,6 +62,7 @@ const speedReadout = document.querySelector('#play-speed');
 const help = document.querySelector('#play-help');
 const eventsList = document.querySelector('#play-events');
 const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
+const attemptsReadout = document.querySelector('#play-attempts');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
@@ -375,6 +376,7 @@ function render() {
 
 function updateHud() {
   if (!actor) return;
+  attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   const resources = { health: actor.health, oxygen: actor.oxygen, energy: actor.energy };
   Object.entries(resources).forEach(([key, value]) => { const maximum = key === 'health' ? MAX_HEALTH : key === 'oxygen' ? MAX_OXYGEN : MAX_ENERGY; resourceBars[key].style.width = `${clamp(value / maximum, 0, 1) * 100}%`; resourceValues[key].textContent = Math.round(value); });
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
@@ -395,7 +397,7 @@ function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (acto
 
 canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}（5×動量）`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)}；氧氣依移動距離計算`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
@@ -410,8 +412,8 @@ function simulate(elapsed, now = performance.now()) {
     while (accumulator >= FIXED_STEP) {
       refillUnlimitedResources();
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
-      if (actor.health <= 0 || actor.oxygen <= 0) {
-        const cause = actor.health <= 0 ? '生命歸零' : '氧氣歸零';
+      if (actor.health <= 0) {
+        const cause = '生命歸零';
         const death = registerPlayerDeath(actor, cause);
         if (death.gameOver) eventLog.push(`${cause}：永久死亡。`);
         else {

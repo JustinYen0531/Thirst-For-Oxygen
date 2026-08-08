@@ -33,7 +33,6 @@ import {
   EDGE_ATTACHMENT_HELP_RADIUS,
   WORLD_BOUNDS,
   createTestActor,
-  drainAimEnergy,
   findPlayerStart,
   isActorNearEdgeAttachment,
   launchActor,
@@ -93,11 +92,9 @@ const eventList = document.querySelector('#event-list');
 const dirtyIndicator = document.querySelector('#dirty-indicator');
 const playHelp = document.querySelector('#play-help');
 const playerHud = document.querySelector('#player-hud');
-const hudMode = document.querySelector('#hud-mode');
+const hudAttempts = document.querySelector('#hud-attempts');
 const hudHealth = document.querySelector('#hud-health');
 const hudHealthValue = document.querySelector('#hud-health-value');
-const hudLives = document.querySelector('#hud-lives');
-const hudLivesValue = document.querySelector('#hud-lives-value');
 const hudOxygen = document.querySelector('#hud-oxygen');
 const hudOxygenValue = document.querySelector('#hud-oxygen-value');
 const hudEnergy = document.querySelector('#hud-energy');
@@ -1733,11 +1730,10 @@ function renderHud() {
   const actor = state.actor;
   const preview = state.mode !== 'play';
   playerHud.hidden = preview;
+  hudAttempts.hidden = preview;
   playerHud.classList.toggle('is-game-over', actor.gameOver);
-  hudMode.textContent = actor.gameOver ? '永久死亡：請重新開始測試' : '測試玩家';
+  hudAttempts.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   updateHudBar(hudHealth, hudHealthValue, actor.health, MAX_HEALTH);
-  hudLives.textContent = `${'●'.repeat(actor.lives)}${'○'.repeat(actor.maxLives - actor.lives)}`;
-  hudLivesValue.textContent = `${actor.lives}/${actor.maxLives}`;
   updateHudBar(hudOxygen, hudOxygenValue, actor.oxygen, MAX_OXYGEN);
   updateHudBar(hudEnergy, hudEnergyValue, actor.energy, MAX_ENERGY);
 }
@@ -2541,16 +2537,9 @@ function recordEvents(events) {
 
 function stepGame() {
   if (state.mode !== 'play' || state.actor.gameOver) return;
-  if (state.dragging) {
-    drainAimEnergy(state.actor, FIXED_STEP);
-    if (state.actor.energy <= 0) {
-      state.dragging = null;
-      recordEvents([{ type: 'aim', message: '能量耗盡：已取消瞄準，靜止後可恢復能量。' }]);
-    }
-  }
   const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS, time: state.animationTime });
-  if (state.actor.health <= 0 || state.actor.oxygen <= 0) {
-    const cause = state.actor.health <= 0 ? '生命歸零' : '氧氣歸零';
+  if (state.actor.health <= 0) {
+    const cause = '生命歸零';
     const death = registerPlayerDeath(state.actor, cause);
     if (death.gameOver) {
       recordEvents([{ type: 'gameOver', message: `${cause}：最後一條命已失去，永久死亡；請重新開始物理測試。` }]);
@@ -2767,7 +2756,7 @@ canvas.addEventListener('pointerup', (event) => {
   const pointer = eventPoint(event);
   const launch = launchActor(state.actor, pointer);
   if (launch.launched) {
-    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；氧氣 -${Math.ceil(launch.costs.oxygen)}，能量 -${Math.ceil(launch.costs.energy)}。` }]);
+    recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣依移動距離計算。` }]);
   } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
     const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
     recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法彈射，請補給或原地休息。` }]);
@@ -2907,7 +2896,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === ' ' && state.mode === 'play') {
     event.preventDefault();
     const launch = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
-    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；氧氣與能量已扣除。` }]);
+    if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}，氧氣依移動距離計算。` }]);
     else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
       const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
       recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法快速彈射。` }]);

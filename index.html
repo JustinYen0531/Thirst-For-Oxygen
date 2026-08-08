@@ -64,30 +64,27 @@
           <div id="map-viewport" class="map-viewport" aria-label="可上下捲動的地圖鏡頭">
             <div class="canvas-stage">
               <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
+              <p id="hud-attempts" class="hud-attempts" hidden>Attempts 3/3</p>
               <section id="player-hud" class="player-hud" aria-label="測試玩家狀態" hidden>
-                <p id="hud-mode" class="hud-mode">HUD 預覽</p>
-                <div class="hud-row">
-                  <span class="hud-label">生命值</span>
-                  <div id="hud-health" class="hud-bar hud-health" role="progressbar" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                  <output id="hud-health-value" class="hud-value">100%</output>
-                </div>
-                <div class="hud-row hud-lives-row">
-                  <span class="hud-label">命數</span>
-                  <span id="hud-lives" class="hud-lives" aria-label="剩餘命數"></span>
-                  <output id="hud-lives-value" class="hud-value">3/3</output>
-                </div>
-                <div class="hud-row">
-                  <span class="hud-label">氧氣</span>
-                  <div id="hud-oxygen" class="hud-bar hud-oxygen" role="progressbar" aria-label="氧氣" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                  <output id="hud-oxygen-value" class="hud-value">100%</output>
-                </div>
-                <div class="hud-row">
-                  <span class="hud-label">能量</span>
-                  <div id="hud-energy" class="hud-bar hud-energy" role="progressbar" aria-label="能量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
-                  <output id="hud-energy-value" class="hud-value">100%</output>
+                <div class="hud-resource-grid">
+                  <div class="hud-row">
+                    <span class="hud-label">氧氣</span>
+                    <div id="hud-oxygen" class="hud-bar hud-oxygen" role="progressbar" aria-label="氧氣" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
+                    <output id="hud-oxygen-value" class="hud-value">100%</output>
+                  </div>
+                  <div class="hud-row">
+                    <span class="hud-label">生命</span>
+                    <div id="hud-health" class="hud-bar hud-health" role="progressbar" aria-label="生命" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
+                    <output id="hud-health-value" class="hud-value">100%</output>
+                  </div>
+                  <div class="hud-row">
+                    <span class="hud-label">能量</span>
+                    <div id="hud-energy" class="hud-bar hud-energy" role="progressbar" aria-label="能量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
+                    <output id="hud-energy-value" class="hud-value">100%</output>
+                  </div>
                 </div>
               </section>
-              <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；瞄準與彈射都消耗能量，彈射也消耗氧氣；E 附著／離開水草；R 重設。</p>
+              <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；每次彈射固定消耗能量，氧氣依實際移動距離計算；E 附著／離開水草；R 重設。</p>
             </div>
           </div>
           <label class="zoom-control" for="zoom-slider">
