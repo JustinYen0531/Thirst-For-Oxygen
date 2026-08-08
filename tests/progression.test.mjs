@@ -19,6 +19,7 @@ import {
   executeEnemySkill,
   isSandboxPlayerHit,
   playerAttack,
+  playerAttackAllWeapons,
   setSandboxBuild,
   setSandboxActiveWeapon,
   spawnSandboxEnemy,
@@ -683,6 +684,65 @@ test('sandbox can activate each authored weapon slot instead of only the knife',
     assert.equal(state.build.weaponLevel, level);
     assert.deepEqual(state.actor.activeWeapon, { id, level });
   });
+});
+
+test('sandbox direct weapon test fires every equipped slot together', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 3 },
+      { id: 'trident', level: 2 },
+      { id: 'katana', level: 1 },
+    ],
+  });
+
+  const result = playerAttackAllWeapons(state);
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.firedWeaponIds, ['knife', 'trident', 'katana']);
+  assert.equal(state.projectiles.filter((projectile) => projectile.weaponId === 'trident').length, 1);
+  assert.ok(state.effects.some((effect) => effect.type === 'playerSlash' && effect.style === 'knifeMeteor'));
+  assert.ok(state.effects.some((effect) => effect.type === 'katanaSwing'));
+});
+
+test('sandbox can start with an empty build and use any weapon in the main slot', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weapons: [], passives: [], activeWeaponSlot: 0, allowEmpty: true });
+
+  assert.deepEqual(state.build.weapons, []);
+  assert.deepEqual(state.build.passives, []);
+  assert.equal(state.build.weaponId, null);
+  assert.equal(playerAttackAllWeapons(state).reason, 'noWeapon');
+
+  setSandboxBuild(state, { weapons: [{ id: 'trident', level: 2 }], allowEmpty: true });
+  assert.deepEqual(state.build.weapons, [{ id: 'trident', level: 2 }]);
+  assert.equal(state.build.weaponId, 'trident');
+  assert.deepEqual(setSandboxActiveWeapon(state, 0), { id: 'trident', level: 2 });
+});
+
+test('equipped trident and katana auto-fire without changing the focused slot', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 3 },
+      { id: 'trident', level: 2 },
+      { id: 'katana', level: 1 },
+    ],
+    activeWeaponSlot: 0,
+  });
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', {
+    x: state.actor.x + 40,
+    y: state.actor.y,
+  }, { health: 1000, maxHealth: 1000, moveSpeed: 0 });
+
+  stepSandbox(state, 0.1);
+  assert.ok(state.effects.some((effect) => effect.type === 'katanaSwing'), '副副槽武士刀應在近距離自動揮擊');
+  assert.equal(state.build.activeWeaponSlot, 0);
+
+  for (let index = 0; index < 10; index += 1) stepSandbox(state, 0.1);
+  assert.ok(state.logs.some((entry) => entry.message.includes('自動發動 三叉戟')), '副槽三叉戟應在靜止一秒後自動發射');
+  assert.ok(enemy.health < enemy.maxHealth);
+  assert.equal(state.build.activeWeaponSlot, 0);
 });
 
 test('knife visual data keeps the Lv.3 linger within a low-cost glow budget', () => {

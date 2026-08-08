@@ -33,10 +33,15 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .toggle { display: flex; align-items: center; gap: 7px; margin: 8px 0; color: #d4e6f7; }
 .toggle input { width: auto; accent-color: #f6e66d; }
 .build-list, .passive-list { display: grid; gap: 6px; margin: 8px 0; }
-.build-slot-row { padding: 6px; border: 1px solid #203f5e; border-radius: 5px; background: #09182a; }
-.build-slot-row label { margin: 0 0 4px; color: #d6e8f7; font-size: 10px; }
-.build-slot-selectors { display: grid; grid-template-columns: minmax(0, 1fr) 58px; gap: 5px; }
-.build-slot-selectors select { min-width: 0; padding: 4px; font-size: 11px; }
+.build-slot-group { padding: 7px; border: 1px solid #203f5e; border-radius: 6px; background: #09182a; }
+.build-group-title { margin-bottom: 6px; color: #fff1a3; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.build-slot-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.build-slot-column { min-width: 0; padding: 5px 4px; border: 1px solid #264b70; border-radius: 5px; background: #0c1b2e; }
+.build-slot-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 3px; margin-bottom: 5px; }
+.build-slot-heading strong { min-width: 0; overflow: hidden; color: #d6e8f7; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.build-slot-heading small { flex: 0 0 auto; color: #7ea5c1; font-size: 9px; }
+.build-slot-selectors { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.build-slot-selectors select { width: 100%; min-width: 0; padding: 4px 3px; font-size: 10px; }
 .sandbox-main { min-width: 0; }
 .sandbox-stage { position: relative; overflow: hidden; border: 0; border-radius: 0; background: #081725; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
 .sandbox-resource-hud { pointer-events: none; }

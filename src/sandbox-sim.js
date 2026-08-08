@@ -109,6 +109,19 @@ function activeEnemies(state) {
   return state.enemies.filter((enemy) => !enemy.defeated);
 }
 
+function getEquippedWeaponEntries(state) {
+  const entries = Array.isArray(state.build?.weapons)
+    ? state.build.weapons
+    : state.build?.weaponId
+      ? [{ id: state.build.weaponId, level: state.build.weaponLevel ?? 1 }]
+      : [];
+  return entries.filter((entry) => entry && WEAPONS[entry.id]);
+}
+
+function getEquippedWeaponEntry(state, weaponId) {
+  return getEquippedWeaponEntries(state).find((entry) => entry.id === weaponId) ?? null;
+}
+
 function enemyDefinition(enemy) {
   return ENEMY_DEFINITIONS[enemy.enemyId ?? enemy.id];
 }
@@ -232,17 +245,18 @@ function updateSuicideCharge(state, enemy, dt) {
 }
 
 function syncSandboxBuild(state) {
-  const active = getActiveWeapon(state.progression);
+  const active = state.progression.weapons.length ? getActiveWeapon(state.progression) : null;
+  const loadoutWeapon = active ?? { id: 'knife', level: 1 };
   const previousWeaponId = state.build?.weaponId;
   state.build = {
-    weaponId: active.id,
-    weaponLevel: active.level,
+    weaponId: active?.id ?? null,
+    weaponLevel: active?.level ?? 0,
     weapons: state.progression.weapons.map((weapon) => ({ ...weapon })),
     activeWeaponSlot: state.progression.activeWeaponSlot,
     passives: state.progression.passives.map((passive) => ({ ...passive })),
   };
-  setPlayerLoadout(state.actor, state.build.passives, active);
-  if (previousWeaponId !== active.id) state.actor.katanaEmpoweredNextSlash = false;
+  setPlayerLoadout(state.actor, state.build.passives, loadoutWeapon);
+  if (previousWeaponId !== active?.id) state.actor.katanaEmpoweredNextSlash = false;
   return state.build;
 }
 
@@ -287,6 +301,10 @@ export function chooseUpgrade(state, choice) {
 }
 
 export function setSandboxActiveWeapon(state, slotOrId) {
+  if (!state.progression.weapons.length) {
+    logEvent(state, '目前沒有已裝備武器可切換。', 'warning');
+    return null;
+  }
   const active = setActiveWeapon(state.progression, slotOrId);
   syncSandboxBuild(state);
   state.actor.tridentStationaryTime = 0;
@@ -530,6 +548,7 @@ export function createSandboxState() {
     autoCycle: false,
     invincible: false,
     infiniteResources: true,
+    zeroGravity: true,
     aiming: false,
     aimPoint: null,
     selectedEnemyInstanceId: null,
@@ -623,6 +642,7 @@ export function setSandboxBuild(state, {
   weapons = null,
   activeWeaponSlot = null,
   passives = [],
+  allowEmpty = false,
 } = {}) {
   const validWeaponId = WEAPONS[weaponId] ? weaponId : 'knife';
   const validLevel = clamp(Math.round(Number(weaponLevel) || 1), 1, WEAPONS[validWeaponId].maxLevel);
@@ -630,7 +650,7 @@ export function setSandboxBuild(state, {
     ? weapons
     : [{ id: 'knife', level: weaponId === 'knife' ? validLevel : 1 }, ...(weaponId !== 'knife' ? [{ id: validWeaponId, level: validLevel }] : [])];
   const validWeapons = Array.isArray(weapons)
-    ? normalizeBuildEntries(requestedWeapons, WEAPONS, 3, { ensureKnife: true })
+    ? normalizeBuildEntries(requestedWeapons, WEAPONS, 3, { ensureKnife: !allowEmpty })
     : requestedWeapons;
   const validPassives = normalizeBuildEntries(
     unique(passives
@@ -1049,15 +1069,17 @@ function performKatanaSlash(state, weapon, target = null) {
 }
 
 function markKatanaMovement(state, previousPosition) {
-  if (state.build.weaponId !== 'katana') return;
-  const effect = getWeaponStats('katana', state.build.weaponLevel).effect ?? {};
+  const entry = getEquippedWeaponEntry(state, 'katana');
+  if (!entry) return;
+  const effect = getWeaponStats('katana', entry.level).effect ?? {};
   if (!effect.empowerAfterMovement) return;
   if (distanceBetween(state.actor, previousPosition) >= 1.5) state.actor.katanaEmpoweredNextSlash = true;
 }
 
 function processKatanaAutoAttack(state) {
-  if (state.aiming || state.build.weaponId !== 'katana') return;
-  const weapon = getWeaponStats('katana', state.build.weaponLevel);
+  const entry = getEquippedWeaponEntry(state, 'katana');
+  if (state.aiming || !entry) return;
+  const weapon = getWeaponStats('katana', entry.level);
   const cooldownKey = 'weapon:katana';
   if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
   const target = activeEnemies(state)
@@ -1066,7 +1088,7 @@ function processKatanaAutoAttack(state) {
   if (!target) return;
   const result = performKatanaSlash(state, weapon, target);
   state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-  if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 順時針揮刀命中 ${result.hitCount} 個目標。`, 'safe');
+  if (result.hit) logEvent(state, `武士刀 Lv.${entry.level} 順時針揮刀命中 ${result.hitCount} 個目標。`, 'safe');
 }
 
 function projectileDirectionAngle(state, target = null) {
@@ -1093,11 +1115,12 @@ function addTridentImpactEffect(state, projectile, enemy) {
 }
 
 function processTridentAutoAttack(state, dt) {
-  if (state.build.weaponId !== 'trident' || state.aiming || state.actor.attached || state.actor.dead) {
+  const entry = getEquippedWeaponEntry(state, 'trident');
+  if (!entry || state.aiming || state.actor.attached || state.actor.dead) {
     state.actor.tridentStationaryTime = 0;
     return;
   }
-  const weapon = getWeaponStats('trident', state.build.weaponLevel);
+  const weapon = getWeaponStats('trident', entry.level);
   const effect = weapon.effect ?? {};
   const speed = Math.hypot(state.actor.vx, state.actor.vy);
   if (speed > (effect.stationarySpeedThreshold ?? 8)) {
@@ -1106,7 +1129,7 @@ function processTridentAutoAttack(state, dt) {
   }
   state.actor.tridentStationaryTime = (state.actor.tridentStationaryTime ?? 0) + dt;
   if (state.actor.tridentStationaryTime < (effect.stationaryDelay ?? 1)) return;
-  const result = playerAttack(state, { auto: true });
+  const result = playerAttack(state, { auto: true, weaponId: 'trident', weaponLevel: entry.level });
   if (result.ok || result.reason === 'energy' || result.reason === 'cooldown') state.actor.tridentStationaryTime = 0;
 }
 
@@ -1189,7 +1212,8 @@ function beginLightMachineGunBurst(state, weapon, weaponLevel, angle, targetId =
 function updateLightMachineGunBurst(state) {
   const burst = state.weaponBurst;
   if (!burst) return;
-  if (state.build.weaponId !== 'lightMachineGun' || state.build.weaponLevel !== burst.weaponLevel) {
+  const entry = getEquippedWeaponEntry(state, 'lightMachineGun');
+  if (!entry || entry.level !== burst.weaponLevel) {
     state.weaponBurst = null;
     return;
   }
@@ -1245,6 +1269,9 @@ function addKnifeMeteorEffect(state, weapon, start, end, { offset = 0, side = fa
     pathAlpha: effect.pathAlpha ?? 0,
     lingerMinAlpha: effect.lingerMinAlpha ?? 0.2,
     sparkleCount: side ? 0 : (effect.sparkleCount ?? 0),
+    sparkleBudget: side ? 0 : (effect.sparkleBudget ?? effect.sparkleCount ?? 0),
+    glowBlur: effect.glowBlur,
+    sideGlowBlur: effect.sideGlowBlur,
     angle: Math.atan2(dy, dx),
     colour: side ? (effect.sideTrailColour ?? effect.colour ?? '#e6faff') : (effect.colour ?? '#ffffff'),
     glowColour: effect.glowColour ?? '#dffbff',
@@ -1263,10 +1290,21 @@ function addKnifeMeteorEffects(state, weapon, start, end) {
   }
 }
 
-export function playerAttack(state, { auto = false } = {}) {
+export function playerAttack(state, options = {}) {
   if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade' };
-  const weaponDefinition = WEAPONS[state.build.weaponId] ?? WEAPONS.knife;
-  const weapon = { ...weaponDefinition, ...getWeaponStats(state.build.weaponId, state.build.weaponLevel) };
+  const auto = Boolean(options.auto);
+  const selectedWeaponId = options.weaponId ?? state.build?.weaponId;
+  if (!selectedWeaponId || !WEAPONS[selectedWeaponId]) {
+    logEvent(state, '目前沒有裝備武器，無法發動攻擊。', 'warning');
+    return { ok: false, reason: 'noWeapon' };
+  }
+  const weaponDefinition = WEAPONS[selectedWeaponId];
+  const weaponLevel = clamp(
+    Math.round(Number(options.weaponLevel ?? state.build.weaponLevel ?? 1) || 1),
+    1,
+    weaponDefinition.maxLevel,
+  );
+  const weapon = { ...weaponDefinition, ...getWeaponStats(selectedWeaponId, weaponLevel), level: weaponLevel };
   state.actor.cooldowns ??= {};
   const cooldownKey = `weapon:${weaponDefinition.id}`;
   if (state.weaponBurst?.weaponId === weaponDefinition.id) {
@@ -1316,10 +1354,18 @@ export function playerAttack(state, { auto = false } = {}) {
   } else {
     if (weaponDefinition.id === 'lightMachineGun') {
       const angle = projectileDirectionAngle(state, target);
-      const burst = beginLightMachineGunBurst(state, weapon, state.build.weaponLevel, angle, target?.instanceId ?? null);
+      const burst = beginLightMachineGunBurst(state, weapon, weaponLevel, angle, target?.instanceId ?? null);
       state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0.72;
-      logEvent(state, `${auto ? '自動發射' : '玩家使用'} 輕量機槍 Lv.${state.build.weaponLevel}：固定方向六發連射。`, 'safe');
-      return { ok: true, hit: false, burstCount: burst.shotCount, angle, targetId: burst.targetId };
+      logEvent(state, `${auto ? '自動發射' : '玩家使用'} 輕量機槍 Lv.${weaponLevel}：固定方向六發連射。`, 'safe');
+      return {
+        ok: true,
+        hit: false,
+        weaponId: weaponDefinition.id,
+        weaponLevel,
+        burstCount: burst.shotCount,
+        angle,
+        targetId: burst.targetId,
+      };
     }
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
@@ -1337,7 +1383,7 @@ export function playerAttack(state, { auto = false } = {}) {
         colour: visual.colour ?? '#f6e66d',
         radius: visual.projectileRadius,
         weaponId: weaponDefinition.id,
-        weaponLevel: state.build.weaponLevel,
+        weaponLevel,
         visual,
         stunDuration: visual.stunDuration,
         impactStyle: visual.impactStyle,
@@ -1349,8 +1395,28 @@ export function playerAttack(state, { auto = false } = {}) {
     if (weaponDefinition.id === 'trident') state.actor.tridentStationaryTime = 0;
   }
   state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-  logEvent(state, `${auto ? '三叉戟自動發射' : '玩家使用'} ${weaponDefinition.name} Lv.${state.build.weaponLevel}。`, 'safe');
-  return { ok: true, hit };
+  logEvent(state, `${auto ? '自動發動' : '玩家使用'} ${weaponDefinition.name} Lv.${weaponLevel}。`, 'safe');
+  return { ok: true, hit, weaponId: weaponDefinition.id, weaponLevel };
+}
+
+export function playerAttackAllWeapons(state, { auto = false } = {}) {
+  if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade', results: [] };
+  const equipped = getEquippedWeaponEntries(state);
+  if (!equipped.length) return { ok: false, reason: 'noWeapon', results: [], firedWeaponIds: [] };
+  const results = equipped.map((entry) => playerAttack(state, {
+    auto,
+    weaponId: entry.id,
+    weaponLevel: entry.level,
+  }));
+  const firedWeaponIds = results
+    .filter((result) => result.ok)
+    .map((result) => result.weaponId)
+    .filter(Boolean);
+  return {
+    ok: firedWeaponIds.length > 0,
+    results,
+    firedWeaponIds,
+  };
 }
 
 function updateProjectiles(state, dt) {
@@ -1506,17 +1572,18 @@ function applyKnifeSideTrailDamage(state, weapon, start, end, primaryEnemyId = n
     activeEnemies(state).forEach((enemy) => {
       if (enemy.instanceId === primaryEnemyId || (enemy.knifeSideHitCooldownUntil ?? 0) > state.time) return;
       if (distanceToSegment(enemy, sideStart, sideEnd) > enemy.radius + sideRadius) return;
-      damageEnemy(state, enemy, weapon.damage * effect.sideTrailDamageMultiplier, `小刀 Lv.${state.build.weaponLevel} 側刃`);
+      damageEnemy(state, enemy, weapon.damage * effect.sideTrailDamageMultiplier, `小刀 Lv.${weapon.level ?? state.build.weaponLevel} 側刃`);
       enemy.knifeSideHitCooldownUntil = state.time + 0.25;
     });
   }
 }
 
 function processKnifeMovementEffect(state, previousPosition) {
-  if (state.aiming || state.build.weaponId !== 'knife') return;
+  const entry = getEquippedWeaponEntry(state, 'knife');
+  if (state.aiming || !entry) return;
   const distance = distanceBetween(state.actor, previousPosition);
   if (distance < 1.5) return;
-  const weapon = getWeaponStats('knife', state.build.weaponLevel);
+  const weapon = getWeaponStats('knife', entry.level);
   const cooldownKey = 'weapon:knife:visual';
   if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
   state.actor.cooldowns[cooldownKey] = 0.12;
@@ -1530,7 +1597,7 @@ function processKnifeMovementEffect(state, previousPosition) {
 function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
   const actor = state.actor;
   const speed = Math.hypot(actor.vx, actor.vy);
-  if (speed < 18) return;
+  if (speed < 18 || !state.build?.weaponId) return;
   const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
   const isKnife = state.build.weaponId === 'knife';
   const isKatana = state.build.weaponId === 'katana';
@@ -1572,7 +1639,8 @@ function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
 }
 
 function processStationaryKnifeArea(state) {
-  if (state.aiming || state.build.weaponId !== 'knife' || state.build.weaponLevel < 3) return;
+  const entry = getEquippedWeaponEntry(state, 'knife');
+  if (state.aiming || !entry || entry.level < 3) return;
   if (Math.hypot(state.actor.vx, state.actor.vy) > 8) return;
   const weapon = getWeaponStats('knife', 3);
   const effect = weapon.effect;
@@ -1782,6 +1850,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     bounds: state.physicsBounds,
     mutateMap: false,
     time: state.time,
+    zeroGravity: state.zeroGravity,
   });
   if ((state.actor.stunnedUntil ?? 0) > state.time) {
     state.actor.vx = 0;

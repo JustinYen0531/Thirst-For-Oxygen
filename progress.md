@@ -735,3 +735,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Reduced sandbox knife light pollution and frame cost: knife trails now use bounded normal alpha compositing, a maximum 8px main glow／4px side glow, six taper segments, six Lv.3 sparkle draws, and a dimmer six-spoke stationary area effect.
 - Moved the three active weapon buttons beside the attack controls. The first slot remains the GDD-required permanent knife slot, while slots 2 and 3 can now be selected by click or the `1`／`2`／`3` shortcuts; each button exposes its current level and pressed state.
 - Added regression coverage for activating every authored weapon slot and for the Lv.3 knife visual budget. Static-only verification passed: full `npm run check` (132/132), `npm run build`, and `git diff --check`; browser／Playwright validation remains intentionally skipped by user instruction.
+
+## 2026-08-09 — Step 91 complete
+
+- 沙盒入口現在會以空 Build 開始：武器與被動皆未裝備；三個武器槽都可選任何武器或「未裝備」，主槽不再強制小刀。正式流程仍保留初始小刀規則。
+- 將武器與被動控制整合成主槽／副槽／副副槽三欄群組，並保留各欄 Lv.3／Lv.2／Lv.1 上限與空槽狀態；已裝備武器仍可切換檢視焦點並同時測試。
+- 沙盒零重力改為真正的慣性模式：跳過重力、洋流、微流、特殊加速度與不等水阻，保持選定發射向量，不再出現左上發射時額外向上的偏差；邊界與碰撞仍由正式物理處理。
+- 新增空 Build／非小刀主槽與精準發射向量回歸測試。靜態 `npm run check` 通過（138/138），`npm run build` 與 `git diff --check` 也通過；瀏覽器／Playwright 依指示不執行。

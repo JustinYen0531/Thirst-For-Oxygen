@@ -907,7 +907,7 @@ function processOxygenClock(actor, dt, events) {
   }
 }
 
-export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null, gravityDirection = null }) {
+export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP, origin, bounds = WORLD_BOUNDS, mutateMap = true, time = null, gravityDirection = null, zeroGravity = false }) {
   const events = [];
   actor.hurtTimer = Math.max(0, (actor.hurtTimer ?? 0) - dt);
   if (actor.deathAnimation) {
@@ -938,11 +938,13 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
 
   const before = findCellContainingPoint(map, actor, chapter, origin);
   const activeCell = before?.cell;
-  const zoneGravity = actor.gravityImmunity > 0
+  const zoneGravity = zeroGravity
+    ? 0
+    : actor.gravityImmunity > 0
     ? 0
     : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY * getGravityDirection(map, gravityDirection);
-  const current = applyCurrentAcceleration(map, before?.key, chapter);
-  const microflow = getMicroflowAcceleration({
+  const current = zeroGravity ? { x: 0, y: 0 } : applyCurrentAcceleration(map, before?.key, chapter);
+  const microflow = zeroGravity ? { x: 0, y: 0 } : getMicroflowAcceleration({
     map,
     cellKey: before?.key,
     position: actor,
@@ -950,11 +952,11 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     origin,
     time,
   });
-  const special = actor.specialAcceleration ?? { x: 0, y: 0 };
-  const horizontalDrag = Math.pow(HORIZONTAL_WATER_DRAG, dt * 60);
-  const verticalDrag = Math.pow(VERTICAL_WATER_DRAG, dt * 60);
+  const special = zeroGravity ? { x: 0, y: 0 } : (actor.specialAcceleration ?? { x: 0, y: 0 });
+  const horizontalDrag = zeroGravity ? 1 : Math.pow(HORIZONTAL_WATER_DRAG, dt * 60);
+  const verticalDrag = zeroGravity ? 1 : Math.pow(VERTICAL_WATER_DRAG, dt * 60);
   actor.vx = (actor.vx + (current.x + microflow.x + special.x) * dt) * horizontalDrag;
-  if (Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
+  if (!zeroGravity && Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
   actor.vy = (actor.vy + (zoneGravity + current.y + microflow.y + special.y) * dt) * verticalDrag;
   const speed = Math.hypot(actor.vx, actor.vy);
   const speedLimit = actor.launchMomentumTimer > 0 ? MAX_LAUNCH_SPEED : MAX_SPEED;

@@ -883,6 +883,27 @@ test('sandbox player uses zero gravity while preserving launch direction', () =>
   assert.ok(state.actor.x > 150, 'horizontal launch momentum should remain available for combat testing');
 });
 
+test('sandbox zero gravity preserves the exact selected launch vector over time', () => {
+  const state = createSandboxState();
+  state.actor.x = 420;
+  state.actor.y = 280;
+  assert.equal(beginSandboxAim(state, { x: state.actor.x, y: state.actor.y }).ok, true);
+  updateSandboxAim(state, { x: state.actor.x + 160, y: state.actor.y + 120 });
+  assert.equal(releaseSandboxAim(state).launched, true);
+  const initialVelocity = { x: state.actor.vx, y: state.actor.vy };
+  const initialPosition = { x: state.actor.x, y: state.actor.y };
+  const dt = 0.25;
+
+  stepSandbox(state, dt);
+
+  assert.equal(state.zeroGravity, true);
+  assert.ok(initialVelocity.x < 0 && initialVelocity.y < 0, 'pulling down-right should launch upper-left');
+  assert.ok(Math.abs(state.actor.vx - initialVelocity.x) < 1e-9, 'horizontal launch velocity should not drift');
+  assert.ok(Math.abs(state.actor.vy - initialVelocity.y) < 1e-9, 'vertical launch velocity should not drift');
+  assert.ok(Math.abs((state.actor.x - initialPosition.x) - initialVelocity.x * dt) < 1e-9);
+  assert.ok(Math.abs((state.actor.y - initialPosition.y) - initialVelocity.y * dt) < 1e-9);
+});
+
 test('sandbox elastic launch moves the player and damages enemies on collision', () => {
   const state = createSandboxState();
   const enemy = spawnSandboxEnemy(state, 'juvenileSeahorseCaller', { x: state.actor.x + 20, y: state.actor.y });
