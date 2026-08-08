@@ -1,7 +1,9 @@
 .visor-hud {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  /* The frame is a decorative HUD skin. Keep it below depth/level cards so
+     the surrounding machinery can never hide critical readouts. */
+  z-index: 2;
   display: block;
   overflow: hidden;
   padding: 0;
