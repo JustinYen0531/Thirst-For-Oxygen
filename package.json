@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx vite --host 127.0.0.1",
     "build": "vite build",
-    "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --check src/game-data.js && node --check src/afterimage.js && node --check src/portal.js && node --check src/sandbox-sim.js && node --check src/sandbox-page.js && node --test tests/physics.test.mjs"
+    "generate:maps": "node scripts/generate-chapter-maps.mjs",
+    "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --check src/game-data.js && node --check src/afterimage.js && node --check src/portal.js && node --check src/sandbox-sim.js && node --check src/sandbox-page.js && node --check tests/maps.test.mjs && node --test tests/physics.test.mjs tests/maps.test.mjs"
   },
   "devDependencies": {
     "vite": "^7.3.1"
