@@ -159,7 +159,10 @@ const edgeImagePaths = {
   coralCluster: '/assets/editor/objects/coral-cluster.png',
   multiPortal: '/assets/editor/edges/multi-portal.png',
 };
-const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths };
+const actorImagePaths = {
+  playerStart: '/assets/editor/actors/player-diver.png',
+};
+const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths, ...actorImagePaths };
 const paletteLabels = {
   water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
   ink: '墨水區', coralCluster: '珊瑚群落',
@@ -198,14 +201,20 @@ const edgeImages = Object.fromEntries(Object.entries(edgeImagePaths).map(([kind,
   image.src = source;
   return [kind, image];
 }));
+const actorImages = Object.fromEntries(Object.entries(actorImagePaths).map(([kind, source]) => {
+  const image = new Image();
+  image.src = source;
+  return [kind, image];
+}));
 Object.values(waterTiles).forEach((image) => image.addEventListener('load', () => render()));
 conditionalGateImage.addEventListener('load', () => render());
 Object.values(terrainImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(objectImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(componentImages).forEach((image) => image.addEventListener('load', () => render()));
 Object.values(edgeImages).forEach((image) => image.addEventListener('load', () => render()));
+Object.values(actorImages).forEach((image) => image.addEventListener('load', () => render()));
 const actorSymbols = {
-  playerStart: 'P',
+  playerStart: 'D',
   enemySpawn: 'E',
   miniBossSpawn: 'M',
   bossSpawn: 'B',
@@ -748,6 +757,70 @@ function drawImageWithSilhouetteOutline(image, x, y, width, height, options = {}
   ctx.restore();
 }
 
+function drawPlayerDiver(position, height, options = {}) {
+  const image = actorImages.playerStart;
+  const time = state.animationTime;
+  const gameplay = options.gameplay === true;
+  const bob = Math.sin(time * 1.8 + position.x * 0.01) * (gameplay ? 1.2 : 0.45);
+  const sway = Math.sin(time * 1.35 + position.y * 0.008) * (gameplay ? 0.045 : 0.025);
+  const width = height * ((image?.naturalWidth || 1122) / (image?.naturalHeight || 1402));
+  const alpha = options.alpha ?? 0.98;
+  ctx.save();
+  ctx.translate(position.x, position.y + bob);
+  ctx.rotate(sway);
+  if (gameplay) {
+    const pulse = 0.5 + Math.sin(time * 3.4) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 0.08 + pulse * 0.08;
+    ctx.fillStyle = options.attached ? '#70e88e' : '#5de8ff';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 8 + pulse * 6;
+    ctx.beginPath();
+    ctx.ellipse(0, height * 0.08, width * 0.38, height * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  if (image?.complete && image.naturalWidth > 0) {
+    drawImageWithSilhouetteOutline(image, -width / 2, -height / 2, width, height, {
+      alpha,
+      radius: gameplay ? 0.58 : 0.42,
+      colour: options.attached ? 'rgba(166, 255, 191, 0.94)' : 'rgba(198, 248, 255, 0.9)',
+    });
+  } else {
+    // Keep a readable non-letter fallback while the generated asset loads.
+    ctx.fillStyle = options.attached ? '#70e88e' : '#eafaff';
+    ctx.strokeStyle = '#17334d';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(0, -height * 0.22, height * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillRect(-width * 0.2, -height * 0.02, width * 0.4, height * 0.42);
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.14, height * 0.4);
+    ctx.lineTo(-width * 0.34, height * 0.5);
+    ctx.moveTo(width * 0.14, height * 0.4);
+    ctx.lineTo(width * 0.34, height * 0.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  if (!gameplay) return;
+  for (let index = 0; index < 3; index += 1) {
+    const phase = time * (1.2 + index * 0.14) + index * 2.1;
+    const bubbleX = position.x + Math.sin(phase) * height * (0.18 + index * 0.06);
+    const bubbleY = position.y + bob - height * (0.46 + index * 0.13) - ((time * (5 + index) + index * 7) % 7);
+    ctx.save();
+    ctx.globalAlpha = 0.35 - index * 0.07;
+    ctx.strokeStyle = '#a6f5ff';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(bubbleX, bubbleY, 1.1 + index * 0.35, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function findNearestCell(point) {
   let nearest = null;
   Object.keys(state.map.cells).forEach((key) => {
@@ -1028,7 +1101,11 @@ function drawCellObjects(cell) {
     drawFreeObject(object, position);
   });
   cell.actors.forEach((actor, index) => {
-    drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
+    if (actor.kind === 'playerStart') {
+      drawPlayerDiver(center, HEX_SIZE * 2.55, { alpha: 0.98 });
+    } else {
+      drawText(actorSymbols[actor.kind] ?? '?', center.x - 6 + index * 5, center.y + 6, { font: 'bold 7px system-ui', fill: '#ffdde4' });
+    }
   });
 }
 
@@ -1621,16 +1698,10 @@ function drawTrajectory() {
 function drawTestActor() {
   if (state.mode !== 'play') return;
   const actor = state.actor;
-  ctx.save();
-  ctx.fillStyle = actor.attached ? '#70e88e' : '#fff9d3';
-  ctx.strokeStyle = '#132338';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(actor.x, actor.y, actor.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  drawText(actor.attached ? 'A' : 'P', actor.x, actor.y, { font: 'bold 20px system-ui', fill: '#16202d' });
-  ctx.restore();
+  drawPlayerDiver({ x: actor.x, y: actor.y }, actor.radius * 2.8, {
+    gameplay: true,
+    attached: actor.attached,
+  });
 }
 
 function drawInkMask() {
