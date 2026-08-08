@@ -49,6 +49,7 @@ const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
 const help = document.querySelector('#play-help');
 const eventsList = document.querySelector('#play-events');
+const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const images = new Map();
@@ -67,6 +68,7 @@ let aimPoint = null;
 let trajectory = [];
 let lastTrajectoryAt = -Infinity;
 let paused = false;
+let unlimitedResources = false;
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳主角，放開即可彈射。'];
@@ -106,6 +108,12 @@ function setupWorld(nextMap) {
   loadingMask.classList.add('is-hidden');
   updateCamera();
   updateHud();
+}
+
+function refillUnlimitedResources() {
+  if (!unlimitedResources || !actor) return;
+  actor.oxygen = MAX_OXYGEN;
+  actor.energy = MAX_ENERGY;
 }
 
 async function loadMap(part) {
@@ -209,7 +217,9 @@ function sameSurface(left, right) {
 
 function drawTerrainBoundaries() {
   const faintSharedBorder = { width: 0.5 / SCALE, colour: 'rgba(4, 16, 33, 0.23)' };
-  const clearTransitionBorder = { width: 1.25 / SCALE, colour: 'rgba(2, 12, 27, 0.78)' };
+  // Keep the transition in world units so the enlarged play camera produces
+  // the same deep, almost-black seam as the editor reference image.
+  const clearTransitionBorder = { width: 1.25, colour: 'rgba(1, 8, 18, 0.92)' };
   Object.entries(map.cells).forEach(([key, baseCell]) => {
     const cell = getActiveCell(map, key, 'chapter1');
     const center = getHexCenter(cell, origin);
@@ -296,16 +306,17 @@ function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (acto
 
 canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); refreshTrajectory(true); updateHud(); });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}（5×動量）`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
+unlimitedResourcesButton.addEventListener('click', () => { unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 mapSelect.addEventListener('change', () => loadMap(mapSelect.value));
 window.addEventListener('keydown', (event) => { if (event.key.toLowerCase() === 'r') resetButton.click(); if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); } if (event.key === 'Escape') window.location.href = '/home.html'; });
 
 function simulate(elapsed, now = performance.now()) {
-  if (!paused && map && actor) { accumulator += Math.min(.1, Math.max(0, elapsed)); while (accumulator >= FIXED_STEP) { addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 })); accumulator -= FIXED_STEP; } updateCamera(); updateHud(); }
+  if (!paused && map && actor) { accumulator += Math.min(.1, Math.max(0, elapsed)); while (accumulator >= FIXED_STEP) { refillUnlimitedResources(); addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 })); refillUnlimitedResources(); accumulator -= FIXED_STEP; } updateCamera(); updateHud(); }
 }
 
 window.render_game_to_text = () => JSON.stringify({
@@ -313,6 +324,7 @@ window.render_game_to_text = () => JSON.stringify({
   map: MAPS[mapPart]?.label ?? 'loading',
   camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
   player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), dragging } : null,
+  unlimitedResources,
   paused,
 });
 window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Math.max(0, milliseconds) / (1000 / 60))); for (let index = 0; index < steps; index += 1) simulate(FIXED_STEP, performance.now()); render(); };

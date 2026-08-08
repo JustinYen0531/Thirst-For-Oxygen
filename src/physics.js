@@ -30,12 +30,15 @@ export const GAME_GRAVITY = 230 * SIMULATION_SPEED_SCALE * GRAVITY_SCALE;
 // Preserve the familiar 0.1x feel for short pulls, while leaving headroom for
 // long launches to travel farther instead of hitting the old cap immediately.
 export const MAX_SPEED = 140;
+export const LAUNCH_MOMENTUM_MULTIPLIER = 5;
+export const MAX_LAUNCH_SPEED = MAX_SPEED * LAUNCH_MOMENTUM_MULTIPLIER;
 export const MAX_HEALTH = RESOURCE_LIMITS.health;
 export const MAX_OXYGEN = RESOURCE_LIMITS.oxygen;
 export const MAX_ENERGY = RESOURCE_LIMITS.energy;
 export const MAX_LIVES = RESOURCE_LIMITS.lives;
 export const EDGE_ATTACHMENT_HELP_RADIUS = 18;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
+const LAUNCH_MOMENTUM_DURATION = 0.75;
 const LAUNCH_LINEAR_DISTANCE = 90;
 const LAUNCH_LONG_DISTANCE_GAIN = 0.05;
 const LAUNCH_OXYGEN_BASE_COST = 2;
@@ -204,8 +207,8 @@ export function getMicroflowAcceleration({ map, cellKey, position, chapter = 'ch
 export function getLaunchSpeed(distance) {
   const shortDistance = Math.min(Math.max(0, distance), LAUNCH_LINEAR_DISTANCE);
   const excessDistance = Math.max(0, distance - LAUNCH_LINEAR_DISTANCE);
-  return LAUNCH_SPEED_PER_PIXEL * shortDistance
-    + LAUNCH_LONG_DISTANCE_GAIN * excessDistance ** 1.5;
+  return (LAUNCH_SPEED_PER_PIXEL * shortDistance
+    + LAUNCH_LONG_DISTANCE_GAIN * excessDistance ** 1.5) * LAUNCH_MOMENTUM_MULTIPLIER;
 }
 
 export function getLaunchCosts(distance, actor = null) {
@@ -231,6 +234,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     y: position.y,
     vx: 0,
     vy: 0,
+    launchMomentumTimer: 0,
     radius: 6,
     health: MAX_HEALTH,
     oxygen: MAX_OXYGEN,
@@ -366,6 +370,7 @@ export function launchActor(actor, pointer) {
   const speed = getLaunchSpeed(distance);
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
+  actor.launchMomentumTimer = LAUNCH_MOMENTUM_DURATION;
   actor.oxygen = clamp(actor.oxygen - costs.oxygen, 0, maxOxygenFor(actor));
   actor.energy = clamp(actor.energy - costs.energy, 0, MAX_ENERGY);
   return { launched: true, speed, distance, costs };
@@ -810,6 +815,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.cooldowns[key] = Math.max(0, actor.cooldowns[key] - dt);
   });
   actor.gravityImmunity = Math.max(0, actor.gravityImmunity - dt);
+  actor.launchMomentumTimer = Math.max(0, (actor.launchMomentumTimer ?? 0) - dt);
   actor.invulnerability = Math.max(0, actor.invulnerability - dt);
   actor.shieldTimer = Math.max(0, actor.shieldTimer - dt);
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
@@ -837,9 +843,10 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   if (Math.abs(actor.vx) < HORIZONTAL_STOP_SPEED) actor.vx = 0;
   actor.vy = (actor.vy + (zoneGravity + current.y + microflow.y + special.y) * dt) * verticalDrag;
   const speed = Math.hypot(actor.vx, actor.vy);
-  if (speed > MAX_SPEED) {
-    actor.vx = (actor.vx / speed) * MAX_SPEED;
-    actor.vy = (actor.vy / speed) * MAX_SPEED;
+  const speedLimit = actor.launchMomentumTimer > 0 ? MAX_LAUNCH_SPEED : MAX_SPEED;
+  if (speed > speedLimit) {
+    actor.vx = (actor.vx / speed) * speedLimit;
+    actor.vy = (actor.vy / speed) * speedLimit;
   }
   actor.x += actor.vx * dt;
   actor.y += actor.vy * dt;

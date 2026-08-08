@@ -25,6 +25,8 @@ import {
   MAX_HEALTH,
   MAX_LIVES,
   MAX_SPEED,
+  MAX_LAUNCH_SPEED,
+  LAUNCH_MOMENTUM_MULTIPLIER,
   SIMULATION_SPEED_SCALE,
   createTestActor,
   drainAimEnergy,
@@ -116,13 +118,13 @@ test('launch velocity is opposite the pull direction', () => {
   assert.ok(launch.speed > 0);
   assert.ok(actor.vx > 0);
   assert.equal(actor.vy, 0);
-  assert.ok(launch.speed < 30, 'launch speed should use the 0.1 simulation scale');
+  assert.ok(launch.speed > 100, 'launch speed should include the requested five-times momentum boost');
   assert.ok(actor.oxygen < 100, 'launch should consume oxygen');
   assert.ok(actor.energy < 100, 'launch should consume energy');
 });
 
 test('long launches gain extra speed while short launches keep the old scale', () => {
-  assert.equal(getLaunchSpeed(80), 23.2);
+  assert.equal(getLaunchSpeed(80), 116);
   assert.ok(getLaunchSpeed(240) > getLaunchSpeed(80) * 2.5);
   assert.ok(getLaunchSpeed(420) > getLaunchSpeed(240));
 });
@@ -147,6 +149,8 @@ test('all primary motion limits use the 0.1 simulation scale', () => {
   assert.equal(GRAVITY_SCALE, 0.5);
   assert.equal(GAME_GRAVITY, 11.5);
   assert.equal(MAX_SPEED, 140);
+  assert.equal(LAUNCH_MOMENTUM_MULTIPLIER, 5);
+  assert.equal(MAX_LAUNCH_SPEED, 700);
 });
 
 test('compact editor uses a rectangular odd-r grid with one-Cell player diameter', () => {
