@@ -180,6 +180,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-08 — Step 20 complete
 
+- Rebuilt `maps/下沉篇/下沉篇-第2部分.json` as an independent 20×96 hot-spring route instead of copying and simplifying the Part 3 template.
+- The new route uses four thermal chambers, alternating thermal banks, L1/L2/L3 gravity bands, alternating T1/T2 water layers, a conditional pressure seal, recovery objects, return currents, hazards, and a paired thermal-loop multi-portal. Its metadata now explicitly records independent generation.
+- Updated the map README and map tests to protect the independent design. Descent-map tests passed 4/4 and the production build passed. The full `npm run check` currently has one unrelated pre-existing physics failure in dirty `src/physics.js`; all map tests and syntax checks pass. Browser validation remains prohibited by user instruction.
+
+## 2026-08-08 — Step 20 complete
+
 - Added a shared official-settings contract for every Free Snap water object and editable Edge. New placements carry fixed official values, the Inspector can change one instance or restore that instance to the official defaults, and legacy Cell-centred objects remain selectable; selecting a legacy ink overlay promotes it to a configurable Free Snap object.
 - Water-object tuning now drives physics: ink visibility range, mine damage, weight-stone break speed and downward weight, oxygen-ore yield plus impact threshold, photosynthesis-bubble oxygen plus gravity-immunity time, and Torricelli oxygen recovery per second. Spring jelly bounce and spike damage are likewise Edge parameters; seaweed and coral expose size only.
 - Removed the selected-Cell neighbour connector lines. Fixed gravity levels remain explicit: L3 2.0G down, L2 1.5G down, L1 1.0G down, L0 0G, and L-1 1.0G up.

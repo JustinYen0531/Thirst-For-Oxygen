@@ -49,3 +49,14 @@ test('all generated multi-edge portals touch a blocked hex', () => {
     });
   });
 });
+
+test('part 2 is independently authored as a hot-spring route', () => {
+  const part2 = loadMap('下沉篇-第2部分.json');
+  const part3 = loadMap('下沉篇-第3部分.json');
+  assert.notDeepEqual(part2.layout, part3.layout);
+  assert.match(part2.metadata.designIntent, /獨立設計的熱泉脈衝路線/);
+  assert.equal(part2.metadata.source, '獨立生成（scripts/generate-chapter-maps.mjs）');
+  assert.equal(part2.metadata.difficulty, 'medium');
+  assert.ok(Object.values(part2.cells).some((cell) => cell.region === 'thermal-vent-rock'));
+  assert.ok(Object.values(part2.cells).some((cell) => cell.region === 'thermal-bank'));
+});

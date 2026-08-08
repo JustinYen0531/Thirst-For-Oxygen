@@ -4,6 +4,7 @@ import {
   DIRECTIONS,
   allMapEdges,
   cellKeyFromColumn,
+  createEmptyMap,
   edgeKey,
   neighborKey,
 } from '../src/map-model.js';
@@ -249,31 +250,106 @@ function buildPart1(source) {
 }
 
 function buildPart2(source) {
-  const map = prepareMap(source, {
+  // Part 2 is authored as its own hot-spring route. It intentionally does not
+  // clone or simplify the Part 3 template: the chamber rhythm, terrain mask,
+  // gravity bands, and interaction placement are all generated independently.
+  const width = 20;
+  const height = 96;
+  const map = createEmptyMap({ width, height });
+  map.version = 2;
+  map.chapterStates = {
+    chapter1: { cells: {}, edges: {} },
+    chapter2: { cells: {}, edges: {} },
+  };
+  map.metadata = {
     chapter: '下沉篇',
     part: 2,
     title: '下沉篇・第二部分｜穿越熱泉',
     difficulty: 'medium',
-    designIntent: '開始引入 L2、少量 L3、T2 與成對傳送門，障礙增加但仍保留可辨識的安全回復點。',
+    designIntent: '獨立設計的熱泉脈衝路線：以分段熱泉室、交錯重力帶與回流通道改變節奏，不沿用第三部分遺跡範本。',
+    source: '獨立生成（scripts/generate-chapter-maps.mjs）',
+    spawnPoints: '未放置',
+  };
+
+  const vents = [
+    { row: 12, column: 6 },
+    { row: 31, column: 14 },
+    { row: 51, column: 7 },
+    { row: 71, column: 13 },
+  ];
+  const chamberStarts = [0, 24, 45, 68];
+  Object.values(map.cells).forEach((cell) => {
+    const column = cell.q + Math.floor(cell.r / 2);
+    const chamber = chamberStarts.reduce((closest, start, index) => (
+      Math.abs(cell.r - start) < Math.abs(cell.r - chamberStarts[closest]) ? index : closest
+    ), 0);
+    cell.gravityLevel = chamber % 2 === 0 ? 'L1' : 'L2';
+    cell.waterLayer = chamber === 1 || chamber === 3 ? 'T2' : 'T1';
+    cell.region = `hot-spring-chamber-${chamber + 1}`;
+
+    // A solid outer crust frames the route, while the interior stays open for
+    // a readable thermal-channel silhouette rather than copied ruins.
+    if (column <= 0 || column >= width - 1) {
+      cell.terrain = 'blocked';
+      cell.gravityLevel = 'L0';
+      cell.waterLayer = 'T1';
+      cell.region = 'outer-crust';
+      return;
+    }
+
+    const vent = vents.reduce((closest, candidate) => (
+      Math.abs(cell.r - candidate.row) < Math.abs(cell.r - vents[closest].row) ? vents.indexOf(candidate) : closest
+    ), 0);
+    const activeVent = vents[vent];
+    const rowDistance = Math.abs(cell.r - activeVent.row);
+    const columnDistance = Math.abs(column - activeVent.column);
+    if ((rowDistance <= 2 && columnDistance <= 2 && rowDistance + columnDistance <= 3)
+      || (rowDistance === 3 && columnDistance <= 1)) {
+      cell.terrain = 'blocked';
+      cell.gravityLevel = 'L0';
+      cell.waterLayer = 'T1';
+      cell.region = 'thermal-vent-rock';
+    }
+
+    const bankPhase = Math.floor(cell.r / 12);
+    const bankSide = bankPhase % 2 === 0 ? column <= 5 : column >= width - 6;
+    if (bankSide && cell.r % 12 >= 6 && cell.r % 12 <= 10) {
+      cell.terrain = 'blocked';
+      cell.gravityLevel = 'L0';
+      cell.waterLayer = 'T1';
+      cell.region = 'thermal-bank';
+    }
+
+    // Each chamber bends its safe lane to the opposite side. The changing
+    // lane is the main Part 2 identity, not a lower-resolution Part 3 map.
+    const laneCenter = chamber % 2 === 0 ? 5 + (chamber * 2) : 14 - (chamber * 2);
+    if (cell.terrain === 'water' && cell.r % 16 >= 12 && Math.abs(column - laneCenter) >= 6) {
+      cell.gravityLevel = 'L2';
+      cell.waterLayer = 'T2';
+    }
+    if (cell.terrain === 'water' && cell.r % 16 <= 2 && Math.abs(column - laneCenter) <= 2) {
+      cell.gravityLevel = 'L3';
+      cell.waterLayer = 'T2';
+    }
   });
-  clearCellContent(map);
-  simplifyTerrain(map, 30, 'moderate');
+
   map.edges = {};
-  const gates = addConditionalGatePair(map, 58, 5, 6);
+  const gates = addConditionalGatePair(map, 47, 9, 10);
   const used = new Set();
   [
-    ['button', 44, 3], ['oxygen', 17, 18], ['bubble', 28, 7],
-    ['mine', 39, 20], ['torricelli', 51, 14], ['checkpoint', 63, 4],
-    ['weightStone', 73, 19], ['ink', 82, 6], ['razor', 91, 16],
-    ['oxygen', 101, 3], ['bubble', 110, 20], ['checkpoint', 115, 10],
+    ['oxygen', 5, 4], ['bubble', 10, 14], ['button', 18, 7],
+    ['torricelli', 25, 15], ['checkpoint', 32, 4], ['mine', 39, 12],
+    ['weightStone', 46, 5], ['ink', 54, 15], ['oxygen', 61, 7],
+    ['razor', 68, 13], ['bubble', 76, 4], ['checkpoint', 84, 15],
+    ['torricelli', 92, 8],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used, kind === 'button' ? { targetGates: gates } : {}));
-  addEdgeSet(map, 'springJelly', [18, 42, 67], 3);
-  addEdgeSet(map, 'spike', [33, 79], 2);
-  addEdgeSet(map, 'barrier', [54, 96], 2);
-  addEdgeSet(map, 'current', [26, 61, 103], 3);
-  addEdgeSet(map, 'seaweed', [48, 88], 2);
-  addEdgeSet(map, 'coralCluster', [72, 108], 2);
-  addLinkedPortal(map, 31, 86, 'descent-part2-portal', new Set());
+  addEdgeSet(map, 'current', [9, 28, 50, 73, 90], 5);
+  addEdgeSet(map, 'springJelly', [16, 36, 59, 82], 4);
+  addEdgeSet(map, 'spike', [23, 63], 2);
+  addEdgeSet(map, 'barrier', [43, 78], 2);
+  addEdgeSet(map, 'seaweed', [30, 69], 2);
+  addEdgeSet(map, 'coralCluster', [14, 56, 87], 3);
+  addLinkedPortal(map, 27, 70, 'descent-part2-thermal-loop', new Set());
   return map;
 }
 
