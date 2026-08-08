@@ -5121,41 +5121,41 @@
     "2,21": {
       "q": 2,
       "r": 21,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "3,21": {
       "q": 3,
       "r": 21,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "4,21": {
       "q": 4,
       "r": 21,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "5,21": {
       "q": 5,
@@ -5168,7 +5168,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "6,21": {
       "q": 6,
@@ -5181,7 +5181,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "7,21": {
       "q": 7,
@@ -5359,41 +5359,41 @@
     "1,22": {
       "q": 1,
       "r": 22,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "2,22": {
       "q": 2,
       "r": 22,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "3,22": {
       "q": 3,
       "r": 22,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "4,22": {
       "q": 4,
@@ -5406,7 +5406,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "5,22": {
       "q": 5,
@@ -5419,7 +5419,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "6,22": {
       "q": 6,
@@ -5593,67 +5593,67 @@
     "1,23": {
       "q": 1,
       "r": 23,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "2,23": {
       "q": 2,
       "r": 23,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "3,23": {
       "q": 3,
       "r": 23,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "4,23": {
       "q": 4,
       "r": 23,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "5,23": {
       "q": 5,
       "r": 23,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "6,23": {
       "q": 6,
@@ -5827,67 +5827,79 @@
     "0,24": {
       "q": 0,
       "r": 24,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "1,24": {
       "q": 1,
       "r": 24,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "2,24": {
       "q": 2,
       "r": 24,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "3,24": {
       "q": 3,
       "r": 24,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 17,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "4,24": {
       "q": 4,
       "r": 24,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "5,24": {
       "q": 5,
@@ -6061,67 +6073,67 @@
     "0,25": {
       "q": 0,
       "r": 25,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "1,25": {
       "q": 1,
       "r": 25,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "2,25": {
       "q": 2,
       "r": 25,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "3,25": {
       "q": 3,
       "r": 25,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "4,25": {
       "q": 4,
       "r": 25,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "5,25": {
       "q": 5,
@@ -6295,67 +6307,67 @@
     "-1,26": {
       "q": -1,
       "r": 26,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "0,26": {
       "q": 0,
       "r": 26,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "1,26": {
       "q": 1,
       "r": 26,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,26": {
       "q": 2,
       "r": 26,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "3,26": {
       "q": 3,
       "r": 26,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "4,26": {
       "q": 4,
@@ -6529,79 +6541,67 @@
     "-1,27": {
       "q": -1,
       "r": 27,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [
-        {
-          "kind": "torricelli",
-          "offset": {
-            "x": 0,
-            "y": 0
-          },
-          "size": 17,
-          "params": {
-            "oxygenRecoveryPerSecond": 20
-          }
-        }
-      ],
+      "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "0,27": {
       "q": 0,
       "r": 27,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "1,27": {
       "q": 1,
       "r": 27,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,27": {
       "q": 2,
       "r": 27,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "3,27": {
       "q": 3,
       "r": 27,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "4,27": {
       "q": 4,
@@ -6775,19 +6775,32 @@
     "-2,28": {
       "q": -2,
       "r": 28,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "-1,28": {
       "q": -1,
       "r": 28,
+      "terrain": "blocked",
+      "gravityLevel": "L0",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-spur-wall"
+    },
+    "0,28": {
+      "q": 0,
+      "r": 28,
       "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
@@ -6796,46 +6809,33 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
-    },
-    "0,28": {
-      "q": 0,
-      "r": 28,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,28": {
       "q": 1,
       "r": 28,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,28": {
       "q": 2,
       "r": 28,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "3,28": {
       "q": 3,
@@ -7009,19 +7009,32 @@
     "-2,29": {
       "q": -2,
       "r": 29,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "-1,29": {
       "q": -1,
       "r": 29,
+      "terrain": "blocked",
+      "gravityLevel": "L0",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-spur-wall"
+    },
+    "0,29": {
+      "q": 0,
+      "r": 29,
       "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
@@ -7030,46 +7043,33 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
-    },
-    "0,29": {
-      "q": 0,
-      "r": 29,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,29": {
       "q": 1,
       "r": 29,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,29": {
       "q": 2,
       "r": 29,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "3,29": {
       "q": 3,
@@ -7243,19 +7243,32 @@
     "-3,30": {
       "q": -3,
       "r": 30,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-spur-wall"
     },
     "-2,30": {
       "q": -2,
       "r": 30,
+      "terrain": "blocked",
+      "gravityLevel": "L0",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-spur-wall"
+    },
+    "-1,30": {
+      "q": -1,
+      "r": 30,
       "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
@@ -7264,46 +7277,33 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
-    },
-    "-1,30": {
-      "q": -1,
-      "r": 30,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "0,30": {
       "q": 0,
       "r": 30,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,30": {
       "q": 1,
       "r": 30,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,30": {
       "q": 2,
@@ -7472,7 +7472,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-3,31": {
       "q": -3,
@@ -7485,59 +7485,59 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-2,31": {
       "q": -2,
       "r": 31,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-1,31": {
       "q": -1,
       "r": 31,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "0,31": {
       "q": 0,
       "r": 31,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,31": {
       "q": 1,
       "r": 31,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "2,31": {
       "q": 2,
@@ -7706,7 +7706,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-4,32": {
       "q": -4,
@@ -7719,59 +7719,59 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-3,32": {
       "q": -3,
       "r": 32,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-2,32": {
       "q": -2,
       "r": 32,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-1,32": {
       "q": -1,
       "r": 32,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "0,32": {
       "q": 0,
       "r": 32,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,32": {
       "q": 1,
@@ -7940,7 +7940,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-4,33": {
       "q": -4,
@@ -7953,59 +7953,59 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "kelp-corridor"
+      "region": "torricelli-ascent-right"
     },
     "-3,33": {
       "q": -3,
       "r": 33,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-2,33": {
       "q": -2,
       "r": 33,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-1,33": {
       "q": -1,
       "r": 33,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "0,33": {
       "q": 0,
       "r": 33,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "1,33": {
       "q": 1,
@@ -8187,7 +8187,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-ascent-right"
     },
     "-5,34": {
       "q": -5,
@@ -8200,59 +8200,59 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-ascent-right"
     },
     "-4,34": {
       "q": -4,
       "r": 34,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-3,34": {
       "q": -3,
       "r": 34,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-2,34": {
       "q": -2,
       "r": 34,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "-1,34": {
       "q": -1,
       "r": 34,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-right"
     },
     "0,34": {
       "q": 0,
@@ -12530,59 +12530,59 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "-24,53": {
       "q": -24,
       "r": 53,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-spur-wall"
     },
     "-23,53": {
       "q": -23,
       "r": 53,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-spur-wall"
     },
     "-22,53": {
       "q": -22,
       "r": 53,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-spur-wall"
     },
     "-21,53": {
       "q": -21,
       "r": 53,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "buoyancy-grove"
+      "region": "torricelli-spur-wall"
     },
     "-20,53": {
       "q": -20,
@@ -12764,7 +12764,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "-25,54": {
       "q": -25,
@@ -12777,46 +12777,46 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-spur-wall"
     },
     "-24,54": {
       "q": -24,
       "r": 54,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-23,54": {
       "q": -23,
       "r": 54,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-22,54": {
       "q": -22,
       "r": 54,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-21,54": {
       "q": -21,
@@ -12990,67 +12990,67 @@
     "-26,55": {
       "q": -26,
       "r": 55,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-25,55": {
       "q": -25,
       "r": 55,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-24,55": {
       "q": -24,
       "r": 55,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-23,55": {
       "q": -23,
       "r": 55,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-22,55": {
       "q": -22,
       "r": 55,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-21,55": {
       "q": -21,
@@ -13237,67 +13237,79 @@
     "-27,56": {
       "q": -27,
       "r": 56,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-26,56": {
       "q": -26,
       "r": 56,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 17,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-25,56": {
       "q": -25,
       "r": 56,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-24,56": {
       "q": -24,
       "r": 56,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-23,56": {
       "q": -23,
       "r": 56,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-22,56": {
       "q": -22,
@@ -13471,57 +13483,70 @@
     "-27,57": {
       "q": -27,
       "r": 57,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-26,57": {
       "q": -26,
       "r": 57,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-25,57": {
       "q": -25,
       "r": 57,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-24,57": {
       "q": -24,
       "r": 57,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-23,57": {
       "q": -23,
+      "r": 57,
+      "terrain": "blocked",
+      "gravityLevel": "L0",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-spur-wall"
+    },
+    "-22,57": {
+      "q": -22,
       "r": 57,
       "terrain": "water",
       "gravityLevel": "L1",
@@ -13535,19 +13560,6 @@
           "kind": "enemySpawn"
         }
       ],
-      "region": "forest-threshold"
-    },
-    "-22,57": {
-      "q": -22,
-      "r": 57,
-      "terrain": "water",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
       "region": "forest-threshold"
     },
     "-21,57": {
@@ -13709,67 +13721,67 @@
     "-28,58": {
       "q": -28,
       "r": 58,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-27,58": {
       "q": -27,
       "r": 58,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-26,58": {
       "q": -26,
       "r": 58,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,58": {
       "q": -25,
       "r": 58,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-24,58": {
       "q": -24,
       "r": 58,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-23,58": {
       "q": -23,
@@ -13943,67 +13955,67 @@
     "-28,59": {
       "q": -28,
       "r": 59,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-27,59": {
       "q": -27,
       "r": 59,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-26,59": {
       "q": -26,
       "r": 59,
       "terrain": "water",
-      "gravityLevel": "L1",
+      "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,59": {
       "q": -25,
       "r": 59,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-24,59": {
       "q": -24,
       "r": 59,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-23,59": {
       "q": -23,
@@ -14177,32 +14189,45 @@
     "-29,60": {
       "q": -29,
       "r": 60,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,60": {
       "q": -28,
       "r": 60,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-27,60": {
       "q": -27,
       "r": 60,
+      "terrain": "water",
+      "gravityLevel": "L1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-ascent-left"
+    },
+    "-26,60": {
+      "q": -26,
+      "r": 60,
       "terrain": "blocked",
       "gravityLevel": "L0",
       "waterLayer": "T1",
@@ -14211,33 +14236,20 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
-    },
-    "-26,60": {
-      "q": -26,
-      "r": 60,
-      "terrain": "water",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-25,60": {
       "q": -25,
       "r": 60,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-24,60": {
       "q": -24,
@@ -14411,32 +14423,45 @@
     "-29,61": {
       "q": -29,
       "r": 61,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,61": {
       "q": -28,
       "r": 61,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-27,61": {
       "q": -27,
       "r": 61,
+      "terrain": "water",
+      "gravityLevel": "L1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-ascent-left"
+    },
+    "-26,61": {
+      "q": -26,
+      "r": 61,
       "terrain": "blocked",
       "gravityLevel": "L0",
       "waterLayer": "T1",
@@ -14445,45 +14470,20 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
-    },
-    "-26,61": {
-      "q": -26,
-      "r": 61,
-      "terrain": "water",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [
-        {
-          "kind": "torricelli",
-          "offset": {
-            "x": 0,
-            "y": 0
-          },
-          "size": 17,
-          "params": {
-            "oxygenRecoveryPerSecond": 20
-          }
-        }
-      ],
-      "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-25,61": {
       "q": -25,
       "r": 61,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-24,61": {
       "q": -24,
@@ -14657,32 +14657,45 @@
     "-30,62": {
       "q": -30,
       "r": 62,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,62": {
       "q": -29,
       "r": 62,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,62": {
       "q": -28,
       "r": 62,
+      "terrain": "water",
+      "gravityLevel": "L1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-ascent-left"
+    },
+    "-27,62": {
+      "q": -27,
+      "r": 62,
       "terrain": "blocked",
       "gravityLevel": "L0",
       "waterLayer": "T1",
@@ -14691,33 +14704,20 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
-    },
-    "-27,62": {
-      "q": -27,
-      "r": 62,
-      "terrain": "water",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-26,62": {
       "q": -26,
       "r": 62,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-25,62": {
       "q": -25,
@@ -14891,32 +14891,45 @@
     "-30,63": {
       "q": -30,
       "r": 63,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,63": {
       "q": -29,
       "r": 63,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,63": {
       "q": -28,
       "r": 63,
+      "terrain": "water",
+      "gravityLevel": "L1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "torricelli-ascent-left"
+    },
+    "-27,63": {
+      "q": -27,
+      "r": 63,
       "terrain": "blocked",
       "gravityLevel": "L0",
       "waterLayer": "T1",
@@ -14925,33 +14938,20 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
-    },
-    "-27,63": {
-      "q": -27,
-      "r": 63,
-      "terrain": "water",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-26,63": {
       "q": -26,
       "r": 63,
-      "terrain": "water",
-      "gravityLevel": "L1",
+      "terrain": "blocked",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-spur-wall"
     },
     "-25,63": {
       "q": -25,
@@ -15125,41 +15125,41 @@
     "-31,64": {
       "q": -31,
       "r": 64,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-30,64": {
       "q": -30,
       "r": 64,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,64": {
       "q": -29,
       "r": 64,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,64": {
       "q": -28,
@@ -15172,7 +15172,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-27,64": {
       "q": -27,
@@ -15185,7 +15185,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-26,64": {
       "q": -26,
@@ -15198,7 +15198,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,64": {
       "q": -25,
@@ -15211,7 +15211,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-24,64": {
       "q": -24,
@@ -15359,41 +15359,41 @@
     "-31,65": {
       "q": -31,
       "r": 65,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-30,65": {
       "q": -30,
       "r": 65,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,65": {
       "q": -29,
       "r": 65,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,65": {
       "q": -28,
@@ -15406,7 +15406,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-27,65": {
       "q": -27,
@@ -15419,7 +15419,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-26,65": {
       "q": -26,
@@ -15432,7 +15432,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,65": {
       "q": -25,
@@ -15445,7 +15445,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-24,65": {
       "q": -24,
@@ -15593,41 +15593,41 @@
     "-32,66": {
       "q": -32,
       "r": 66,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-31,66": {
       "q": -31,
       "r": 66,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-30,66": {
       "q": -30,
       "r": 66,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,66": {
       "q": -29,
@@ -15640,7 +15640,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-28,66": {
       "q": -28,
@@ -15653,7 +15653,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-27,66": {
       "q": -27,
@@ -15666,7 +15666,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-26,66": {
       "q": -26,
@@ -15679,7 +15679,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,66": {
       "q": -25,
@@ -15840,41 +15840,41 @@
     "-31,67": {
       "q": -31,
       "r": 67,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-30,67": {
       "q": -30,
       "r": 67,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-29,67": {
       "q": -29,
       "r": 67,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
+      "terrain": "water",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-wall"
+      "region": "torricelli-ascent-left"
     },
     "-28,67": {
       "q": -28,
@@ -15887,7 +15887,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-27,67": {
       "q": -27,
@@ -15900,7 +15900,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-26,67": {
       "q": -26,
@@ -15913,7 +15913,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "forest-threshold"
+      "region": "torricelli-ascent-left"
     },
     "-25,67": {
       "q": -25,
@@ -17021,34 +17021,48 @@
         "bounceMultiplier": 1.08
       }
     },
-    "-13,31|-14,31": {
+    "1,30|2,30": {
       "cells": [
-        "-14,31",
-        "-13,31"
+        "1,30",
+        "2,30"
       ],
       "type": "current",
       "blocksPassage": false,
+      "currentDirection": 5,
+      "currentStrength": 1.08,
+      "size": 1,
+      "params": {}
+    },
+    "-27,63|-28,63": {
+      "cells": [
+        "-28,63",
+        "-27,63"
+      ],
+      "type": "current",
+      "blocksPassage": false,
+      "currentDirection": 4,
+      "currentStrength": 1.18,
+      "size": 1,
+      "params": {}
+    },
+    "-26,61|-27,61": {
+      "cells": [
+        "-27,61",
+        "-26,61"
+      ],
+      "type": "spike",
+      "blocksPassage": true,
       "currentDirection": 0,
-      "currentStrength": 0.78,
+      "currentStrength": 0,
       "size": 1,
-      "params": {}
+      "params": {
+        "damage": 20
+      }
     },
-    "-15,58|-16,58": {
+    "-1,24|0,24": {
       "cells": [
-        "-16,58",
-        "-15,58"
-      ],
-      "type": "current",
-      "blocksPassage": false,
-      "currentDirection": 1,
-      "currentStrength": 0.9400000000000001,
-      "size": 1,
-      "params": {}
-    },
-    "-2,24|-3,24": {
-      "cells": [
-        "-3,24",
-        "-2,24"
+        "-1,24",
+        "0,24"
       ],
       "type": "seaweed",
       "blocksPassage": false,
@@ -17117,11 +17131,31 @@
       "補給林床",
       "熱泉門檻"
     ],
+    "mainAxisColumn": 8,
+    "torricelliDetours": [
+      {
+        "side": "right",
+        "objectRow": 24,
+        "objectColumn": 15,
+        "junctionRow": 31,
+        "junctionColumn": 12,
+        "ascentRows": 7
+      },
+      {
+        "side": "left",
+        "objectRow": 56,
+        "objectColumn": 2,
+        "junctionRow": 64,
+        "junctionColumn": 6,
+        "ascentRows": 8
+      }
+    ],
     "teachingSequence": [
       "氧氣礦石：先在安全直道練習以足夠速度撞開。",
       "彈簧水母＋氧氣：利用反彈取得偏離主路的補給。",
       "光合作用氣泡＋上浮水域：看懂暫時免疫重力的用途。",
       "海草＋潮流：練習先固定、觀察，再選擇發射時機。",
+      "托里切利空間：先越過偏軸岔口，再逆著下沉方向向上折返取得持續氧氣。",
       "珊瑚群落：先認得保護範圍，第二部分才加入傷害物。"
     ],
     "endGoal": "抵達森林底部的熱泉門檻。",

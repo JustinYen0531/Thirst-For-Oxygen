@@ -176,6 +176,23 @@ function addEdgeSet(map, type, rows) {
   });
 }
 
+function addEdgeNear(map, type, rowHint, columnHint, extra = {}) {
+  const used = new Set(Object.entries(map.edges).filter(([, edge]) => edge.type !== 'none').map(([key]) => key));
+  const entry = boundaryEdges(map, rowHint, used)
+    .sort((left, right) => {
+      const distance = (candidate) => {
+        const cells = [map.cells[candidate.a], map.cells[candidate.b]];
+        const row = Math.min(...cells.map((cell) => cell.r));
+        const column = Math.min(...cells.map(columnOf));
+        return Math.abs(row - rowHint) * 10 + Math.abs(column - columnHint);
+      };
+      return distance(left) - distance(right) || left.key.localeCompare(right.key);
+    })[0];
+  if (!entry) throw new Error(`row ${rowHint} column ${columnHint} 找不到可放置 ${type} 的邊界`);
+  addEdge(map, entry, type, extra);
+  return entry.key;
+}
+
 function addLayerPortal(map, rowHint) {
   const entry = allMapEdges(map)
     .filter(({ key, a, b }) => {
@@ -240,12 +257,39 @@ function paintPart1Terrain(map) {
     cell.gravityLevel = cell.r < 14 ? 'L0'
       : (cell.r >= 35 && cell.r <= 43 && column < center ? 'L-1' : 'L1');
     cell.waterLayer = 'T1';
-    const outsideRoute = column <= 0 || column >= map.layout.width - 1 || Math.abs(column - center) > halfWidth;
+    const firstTorricelliSpur = (
+      (cell.r >= 23 && cell.r <= 33 && column >= 14 && column <= 16)
+      || (cell.r >= 31 && cell.r <= 34 && column >= 11 && column <= 16)
+    );
+    const secondTorricelliSpur = (
+      (cell.r >= 55 && cell.r <= 66 && column >= 1 && column <= 3)
+      || (cell.r >= 64 && cell.r <= 67 && column >= 2 && column <= 7)
+    );
+    const outsideRoute = column <= 0 || column >= map.layout.width - 1
+      || (Math.abs(column - center) > halfWidth && !firstTorricelliSpur && !secondTorricelliSpur);
     const centralFork = cell.r >= 19 && cell.r <= 24 && column >= 7 && column <= 9;
     const leftRestWall = cell.r >= 37 && cell.r <= 41 && column >= 3 && column <= 5;
     const rightCanopy = cell.r >= 50 && cell.r <= 55 && column >= 11 && column <= 13;
     const finalNeedle = cell.r >= 62 && cell.r <= 65 && column === 8;
-    if (outsideRoute || centralFork || leftRestWall || rightCanopy || finalNeedle) makeRock(cell, outsideRoute ? 'forest-wall' : 'forest-island');
+    const firstSpurDivider = cell.r >= 21 && cell.r <= 30 && column >= 12 && column <= 13;
+    const firstSpurCap = cell.r >= 21 && cell.r <= 22 && column >= 14 && column <= 16;
+    const secondSpurDivider = cell.r >= 53 && cell.r <= 63 && column >= 4 && column <= 5;
+    const secondSpurCap = cell.r >= 53 && cell.r <= 54 && column >= 1 && column <= 3;
+    if (outsideRoute || centralFork || leftRestWall || rightCanopy || finalNeedle
+      || firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap) {
+      makeRock(cell, (firstSpurDivider || firstSpurCap || secondSpurDivider || secondSpurCap)
+        ? 'torricelli-spur-wall'
+        : outsideRoute ? 'forest-wall' : 'forest-island');
+      return;
+    }
+    if (firstTorricelliSpur) {
+      cell.region = 'torricelli-ascent-right';
+      cell.gravityLevel = cell.r <= 27 ? 'L-1' : 'L1';
+    }
+    if (secondTorricelliSpur) {
+      cell.region = 'torricelli-ascent-left';
+      cell.gravityLevel = cell.r <= 59 ? 'L-1' : 'L1';
+    }
   });
 }
 
@@ -257,11 +301,17 @@ function buildPart1() {
       chapter: '下沉篇', part: 1, title: '下沉篇・第一部分｜深海森林入口', difficulty: 'light',
       designIntent: '寬闊的蛇行教學路線，以森林島礁自然分流；先讀懂彈射、氧氣、上浮水域與檢查點，再進入熱泉。',
       routeBeats: ['安全入口', '雙側繞行礁', '上浮林間', '補給林床', '熱泉門檻'],
+      mainAxisColumn: 8,
+      torricelliDetours: [
+        { side: 'right', objectRow: 24, objectColumn: 15, junctionRow: 31, junctionColumn: 12, ascentRows: 7 },
+        { side: 'left', objectRow: 56, objectColumn: 2, junctionRow: 64, junctionColumn: 6, ascentRows: 8 },
+      ],
       teachingSequence: [
         '氧氣礦石：先在安全直道練習以足夠速度撞開。',
         '彈簧水母＋氧氣：利用反彈取得偏離主路的補給。',
         '光合作用氣泡＋上浮水域：看懂暫時免疫重力的用途。',
         '海草＋潮流：練習先固定、觀察，再選擇發射時機。',
+        '托里切利空間：先越過偏軸岔口，再逆著下沉方向向上折返取得持續氧氣。',
         '珊瑚群落：先認得保護範圍，第二部分才加入傷害物。',
       ],
       endGoal: '抵達森林底部的熱泉門檻。',
@@ -273,12 +323,14 @@ function buildPart1() {
   const used = new Set();
   [
     ['oxygen', 7, 7], ['bubble', 13, 11], ['checkpoint', 18, 4],
-    ['torricelli', 27, 12], ['oxygen', 34, 7], ['bubble', 40, 12],
-    ['checkpoint', 47, 5], ['oxygen', 55, 9], ['torricelli', 61, 4],
+    ['torricelli', 24, 15], ['oxygen', 34, 7], ['bubble', 40, 12],
+    ['checkpoint', 47, 5], ['oxygen', 55, 9], ['torricelli', 56, 2],
     ['checkpoint', 68, 10],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
   addEdgeSet(map, 'springJelly', [17, 44]);
-  addEdgeSet(map, 'current', [31, 58]);
+  addEdgeNear(map, 'current', 30, 15, { currentDirection: 5, currentStrength: 1.08 });
+  addEdgeNear(map, 'current', 63, 2, { currentDirection: 4, currentStrength: 1.18 });
+  addEdgeNear(map, 'spike', 61, 2);
   addEdgeSet(map, 'seaweed', [24, 52]);
   addEdgeSet(map, 'coralCluster', [10, 65]);
   return map;

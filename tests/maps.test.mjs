@@ -42,7 +42,7 @@ function canTraverse(map, fromKey, toKey) {
   return true;
 }
 
-function reachableKeysWithOpenedGates(map) {
+function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY } = {}) {
   const start = actorsOf(map, 'playerStart')[0]?.key;
   if (!start) return new Set();
   const visited = new Set([start]);
@@ -51,7 +51,7 @@ function reachableKeysWithOpenedGates(map) {
     const key = queue.shift();
     DIRECTIONS.forEach((_, direction) => {
       const next = neighborKey(key, direction);
-      if (visited.has(next) || !canTraverse(map, key, next)) return;
+      if (map.cells[next]?.r > maxRow || visited.has(next) || !canTraverse(map, key, next)) return;
       visited.add(next);
       queue.push(next);
     });
@@ -104,13 +104,36 @@ test('the trilogy uses every implemented free object and edge interaction', () =
   });
 });
 
-test('part 1 teaches recovery and movement before introducing damage objects', () => {
+test('part 1 teaches recovery and movement before advanced free-object traps', () => {
   const part1 = loadMap('下沉篇-第1部分.json');
   const kinds = new Set(freeObjectsOf(part1).map(({ object }) => object.kind));
   ['oxygen', 'bubble', 'torricelli', 'checkpoint'].forEach((kind) => assert.equal(kinds.has(kind), true));
   ['mine', 'weightStone', 'ink', 'razor', 'button'].forEach((kind) => assert.equal(kinds.has(kind), false));
-  assert.equal(part1.metadata.teachingSequence.length, 5);
+  assert.equal(part1.metadata.teachingSequence.length, 6);
   assert.ok(freeObjectsOf(part1).filter(({ object }) => object.kind === 'checkpoint').length >= 3);
+});
+
+test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
+  const part1 = loadMap('下沉篇-第1部分.json');
+  const torricelliObjects = freeObjectsOf(part1).filter(({ object }) => object.kind === 'torricelli');
+  assert.equal(part1.metadata.torricelliDetours.length, 2);
+  assert.equal(torricelliObjects.length, 2);
+  part1.metadata.torricelliDetours.forEach((detour) => {
+    const key = `${detour.objectColumn - Math.floor(detour.objectRow / 2)},${detour.objectRow}`;
+    const cell = part1.cells[key];
+    assert.equal(cell.freeObjects.some((object) => object.kind === 'torricelli'), true, `${key} should contain the Torricelli reward`);
+    assert.equal(cell.gravityLevel, 'L-1', `${key} should be an upward Torricelli pocket`);
+    assert.ok(Math.abs(detour.objectColumn - part1.metadata.mainAxisColumn) >= 6, `${key} should be visibly off the main axis`);
+    assert.ok(detour.junctionRow - detour.objectRow >= 7, `${key} should require a meaningful upward return`);
+    assert.equal(reachableKeysWithOpenedGates(part1).has(key), true, `${key} should be reachable through its lower junction`);
+    assert.equal(
+      reachableKeysWithOpenedGates(part1, { maxRow: detour.junctionRow - 1 }).has(key),
+      false,
+      `${key} must not be reachable before descending to the lower junction`,
+    );
+  });
+  assert.equal(Object.values(part1.edges).filter((edge) => edge.type === 'current').length, 2);
+  assert.equal(Object.values(part1.edges).filter((edge) => edge.type === 'spike').length, 1);
 });
 
 test('part 2 combines every advanced object and places its button before its gate', () => {

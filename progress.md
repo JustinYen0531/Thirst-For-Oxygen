@@ -566,3 +566,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added one real player start per map plus enemy, Mini Boss, and Boss markers, and made the standalone play page honor each authored start instead of falling back to the map centre.
 - Established a teach-then-combine curve that uses every implemented free object and Edge interaction across the trilogy. Focused map checks cover structural validity, route connectivity, complete mechanic coverage, button-before-gate order, difficulty growth, and exact preservation of the player's Part 3 geometry.
 - Static-only verification passed: focused map checks (8/8), full `npm run check` (74/74 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
+
+## 2026-08-09 — Step 69 complete
+
+- Corrected Part 1's Torricelli-space interpretation: each reward is now an L-1 pocket at least six columns off the main axis, sealed from above so the player must first descend past its junction and then reverse upward by seven or eight rows.
+- The first right-side detour teaches the reversal with a downward return current. The second left-side detour is longer and combines a stronger return current with a spike at the narrow throat.
+- Added a focused structural test that proves neither Torricelli reward can be reached without first descending to its lower junction. Static-only verification passed: focused map checks (9/9), full `npm run check` (75/75 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
