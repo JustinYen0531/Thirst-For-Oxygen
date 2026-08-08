@@ -187,6 +187,22 @@ function applyBuild() {
   status.textContent = `已套用 ${state.build.weapons.map((weapon) => `${WEAPONS[weapon.id].name} Lv.${weapon.level}`).join('、')} 與 ${passives.length} 個被動技能。`;
 }
 
+function playerAttackStatus(result) {
+  const weapon = WEAPONS[state.build.weaponId];
+  if (!result.ok) {
+    if (result.reason === 'cooldown') return `${weapon.name} 斬擊仍在冷卻中。`;
+    return `目前沒有可展示的${weapon.name}效果。`;
+  }
+  if (state.build.weaponId === 'katana') {
+    const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSlash');
+    const wave = state.effects.some((effect) => effect.type === 'katanaWave');
+    const power = slash?.empowered ? '強化弧斬（雙倍傷害）' : '瞬發弧斬';
+    return `武士刀 Lv.${state.build.weaponLevel} ${power}${wave ? '＋外弧劍氣' : ''}${result.hit ? '，命中目標。' : '。'} `;
+  }
+  if (state.build.weaponId === 'knife') return `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出${result.hit ? '並命中目標。' : '。'}`;
+  return `${weapon.name} Lv.${state.build.weaponLevel} 已發動${result.hit ? '並命中目標。' : '。'}`;
+}
+
 function renderProgression() {
   const progress = getExperienceProgress(state.progression);
   const orbLabel = state.experienceOrbs.length ? `${state.experienceOrbs.length} 顆留在場上的光點` : '目前沒有留在場上的光點';
@@ -377,6 +393,14 @@ function renderEffects() {
   });
   state.effects.forEach((effect) => {
     const progress = effect.elapsed / effect.duration;
+    if (effect.type === 'katanaSlash' && effect.style === 'katanaArcSlash') {
+      renderKatanaArcSlash(effect, progress);
+      return;
+    }
+    if (effect.type === 'katanaWave' && effect.style === 'katanaOuterArcWave') {
+      renderKatanaOuterArcWave(effect, progress);
+      return;
+    }
     if (effect.type === 'playerSlash' && effect.style === 'knifeMeteor') {
       renderKnifeMeteorEffect(effect, progress, false);
       return;
@@ -406,6 +430,55 @@ function renderEffects() {
     }
     ctx.restore();
   });
+}
+
+function renderKatanaArcSlash(effect, progress) {
+  const fade = Math.max(0, 1 - Math.max(0, Math.min(1, progress)));
+  const arcHalf = ((effect.arcDegrees ?? 110) * Math.PI) / 360;
+  const start = effect.angle - arcHalf;
+  const end = effect.angle + arcHalf;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = fade;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = effect.colour ?? '#73d9ff';
+  ctx.shadowColor = effect.glowColour ?? effect.colour ?? '#9be8ff';
+  ctx.shadowBlur = effect.empowered ? 20 : 12;
+  ctx.lineWidth = effect.lineWidth ?? 3;
+  ctx.beginPath();
+  ctx.arc(effect.x, effect.y, effect.radius, start, end);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = effect.coreColour ?? '#effcff';
+  ctx.lineWidth = effect.coreLineWidth ?? 1.2;
+  ctx.beginPath();
+  ctx.arc(effect.x, effect.y, effect.radius, start, end);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderKatanaOuterArcWave(effect, progress) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const radius = (effect.innerRadius ?? 24) + ((effect.radius ?? 76) - (effect.innerRadius ?? 24)) * safeProgress;
+  const arcHalf = ((effect.arcDegrees ?? 96) * Math.PI) / 360;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = Math.max(0, 1 - safeProgress);
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = effect.colour ?? '#70f6ff';
+  ctx.shadowColor = effect.glowColour ?? '#b8fbff';
+  ctx.shadowBlur = 18;
+  ctx.lineWidth = effect.thickness ?? effect.lineWidth ?? 8;
+  ctx.beginPath();
+  ctx.arc(effect.x, effect.y, radius, effect.angle - arcHalf, effect.angle + arcHalf);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#efffff';
+  ctx.lineWidth = Math.max(1.5, (effect.lineWidth ?? 4) * 0.42);
+  ctx.beginPath();
+  ctx.arc(effect.x, effect.y, radius, effect.angle - arcHalf, effect.angle + arcHalf);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function pointAlongEffect(effect, ratio) {
@@ -558,8 +631,9 @@ function renderAimPreview() {
 
 function renderEnemyMarkers() {
   state.enemies.forEach((enemy) => {
+    if (enemy.hidden) return;
     ctx.save();
-    ctx.strokeStyle = enemy.instanceId === state.selectedEnemyInstanceId ? '#f6e66d' : 'rgba(202, 232, 255, .65)';
+    ctx.strokeStyle = enemy.enraged ? '#ff7b8d' : enemy.instanceId === state.selectedEnemyInstanceId ? '#f6e66d' : 'rgba(202, 232, 255, .65)';
     ctx.lineWidth = enemy.instanceId === state.selectedEnemyInstanceId ? 2.5 : 1;
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, enemy.radius + 6, 0, Math.PI * 2);
@@ -598,6 +672,7 @@ function renderSprites() {
       image.height = size;
       image.style.left = `${(enemy.x / SANDBOX_WIDTH) * 100}%`;
       image.style.top = `${(enemy.y / SANDBOX_HEIGHT) * 100}%`;
+      image.style.opacity = enemy.hidden ? '0.08' : '1';
     } else {
       let fallback = sprites.querySelector(`[data-instance-id="${enemy.instanceId}"]`);
       if (!fallback || fallback.tagName !== 'DIV') {
@@ -612,6 +687,7 @@ function renderSprites() {
       fallback.style.height = `${enemy.radius * 2.1}px`;
       fallback.style.left = `${(enemy.x / SANDBOX_WIDTH) * 100}%`;
       fallback.style.top = `${(enemy.y / SANDBOX_HEIGHT) * 100}%`;
+      fallback.style.opacity = enemy.hidden ? '0.08' : '1';
     }
   });
   sprites.querySelectorAll('[data-instance-id]').forEach((element) => {
@@ -684,9 +760,7 @@ document.querySelector('#clear-enemies').addEventListener('click', () => { clear
 document.querySelector('#apply-build').addEventListener('click', () => { applyBuild(); render(); });
 document.querySelector('#player-attack').addEventListener('click', () => {
   const result = playerAttack(state);
-  status.textContent = result.ok
-    ? `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出${result.hit ? '並命中目標。' : '。'}`
-    : result.reason === 'cooldown' ? '小刀刀痕仍在冷卻中。' : '目前沒有可展示的小刀刀痕。';
+  status.textContent = playerAttackStatus(result);
   render();
 });
 document.querySelector('#test-skill').addEventListener('click', () => { executeEnemySkill(state); render(); });
@@ -761,7 +835,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === ' ') {
     event.preventDefault();
     const result = playerAttack(state);
-    status.textContent = result.ok ? `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出。` : '小刀刀痕目前仍在冷卻中。';
+    status.textContent = playerAttackStatus(result);
     render();
   }
   if (event.key.toLowerCase() === 'e') { executeEnemySkill(state); render(); }
@@ -771,7 +845,7 @@ window.addEventListener('keydown', (event) => {
 window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'L1', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   build: state.build,
   progression: {
@@ -792,6 +866,10 @@ window.render_game_to_text = () => JSON.stringify({
   effects: state.effects.map((effect) => ({
     type: effect.type,
     style: effect.style,
+    colour: effect.colour,
+    empowered: effect.empowered,
+    hitCount: effect.hitCount,
+    destroyedProjectiles: effect.destroyedProjectiles,
     sparkleCount: effect.sparkleCount,
     elapsed: format(effect.elapsed),
     duration: format(effect.duration),

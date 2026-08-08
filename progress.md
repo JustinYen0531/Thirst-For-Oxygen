@@ -654,3 +654,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added first-contact visor identification with a green corner reticle, leader line, category, object name, and typed functional explanation. A guide remains while its first instance is visible, disappears when that instance leaves the viewport, and cannot repeat for that type until a full page refresh creates a new session.
 - Covered Cell objects, free-snap objects, edge attachments, conditional gates, and authored enemies. Map changes clear only active callouts while preserving the current session's already-seen types.
 - Static-only verification passed: focused discovery checks (3/3), full `npm run check` (100/100), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 79 in progress
+
+- Implemented a separate katana combat/effect contract instead of reusing the knife meteor trails. The katana now performs a short near-range arc slash at roughly two Cell widths.
+- Lv.2 marks the next slash after movement as empowered: it changes colour, becomes visibly thicker, and applies double damage once. Lv.3 inherits that state and adds an outward expanding sword-qi effect rendered as only the outer arc; it removes enemy projectiles intersecting that arc.
+- Added sandbox rendering, dynamic attack feedback, focused progression coverage, and clarified `GDD/05_內容/武器/武士刀.md`. A pre-existing sandbox enemy-instance tier omission was also repaired because the current link-support regression depended on that field.
+- Focused progression tests pass (27/27). Full static check, build, diff check, scoped Git commit, and push remain to be completed. Browser/Playwright validation remains intentionally skipped per user instruction.

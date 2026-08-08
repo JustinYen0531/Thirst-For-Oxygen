@@ -135,13 +135,15 @@ function setAnimation(enemy, skillId, time) {
 }
 
 function addEffect(state, effect) {
-  state.effects.push({
+  const nextEffect = {
     id: state.nextEffectId++,
     startedAt: state.time,
     elapsed: 0,
     duration: 0.8,
     ...effect,
-  });
+  };
+  state.effects.push(nextEffect);
+  return nextEffect;
 }
 
 function beginSuicideCharge(state, enemy, skill) {
@@ -204,6 +206,7 @@ function updateSuicideCharge(state, enemy, dt) {
 
 function syncSandboxBuild(state) {
   const active = getActiveWeapon(state.progression);
+  const previousWeaponId = state.build?.weaponId;
   state.build = {
     weaponId: active.id,
     weaponLevel: active.level,
@@ -212,6 +215,7 @@ function syncSandboxBuild(state) {
     passives: state.progression.passives.map((passive) => ({ ...passive })),
   };
   setPlayerLoadout(state.actor, state.build.passives, active);
+  if (previousWeaponId !== active.id) state.actor.katanaEmpoweredNextSlash = false;
   return state.build;
 }
 
@@ -295,6 +299,10 @@ function applyPlayerDamage(state, amount, source, damageType = 'generic') {
 
 function damageEnemy(state, enemy, amount, source) {
   if (!enemy || enemy.defeated) return 0;
+  if (enemy.enemyId === 'coralBackSeahorse' && (enemy.linkedTargets?.length ?? (enemy.linkedTarget ? 1 : 0)) > 0) {
+    logEvent(state, `${enemyDefinition(enemy).name} 仍受生命連結保護，必須先清除 Lv.2 夥伴。`, 'warning');
+    return 0;
+  }
   const linkedProtector = enemy.linkedProtection
     ? state.enemies.find((candidate) => candidate.instanceId === enemy.linkedProtection && !candidate.defeated)
     : null;
@@ -370,6 +378,10 @@ function spawnProjectile(state, source, options) {
     applies: options.applies ?? null,
     effectDuration: options.effectDuration ?? 0,
     persistent: Boolean(options.persistent),
+    spiral: Boolean(options.spiral),
+    spiralRate: options.spiralRate ?? 0,
+    spiralInterval: options.spiralInterval ?? 0.24,
+    nextSpiralAt: options.nextSpiralAt ?? 0.24,
     radius: options.radius ?? 6,
     colour: options.colour ?? '#a5e8ff',
   });
@@ -392,13 +404,16 @@ function spawnSkillProjectiles(state, enemy, skill, type = skill.type) {
       applies: skill.applies,
       effectDuration: skill.duration,
       persistent: skill.persistent,
+      spiral: skill.id === 'dualCoreMagic' || skill.id === 'mutantDualCoreMagic',
+      spiralRate: index % 2 === 0 ? 1.8 : -1.8,
+      spiralInterval: 0.24,
     });
   }
 }
 
 function shouldTelegraphSkill(skill) {
   if (!skill) return false;
-  if (skill.type === 'lobbed' || skill.type === 'suicideCharge') return false;
+  if (skill.type === 'lobbed' || skill.type === 'suicideCharge' || skill.id === 'beaconAssault') return false;
   return Number(skill.castTime ?? skill.telegraph ?? 0) > 0;
 }
 
@@ -415,6 +430,7 @@ function startEnemySkillCast(state, enemy, skill) {
     targetX: state.actor.x,
     targetY: state.actor.y,
   };
+  if (enemy.enemyId === 'squidAssassin' && skill.id === 'inkShadowSlash') enemy.hidden = true;
   enemy.state = 'casting';
   enemy.animationUntil = state.time + duration;
   addEffect(state, {
@@ -427,6 +443,12 @@ function startEnemySkillCast(state, enemy, skill) {
   });
   logEvent(state, `${enemyDefinition(enemy).name} 進入 ${skill.name} 預警，${duration.toFixed(1)} 秒後施放。`, 'warning');
   return true;
+}
+
+function splitSkillValue(enemy, skill, key, fallback) {
+  const generation = Math.max(0, Number(enemy.splitGeneration ?? 0));
+  if (enemy.enemyId !== 'splitLanternfish' || generation <= 0) return skill[key] ?? fallback;
+  return (skill[key] ?? fallback) * (0.72 ** generation);
 }
 
 function areaDamage(state, origin, radius, damage, source, damageType = 'area') {
@@ -459,6 +481,7 @@ function summonFromSkill(state, enemy, skill) {
 export function createSandboxState() {
   const actor = createTestActor({ x: 150, y: SANDBOX_HEIGHT / 2 });
   actor.activeEffects = {};
+  actor.katanaEmpoweredNextSlash = false;
   actor.stunnedUntil = 0;
   const state = {
     time: 0,
@@ -507,6 +530,7 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
     enemyId,
     x: clamp(position.x, 32, SANDBOX_WIDTH - 32),
     y: clamp(position.y, 32, SANDBOX_HEIGHT - 32),
+    tier: definition.tier,
     vx: 0,
     vy: 0,
     moveSpeed: definition.moveSpeed,
@@ -519,10 +543,15 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
     nextAutoAt: 0,
     nextAutoSkillIndex: 0,
     linkedTarget: null,
+    linkedTargets: [],
     linkedProtection: null,
     splitGeneration: 0,
     enraged: false,
     pendingSkill: null,
+    beacon: null,
+    stunnedUntil: 0,
+    rescueCompleted: false,
+    hidden: false,
     defeated: false,
     cooldowns: {},
     activeEffects: {},
@@ -563,6 +592,7 @@ export function setSandboxBuild(state, { weaponId = 'knife', weaponLevel = 1, pa
   state.actor.health = MAX_HEALTH;
   state.actor.oxygen = MAX_OXYGEN;
   state.actor.energy = MAX_ENERGY;
+  state.actor.katanaEmpoweredNextSlash = false;
   return state.build;
 }
 
@@ -587,6 +617,7 @@ export function resetSandboxPlayer(state) {
   state.actor.stunnedUntil = 0;
   state.actor.inInk = false;
   state.actor.inkUntil = 0;
+  state.actor.katanaEmpoweredNextSlash = false;
   state.aiming = false;
   state.aimPoint = null;
   logEvent(state, '玩家已重置。', 'safe');
@@ -649,6 +680,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   const definition = enemyDefinition(enemy);
   const skill = definition.attacks.find((candidate) => candidate.id === skillId) ?? definition.attacks[0];
   if (!skill) return { ok: false, reason: 'skill' };
+  if (enemy.rescueCompleted && skill.id === 'callForHelp' && !options.resolve) return { ok: false, reason: 'completed' };
   if (enemy.suicideCharge) return { ok: false, reason: 'busy' };
   // Manual sandbox selection is an inspection tool: choosing another skill
   // cancels the previous preview so every authored skill can be tested
@@ -656,6 +688,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   if (enemy.pendingSkill && !options.resolve) {
     enemy.pendingSkill = null;
     enemy.state = 'idle';
+    enemy.hidden = false;
   }
   if (!options.resolve && (enemy.cooldowns[skill.id] ?? 0) > 0) {
     logEvent(state, `${skill.name} 冷卻中：${enemy.cooldowns[skill.id].toFixed(1)} 秒。`, 'warning');
@@ -675,7 +708,11 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       beginSuicideCharge(state, enemy, skill);
       break;
     case 'contact':
-      if (distance <= (skill.radius ?? 42) + enemy.radius + state.actor.radius) areaDamage(state, enemy, skill.radius ?? 42, skill.damage ?? 0, source);
+      if (distance <= splitSkillValue(enemy, skill, 'radius', 42) + enemy.radius + state.actor.radius) {
+        const contactRadius = splitSkillValue(enemy, skill, 'radius', 42);
+        areaDamage(state, enemy, contactRadius, skill.damage ?? 0, source);
+        if (skill.id === 'wingRam') applyKnockback(state, enemy, contactRadius, 105);
+      }
       break;
     case 'melee':
       if (distance <= (skill.range ?? 48) + enemy.radius + state.actor.radius) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
@@ -684,8 +721,33 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
     case 'dash':
     case 'teleportMelee': {
       const angle = angleBetween(enemy, state.actor);
-      enemy.x = clamp(state.actor.x - Math.cos(angle) * 28, 32, SANDBOX_WIDTH - 32);
-      enemy.y = clamp(state.actor.y - Math.sin(angle) * 28, 32, SANDBOX_HEIGHT - 32);
+      if (skill.type === 'dash') {
+        const dashDistance = Math.min(skill.range ?? 150, Math.max(0, distance - 28));
+        const nextX = enemy.x + Math.cos(angle) * dashDistance;
+        const nextY = enemy.y + Math.sin(angle) * dashDistance;
+        const clampedX = clamp(nextX, 32, SANDBOX_WIDTH - 32);
+        const clampedY = clamp(nextY, 32, SANDBOX_HEIGHT - 32);
+        enemy.x = clampedX;
+        enemy.y = clampedY;
+        if (Math.abs(nextX - clampedX) > 0.01 || Math.abs(nextY - clampedY) > 0.01) {
+          enemy.stunnedUntil = state.time + 0.45;
+          enemy.state = 'stunned';
+          addEffect(state, { type: 'selfStun', x: enemy.x, y: enemy.y, radius: enemy.radius + 8, duration: 0.45, colour: '#9db7cc' });
+        }
+      } else if (skill.id === 'beaconAssault' && !options.beaconResolve) {
+        enemy.beacon = {
+          targetX: state.actor.x,
+          targetY: state.actor.y,
+          remaining: 0.8,
+          skillId: skill.id,
+        };
+        addEffect(state, { type: 'beacon', x: enemy.beacon.targetX, y: enemy.beacon.targetY, radius: 18, duration: 0.8, colour: '#f6e66d' });
+        logEvent(state, `${definition.name} 投出信標，0.8 秒後突襲。`, 'warning');
+        break;
+      } else {
+        enemy.x = clamp(state.actor.x - Math.cos(angle) * 28, 32, SANDBOX_WIDTH - 32);
+        enemy.y = clamp(state.actor.y - Math.sin(angle) * 28, 32, SANDBOX_HEIGHT - 32);
+      }
       if (distanceBetween(enemy, state.actor) <= (skill.range ?? 150) + enemy.radius + state.actor.radius) applyPlayerDamage(state, skill.damage ?? 0, source, 'melee');
       if (skill.inkDuration) {
         state.actor.inInk = true;
@@ -701,13 +763,32 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       spawnSkillProjectiles(state, enemy, skill);
       break;
     case 'lobbed':
-      state.zones.push({ x: state.actor.x, y: state.actor.y, radius: skill.radius ?? 56, delay: skill.telegraph ?? 1, damage: skill.damage ?? 0, source, elapsed: 0, triggered: false, knockback: skill.knockback ?? 0 });
+      state.zones.push({
+        x: state.actor.x,
+        y: state.actor.y,
+        radius: skill.radius ?? 56,
+        delay: skill.telegraph ?? 1,
+        damage: skill.damage ?? 0,
+        source,
+        ownerId: enemy.instanceId,
+        elapsed: 0,
+        triggered: false,
+        knockback: skill.knockback ?? (skill.id.toLowerCase().includes('arctide') ? 105 : 0),
+        spreadCount: skill.id.toLowerCase().includes('mortar') ? 3 : 0,
+        spreadDegrees: skill.id.toLowerCase().includes('mortar') ? 42 : 0,
+        spreadSpeed: skill.id.toLowerCase().includes('mortar') ? 205 : 0,
+        spreadDamage: skill.id.toLowerCase().includes('mortar') ? (skill.damage ?? 0) * 0.65 : 0,
+      });
       addEffect(state, { type: 'telegraph', x: state.actor.x, y: state.actor.y, radius: skill.radius ?? 56, duration: skill.telegraph ?? 1, colour: '#ffb86e' });
       break;
     case 'areaStun':
     case 'gravityField':
     case 'destroyableGravityOrb':
       areaDamage(state, enemy, skill.radius ?? 100, skill.damage ?? 0, source);
+      if (skill.type === 'areaStun') {
+        applyKnockback(state, enemy, skill.radius ?? 100, 72);
+        addEffect(state, { type: 'stunWave', x: enemy.x, y: enemy.y, radius: skill.radius ?? 100, duration: 0.75, colour: '#9ed9ff' });
+      }
       state.rules.push({ label: skill.type, remaining: skill.duration ?? 2, multiplier: skill.gravityMultiplier ?? 1 });
       if (skill.stun) {
         state.actor.stunnedUntil = Math.max(state.actor.stunnedUntil ?? 0, state.time + skill.stun);
@@ -735,11 +816,16 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
       addEffect(state, { type: 'support', x: enemy.x, y: enemy.y, radius: skill.radius ?? 110, duration: 0.9, colour: '#80f2c2' });
       break;
     case 'link':
-      enemy.linkedTarget = activeEnemies(state).find((candidate) => candidate.instanceId !== enemy.instanceId && distanceBetween(enemy, candidate) <= (skill.linkRange ?? 180))?.instanceId ?? null;
-      if (enemy.linkedTarget) {
-        const target = state.enemies.find((candidate) => candidate.instanceId === enemy.linkedTarget);
+      enemy.linkedTargets = activeEnemies(state)
+        .filter((candidate) => candidate.instanceId !== enemy.instanceId
+          && candidate.tier === 2
+          && distanceBetween(enemy, candidate) <= (skill.linkRange ?? 180))
+        .map((candidate) => candidate.instanceId);
+      enemy.linkedTarget = enemy.linkedTargets[0] ?? null;
+      enemy.linkedTargets.forEach((targetId) => {
+        const target = state.enemies.find((candidate) => candidate.instanceId === targetId);
         if (target) target.linkedProtection = enemy.instanceId;
-      }
+      });
       addEffect(state, { type: 'link', x: enemy.x, y: enemy.y, radius: skill.linkRange ?? 180, duration: 1.2, colour: '#ff9ae6' });
       break;
     case 'reflectedBeam':
@@ -803,6 +889,113 @@ function knifeDirection(state, target = null) {
   const velocityLength = Math.hypot(state.actor.vx, state.actor.vy);
   if (velocityLength > 0) return { x: state.actor.vx / velocityLength, y: state.actor.vy / velocityLength };
   return { x: state.actor.facing === 'left' ? -1 : 1, y: 0 };
+}
+
+function shortestAngleDifference(left, right) {
+  return Math.atan2(Math.sin(left - right), Math.cos(left - right));
+}
+
+function katanaDirectionAngle(state, target = null) {
+  if (target) return angleBetween(state.actor, target);
+  const velocityLength = Math.hypot(state.actor.vx, state.actor.vy);
+  if (velocityLength > 0) return Math.atan2(state.actor.vy, state.actor.vx);
+  return state.actor.facing === 'left' ? Math.PI : 0;
+}
+
+function isWithinKatanaArc(state, enemy, weapon, angle) {
+  const effect = weapon.effect ?? {};
+  const distance = distanceBetween(state.actor, enemy);
+  const reach = weapon.range + Math.min(8, enemy.radius * 0.25);
+  const arcDegrees = effect.arcDegrees ?? weapon.hitArcDegrees ?? 100;
+  return distance <= reach
+    && Math.abs(shortestAngleDifference(angleBetween(state.actor, enemy), angle)) <= (arcDegrees * Math.PI) / 360;
+}
+
+function katanaWaveContainsPoint(wave, point, progress = 0) {
+  const dx = point.x - wave.x;
+  const dy = point.y - wave.y;
+  const distance = Math.hypot(dx, dy);
+  const radius = (wave.innerRadius ?? 0) + ((wave.radius ?? 0) - (wave.innerRadius ?? 0)) * clamp(progress, 0, 1);
+  const radialDistance = Math.abs(distance - radius);
+  const angle = Math.atan2(dy, dx);
+  const arcHalf = ((wave.arcDegrees ?? 90) * Math.PI) / 360;
+  return radialDistance <= (wave.thickness ?? 8) * 0.5 + (point.radius ?? 0)
+    && Math.abs(shortestAngleDifference(angle, wave.angle)) <= arcHalf;
+}
+
+function addKatanaWave(state, weapon, angle) {
+  const wave = weapon.effect?.wave;
+  if (!wave) return null;
+  const effect = addEffect(state, {
+    type: 'katanaWave',
+    style: wave.style,
+    x: state.actor.x,
+    y: state.actor.y,
+    angle,
+    innerRadius: wave.innerRadius ?? 20,
+    radius: wave.radius ?? weapon.range + 18,
+    arcDegrees: wave.arcDegrees ?? weapon.hitArcDegrees ?? 100,
+    duration: wave.duration ?? 0.24,
+    lineWidth: wave.lineWidth ?? 4,
+    thickness: wave.thickness ?? 8,
+    colour: wave.colour ?? '#70f6ff',
+    glowColour: wave.glowColour ?? wave.colour ?? '#b8fbff',
+    destroyedProjectiles: 0,
+  });
+  return effect;
+}
+
+function performKatanaSlash(state, weapon, target = null) {
+  const effect = weapon.effect ?? {};
+  const angle = katanaDirectionAngle(state, target);
+  const empowered = Boolean(effect.empowerAfterMovement && state.actor.katanaEmpoweredNextSlash);
+  const damageMultiplier = empowered ? (effect.empoweredDamageMultiplier ?? 2) : 1;
+  const hitEnemies = activeEnemies(state).filter((enemy) => isWithinKatanaArc(state, enemy, weapon, angle));
+  hitEnemies.forEach((enemy) => {
+    damageEnemy(state, enemy, weapon.damage * damageMultiplier, empowered ? '武士刀・強化斬擊' : '武士刀・弧斬');
+  });
+  if (empowered) state.actor.katanaEmpoweredNextSlash = false;
+  addEffect(state, {
+    type: 'katanaSlash',
+    style: effect.style ?? 'katanaArcSlash',
+    x: state.actor.x,
+    y: state.actor.y,
+    angle,
+    radius: effect.arcRadius ?? weapon.range,
+    arcDegrees: effect.arcDegrees ?? weapon.hitArcDegrees ?? 100,
+    duration: effect.duration ?? 0.18,
+    lineWidth: empowered ? (effect.empoweredLineWidth ?? effect.lineWidth ?? 4) : (effect.lineWidth ?? 3),
+    coreLineWidth: empowered ? (effect.empoweredCoreLineWidth ?? effect.coreLineWidth ?? 2) : (effect.coreLineWidth ?? 1.2),
+    colour: empowered ? (effect.empoweredColour ?? effect.colour ?? '#ff5c8a') : (effect.colour ?? '#73d9ff'),
+    coreColour: empowered ? (effect.empoweredCoreColour ?? effect.coreColour ?? '#fff0f5') : (effect.coreColour ?? '#effcff'),
+    glowColour: empowered ? (effect.empoweredGlowColour ?? effect.glowColour ?? '#ff9eb8') : (effect.glowColour ?? '#9be8ff'),
+    empowered,
+    hitCount: hitEnemies.length,
+    damageMultiplier,
+  });
+  const wave = addKatanaWave(state, weapon, angle);
+  return { hit: hitEnemies.length > 0, hitCount: hitEnemies.length, empowered, angle, wave };
+}
+
+function markKatanaMovement(state, previousPosition) {
+  if (state.build.weaponId !== 'katana') return;
+  const effect = getWeaponStats('katana', state.build.weaponLevel).effect ?? {};
+  if (!effect.empowerAfterMovement) return;
+  if (distanceBetween(state.actor, previousPosition) >= 1.5) state.actor.katanaEmpoweredNextSlash = true;
+}
+
+function processKatanaAutoAttack(state) {
+  if (state.aiming || state.build.weaponId !== 'katana') return;
+  const weapon = getWeaponStats('katana', state.build.weaponLevel);
+  const cooldownKey = 'weapon:katana';
+  if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
+  const target = activeEnemies(state)
+    .filter((enemy) => distanceBetween(state.actor, enemy) <= weapon.range + Math.min(8, enemy.radius * 0.25))
+    .sort((left, right) => distanceBetween(state.actor, left) - distanceBetween(state.actor, right))[0];
+  if (!target) return;
+  const result = performKatanaSlash(state, weapon, target);
+  state.actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
+  if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 自動弧斬命中 ${result.hitCount} 個目標。`, 'safe');
 }
 
 function knifeSwipeSegment(state, weapon, target = null) {
@@ -873,7 +1066,8 @@ export function playerAttack(state) {
   }
   const target = state.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyInstanceId && !enemy.defeated) ?? activeEnemies(state)[0];
   const canShowKnifePreview = weapon.type === 'melee' && weapon.effect?.style === 'knifeMeteor';
-  if (!target && !canShowKnifePreview) {
+  const canShowKatanaPreview = weapon.type === 'melee' && weapon.effect?.style === 'katanaArcSlash';
+  if (!target && !canShowKnifePreview && !canShowKatanaPreview) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
@@ -885,20 +1079,25 @@ export function playerAttack(state) {
   if (!state.infiniteResources) state.actor.energy -= cost;
   let hit = false;
   if (weapon.type === 'melee') {
-    hit = Boolean(target && distanceBetween(state.actor, target) <= weapon.range);
-    if (hit) damageEnemy(state, target, weapon.damage, weaponDefinition.name);
+    if (canShowKatanaPreview) {
+      const result = performKatanaSlash(state, weapon, target);
+      hit = result.hit;
+    } else {
+      hit = Boolean(target && distanceBetween(state.actor, target) <= weapon.range);
+    }
+    if (hit && !canShowKatanaPreview) damageEnemy(state, target, weapon.damage, weaponDefinition.name);
     if (canShowKnifePreview) {
       const swipe = knifeSwipeSegment(state, weapon, target);
       addKnifeMeteorEffects(state, weapon, swipe.start, swipe.end);
       if (weapon.effect?.sideTrailDamageMultiplier) {
         applyKnifeSideTrailDamage(state, weapon, swipe.start, swipe.end, target?.instanceId ?? null);
       }
-    } else {
+    } else if (!canShowKatanaPreview) {
       const attackAngle = target ? angleBetween(state.actor, target) : (state.actor.facing === 'left' ? Math.PI : 0);
       addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.45, angle: attackAngle, colour: '#f6e66d' });
     }
     if (!hit && target) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
-    if (!target) logEvent(state, `${weaponDefinition.name}：展示斬擊軌跡（目前沒有目標）。`, 'safe');
+    if (!target) logEvent(state, `${weaponDefinition.name}：展示瞬發弧斬${canShowKatanaPreview && weapon.effect?.wave ? '與外弧劍氣' : ''}（目前沒有目標）。`, 'safe');
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
@@ -914,6 +1113,7 @@ export function playerAttack(state) {
 }
 
 function updateProjectiles(state, dt) {
+  const generated = [];
   state.projectiles = state.projectiles.filter((projectile) => {
     projectile.life -= dt;
     projectile.age = (projectile.age ?? 0) + dt;
@@ -925,9 +1125,43 @@ function updateProjectiles(state, dt) {
       projectile.vx = Math.cos(angle) * Math.hypot(projectile.vx, projectile.vy);
       projectile.vy = Math.sin(angle) * Math.hypot(projectile.vx, projectile.vy);
     }
+    if (projectile.spiral) {
+      projectile.angle += (projectile.spiralRate ?? 0) * dt;
+      const speed = Math.hypot(projectile.vx, projectile.vy);
+      projectile.vx = Math.cos(projectile.angle) * speed;
+      projectile.vy = Math.sin(projectile.angle) * speed;
+      while (projectile.age >= (projectile.nextSpiralAt ?? projectile.spiralInterval ?? 0.24)) {
+        const owner = state.enemies.find((candidate) => candidate.instanceId === projectile.ownerId);
+        if (owner) generated.push({
+          owner,
+          x: projectile.x,
+          y: projectile.y,
+          angle: projectile.angle + Math.PI / 2,
+          speed: Math.max(120, speed * 0.72),
+          range: 180,
+          damage: projectile.damage * 0.45,
+          source: 'enemy',
+          colour: '#d2b5ff',
+        });
+        projectile.nextSpiralAt = (projectile.nextSpiralAt ?? projectile.spiralInterval ?? 0.24) + (projectile.spiralInterval ?? 0.24);
+      }
+    }
     const previousPosition = { x: projectile.x, y: projectile.y };
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
+    if (projectile.source === 'enemy') {
+      const wave = state.effects.find((effect) => effect.type === 'katanaWave' && effect.style === 'katanaOuterArcWave'
+        && effect.elapsed < effect.duration);
+      if (wave) {
+        const progress = wave.duration > 0 ? wave.elapsed / wave.duration : 1;
+        const sweptHit = katanaWaveContainsPoint(wave, projectile, progress)
+          || katanaWaveContainsPoint(wave, previousPosition, progress);
+        if (sweptHit) {
+          wave.destroyedProjectiles = (wave.destroyedProjectiles ?? 0) + 1;
+          return false;
+        }
+      }
+    }
     if (projectile.source === 'player') {
       const hit = activeEnemies(state).find((enemy) => distanceToSegment(enemy, previousPosition, projectile) <= enemy.radius + projectile.radius);
       if (hit) {
@@ -947,6 +1181,28 @@ function updateProjectiles(state, dt) {
     }
     return projectile.x > -40 && projectile.x < SANDBOX_WIDTH + 40 && projectile.y > -40 && projectile.y < SANDBOX_HEIGHT + 40;
   });
+  generated.forEach(({ owner, ...options }) => spawnProjectile(state, owner, options));
+}
+
+function spawnZoneSpread(state, zone) {
+  if (!zone.spreadCount || !zone.ownerId) return;
+  const owner = state.enemies.find((candidate) => candidate.instanceId === zone.ownerId && !candidate.defeated);
+  if (!owner) return;
+  const baseAngle = angleBetween(owner, zone);
+  const spread = (zone.spreadDegrees ?? 42) * Math.PI / 180;
+  for (let index = 0; index < zone.spreadCount; index += 1) {
+    const ratio = zone.spreadCount === 1 ? 0 : index / (zone.spreadCount - 1) - 0.5;
+    spawnProjectile(state, owner, {
+      x: zone.x,
+      y: zone.y,
+      angle: baseAngle + ratio * spread,
+      speed: zone.spreadSpeed ?? 200,
+      range: 180,
+      damage: zone.spreadDamage ?? 0,
+      source: 'enemy',
+      colour: '#80e8ff',
+    });
+  }
 }
 
 function updateZones(state, dt) {
@@ -965,6 +1221,7 @@ function updateZones(state, dt) {
       zone.triggered = true;
       areaDamage(state, zone, zone.radius, zone.damage, zone.source);
       applyKnockback(state, zone, zone.radius, zone.knockback);
+      spawnZoneSpread(state, zone);
       if (zone.oxygenDrain && !state.infiniteResources) state.actor.oxygen = Math.max(0, state.actor.oxygen - zone.oxygenDrain);
     }
     return zone.elapsed < zone.delay + 0.7;
@@ -1019,13 +1276,23 @@ function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
   if (speed < 18) return;
   const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
   const isKnife = state.build.weaponId === 'knife';
+  const isKatana = state.build.weaponId === 'katana';
   const pathStart = previousPosition ?? actor;
   const pathEnd = { x: actor.x, y: actor.y };
   activeEnemies(state).forEach((enemy) => {
     const contact = distanceBetween(actor, enemy) <= actor.radius + enemy.radius;
-    const pathHit = isKnife && distanceToSegment(enemy, pathStart, pathEnd) <= actor.radius + enemy.radius + 8;
+    const pathHit = (isKnife || isKatana) && distanceToSegment(enemy, pathStart, pathEnd) <= actor.radius + enemy.radius + 8;
     if (!contact && !pathHit) return;
     if (state.time < (enemy.playerHitCooldownUntil ?? 0)) return;
+    if (isKatana) {
+      const cooldownKey = 'weapon:katana';
+      if ((actor.cooldowns[cooldownKey] ?? 0) > 0) return;
+      const result = performKatanaSlash(state, weapon, enemy);
+      actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
+      if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 彈射接近弧斬命中。`, 'safe');
+      enemy.playerHitCooldownUntil = state.time + 0.28;
+      return;
+    }
     damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
     enemy.playerHitCooldownUntil = state.time + 0.28;
     if (isKnife) {
@@ -1083,22 +1350,30 @@ function updateLinkedSupport(state, enemy, dt) {
   if (enemy.enemyId !== 'coralBackSeahorse') return;
   const skill = enemyDefinition(enemy).attacks.find((candidate) => candidate.id === 'lifeLink');
   const range = skill?.linkRange ?? 180;
-  const target = enemy.linkedTarget
-    ? state.enemies.find((candidate) => candidate.instanceId === enemy.linkedTarget && !candidate.defeated)
-    : activeEnemies(state).find((candidate) => candidate.instanceId !== enemy.instanceId
-      && candidate.tier !== 'miniBoss'
-      && candidate.tier !== 'mutatedMiniBoss'
-      && candidate.tier !== 'finalBoss'
-      && distanceBetween(enemy, candidate) <= range);
-  if (!target) {
+  const previousTargets = new Set(enemy.linkedTargets ?? (enemy.linkedTarget ? [enemy.linkedTarget] : []));
+  const targets = activeEnemies(state).filter((candidate) => candidate.instanceId !== enemy.instanceId
+    && candidate.tier === 2
+    && distanceBetween(enemy, candidate) <= range);
+  const nextTargetIds = new Set(targets.map((candidate) => candidate.instanceId));
+  previousTargets.forEach((targetId) => {
+    if (nextTargetIds.has(targetId)) return;
+    const target = state.enemies.find((candidate) => candidate.instanceId === targetId);
+    if (target?.linkedProtection === enemy.instanceId) target.linkedProtection = null;
+  });
+  enemy.linkedTargets = [...nextTargetIds];
+  enemy.linkedTarget = enemy.linkedTargets[0] ?? null;
+  if (!targets.length) {
     enemy.linkedTarget = null;
     return;
   }
-  enemy.linkedTarget = target.instanceId;
-  target.linkedProtection = enemy.instanceId;
-  const heal = target.maxHealth * (skill?.healPerSecondRatio ?? 0.03) * dt;
-  target.health = Math.min(target.maxHealth, target.health + heal);
-  enemy.health = Math.min(enemy.maxHealth, enemy.health + heal);
+  let totalHeal = 0;
+  targets.forEach((target) => {
+    target.linkedProtection = enemy.instanceId;
+    const heal = target.maxHealth * (skill?.healPerSecondRatio ?? 0.03) * dt;
+    target.health = Math.min(target.maxHealth, target.health + heal);
+    totalHeal += heal;
+  });
+  enemy.health = Math.min(enemy.maxHealth, enemy.health + totalHeal);
 }
 
 function updateEnemyMovement(state, enemy, dt) {
@@ -1133,6 +1408,20 @@ function attemptContactAttack(state, enemy) {
   if (result.ok) enemy.contactAttackCooldownUntil = state.time + Math.max((skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy), 0.38);
 }
 
+function updateBeaconAssault(state, enemy, dt) {
+  if (!enemy.beacon) return false;
+  enemy.beacon.remaining -= dt;
+  enemy.state = 'casting';
+  enemy.vx = 0;
+  enemy.vy = 0;
+  if (enemy.beacon.remaining > 1e-6) return true;
+  const skillId = enemy.beacon.skillId;
+  enemy.beacon = null;
+  const result = executeEnemySkill(state, enemy.instanceId, skillId, { resolve: true, beaconResolve: true });
+  if (result.ok) enemy.state = 'attacking';
+  return true;
+}
+
 function updatePendingEnemySkill(state, enemy, dt) {
   if (!enemy.pendingSkill) return false;
   enemy.pendingSkill.remaining -= dt;
@@ -1142,9 +1431,20 @@ function updatePendingEnemySkill(state, enemy, dt) {
   if (enemy.pendingSkill.remaining > 1e-6) return true;
   const { skillId } = enemy.pendingSkill;
   enemy.pendingSkill = null;
+  enemy.hidden = false;
   const result = executeEnemySkill(state, enemy.instanceId, skillId, { resolve: true });
+  if (skillId === 'callForHelp' && result.ok) enemy.rescueCompleted = true;
   if (result.ok) enemy.state = 'attacking';
   return true;
+}
+
+function updateJuvenileRescue(state, enemy) {
+  if (enemy.enemyId !== 'juvenileSeahorseCaller' || enemy.rescueCompleted || enemy.pendingSkill) return false;
+  const skill = enemyDefinition(enemy).attacks.find((candidate) => candidate.id === 'callForHelp');
+  if (!skill || (enemy.cooldowns[skill.id] ?? 0) > 0) return false;
+  if (distanceBetween(enemy, state.actor) > (skill.summonRadius ?? 190)) return false;
+  const result = executeEnemySkill(state, enemy.instanceId, skill.id);
+  return result.ok;
 }
 
 function updateEnemies(state, dt) {
@@ -1159,7 +1459,16 @@ function updateEnemies(state, dt) {
     if (nowEnraged && !enemy.enraged) logEvent(state, `${definition.name} 進入怒氣模式：攻擊冷卻縮短。`, 'warning');
     enemy.enraged = nowEnraged;
     if (enemy.animation !== 'idle' && state.time >= enemy.animationUntil) enemy.animation = 'idle';
+    if (enemy.stunnedUntil && state.time < enemy.stunnedUntil) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'stunned';
+      return;
+    }
+    if (enemy.stunnedUntil && state.time >= enemy.stunnedUntil) enemy.stunnedUntil = 0;
+    if (updateBeaconAssault(state, enemy, dt)) return;
     if (updatePendingEnemySkill(state, enemy, dt)) return;
+    if (updateJuvenileRescue(state, enemy)) return;
     updateLinkedSupport(state, enemy, dt);
     if (updateSuicideCharge(state, enemy, dt)) return;
     updateEnemyMovement(state, enemy, dt);
@@ -1236,6 +1545,8 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.health = MAX_HEALTH;
   }
   updateEnemies(state, dt);
+  markKatanaMovement(state, previousPosition);
+  processKatanaAutoAttack(state);
   processKnifeMovementEffect(state, previousPosition);
   processPlayerEnemyCollisions(state, previousPosition);
   processStationaryKnifeArea(state);
