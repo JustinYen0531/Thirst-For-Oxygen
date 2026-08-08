@@ -632,6 +632,70 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   return { ok: true, enemy: enemy.instanceId, skill: skill.id };
 }
 
+function knifeDirection(state, target = null) {
+  const targetDelta = target
+    ? { x: target.x - state.actor.x, y: target.y - state.actor.y }
+    : { x: 0, y: 0 };
+  const targetLength = Math.hypot(targetDelta.x, targetDelta.y);
+  if (targetLength > 0) return { x: targetDelta.x / targetLength, y: targetDelta.y / targetLength };
+  const velocityLength = Math.hypot(state.actor.vx, state.actor.vy);
+  if (velocityLength > 0) return { x: state.actor.vx / velocityLength, y: state.actor.vy / velocityLength };
+  return { x: state.actor.facing === 'left' ? -1 : 1, y: 0 };
+}
+
+function knifeSwipeSegment(state, weapon, target = null) {
+  const direction = knifeDirection(state, target);
+  const targetDistance = target ? Math.hypot(target.x - state.actor.x, target.y - state.actor.y) : 0;
+  const distance = target
+    ? Math.min(Math.max(targetDistance, weapon.range * 0.7), weapon.range + 18)
+    : weapon.range + 18;
+  return {
+    start: { x: state.actor.x + direction.x * 8, y: state.actor.y + direction.y * 8 },
+    end: { x: state.actor.x + direction.x * (8 + distance), y: state.actor.y + direction.y * (8 + distance) },
+  };
+}
+
+function addKnifeMeteorEffect(state, weapon, start, end, { offset = 0, side = false } = {}) {
+  const effect = weapon.effect ?? {};
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const normal = { x: -dy / length, y: dx / length };
+  const shiftedStart = { x: start.x + normal.x * offset, y: start.y + normal.y * offset };
+  const shiftedEnd = { x: end.x + normal.x * offset, y: end.y + normal.y * offset };
+  const duration = side ? (effect.sideTrailDuration ?? effect.duration ?? 0.7) : (effect.duration ?? 0.7);
+  addEffect(state, {
+    type: side ? 'knifeTrail' : 'playerSlash',
+    style: side ? 'knifeMeteorSide' : 'knifeMeteor',
+    x: shiftedStart.x,
+    y: shiftedStart.y,
+    startX: shiftedStart.x,
+    startY: shiftedStart.y,
+    targetX: shiftedEnd.x,
+    targetY: shiftedEnd.y,
+    radius: weapon.range,
+    duration,
+    sweepDuration: Math.min(effect.sweepDuration ?? 0.24, duration * 0.45),
+    trailLength: side ? 0.78 : (effect.trailLength ?? 0.82),
+    lineWidth: side ? (effect.sideTrailWidth ?? Math.max(2, (effect.lineWidth ?? 6) * 0.42)) : (effect.lineWidth ?? 6),
+    headRadius: side ? Math.max(4, (effect.headRadius ?? 7) * 0.58) : (effect.headRadius ?? 7),
+    sparkleCount: side ? 0 : (effect.sparkleCount ?? 0),
+    angle: Math.atan2(dy, dx),
+    colour: side ? '#e6faff' : '#ffffff',
+  });
+}
+
+function addKnifeMeteorEffects(state, weapon, start, end) {
+  const effect = weapon.effect ?? {};
+  addKnifeMeteorEffect(state, weapon, start, end);
+  const sideCount = Math.max(0, Math.round(effect.sideTrailCount ?? 0));
+  const sideOffset = effect.sideTrailOffset ?? 18;
+  for (let index = 0; index < sideCount; index += 1) {
+    const offset = (index - (sideCount - 1) / 2) * sideOffset * 2;
+    addKnifeMeteorEffect(state, weapon, start, end, { offset, side: true });
+  }
+}
+
 export function playerAttack(state) {
   if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade' };
   const weaponDefinition = WEAPONS[state.build.weaponId] ?? WEAPONS.knife;
@@ -644,7 +708,8 @@ export function playerAttack(state) {
     return { ok: false, reason: 'cooldown', remaining: cooldownRemaining };
   }
   const target = state.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyInstanceId && !enemy.defeated) ?? activeEnemies(state)[0];
-  if (!target) {
+  const canShowKnifePreview = weapon.type === 'melee' && weapon.effect?.style === 'knifeMeteor';
+  if (!target && !canShowKnifePreview) {
     logEvent(state, '沒有可攻擊的敵人。', 'warning');
     return { ok: false, reason: 'target' };
   }
@@ -656,24 +721,20 @@ export function playerAttack(state) {
   if (!state.infiniteResources) state.actor.energy -= cost;
   let hit = false;
   if (weapon.type === 'melee') {
-    hit = distanceBetween(state.actor, target) <= weapon.range;
+    hit = Boolean(target && distanceBetween(state.actor, target) <= weapon.range);
     if (hit) damageEnemy(state, target, weapon.damage, weaponDefinition.name);
-    const effect = weapon.effect ?? { style: 'generic', duration: 0.25 };
-    const attackAngle = angleBetween(state.actor, target);
-    addEffect(state, {
-      type: 'playerSlash',
-      x: state.actor.x,
-      y: state.actor.y,
-      radius: weapon.range,
-      duration: effect.duration ?? 0.25,
-      angle: attackAngle,
-      colour: '#f6e66d',
-      ...effect,
-    });
-    if (effect.sideTrailDamageMultiplier) {
-      applyKnifeSideTrails(state, weapon, state.actor, target, target.instanceId);
+    if (canShowKnifePreview) {
+      const swipe = knifeSwipeSegment(state, weapon, target);
+      addKnifeMeteorEffects(state, weapon, swipe.start, swipe.end);
+      if (weapon.effect?.sideTrailDamageMultiplier) {
+        applyKnifeSideTrailDamage(state, weapon, swipe.start, swipe.end, target?.instanceId ?? null);
+      }
+    } else {
+      const attackAngle = target ? angleBetween(state.actor, target) : (state.actor.facing === 'left' ? Math.PI : 0);
+      addEffect(state, { type: 'playerSlash', x: state.actor.x, y: state.actor.y, radius: weapon.range, duration: 0.45, angle: attackAngle, colour: '#f6e66d' });
     }
-    if (!hit) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
+    if (!hit && target) logEvent(state, `${weaponDefinition.name}：目標不在 ${Math.round(weapon.range)} px 近戰距離內。`, 'warning');
+    if (!target) logEvent(state, `${weaponDefinition.name}：展示斬擊軌跡（目前沒有目標）。`, 'safe');
   } else {
     const count = weapon.projectileCount ?? 1;
     const spread = ((weapon.spreadDegrees ?? 0) * Math.PI) / 180;
@@ -727,7 +788,7 @@ function updateZones(state, dt) {
   });
 }
 
-function applyKnifeSideTrails(state, weapon, start, end, primaryEnemyId = null) {
+function applyKnifeSideTrailDamage(state, weapon, start, end, primaryEnemyId = null) {
   const effect = weapon.effect;
   if (!effect?.sideTrailDamageMultiplier) return;
   const dx = end.x - start.x;
@@ -740,29 +801,33 @@ function applyKnifeSideTrails(state, weapon, start, end, primaryEnemyId = null) 
   const normal = { x: -Math.sin(angle), y: Math.cos(angle) };
   const offset = effect.sideTrailOffset ?? 22;
   const sideRadius = effect.sideTrailRadius ?? 18;
-  [-1, 1].forEach((side) => {
+  const sideCount = Math.max(1, Math.round(effect.sideTrailCount ?? 2));
+  for (let index = 0; index < sideCount; index += 1) {
+    const side = (index - (sideCount - 1) / 2) * 2;
     const sideStart = { x: start.x + normal.x * offset * side, y: start.y + normal.y * offset * side };
     const sideEnd = { x: end.x + normal.x * offset * side, y: end.y + normal.y * offset * side };
-    addEffect(state, {
-      type: 'knifeTrail',
-      style: 'knifeTrail',
-      x: sideStart.x,
-      y: sideStart.y,
-      targetX: sideEnd.x,
-      targetY: sideEnd.y,
-      radius: sideRadius,
-      duration: effect.sideTrailDuration ?? 0.28,
-      angle,
-      colour: '#a7f3ff',
-      lineWidth: Math.max(2, (effect.lineWidth ?? 3.5) - 0.7),
-    });
     activeEnemies(state).forEach((enemy) => {
       if (enemy.instanceId === primaryEnemyId || (enemy.knifeSideHitCooldownUntil ?? 0) > state.time) return;
       if (distanceToSegment(enemy, sideStart, sideEnd) > enemy.radius + sideRadius) return;
       damageEnemy(state, enemy, weapon.damage * effect.sideTrailDamageMultiplier, `小刀 Lv.${state.build.weaponLevel} 側刃`);
       enemy.knifeSideHitCooldownUntil = state.time + 0.25;
     });
-  });
+  }
+}
+
+function processKnifeMovementEffect(state, previousPosition) {
+  if (state.aiming || state.build.weaponId !== 'knife') return;
+  const distance = distanceBetween(state.actor, previousPosition);
+  if (distance < 1.5) return;
+  const weapon = getWeaponStats('knife', state.build.weaponLevel);
+  const cooldownKey = 'weapon:knife:visual';
+  if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
+  state.actor.cooldowns[cooldownKey] = 0.12;
+  const direction = knifeDirection(state);
+  const length = Math.max(distance, weapon.range * 0.7);
+  const start = { x: previousPosition.x, y: previousPosition.y };
+  const end = { x: start.x + direction.x * length, y: start.y + direction.y * length };
+  addKnifeMeteorEffects(state, weapon, start, end);
 }
 
 function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
@@ -781,7 +846,9 @@ function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
     damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
     enemy.playerHitCooldownUntil = state.time + 0.28;
     if (isKnife) {
-      if (weapon.effect?.sideTrailDamageMultiplier) applyKnifeSideTrails(state, weapon, pathStart, pathEnd, enemy.instanceId);
+      const swipe = knifeSwipeSegment(state, weapon, enemy);
+      addKnifeMeteorEffects(state, weapon, swipe.start, swipe.end);
+      if (weapon.effect?.sideTrailDamageMultiplier) applyKnifeSideTrailDamage(state, weapon, swipe.start, swipe.end, enemy.instanceId);
       addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
       return;
     }
@@ -903,6 +970,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.health = MAX_HEALTH;
   }
   updateEnemies(state, dt);
+  processKnifeMovementEffect(state, previousPosition);
   processPlayerEnemyCollisions(state, previousPosition);
   processStationaryKnifeArea(state);
   updateProjectiles(state, dt);

@@ -101,11 +101,38 @@ test('knife levels expose distinct vector slash effects without image assets', (
     assert.equal(playerAttack(state).ok, true);
     const slash = state.effects.find((effect) => effect.type === 'playerSlash');
     assert.ok(slash, `knife Lv.${level} should create a slash effect`);
-    assert.equal(slash.style, 'knifeArc');
-    assert.equal(slash.arcCount, level);
-    assert.equal(slash.trailCount, level - 1);
-    assert.equal(slash.accentCount, Math.max(0, level - 1));
+    assert.equal(slash.style, 'knifeMeteor');
+    assert.equal(slash.colour, '#ffffff');
+    assert.equal(state.effects.filter((effect) => effect.type === 'knifeTrail').length, level === 1 ? 0 : 2);
+    assert.ok(slash.duration >= 0.68);
+    assert.equal(slash.sparkleCount > 0, level === 3);
   });
+});
+
+test('knife preview creates a visible white meteor slash without a target', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 1 });
+
+  const result = playerAttack(state);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.hit, false);
+  assert.equal(state.effects.filter((effect) => effect.type === 'playerSlash').length, 1);
+  assert.equal(state.effects[0].style, 'knifeMeteor');
+  assert.ok(state.effects[0].targetX > state.effects[0].startX, 'the preview should extend in the diver facing direction');
+});
+
+test('knife movement leaves a white meteor trace even before it reaches an enemy', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'knife', weaponLevel: 1 });
+  state.actor.vx = 120;
+
+  stepSandbox(state);
+
+  const slash = state.effects.find((effect) => effect.type === 'playerSlash');
+  assert.ok(slash, 'knife movement should create a visible trace without a collision target');
+  assert.equal(slash.style, 'knifeMeteor');
+  assert.equal(slash.colour, '#ffffff');
 });
 
 test('knife Lv.2 creates side trails that deal seventy percent damage', () => {

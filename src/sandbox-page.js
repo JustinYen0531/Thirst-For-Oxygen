@@ -377,12 +377,12 @@ function renderEffects() {
   });
   state.effects.forEach((effect) => {
     const progress = effect.elapsed / effect.duration;
-    if (effect.type === 'playerSlash' && effect.style === 'knifeArc') {
-      renderKnifeSlashEffect(effect, progress);
+    if (effect.type === 'playerSlash' && effect.style === 'knifeMeteor') {
+      renderKnifeMeteorEffect(effect, progress, false);
       return;
     }
-    if (effect.type === 'knifeTrail' && effect.style === 'knifeTrail') {
-      renderKnifeTrailEffect(effect, progress);
+    if (effect.type === 'knifeTrail' && effect.style === 'knifeMeteorSide') {
+      renderKnifeMeteorEffect(effect, progress, true);
       return;
     }
     if (effect.type === 'knifeArea' && effect.style === 'knifeArea') {
@@ -408,67 +408,75 @@ function renderEffects() {
   });
 }
 
-function renderKnifeSlashEffect(effect, progress) {
-  const safeProgress = Math.max(0, Math.min(1, progress));
-  const arcCount = Math.max(1, Math.round(effect.arcCount ?? 1));
-  const trailCount = Math.max(0, Math.round(effect.trailCount ?? 0));
-  const spread = ((effect.spreadDegrees ?? 0) * Math.PI) / 180;
-  const arcSpan = ((effect.arcDegrees ?? 70) * Math.PI) / 180;
-  const lineWidth = effect.lineWidth ?? 3.5;
-  const radius = effect.radius * (.74 + safeProgress * .28);
-  const baseAngle = effect.angle ?? 0;
-  const arcOffset = arcCount === 1 ? 0 : spread / (arcCount - 1);
-  const accentCount = Math.max(0, Math.round(effect.accentCount ?? 0));
-
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.shadowColor = effect.colour;
-  ctx.shadowBlur = 12;
-  for (let trail = trailCount; trail >= 0; trail -= 1) {
-    const alpha = (1 - safeProgress) * (trail === 0 ? 0.96 : 0.2 / (trail + 1));
-    ctx.globalAlpha = Math.max(0, alpha);
-    ctx.strokeStyle = effect.colour;
-    ctx.lineWidth = Math.max(1.2, lineWidth - trail * 0.8);
-    for (let arcIndex = 0; arcIndex < arcCount; arcIndex += 1) {
-      const offset = (arcIndex - (arcCount - 1) / 2) * arcOffset;
-      const angle = baseAngle + offset;
-      ctx.beginPath();
-      ctx.arc(effect.x, effect.y, radius - trail * 4, angle - arcSpan / 2, angle + arcSpan / 2);
-      ctx.stroke();
-    }
-  }
-  if (accentCount > 0) {
-    ctx.globalAlpha = (1 - safeProgress) * 0.7;
-    ctx.strokeStyle = '#fffbe0';
-    ctx.lineWidth = 1.4;
-    for (let index = 0; index < accentCount; index += 1) {
-      const angle = baseAngle + (index - (accentCount - 1) / 2) * 0.22;
-      const inner = radius * 0.42;
-      const outer = radius * 0.9;
-      ctx.beginPath();
-      ctx.moveTo(effect.x + Math.cos(angle) * inner, effect.y + Math.sin(angle) * inner);
-      ctx.lineTo(effect.x + Math.cos(angle) * outer, effect.y + Math.sin(angle) * outer);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
+function pointAlongEffect(effect, ratio) {
+  const startX = effect.startX ?? effect.x;
+  const startY = effect.startY ?? effect.y;
+  return {
+    x: startX + ((effect.targetX ?? startX) - startX) * ratio,
+    y: startY + ((effect.targetY ?? startY) - startY) * ratio,
+  };
 }
 
-function renderKnifeTrailEffect(effect, progress) {
-  const safeProgress = Math.max(0, Math.min(1, progress));
-  ctx.save();
-  ctx.globalAlpha = (1 - safeProgress) * 0.86;
-  ctx.strokeStyle = effect.colour;
-  ctx.shadowColor = effect.colour;
-  ctx.shadowBlur = 10;
-  ctx.lineWidth = effect.lineWidth ?? 3;
+function renderMeteorStroke(effect, headRatio, alpha, lineWidth) {
+  const tailRatio = Math.max(0, headRatio - (effect.trailLength ?? 0.82));
+  const segments = 8;
   ctx.lineCap = 'round';
-  ctx.setLineDash([12, 6]);
+  ctx.lineJoin = 'round';
+  for (let index = 0; index < segments; index += 1) {
+    const fromRatio = tailRatio + (headRatio - tailRatio) * (index / segments);
+    const toRatio = tailRatio + (headRatio - tailRatio) * ((index + 1) / segments);
+    const from = pointAlongEffect(effect, fromRatio);
+    const to = pointAlongEffect(effect, toRatio);
+    ctx.globalAlpha = alpha * ((index + 1) / segments) * 0.95;
+    ctx.lineWidth = Math.max(1.2, lineWidth * (0.38 + (index / segments) * 0.62));
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+  }
+}
+
+function renderKnifeMeteorEffect(effect, progress, side) {
+  const safeProgress = Math.max(0, Math.min(1, progress));
+  const sweepDuration = Math.max(0.08, Math.min(0.7, effect.sweepDuration ?? 0.24));
+  const headRatio = Math.min(1, safeProgress / sweepDuration);
+  const isLinger = !side && (effect.sparkleCount ?? 0) > 0;
+  const fade = isLinger ? Math.max(0.2, 1 - safeProgress * 0.52) : Math.max(0, 1 - safeProgress);
+  const lineWidth = effect.lineWidth ?? (side ? 2.5 : 6);
+  const head = pointAlongEffect(effect, headRatio);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = effect.colour ?? '#ffffff';
+  ctx.shadowColor = '#dffbff';
+  ctx.shadowBlur = side ? 10 : 18;
+  renderMeteorStroke(effect, headRatio, fade * (side ? 0.9 : 0.96), lineWidth * (side ? 0.9 : 1));
+
+  ctx.globalAlpha = fade * (side ? 0.72 : 0.92);
+  ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.moveTo(effect.x, effect.y);
-  ctx.lineTo(effect.targetX, effect.targetY);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.arc(head.x, head.y, effect.headRadius ?? (side ? 4 : 7), 0, Math.PI * 2);
+  ctx.fill();
+
+  if (isLinger) {
+    const sparkleCount = Math.max(0, Math.round(effect.sparkleCount));
+    for (let index = 0; index < sparkleCount; index += 1) {
+      const ratio = (index + 1) / (sparkleCount + 1);
+      const point = pointAlongEffect(effect, ratio);
+      const phase = (effect.id ?? 1) * 0.71 + index * 1.83;
+      const twinkle = 0.35 + (Math.sin(state.time * 12 + phase) + 1) * 0.3;
+      const size = 1.2 + twinkle * 2.1;
+      ctx.globalAlpha = fade * twinkle;
+      ctx.fillStyle = index % 3 === 0 ? '#ffffff' : '#d8faff';
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y - size * 2.2);
+      ctx.lineTo(point.x + size * 0.65, point.y);
+      ctx.lineTo(point.x, point.y + size * 2.2);
+      ctx.lineTo(point.x - size * 0.65, point.y);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
   ctx.restore();
 }
 
@@ -641,9 +649,9 @@ function render() {
   renderExperienceOrbs();
   renderPlayerControlZone();
   renderAimPreview();
-  renderEffects();
   renderEnemyMarkers();
   renderSprites();
+  renderEffects();
   renderTelemetry();
 }
 
@@ -662,7 +670,13 @@ document.querySelector('#place-enemy').addEventListener('click', () => {
 });
 document.querySelector('#clear-enemies').addEventListener('click', () => { clearSandboxEnemies(state); updateSkillPicker(); render(); });
 document.querySelector('#apply-build').addEventListener('click', () => { applyBuild(); render(); });
-document.querySelector('#player-attack').addEventListener('click', () => { playerAttack(state); render(); });
+document.querySelector('#player-attack').addEventListener('click', () => {
+  const result = playerAttack(state);
+  status.textContent = result.ok
+    ? `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出${result.hit ? '並命中目標。' : '。'}`
+    : result.reason === 'cooldown' ? '小刀刀痕仍在冷卻中。' : '目前沒有可展示的小刀刀痕。';
+  render();
+});
 document.querySelector('#test-skill').addEventListener('click', () => { executeEnemySkill(state); render(); });
 document.querySelector('#reset-player').addEventListener('click', () => { resetSandboxPlayer(state); render(); });
 document.querySelector('#pause-toggle').addEventListener('click', (event) => {
@@ -732,7 +746,12 @@ canvas.addEventListener('pointermove', moveAim);
 canvas.addEventListener('pointerup', releaseAim);
 canvas.addEventListener('pointercancel', releaseAim);
 window.addEventListener('keydown', (event) => {
-  if (event.key === ' ') { event.preventDefault(); playerAttack(state); render(); }
+  if (event.key === ' ') {
+    event.preventDefault();
+    const result = playerAttack(state);
+    status.textContent = result.ok ? `小刀 Lv.${state.build.weaponLevel} 白色流星刀痕已劃出。` : '小刀刀痕目前仍在冷卻中。';
+    render();
+  }
   if (event.key.toLowerCase() === 'e') { executeEnemySkill(state); render(); }
   if (event.key.toLowerCase() === 'p') { state.running = !state.running; render(); }
 });
@@ -761,8 +780,7 @@ window.render_game_to_text = () => JSON.stringify({
   effects: state.effects.map((effect) => ({
     type: effect.type,
     style: effect.style,
-    arcCount: effect.arcCount,
-    trailCount: effect.trailCount,
+    sparkleCount: effect.sparkleCount,
     elapsed: format(effect.elapsed),
     duration: format(effect.duration),
   })),

@@ -627,3 +627,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added distinct Lv.1/Lv.2/Lv.3 arc, trail, and accent visuals without image assets.
 - Enlarged the sandbox diver interaction zone, made diver control the default, and made enemy placement an explicit opt-in mode.
 - Static-only verification passed: focused progression tests (15/15), full `npm run check` (87/87), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
+
+## 2026-08-09 — Step 75 complete
+
+- Replaced the short yellow knife arc with a visible white Canvas meteor slash that sweeps from the diver's facing direction and remains long enough to inspect.
+- Lv.2 now renders two thinner side meteor trails; Lv.3 keeps the slash lingering and adds deterministic twinkling sparkles.
+- Direct knife preview now creates the visual effect even when no enemy has been placed, so the sandbox's weapon button can demonstrate the effect without a hidden target prerequisite.
+- Static-only verification passed: focused progression tests (17/17), full `npm run check` (90/90), `npm run build`, and `git diff --check`. Browser/Playwright validation remains prohibited by user instruction.
