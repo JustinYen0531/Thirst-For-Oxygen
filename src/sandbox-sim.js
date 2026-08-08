@@ -87,6 +87,64 @@ function addEffect(state, effect) {
   });
 }
 
+function beginSuicideCharge(state, enemy, skill) {
+  enemy.suicideCharge = {
+    skillId: skill.id,
+    phase: 'seeking',
+    targetX: state.actor.x,
+    targetY: state.actor.y,
+    remaining: skill.detonationDelay ?? 1,
+  };
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.animation = skill.id;
+  enemy.animationToken += 1;
+  enemy.animationUntil = state.time + (skill.detonationDelay ?? 1) + 0.4;
+  logEvent(state, `${enemyDefinition(enemy).name} 已鎖定定點，抵達後將在 ${skill.detonationDelay ?? 1} 秒後爆炸。`, 'warning');
+}
+
+function detonateSuicideCharge(state, enemy, skill) {
+  const origin = { x: enemy.x, y: enemy.y };
+  areaDamage(state, origin, skill.radius ?? 52, skill.damage ?? 0, `${enemyDefinition(enemy).name}・${skill.name}`);
+  addEffect(state, { type: 'detonation', x: origin.x, y: origin.y, radius: skill.radius ?? 52, duration: 0.7, colour: '#ffb86e' });
+  logEvent(state, `${enemyDefinition(enemy).name} 抵達定點後爆炸。`, 'danger');
+  enemy.suicideCharge = null;
+  defeatEnemy(state, enemy);
+}
+
+function updateSuicideCharge(state, enemy, dt) {
+  const charge = enemy.suicideCharge;
+  if (!charge) return false;
+  const skill = enemyDefinition(enemy).attacks.find((candidate) => candidate.id === charge.skillId);
+  if (!skill) {
+    enemy.suicideCharge = null;
+    return false;
+  }
+  if (charge.phase === 'seeking') {
+    const distance = Math.hypot(charge.targetX - enemy.x, charge.targetY - enemy.y);
+    const travel = enemyDefinition(enemy).moveSpeed * dt;
+    if (distance <= Math.max(8, travel)) {
+      enemy.x = charge.targetX;
+      enemy.y = charge.targetY;
+      charge.phase = 'detonating';
+      charge.remaining = skill.detonationDelay ?? 1;
+      enemy.animationUntil = state.time + charge.remaining;
+      addEffect(state, { type: 'telegraph', x: enemy.x, y: enemy.y, radius: skill.radius ?? 52, duration: charge.remaining, colour: '#ffb86e' });
+      logEvent(state, `${enemyDefinition(enemy).name} 已抵達定點，倒數 ${charge.remaining} 秒。`, 'warning');
+    } else {
+      const angle = Math.atan2(charge.targetY - enemy.y, charge.targetX - enemy.x);
+      enemy.x += Math.cos(angle) * travel;
+      enemy.y += Math.sin(angle) * travel;
+    }
+    return true;
+  }
+  charge.remaining -= dt;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  if (charge.remaining <= 0) detonateSuicideCharge(state, enemy, skill);
+  return true;
+}
+
 function syncSandboxBuild(state) {
   const active = getActiveWeapon(state.progression);
   state.build = {
@@ -446,6 +504,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   const definition = enemyDefinition(enemy);
   const skill = definition.attacks.find((candidate) => candidate.id === skillId) ?? definition.attacks[0];
   if (!skill) return { ok: false, reason: 'skill' };
+  if (enemy.suicideCharge) return { ok: false, reason: 'busy' };
   if ((enemy.cooldowns[skill.id] ?? 0) > 0) {
     logEvent(state, `${skill.name} 冷卻中：${enemy.cooldowns[skill.id].toFixed(1)} 秒。`, 'warning');
     return { ok: false, reason: 'cooldown' };
@@ -457,6 +516,9 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   logEvent(state, `${source} 已啟動。`);
 
   switch (skill.type) {
+    case 'suicideCharge':
+      beginSuicideCharge(state, enemy, skill);
+      break;
     case 'contact':
       if (distance <= (skill.radius ?? 42)) areaDamage(state, enemy, skill.radius ?? 42, skill.damage ?? 0, source);
       break;
@@ -641,6 +703,10 @@ function processPlayerEnemyCollisions(state) {
     if (state.time < (enemy.playerHitCooldownUntil ?? 0)) return;
     damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
     enemy.playerHitCooldownUntil = state.time + 0.28;
+    if (state.build.weaponId === 'knife') {
+      addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
+      return;
+    }
     const length = distanceBetween(actor, enemy) || 1;
     const normalX = (actor.x - enemy.x) / length;
     const normalY = (actor.y - enemy.y) / length;
@@ -662,6 +728,7 @@ function updateEnemies(state, dt) {
       if (enemy.activeEffects[key] <= 0) delete enemy.activeEffects[key];
     });
     if (enemy.animation !== 'idle' && state.time >= enemy.animationUntil) enemy.animation = 'idle';
+    if (updateSuicideCharge(state, enemy, dt)) return;
     if (definition.moveSpeed > 0) {
       const distance = distanceBetween(enemy, state.actor);
       if (distance > 100) {

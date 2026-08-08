@@ -13,7 +13,13 @@ import {
   getUpgradeChoices,
   setActiveWeapon,
 } from '../src/progression.js';
-import { createSandboxState, playerAttack, spawnSandboxEnemy } from '../src/sandbox-sim.js';
+import {
+  createSandboxState,
+  executeEnemySkill,
+  playerAttack,
+  spawnSandboxEnemy,
+  stepSandbox,
+} from '../src/sandbox-sim.js';
 
 test('new progression starts with one level-one knife and no other slots', () => {
   const progression = createProgressionState();
@@ -69,6 +75,40 @@ test('sandbox weapon use respects the authored cooldown before firing again', ()
   assert.equal(playerAttack(state).reason, 'cooldown');
   for (let index = 0; index < 40; index += 1) state.actor.cooldowns && (state.actor.cooldowns['weapon:knife'] = Math.max(0, (state.actor.cooldowns['weapon:knife'] ?? 0) - 1 / 60));
   assert.equal(playerAttack(state).ok, true);
+});
+
+test('level-one knife passes through a hit instead of reflecting the diver', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 5, y: state.actor.y }, { health: 100, maxHealth: 100 });
+  state.actor.vx = 40;
+
+  stepSandbox(state);
+
+  assert.ok(enemy.health < enemy.maxHealth);
+  assert.ok(state.actor.vx > 0, 'knife collision should keep the diver moving forward');
+});
+
+test('lanternfish locks a point, waits one second, then detonates', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'explodingLanternfish', { x: state.actor.x + 200, y: state.actor.y });
+  const target = { x: state.actor.x, y: state.actor.y };
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'contactExplosion').ok, true);
+  assert.equal(enemy.defeated, false);
+
+  let arrivalSteps = 0;
+  while (enemy.suicideCharge?.phase !== 'detonating' && arrivalSteps < 240) {
+    stepSandbox(state);
+    arrivalSteps += 1;
+  }
+  assert.ok(arrivalSteps < 240, 'lanternfish should reach the locked detonation point');
+  assert.deepEqual({ x: enemy.x, y: enemy.y }, target);
+  assert.equal(enemy.defeated, false);
+
+  stepSandbox(state, 0.5);
+  assert.equal(enemy.defeated, false);
+  stepSandbox(state, 0.5);
+  assert.equal(enemy.defeated, true);
+  assert.equal(state.experienceOrbs.length, 1);
 });
 
 test('experience orbs stay stationary until the player enters pickup range', () => {

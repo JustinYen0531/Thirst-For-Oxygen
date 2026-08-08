@@ -109,7 +109,7 @@ const attack = (id, name, type, values) => Object.freeze({ id, name, type, damag
 export const ENEMY_DEFINITIONS = Object.freeze({
   explodingLanternfish: {
     id: 'explodingLanternfish', name: '爆腹燈籠魚', tier: 1, role: 'suicideMelee', maxHealth: 70, moveSpeed: 82,
-    attacks: [attack('contactExplosion', '接觸爆炸', 'contact', { damage: 28, radius: 52, telegraph: 0.35, cooldown: 0 })],
+    attacks: [attack('contactExplosion', '定點自爆', 'suicideCharge', { damage: 28, radius: 52, detonationDelay: 1, telegraph: 1, cooldown: 0 })],
   },
   juvenileSeahorseCaller: {
     id: 'juvenileSeahorseCaller', name: '求援幼年海馬', tier: 1, role: 'support', maxHealth: 45, moveSpeed: 0,
