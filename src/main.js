@@ -40,7 +40,6 @@ import {
   MAX_ENERGY,
   MAX_HEALTH,
   MAX_OXYGEN,
-  predictTrajectory,
   registerPlayerDeath,
   respawnActor,
   resetTestActor,
@@ -1669,14 +1668,12 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, rece
 
 function drawTrajectory() {
   if (!state.dragging || state.mode !== 'play' || state.actor.attached) return;
-  const points = predictTrajectory({
-    map: state.map,
-    chapter: state.chapter,
-    actor: state.actor,
-    pointer: state.dragging.pointer,
-    origin: state.origin,
-    steps: 96,
-    time: state.animationTime,
+  const points = Array.from({ length: 48 }, (_, index) => {
+    const progress = (index + 1) / 48;
+    return {
+      x: state.actor.x + (state.dragging.pointer.x - state.actor.x) * progress,
+      y: state.actor.y + (state.dragging.pointer.y - state.actor.y) * progress,
+    };
   });
   ctx.save();
   ctx.fillStyle = 'rgba(255, 239, 112, 0.8)';

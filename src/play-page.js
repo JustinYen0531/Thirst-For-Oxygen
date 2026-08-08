@@ -14,7 +14,6 @@ import {
   MAX_OXYGEN,
   createTestActor,
   launchActor,
-  predictTrajectory,
   stepPhysics,
 } from './physics.js';
 
@@ -358,12 +357,22 @@ function updateHud() {
 }
 
 function addEvents(events) { events.forEach((event) => { if (event?.message) eventLog.push(event.message); }); if (eventLog.length > 12) eventLog = eventLog.slice(-12); }
+function straightGuidePoints(from, to, steps = 48) {
+  const count = Math.max(1, Math.floor(steps));
+  return Array.from({ length: count }, (_, index) => {
+    const progress = (index + 1) / count;
+    return {
+      x: from.x + (to.x - from.x) * progress,
+      y: from.y + (to.y - from.y) * progress,
+    };
+  });
+}
 function refreshTrajectory(force = false) {
   if (!dragging || !aimPoint || !map || !actor) return;
   const now = performance.now();
   if (!force && now - lastTrajectoryAt < 45) return;
   lastTrajectoryAt = now;
-  trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 48, time: null });
+  trajectory = straightGuidePoints(actor, aimPoint);
 }
 function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
