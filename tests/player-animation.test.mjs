@@ -5,6 +5,7 @@ import {
   getPlayerAnimationFrameScale,
   getPlayerAnimationMotion,
   getPlayerFacingDirection,
+  getPlayerSpriteScaleX,
 } from '../src/player-animation.js';
 import { createTestActor, launchActor } from '../src/physics.js';
 
@@ -25,6 +26,12 @@ test('launch direction synchronizes the diver facing before the first frame', ()
   const rightLaunch = launchActor(actor, { x: 120, y: 200 });
   assert.equal(rightLaunch.launched, true);
   assert.equal(actor.facing, 'right');
+});
+
+test('sprite mirror rule keeps the source pose right-facing', () => {
+  assert.equal(getPlayerSpriteScaleX('right', 1), 1);
+  assert.equal(getPlayerSpriteScaleX('left', 1), -1);
+  assert.equal(getPlayerSpriteScaleX(undefined, 1), 1);
 });
 
 test('player animation keeps one uniform motion scale and uses stable frame envelopes', () => {

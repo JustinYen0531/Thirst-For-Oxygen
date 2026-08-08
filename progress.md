@@ -448,6 +448,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Added a stationary rest animation for low-speed players that have contacted an impassable obstacle; the swim frame and body motion freeze so the legs no longer kick against the wall.
 - Static-only verification passed: `npm run check` (53/53 tests), `npm run build`, and `git diff --check`. Browser and Playwright checks remain prohibited by user instruction.
 
+## 2026-08-08 — Step 57 complete
+
+- Corrected the diver sprite mirror direction after visual review: the generated source poses are right-facing, so rightward travel keeps the source image and leftward travel mirrors it.
+- Centralized the mirror rule in `getPlayerSpriteScaleX` and used it from both the map-editor renderer and standalone play renderer, preventing the two views from drifting apart again.
+- Added a regression test for right/left/unknown facing scale signs. Static-only verification passed: `npm run check` (56/56 tests), `git diff --check`; browser and Playwright checks remain prohibited per user instruction.
+
 ## 2026-08-08 — Step 56 complete
 
 - Updated the diver's physics-facing state at launch and after each movement step, so the sprite follows the actual horizontal travel direction and retains the last side during vertical drift.

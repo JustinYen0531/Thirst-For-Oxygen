@@ -27,6 +27,16 @@ export const PLAYER_ANIMATION_IMAGE_KEYS = Object.freeze({
   fastAscent: 'playerFastAscent',
 });
 
+// The generated diver poses point toward the right in their source files.
+// Keep the mirror rule here so every renderer uses the same visual contract.
+export const PLAYER_SPRITE_SOURCE_FACING = 'right';
+
+export function getPlayerSpriteScaleX(facing, scale = 1) {
+  const magnitude = Number.isFinite(scale) ? Math.abs(scale) : 1;
+  const resolvedFacing = facing === 'left' ? 'left' : 'right';
+  return resolvedFacing === PLAYER_SPRITE_SOURCE_FACING ? magnitude : -magnitude;
+}
+
 export const PLAYER_HURT_DURATION = 0.42;
 export const PLAYER_DEATH_DURATION = 0.9;
 export const FAST_ASCENT_VELOCITY = -55;

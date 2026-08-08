@@ -27,6 +27,7 @@ import {
   getPlayerAnimationMotion,
   getPlayerAnimationPosition,
   getPlayerAnimationState,
+  getPlayerSpriteScaleX,
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 
@@ -328,7 +329,7 @@ function drawActor() {
   context.save();
   context.translate(anchor.x, anchor.y + motion.bob);
   context.rotate(motion.rotation);
-  context.scale(facing === 'left' ? motion.scaleX : -motion.scaleX, motion.scaleY);
+  context.scale(getPlayerSpriteScaleX(facing, motion.scaleX), motion.scaleY);
   if (imageReady) {
     drawImageWithSilhouetteOutline(image, 0, 0, width, height, motion.alpha, .62, motion.glow === '#ffb7a1' ? 'rgba(255, 243, 239, 0.9)' : 'rgba(246, 252, 255, 0.88)');
   } else {

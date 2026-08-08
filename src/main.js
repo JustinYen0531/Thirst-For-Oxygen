@@ -74,6 +74,7 @@ import {
   getPlayerAnimationMotion,
   getPlayerAnimationPosition,
   getPlayerAnimationState,
+  getPlayerSpriteScaleX,
 } from './player-animation.js';
 
 const canvas = document.querySelector('#map-canvas');
@@ -793,7 +794,7 @@ function drawPlayerDiver(position, height, options = {}) {
   ctx.save();
   ctx.translate(anchor.x, anchor.y + motion.bob);
   ctx.rotate(motion.rotation);
-  ctx.scale(facing === 'left' ? motion.scaleX : -motion.scaleX, motion.scaleY);
+  ctx.scale(getPlayerSpriteScaleX(facing, motion.scaleX), motion.scaleY);
   if (gameplay) {
     const pulse = 0.5 + Math.sin(time * 3.4) * 0.5;
     ctx.save();
