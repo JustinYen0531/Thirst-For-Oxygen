@@ -9,9 +9,10 @@ test('oxygen HUD exposes a percentage and normalized fill', () => {
 test('energy HUD rounds to half-slot increments across five slots', () => {
   const hud = getEnergyHud(90, 100);
   assert.equal(hud.label, '4.5/5');
-  assert.deepEqual(hud.fills, [1, 1, 1, 1, 0.5]);
+  assert.deepEqual(hud.fills, [0.5, 1, 1, 1, 1]);
   assert.equal(getEnergyHud(70, 100).label, '3.5/5');
-  assert.deepEqual(getEnergyHud(70, 100).fills, [1, 1, 1, 0.5, 0]);
+  assert.deepEqual(getEnergyHud(70, 100).fills, [0, 0.5, 1, 1, 1]);
+  assert.deepEqual(getEnergyHud(20, 100).fills, [0, 0, 0, 0, 1]);
 });
 
 test('health HUD uses ten clockwise segments and severity tones', () => {

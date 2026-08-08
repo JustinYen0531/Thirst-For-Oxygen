@@ -512,3 +512,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - Moved O₂ upward another 4px and moved the HP readout left another 7px.
 - Scaled each of the five ENERGY bars to 80% in both dimensions around its center, keeping the five-slot layout and half-step value logic unchanged.
+
+## 2026-08-08 — Step 63 complete
+
+- Added a live blue embedded DEPTH readout inside the play visor; it reports the diver's current map-row depth in metres and works for existing and future map parts.
+- Replaced the top-right text settings control with a gear-only button and moved the exit action into the settings drawer. Escape now closes the drawer without leaving the play page.
+- Reversed ENERGY fill ordering so energy is consumed from the top bar downward; the final remaining bar stays at the bottom.

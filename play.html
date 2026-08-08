@@ -23,8 +23,7 @@
           </select>
         </label>
         <div class="play-topbar-actions">
-          <button class="settings-toggle" id="play-settings-toggle" type="button" aria-expanded="false" aria-controls="play-settings">⚙ 設定</button>
-          <a class="exit-link" href="/home.html">離開</a>
+          <button class="settings-toggle" id="play-settings-toggle" type="button" aria-label="開啟遊玩設定" title="設定" aria-expanded="false" aria-controls="play-settings"><span class="gear-icon" aria-hidden="true">⚙</span></button>
         </div>
       </header>
 
@@ -33,6 +32,7 @@
           <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
           <div class="play-stage-frame">
             <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇地圖遊玩畫面"></canvas>
+            <div class="depth-readout" aria-label="目前下沉深度"><span class="depth-label">DEPTH</span><output id="play-depth-value" class="depth-value">000 m</output></div>
             <p class="play-attempts" id="play-attempts">Attempts 3/3</p>
             <div class="play-resource-hud visor-hud" aria-label="主角狀態">
               <img class="visor-surround" src="/assets/editor/hud/visor-surround-balanced.png" alt="" aria-hidden="true" />
@@ -92,6 +92,7 @@
             <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
           </div>
           <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
+          <button class="action-secondary settings-exit" id="play-exit" type="button">↩ 離開遊玩</button>
         </section>
         <section class="camera-card">
           <span>鏡頭狀態</span>

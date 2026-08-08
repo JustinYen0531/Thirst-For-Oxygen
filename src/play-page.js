@@ -6,6 +6,7 @@ import {
   getHexVertices,
   getOddRRectangularBounds,
   getEdgeBetween,
+  HEX_SIZE,
 } from './map-model.js';
 import {
   FIXED_STEP,
@@ -67,6 +68,7 @@ attachSfxVolumeControl(document.querySelector('[aria-labelledby="music-settings-
 const resetButton = document.querySelector('#play-reset');
 const pauseButton = document.querySelector('#play-pause');
 const loadingMask = document.querySelector('#play-loading');
+const depthReadout = document.querySelector('#play-depth-value');
 const mapTitle = document.querySelector('#play-map-title');
 const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
@@ -77,6 +79,7 @@ const attemptsReadout = document.querySelector('#play-attempts');
 const settingsToggle = document.querySelector('#play-settings-toggle');
 const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
+const exitButton = document.querySelector('#play-exit');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
 const oxygenFill = resourceBars.oxygen.querySelector('[data-oxygen-fill]');
@@ -394,6 +397,10 @@ function render() {
 
 function updateHud() {
   if (!actor) return;
+  const firstRowCenterY = (mapBounds?.top ?? origin.y) + HEX_SIZE;
+  const depthMeters = Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
+  depthReadout.textContent = `${String(depthMeters).padStart(3, '0')} m`;
+  depthReadout.setAttribute('aria-label', `目前下沉 ${depthMeters} 公尺`);
   attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
@@ -471,6 +478,7 @@ pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
+exitButton.addEventListener('click', () => { sfxController.play('button'); window.location.href = '/home.html'; });
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
@@ -487,7 +495,6 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
   if (event.key === 'Escape') {
     if (!settingsPanel.hidden) setSettingsOpen(false);
-    else window.location.href = '/home.html';
   }
 });
 

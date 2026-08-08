@@ -35,7 +35,7 @@ export function getEnergyHud(value, maximum) {
   const safeValue = clamp(Number(value) || 0, 0, safeMaximum);
   const ratio = safeValue / safeMaximum;
   const level = Math.round(ratio * ENERGY_STEP_COUNT) / 2;
-  const fills = Array.from({ length: ENERGY_SLOT_COUNT }, (_, index) => clamp(level - index, 0, 1));
+  const fills = Array.from({ length: ENERGY_SLOT_COUNT }, (_, index) => clamp(level - (ENERGY_SLOT_COUNT - 1 - index), 0, 1));
   return Object.freeze({
     value: safeValue,
     ratio,
