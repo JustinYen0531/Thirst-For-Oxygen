@@ -437,6 +437,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
   const toCell = getActiveCell(map, toKey, chapter);
   const fromLayer = fromCell?.waterLayer ?? 'T1';
   const toLayer = toCell?.waterLayer ?? 'T1';
+  const entersBlockedTerrain = fromCell?.terrain === 'water' && toCell?.terrain === 'blocked';
   const crossesWaterLayer = fromCell?.terrain === 'water'
     && toCell?.terrain === 'water'
     && fromLayer !== toLayer;
@@ -478,6 +479,18 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events)
     actor.x = (targetFromCenter.x + targetToCenter.x) / 2 + Math.cos(targetAngle) * 8;
     actor.y = (targetFromCenter.y + targetToCenter.y) / 2 + Math.sin(targetAngle) * 8;
     addEvent(events, 'multiPortal', `多邊傳送門：已傳送至另一端 Edge（${portalTarget.key}）。`);
+    return;
+  }
+  if (entersBlockedTerrain) {
+    const from = getHexCenter(fromCell, origin);
+    const to = getHexCenter(toCell, origin);
+    const normal = unitVector(from, to);
+    const reflected = reflect({ x: actor.vx, y: actor.vy }, normal, 0.72);
+    actor.vx = reflected.x;
+    actor.vy = reflected.y;
+    actor.x = from.x + normal.x * 8;
+    actor.y = from.y + normal.y * 8;
+    addEvent(events, 'terrainBoundary', '不可通行障礙物：已阻擋並反彈玩家。');
     return;
   }
   if (crossesWaterLayer && edge.type !== 'layerPortal') {

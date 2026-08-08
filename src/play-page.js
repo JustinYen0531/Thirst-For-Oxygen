@@ -23,7 +23,9 @@ const MAPS = {
   2: { path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分（中）' },
   3: { path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分（範本）' },
 };
-const SCALE = 2;
+// A 4x world scale intentionally shows only about 60% of the reference map's
+// horizontal span, leaving room for the camera to keep the player readable.
+const SCALE = 4;
 const TILE_SIZE = 24;
 const TILE_ASSETS = {
   'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
@@ -76,8 +78,14 @@ function drawImage(path, x, y, width, height, alpha = 1) { const image = images.
 function visibleCell(cell) { return cell.q !== undefined && cell.r !== undefined && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y > camera.y - 40 && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y < camera.y + canvas.height / SCALE + 40; }
 
 function chooseSpawn(nextMap) {
-  const midRow = Math.floor((nextMap.layout?.height ?? 1) / 2);
-  const safe = Object.values(nextMap.cells).filter((cell) => cell.terrain === 'water').sort((a, b) => Math.abs(a.r - midRow) - Math.abs(b.r - midRow) || Math.abs(a.q) - Math.abs(b.q));
+  const targetRow = ((nextMap.layout?.height ?? 1) - 1) / 2;
+  const targetColumn = ((nextMap.layout?.width ?? 1) - 1) / 2;
+  const safe = Object.values(nextMap.cells).filter((cell) => cell.terrain === 'water').sort((a, b) => {
+    const aColumn = a.q + Math.floor(a.r / 2);
+    const bColumn = b.q + Math.floor(b.r / 2);
+    return Math.abs(a.r - targetRow) + Math.abs(aColumn - targetColumn)
+      - (Math.abs(b.r - targetRow) + Math.abs(bColumn - targetColumn));
+  });
   return getHexCenter(safe[0] ?? Object.values(nextMap.cells)[0], origin);
 }
 
@@ -211,20 +219,30 @@ function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); retur
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
 function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (actor.y - camera.y) * SCALE }; }
 
-canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 35) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 110, time: performance.now() / 1000 }); });
+canvas.addEventListener('pointerdown', (event) => { if (!actor || paused || actor.dead) return; event.preventDefault(); const point = canvasPoint(event); const actorPoint = actorCanvasPoint(); if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return; dragging = true; canvas.setPointerCapture(event.pointerId); aimPoint = screenToWorld(point); trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 110, time: performance.now() / 1000 }); updateHud(); });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); trajectory = predictTrajectory({ map, chapter: 'chapter1', actor, pointer: aimPoint, origin, steps: 110, time: performance.now() / 1000 }); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); const result = launchActor(actor, aimPoint); if (result.launched) eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)}`); else eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; });
+canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; });
 resetButton.addEventListener('click', () => { if (!actor) return; Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 mapSelect.addEventListener('change', () => loadMap(mapSelect.value));
 window.addEventListener('keydown', (event) => { if (event.key.toLowerCase() === 'r') resetButton.click(); if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); } if (event.key === 'Escape') window.location.href = '/home.html'; });
 
-function frame(now) {
-  const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now;
-  if (!paused && map && actor) { accumulator += elapsed; while (accumulator >= FIXED_STEP) { addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 })); accumulator -= FIXED_STEP; } updateCamera(); updateHud(); }
-  render(); requestAnimationFrame(frame);
+function simulate(elapsed, now = performance.now()) {
+  if (!paused && map && actor) { accumulator += Math.min(.1, Math.max(0, elapsed)); while (accumulator >= FIXED_STEP) { addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 })); accumulator -= FIXED_STEP; } updateCamera(); updateHud(); }
 }
+
+window.render_game_to_text = () => JSON.stringify({
+  coordinateSystem: 'world origin is top-left; x right, y down',
+  map: MAPS[mapPart]?.label ?? 'loading',
+  camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
+  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), dragging } : null,
+  paused,
+});
+window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Math.max(0, milliseconds) / (1000 / 60))); for (let index = 0; index < steps; index += 1) simulate(FIXED_STEP, performance.now()); render(); };
+
+function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }
 
 const requestedPart = new URLSearchParams(window.location.search).get('part');
 if (requestedPart && MAPS[requestedPart]) { mapSelect.value = requestedPart; mapPart = Number(requestedPart); }

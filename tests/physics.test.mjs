@@ -499,6 +499,22 @@ test('a button opens its explicitly assigned gate once and keeps the gate at L1'
   assert.equal(secondEvents.some((event) => event.type === 'button'), false, 'a pressed button must not trigger again');
 });
 
+test('blocked terrain reflects a player instead of becoming passable', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchCell(map, '1,0', { terrain: 'blocked' });
+  const actor = actorIn(map, '0,0');
+  actor.vx = 140;
+  const before = actor.x;
+  const events = [];
+  for (let index = 0; index < 30 && !events.some((event) => event.type === 'terrainBoundary'); index += 1) {
+    events.push(...stepPhysics({ map, actor, origin: ORIGIN }));
+  }
+  assert.ok(events.some((event) => event.type === 'terrainBoundary'));
+  assert.ok(actor.x < getHexCenter(getActiveCell(map, '1,0'), ORIGIN).x - actor.radius);
+  assert.ok(actor.x > before);
+  assert.ok(actor.vx < 0, 'blocked terrain should reflect horizontal velocity');
+});
+
 test('multi-edge portals pair equal edge groups and teleport the actor', () => {
   const map = createEmptyMap({ width: 12, height: 3 });
   const origin = { x: 120, y: 120 };
