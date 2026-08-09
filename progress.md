@@ -842,3 +842,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式地圖補上水草 E 鍵附著、Checkpoint 觸碰入口去重、永久死亡不可 R 鍵復活，並完整消費旋轉剃刀軸／數量、按鈕 pressed 狀態、潮流方向、Boss rules／summons／zones 視覺契約。
 - 兩個遊玩入口改從 Part 1 進入，首頁與沙盒文案不再誤稱範本地圖或要求重新套用 Build；圖鑑只對已有素材承諾演示。
 - 重跑 `npm run generate:maps` 成功，完整 `npm run check` 203/203、Vite build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 106 complete
+
+- 新增氧氣／能量共同驅動的生命恢復：兩者都達 60% 時回復 2 HP/s，兩者都達 80% 時改為 5 HP/s；使用氧氣實際上限計算比例，生命不超過 100，死亡狀態不會自行復活。
+- 門檻與速率集中於 `RESOURCE_HEALTH_RECOVERY` 可調整資料契約，正式物理與沙盒共用；毒素測試改用低資源情境，避免沙盒無限資源的快速回血掩蓋持續傷害驗證。
+- focused physics/progression tests 103/103、完整 `npm run check` 204/204 通過；Vite build 與 `git diff --check` 也通過。依專案規則未執行瀏覽器／Playwright。

@@ -39,6 +39,7 @@ import {
   getLaunchSpeed,
   getOxygenDrainPerSecond,
   getOxygenSecondsRemaining,
+  getResourceHealthRecoveryPerSecond,
   launchActor,
   getMicroflowAcceleration,
   getMicroflowRegionKeys,
@@ -55,6 +56,7 @@ import {
   ENEMY_DEFINITIONS,
   ENEMY_ORDER,
   PASSIVE_ABILITIES,
+  RESOURCE_HEALTH_RECOVERY,
   WEAPONS,
   calculateWeaponDamage,
   createEnemyState,
@@ -171,6 +173,50 @@ test('energy starts recovering one second after the last launch even while drift
   const afterLaunch = actor.energy;
   stepPhysics({ map, actor, origin: ORIGIN, dt: 0.5 });
   assert.equal(actor.energy, afterLaunch, 'a new launch should restart the one-second delay');
+});
+
+test('high oxygen and energy recover health at moderate and fast rates', () => {
+  assert.deepEqual(RESOURCE_HEALTH_RECOVERY, {
+    moderateThresholdRatio: 0.6,
+    moderateHealthPerSecond: 2,
+    fastThresholdRatio: 0.8,
+    fastHealthPerSecond: 5,
+  });
+
+  const thresholdActor = createTestActor();
+  thresholdActor.health = 50;
+  thresholdActor.oxygen = 60;
+  thresholdActor.energy = 60;
+  assert.equal(getResourceHealthRecoveryPerSecond(thresholdActor), 2, 'both resources at sixty percent should enable moderate recovery');
+  thresholdActor.oxygen = 80;
+  thresholdActor.energy = 80;
+  assert.equal(getResourceHealthRecoveryPerSecond(thresholdActor), 5, 'both resources at eighty percent should enable fast recovery');
+  thresholdActor.energy = 79.9;
+  assert.equal(getResourceHealthRecoveryPerSecond(thresholdActor), 2, 'fast recovery requires both resources to reach eighty percent');
+  thresholdActor.oxygen = 59.9;
+  thresholdActor.energy = 100;
+  assert.equal(getResourceHealthRecoveryPerSecond(thresholdActor), 0, 'one resource below sixty percent disables recovery');
+
+  const map = createEmptyMap({ width: 1, height: 1 });
+  const moderate = actorIn(map, '0,0');
+  moderate.health = 40;
+  moderate.oxygen = 72.5;
+  moderate.energy = 70;
+  moderate.energyRecoveryDelay = 10;
+  stepPhysics({ map, actor: moderate, origin: ORIGIN, dt: 1 });
+  assert.equal(moderate.health, 42);
+
+  const fast = actorIn(map, '0,0');
+  fast.health = 40;
+  fast.oxygen = 92.5;
+  fast.energy = 90;
+  fast.energyRecoveryDelay = 10;
+  stepPhysics({ map, actor: fast, origin: ORIGIN, dt: 1 });
+  assert.equal(fast.health, 45);
+
+  fast.health = 99;
+  stepPhysics({ map, actor: fast, origin: ORIGIN, dt: 1 });
+  assert.equal(fast.health, MAX_HEALTH, 'resource recovery must never exceed the health cap');
 });
 
 test('long launches gain extra speed while short launches keep the old scale', () => {

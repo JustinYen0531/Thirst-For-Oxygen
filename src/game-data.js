@@ -9,6 +9,13 @@ export const RESOURCE_LIMITS = Object.freeze({
   lives: 3,
 });
 
+export const RESOURCE_HEALTH_RECOVERY = Object.freeze({
+  moderateThresholdRatio: 0.6,
+  moderateHealthPerSecond: 2,
+  fastThresholdRatio: 0.8,
+  fastHealthPerSecond: 5,
+});
+
 export const PLAYER_BASE_STATS = Object.freeze({
   launchEnergyCostMultiplier: 1,
   weaponEnergyCostMultiplier: 1,

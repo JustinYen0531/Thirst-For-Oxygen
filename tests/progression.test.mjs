@@ -359,6 +359,9 @@ test('seahorse rescue waits six seconds before summoning core enemies', () => {
 
 test('lionfish venom projectile applies a timed player status', () => {
   const state = createSandboxState();
+  state.infiniteResources = false;
+  state.actor.oxygen = 50;
+  state.actor.energy = 50;
   const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 70, y: state.actor.y }, { moveSpeed: 0 });
 
   assert.equal(executeEnemySkill(state, enemy.instanceId, 'venomStraightShot').ok, true);

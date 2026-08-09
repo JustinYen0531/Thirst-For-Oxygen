@@ -14,6 +14,7 @@ import {
 } from './map-model.js';
 import {
   getPlayerDerivedStats,
+  RESOURCE_HEALTH_RECOVERY,
   RESOURCE_LIMITS,
 } from './game-data.js';
 import {
@@ -104,6 +105,31 @@ export function getOxygenSecondsRemaining(actor) {
   const drainPerSecond = getOxygenDrainPerSecond(actor);
   if (drainPerSecond <= 0) return 0;
   return Math.max(0, actor.oxygen / drainPerSecond);
+}
+
+export function getResourceHealthRecoveryPerSecond(actor) {
+  if (!actor || actor.dead || actor.gameOver || Number(actor.health) <= 0) return 0;
+  const oxygenMaximum = maxOxygenFor(actor);
+  const oxygenRatio = oxygenMaximum > 0 && Number.isFinite(actor.oxygen)
+    ? actor.oxygen / oxygenMaximum
+    : 0;
+  const energyRatio = MAX_ENERGY > 0 && Number.isFinite(actor.energy)
+    ? actor.energy / MAX_ENERGY
+    : 0;
+  const sharedRatio = Math.min(oxygenRatio, energyRatio);
+  if (sharedRatio >= RESOURCE_HEALTH_RECOVERY.fastThresholdRatio) {
+    return RESOURCE_HEALTH_RECOVERY.fastHealthPerSecond;
+  }
+  if (sharedRatio >= RESOURCE_HEALTH_RECOVERY.moderateThresholdRatio) {
+    return RESOURCE_HEALTH_RECOVERY.moderateHealthPerSecond;
+  }
+  return 0;
+}
+
+function processResourceHealthRecovery(actor, dt) {
+  const healthPerSecond = getResourceHealthRecoveryPerSecond(actor);
+  if (healthPerSecond <= 0 || actor.health >= MAX_HEALTH) return 0;
+  return recoverPlayerResource(actor, 'health', healthPerSecond * Math.max(0, Number(dt) || 0), 'healthyResources').recovered;
 }
 
 function clamp(value, min, max) {
@@ -934,6 +960,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
   processOxygenClock(actor, dt, events);
   actor.derivedStats = getPlayerDerivedStats(actor.abilities ?? [], actor.oxygen);
+  processResourceHealthRecovery(actor, dt);
   if (actor.attached) {
     if (actor.energyRecoveryDelay <= 0) {
       actor.energy = Math.min(MAX_ENERGY, actor.energy + SEAWEED_ENERGY_RECOVERY_PER_SECOND * dt);
