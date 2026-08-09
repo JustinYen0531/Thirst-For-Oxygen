@@ -35,9 +35,12 @@ import { getEdgeAttachmentGeometry } from './edge-attachment.js';
 import './play.css';
 import './visor-hud.css';
 import {
+  PLAY_DESCENT_ROUTE_STAGES,
+  beginPlayAwakening,
   createPlayAwakeningState,
   getPlayAttemptState,
   getPlayAwakeningRenderState,
+  getPlayShutterHalfDrawRect,
   stepPlayAwakening,
 } from './play-awakening.js';
 import {
@@ -99,7 +102,12 @@ import {
   updateDiscoverySession,
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
-import { PLAY_BASE_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
+import {
+  PLAY_AWAKENING_SHUTTER_ASSET,
+  PLAY_BASE_IMAGE_ASSET_PATHS,
+  PLAY_MAP_ASSET_URLS,
+  PLAY_TILE_ASSETS,
+} from './play-preload.js';
 import {
   advancePlayStoryIntro,
   createPlayStoryIntroState,
@@ -461,6 +469,7 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     storyIntroState.active = false;
     updateStoryIntroPresentation();
     awakeningState.active = false;
+    awakeningState.awaitingTrigger = false;
     updateAwakeningPresentation();
     eventLog = [`地圖載入失敗：${error.message}`];
     eventsList.innerHTML = `<li>${eventLog[0]}</li>`;
@@ -833,9 +842,10 @@ function updateStoryIntroPresentation() {
 
 function finishStoryIntro() {
   awakeningState = createPlayAwakeningState({
-    enabled: mapArc === 'descent' && mapPart === 1,
+    enabled: true,
     reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
   });
+  if (awakeningState.awaitingTrigger) beginPlayAwakening(awakeningState);
   updateStoryIntroPresentation();
   updateAwakeningPresentation();
 }
@@ -855,33 +865,94 @@ function updateAwakeningPresentation() {
   return awakening;
 }
 
+function drawAwakeningShutterHalf(image, topHalf, openRatio) {
+  const rect = getPlayShutterHalfDrawRect({
+    imageWidth: image?.naturalWidth ?? canvas.width,
+    imageHeight: image?.naturalHeight ?? canvas.height,
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
+    topHalf,
+    openRatio,
+  });
+  if (image?.complete && image.naturalWidth > 0) {
+    context.drawImage(image, rect.sx, rect.sy, rect.sw, rect.sh, rect.dx, rect.dy, rect.dw, rect.dh);
+  } else {
+    context.save();
+    context.translate(rect.dx, rect.dy);
+    context.fillStyle = '#07101a';
+    context.fillRect(0, 0, rect.dw, rect.dh);
+    context.strokeStyle = 'rgba(82, 184, 222, .48)';
+    context.lineWidth = 8;
+    context.strokeRect(10, 10, rect.dw - 20, rect.dh - 20);
+    context.restore();
+  }
+}
+
+function drawAwakeningRouteLock(awakening) {
+  if (awakening.routeOpacity <= .001) return;
+  const nodeY = canvas.height * .5;
+  const nodeXs = [.272, .5, .728].map((ratio) => canvas.width * ratio);
+  const nodeRadius = Math.max(25, canvas.height * .047);
+  const activeStage = PLAY_DESCENT_ROUTE_STAGES[awakening.activeRouteIndex] ?? PLAY_DESCENT_ROUTE_STAGES[0];
+  const pulse = .72 + Math.sin(awakening.elapsed * 8) * .08;
+  context.save();
+  context.globalAlpha = awakening.routeOpacity;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  nodeXs.forEach((x, index) => {
+    const active = index === awakening.activeRouteIndex;
+    context.save();
+    if (active) {
+      const glow = context.createRadialGradient(x, nodeY, 2, x, nodeY, nodeRadius * 1.65);
+      glow.addColorStop(0, `rgba(187, 248, 255, ${.9 * awakening.routeLightRatio})`);
+      glow.addColorStop(.42, `rgba(44, 207, 255, ${.58 * awakening.routeLightRatio})`);
+      glow.addColorStop(1, 'rgba(24, 143, 196, 0)');
+      context.fillStyle = glow;
+      context.beginPath();
+      context.arc(x, nodeY, nodeRadius * 1.65, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.beginPath();
+    context.arc(x, nodeY, nodeRadius, 0, Math.PI * 2);
+    context.fillStyle = active
+      ? `rgba(34, 188, 232, ${.28 + awakening.routeLightRatio * .42})`
+      : 'rgba(2, 11, 18, .78)';
+    context.fill();
+    context.strokeStyle = active
+      ? `rgba(169, 244, 255, ${pulse * awakening.routeLightRatio})`
+      : 'rgba(96, 127, 143, .42)';
+    context.lineWidth = active ? 4 : 2;
+    context.stroke();
+    context.fillStyle = active ? '#e5fcff' : 'rgba(139, 163, 174, .5)';
+    context.font = `800 ${Math.max(16, canvas.height * .027)}px "Orbitron", "Segoe UI", sans-serif`;
+    context.fillText(`0${index + 1}`, x, nodeY + 1);
+    context.restore();
+  });
+
+  const labelX = nodeXs[awakening.activeRouteIndex] ?? nodeXs[0];
+  const labelY = nodeY + nodeRadius * 2.45;
+  context.shadowColor = '#2bcfff';
+  context.shadowBlur = 13 * awakening.routeLightRatio;
+  context.fillStyle = '#98efff';
+  context.font = `800 ${Math.max(14, canvas.height * .023)}px "Orbitron", "Segoe UI", sans-serif`;
+  context.fillText(PLAY_DESCENT_ROUTE_STAGES[awakening.activeRouteIndex]?.chapterLabel ?? '下沉篇・第一部分', labelX, labelY);
+  context.shadowBlur = 7 * awakening.routeLightRatio;
+  context.fillStyle = '#effcff';
+  context.font = `700 ${Math.max(18, canvas.height * .033)}px "Noto Sans TC", "Segoe UI", sans-serif`;
+  context.fillText(activeStage.title, labelX, labelY + canvas.height * .052);
+  context.restore();
+}
+
 function drawAwakeningMask() {
   const awakening = updateAwakeningPresentation();
   if (!awakening.maskVisible) return;
-  const openness = clamp(awakening.eyeOpenRatio, 0, 1);
+  const openness = clamp(awakening.shutterOpenRatio, 0, 1);
+  const shutterImage = images.get(PLAY_AWAKENING_SHUTTER_ASSET);
   context.save();
-  context.fillStyle = '#000000';
-  if (openness <= .001) {
-    context.fillRect(0, 0, canvas.width, canvas.height);
-  } else {
-    context.beginPath();
-    context.rect(0, 0, canvas.width, canvas.height);
-    context.ellipse(
-      canvas.width * .5,
-      canvas.height * .5,
-      canvas.width * .59,
-      Math.max(1, canvas.height * .46 * openness),
-      0,
-      0,
-      Math.PI * 2,
-    );
-    context.fill('evenodd');
-    context.beginPath();
-    context.ellipse(canvas.width * .5, canvas.height * .5, canvas.width * .59, Math.max(1, canvas.height * .46 * openness), 0, 0, Math.PI * 2);
-    context.strokeStyle = `rgba(0, 0, 0, ${.45 + (1 - openness) * .45})`;
-    context.lineWidth = 18;
-    context.stroke();
-  }
+  drawAwakeningShutterHalf(shutterImage, true, openness);
+  drawAwakeningShutterHalf(shutterImage, false, openness);
+  drawAwakeningRouteLock(awakening);
   context.restore();
 }
 
@@ -1890,6 +1961,15 @@ function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); retur
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
 function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (actor.y - camera.y) * SCALE }; }
 
+stageFrame.addEventListener('pointerdown', (event) => {
+  if (!awakeningState.awaitingTrigger) return;
+  event.preventDefault();
+  event.stopPropagation();
+  beginPlayAwakening(awakeningState);
+  updateAwakeningPresentation();
+  render();
+}, { capture: true });
+
 storyIntroOverlay?.addEventListener('pointerdown', (event) => {
   if (!storyIntroState.active || event.target.closest('#play-story-skip')) return;
   event.preventDefault();
@@ -1918,7 +1998,7 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
-  if (paused || storyIntroState.active || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
+  if (paused || storyIntroState.active || awakeningState.awaitingTrigger || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
   if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
@@ -2050,8 +2130,8 @@ function simulate(elapsed, now = performance.now()) {
     updateHudIfDue(now);
     return;
   }
-  if (awakeningState.active) {
-    stepPlayAwakening(awakeningState, scaledElapsed);
+  if (awakeningState.awaitingTrigger || awakeningState.active) {
+    if (awakeningState.active) stepPlayAwakening(awakeningState, scaledElapsed);
     updateAwakeningPresentation();
     updateHudIfDue(now);
     return;

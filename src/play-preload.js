@@ -17,6 +17,8 @@ export const PLAY_TILE_ASSETS = Object.freeze({
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
 });
 
+export const PLAY_AWAKENING_SHUTTER_ASSET = '/assets/editor/hud/awakening-pressure-shutter.png';
+
 export const PLAY_WEAPON_ASSET_PATHS = Object.freeze([...new Set(
   Object.values(WEAPONS).flatMap((weapon) => (
     Object.values(weapon.levels).map((level) => level.effect?.sprite).filter(Boolean)
@@ -25,6 +27,7 @@ export const PLAY_WEAPON_ASSET_PATHS = Object.freeze([...new Set(
 
 export const PLAY_HUD_ASSET_PATHS = Object.freeze([
   VISOR_HUD_ASSET,
+  PLAY_AWAKENING_SHUTTER_ASSET,
   '/assets/editor/hud/visor-surround-balanced.png',
   '/assets/editor/hud/slot-locked-octagon.png',
   ...Object.entries(PLAYER_HUD_ICON_FAMILIES).flatMap(([kind, families]) => (
@@ -67,6 +70,7 @@ export const PLAY_STARTUP_ASSET_PATHS = Object.freeze([
   ...PLAYER_ANIMATION_ASSETS.swim,
   ...Object.values(PLAY_TILE_ASSETS),
   VISOR_HUD_ASSET,
+  PLAY_AWAKENING_SHUTTER_ASSET,
   '/assets/editor/hud/visor-surround-balanced.png',
   '/assets/editor/hud/slot-locked-octagon.png',
   getPlayerHudIconPath('weapon', 'knife', 1),

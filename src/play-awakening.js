@@ -5,22 +5,52 @@ const smoothstep = (value) => {
 };
 
 export const PLAY_AWAKENING_TIMING = Object.freeze({
-  blackHold: 0.6,
-  attemptFadeDuration: 0.75,
-  hudFadeStart: 1.05,
-  hudFadeDuration: 1.25,
-  blinkStart: 2.45,
-  blinkDuration: 0.7,
-  blinkCount: 3,
-  finalOpenDuration: 1.1,
+  shutterCloseDuration: 0.85,
+  shutterClosedHold: 0.65,
+  routeLightDuration: 0.65,
+  routeHoldDuration: 1.15,
+  shutterOpenDuration: 1.45,
   finalOpenHold: 0.2,
 });
 
+export const PLAY_DESCENT_ROUTE_STAGES = Object.freeze([
+  Object.freeze({ part: 1, chapterLabel: '下沉篇・第一部分', title: '深海森林入口' }),
+  Object.freeze({ part: 2, chapterLabel: '下沉篇・第二部分', title: '穿越熱泉' }),
+  Object.freeze({ part: 3, chapterLabel: '下沉篇・第三部分', title: '深淵遺跡' }),
+]);
+
 export function getPlayAwakeningDuration(timing = PLAY_AWAKENING_TIMING) {
-  return timing.blinkStart
-    + timing.blinkDuration * timing.blinkCount
-    + timing.finalOpenDuration
+  return timing.shutterCloseDuration
+    + timing.shutterClosedHold
+    + timing.routeLightDuration
+    + timing.routeHoldDuration
+    + timing.shutterOpenDuration
     + timing.finalOpenHold;
+}
+
+export function getPlayShutterHalfDrawRect({
+  imageWidth,
+  imageHeight,
+  canvasWidth,
+  canvasHeight,
+  topHalf,
+  openRatio,
+}) {
+  const sourceWidth = Math.max(1, Number(imageWidth) || 1);
+  const sourceHeight = Math.max(1, Number(imageHeight) || 1) * .5;
+  const destinationWidth = Math.max(1, Number(canvasWidth) || 1);
+  const destinationHeight = Math.max(1, Number(canvasHeight) || 1) * .5;
+  const travel = Math.max(1, Number(canvasHeight) || 1) * .56 * clamp01(openRatio);
+  return Object.freeze({
+    sx: 0,
+    sy: topHalf ? 0 : sourceHeight,
+    sw: sourceWidth,
+    sh: sourceHeight,
+    dx: 0,
+    dy: topHalf ? (travel > 0 ? -travel : 0) : destinationHeight + travel,
+    dw: destinationWidth,
+    dh: destinationHeight,
+  });
 }
 
 export function getPlayAttemptState(actor) {
@@ -31,71 +61,99 @@ export function getPlayAttemptState(actor) {
 
 export function createPlayAwakeningState({ enabled = true, reducedMotion = false } = {}) {
   return {
-    active: Boolean(enabled),
+    active: false,
+    awaitingTrigger: Boolean(enabled),
     elapsed: 0,
     reducedMotion: Boolean(reducedMotion),
   };
 }
 
+export function beginPlayAwakening(state, timing = PLAY_AWAKENING_TIMING) {
+  if (!state?.awaitingTrigger) return getPlayAwakeningRenderState(state, timing);
+  state.awaitingTrigger = false;
+  state.active = true;
+  state.elapsed = 0;
+  return getPlayAwakeningRenderState(state, timing);
+}
+
 export function getPlayAwakeningRenderState(state, timing = PLAY_AWAKENING_TIMING) {
   const enabled = Boolean(state?.active);
+  const awaitingTrigger = Boolean(state?.awaitingTrigger);
   const elapsed = Math.max(0, Number(state?.elapsed) || 0);
   const duration = getPlayAwakeningDuration(timing);
+  if (awaitingTrigger) {
+    return Object.freeze({
+      active: false,
+      awaitingTrigger: true,
+      blocksGameplay: true,
+      phase: 'ready',
+      elapsed: 0,
+      duration,
+      attemptOpacity: 1,
+      hudOpacity: 1,
+      routeLightRatio: 0,
+      routeOpacity: 0,
+      shutterOpenRatio: 1,
+      activeRouteIndex: 0,
+      maskVisible: false,
+    });
+  }
   if (!enabled || elapsed >= duration) {
     return Object.freeze({
       active: false,
+      awaitingTrigger: false,
       blocksGameplay: false,
       phase: 'complete',
       elapsed: Math.min(elapsed, duration),
       duration,
       attemptOpacity: 1,
       hudOpacity: 1,
-      eyeOpenRatio: 1,
-      blinkIndex: timing.blinkCount,
+      routeLightRatio: 1,
+      routeOpacity: 0,
+      shutterOpenRatio: 1,
+      activeRouteIndex: 0,
       maskVisible: false,
     });
   }
 
-  const attemptOpacity = smoothstep((elapsed - timing.blackHold) / timing.attemptFadeDuration);
-  const hudOpacity = smoothstep((elapsed - timing.hudFadeStart) / timing.hudFadeDuration);
-  const blinkEnd = timing.blinkStart + timing.blinkDuration * timing.blinkCount;
-  let phase = elapsed < timing.blackHold
-    ? 'black'
-    : elapsed < timing.hudFadeStart
-      ? 'attempt'
-      : elapsed < timing.blinkStart
-        ? 'hud'
-        : 'blink';
-  let eyeOpenRatio = 0;
-  let blinkIndex = 0;
-
-  if (elapsed >= timing.blinkStart && elapsed < blinkEnd) {
-    const blinkProgress = (elapsed - timing.blinkStart) / timing.blinkDuration;
-    blinkIndex = Math.min(timing.blinkCount, Math.floor(blinkProgress) + 1);
-    eyeOpenRatio = Math.sin((blinkProgress % 1) * Math.PI);
-    phase = `blink-${blinkIndex}`;
-  } else if (elapsed >= blinkEnd) {
-    blinkIndex = timing.blinkCount;
-    eyeOpenRatio = smoothstep((elapsed - blinkEnd) / timing.finalOpenDuration);
-    phase = 'final-open';
-  }
+  const shutterCloseEnd = timing.shutterCloseDuration;
+  const routeLightStart = shutterCloseEnd + timing.shutterClosedHold;
+  const shutterOpenStart = routeLightStart + timing.routeLightDuration + timing.routeHoldDuration;
+  const shutterOpenEnd = shutterOpenStart + timing.shutterOpenDuration;
+  const routeLightRatio = smoothstep((elapsed - routeLightStart) / timing.routeLightDuration);
+  const shutterOpenRatio = elapsed < shutterCloseEnd
+    ? 1 - smoothstep(elapsed / timing.shutterCloseDuration)
+    : smoothstep((elapsed - shutterOpenStart) / timing.shutterOpenDuration);
+  const routeOpacity = routeLightRatio * (1 - smoothstep(shutterOpenRatio * 1.65));
+  const phase = elapsed < shutterCloseEnd
+    ? 'shutter-close'
+    : elapsed < routeLightStart
+      ? 'shutter-closed'
+    : elapsed < shutterOpenStart
+      ? 'route-lock'
+      : elapsed < shutterOpenEnd
+        ? 'shutter-open'
+        : 'final-open';
 
   return Object.freeze({
     active: true,
+    awaitingTrigger: false,
     blocksGameplay: true,
     phase,
     elapsed,
     duration,
-    attemptOpacity,
-    hudOpacity,
-    eyeOpenRatio,
-    blinkIndex,
+    attemptOpacity: 1,
+    hudOpacity: 1,
+    routeLightRatio,
+    routeOpacity,
+    shutterOpenRatio,
+    activeRouteIndex: 0,
     maskVisible: true,
   });
 }
 
 export function stepPlayAwakening(state, elapsed, timing = PLAY_AWAKENING_TIMING) {
-  if (!state?.active) return getPlayAwakeningRenderState(state, timing);
+  if (!state?.active || state.awaitingTrigger) return getPlayAwakeningRenderState(state, timing);
   const duration = getPlayAwakeningDuration(timing);
   const speed = state.reducedMotion ? 6 : 1;
   state.elapsed = Math.min(duration, state.elapsed + Math.max(0, Number(elapsed) || 0) * speed);
