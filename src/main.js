@@ -89,8 +89,10 @@ import {
   translateEditorText,
   translateEditorTree,
 } from './i18n-editor.js';
+import { attachMenuMusic } from './music.js';
 
 applyEditorTranslations(document);
+attachMenuMusic(document);
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');

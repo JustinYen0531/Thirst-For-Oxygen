@@ -247,6 +247,49 @@ export function createMusicController(initialTrack) {
   };
 }
 
+export function attachMenuMusic(eventTarget = document, options = {}) {
+  if (!eventTarget?.addEventListener) return null;
+  const controller = createMusicController({
+    ...MUSIC_TRACKS.mainMenu,
+    startAt: options.startAt ?? 75,
+  });
+  let started = false;
+  let attempting = false;
+
+  function cleanup() {
+    eventTarget.removeEventListener('pointerdown', unlock);
+    eventTarget.removeEventListener('keydown', onKeyDown);
+  }
+
+  async function unlock() {
+    if (started || attempting) return false;
+    attempting = true;
+    const didStart = await controller.start();
+    attempting = false;
+    if (didStart) {
+      started = true;
+      cleanup();
+    }
+    return didStart;
+  }
+
+  function onKeyDown(event) {
+    if (event.key === 'Enter' || event.key === ' ') void unlock();
+  }
+
+  eventTarget.addEventListener('pointerdown', unlock, { passive: true });
+  eventTarget.addEventListener('keydown', onKeyDown);
+  void unlock();
+  return {
+    controller,
+    start: unlock,
+    stop() {
+      cleanup();
+      controller.stop();
+    },
+  };
+}
+
 export function attachMusicControls(root, controller) {
   const panel = document.createElement('section');
   panel.className = 'music-control';

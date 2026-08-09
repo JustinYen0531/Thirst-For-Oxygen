@@ -4,6 +4,9 @@ import {
   getLocalizedEncyclopedia,
   getStoredEncyclopediaLocale,
 } from './i18n-encyclopedia.js';
+import { attachMenuMusic } from './music.js';
+
+attachMenuMusic(document);
 
 const encyclopedia = getLocalizedEncyclopedia(getStoredEncyclopediaLocale());
 const {

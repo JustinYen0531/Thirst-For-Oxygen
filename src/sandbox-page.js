@@ -38,6 +38,9 @@ import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana
 import { getEnemySpriteScaleX } from './enemy-movement.js';
 import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 import { installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
+import { attachMenuMusic } from './music.js';
+
+attachMenuMusic(document);
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');

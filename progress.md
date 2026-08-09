@@ -1031,6 +1031,13 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 載入進度新增 12 秒視覺節奏限制：顯示比例取實際素材進度與時間進度的較小值，快取再快也不會提前顯示 100%，素材完成時約在影片結尾抵達 100%；真正較慢的載入仍以實際完成為準。
 - 首頁 focused tests 19/19、完整 `npm run check` 281/281、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
 
+## 2026-08-10 — Step 125 complete
+
+- 編輯器、驗收沙盒與世界圖鑑新增共用 `attachMenuMusic`，使用首頁相同的 `main-menu.mp3`、75 秒起始位置與既有音量設定。
+- 三個頁面載入時先嘗試自動播放；若瀏覽器的自動播放政策阻擋，第一次點擊或 Enter／Space 會解鎖，不會因政策限制而永久無聲。
+- 音樂啟動器集中在 `src/music.js`，保留原本 Play 頁的曲目切換與音樂控制，不重複建立各頁自己的音訊邏輯。
+- 音樂入口 focused tests 2/2、完整 `npm run check`、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Step 124 complete
 
 - 修正正式 Play 進場後只剩地圖、HUD 與玩家消失且無法操作的啟動回歸：Resonance／Level 檢視現在是可選附加介面，節點不同步時不再中斷 `setupWorld` 與每幀模擬。
