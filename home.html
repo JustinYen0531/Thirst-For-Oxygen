@@ -33,18 +33,31 @@
           <div id="home-music-control"></div>
           <p class="hero-note"><span class="signal-dot"></span> 地圖狀態：下沉篇三部分已串接 · 從第一部分開始</p>
         </div>
-        <div class="hero-aquarium" aria-label="深海水族館預覽">
-          <div class="aquarium-glow"></div>
-          <div class="aquarium-ring ring-one"></div>
-          <div class="aquarium-ring ring-two"></div>
-          <div class="hero-player" aria-hidden="true"><span>P</span></div>
-          <div class="hero-fish fish-one" aria-hidden="true">◒</div>
-          <div class="hero-fish fish-two" aria-hidden="true">◈</div>
-          <div class="hero-fish fish-three" aria-hidden="true">◇</div>
-          <div class="aquarium-grid" aria-hidden="true"></div>
-          <span class="hero-coordinate coordinate-one">T1 / L1</span>
-          <span class="hero-coordinate coordinate-two">T2 / L2</span>
-          <span class="hero-coordinate coordinate-three">O₂ 72%</span>
+        <div class="hero-helmet-preview" id="home-helmet-preview" aria-label="遺留在海床上的潛水頭盔，面罩正播放下沉篇真實地圖">
+          <div class="helmet-scene">
+            <img src="/assets/home/abandoned-diving-helmet-map-frame.png" alt="遺留在深海海床上的古老潛水頭盔" />
+            <div class="helmet-lens">
+              <canvas id="home-map-preview" width="800" height="620" aria-label="下沉篇第一至第三部分真實地圖自動巡覽"></canvas>
+              <div class="helmet-lens-reflection" aria-hidden="true"></div>
+              <p class="helmet-preview-loading" id="home-preview-loading">正在讀取真實遊戲地圖…</p>
+            </div>
+            <div class="helmet-sediment" aria-hidden="true"></div>
+          </div>
+          <div class="helmet-preview-toolbar">
+            <div class="preview-arc-tabs" aria-label="篇章地圖預覽">
+              <button type="button" class="is-active" aria-pressed="true">下沉篇</button>
+              <button type="button" disabled aria-disabled="true" title="上浮篇真實地圖完成後即可接入">上浮篇 <small>地圖待接入</small></button>
+            </div>
+            <button type="button" class="preview-pause" id="home-preview-toggle" aria-pressed="false">Ⅱ 暫停巡覽</button>
+          </div>
+          <div class="helmet-preview-caption" aria-live="polite">
+            <span><strong id="home-preview-part">第一部分｜深海森林入口</strong><small id="home-preview-direction">自動下潛 · 下一段為第二部分</small></span>
+            <span class="preview-part-markers" aria-label="巡覽進度">
+              <i class="is-active" data-preview-part="1" aria-current="step">1</i>
+              <i data-preview-part="2" aria-current="false">2</i>
+              <i data-preview-part="3" aria-current="false">3</i>
+            </span>
+          </div>
         </div>
       </section>
 
