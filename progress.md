@@ -1055,3 +1055,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 依「畫面先正常、隨後跳成 HUD／玩家消失」的時間順序，定位到正式 Play 在 `setupWorld` 成功後才啟動的 Part 1 喚醒動畫：它會把完整 HUD 透明化 5.85 秒並拒絕玩家 pointer input，因此外觀與操作都等同壞畫面。
 - Part 1 現在於地圖、玩家與 HUD 建立完成後立即可操作，不再啟動喚醒透明／輸入鎖定。Attempt、HUD 與既有喚醒狀態模組仍保留，但正式進場不會再切入該狀態。
 - 主頁關鍵預載補齊六張游泳幀，避免第一張玩家幀顯示後、動畫切到尚未完成的後續幀；關鍵預載共 17 份、敵人動畫仍為 0。完整 `npm run check` 281/281、Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Step 127 complete
+
+- 更正 Step 126 的錯誤判斷並完整恢復既有 Part 1 進場演出：Attempt 顯示、HUD 慢慢淡入、三次眨眼、最後睜眼與演出結束後解除操作鎖定均保留，不再刪除先前完成的功能。
+- 真正的崩潰原因是 `drawActor()` 誤用未宣告的 `PLAYER_ASSETS`；地形畫完後執行到玩家便拋出 `ReferenceError`，因此玩家、後續眨眼遮罩與下一幀排程全部消失。現已改回實際匯入的 `PLAYER_ANIMATION_ASSETS`。
+- 新增玩家繪製資產名稱回歸，明確禁止 `PLAYER_ASSETS[animationState]` 再出現；相關測試 31/31、完整 `npm run check` 283/283、Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。

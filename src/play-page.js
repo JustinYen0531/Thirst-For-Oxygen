@@ -311,10 +311,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   syncKatanaState();
   if (!previousActor) worldTime = 0;
   awakeningState = createPlayAwakeningState({
-    // Gameplay must become interactive as soon as setup succeeds. The former
-    // Part 1 eye-opening sequence hid the complete HUD and rejected pointer
-    // input after the map had already appeared, which looked like a crash.
-    enabled: false,
+    enabled: mapPart === 1 && !previousActor,
     reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
   });
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
@@ -734,7 +731,7 @@ function drawActor() {
   const time = performance.now();
   const animationState = getPlayerAnimationState(actor);
   const frameIndex = getPlayerAnimationFrameIndex(animationState, time / 1000, actor);
-  const animationPath = PLAYER_ASSETS[animationState]?.[frameIndex] ?? PLAYER_ASSET;
+  const animationPath = PLAYER_ANIMATION_ASSETS[animationState]?.[frameIndex] ?? PLAYER_ASSET;
   const image = images.get(animationPath);
   const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
   const motion = getPlayerAnimationMotion(animationState, time / 1000, actor);

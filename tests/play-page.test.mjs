@@ -102,16 +102,18 @@ test('formal play renders serialized Boss rules, summons, beams, and oxygen corr
 test('formal play draws deterministic static frames selected by runtime skill state', () => {
   assert.match(page, /PLAY_IMAGE_ASSET_PATHS/);
   assert.match(preload, /PLAY_ENEMY_ASSET_PATHS/);
+  assert.match(page, /PLAYER_ANIMATION_ASSETS\[animationState\]\?\.\[frameIndex\]/);
+  assert.doesNotMatch(page, /PLAYER_ASSETS\[animationState\]/);
   assert.match(page, /getPlayEnemyFrameState\(enemy, worldTime\)/);
   assert.match(page, /images\.get\(visualState\.path\)/);
   assert.doesNotMatch(page, /enemyAnimationImages/);
   assert.doesNotMatch(page, /images\.get\(enemy\.visual\)/);
 });
 
-test('Part 1 presents Attempt separately from HP and becomes interactive immediately after setup', () => {
+test('Part 1 presents Attempt separately from HP and preserves the authored awakening mask', () => {
   assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3\/3</);
   assert.doesNotMatch(html, /Attempts 3\/3/);
-  assert.match(page, /enabled: false/);
+  assert.match(page, /enabled: mapPart === 1 && !previousActor/);
   assert.match(page, /stepPlayAwakening\(awakeningState, elapsed\)/);
   assert.match(page, /if \(paused \|\| awakeningState\.active \|\| actor\.dead/);
   assert.match(page, /context\.ellipse\(/);
