@@ -56,6 +56,14 @@ test('all center and Edge objects serialize the shared thirty-pixel size', () =>
   });
 });
 
+test('every authored oxygen ore requires a high-speed 110 m/s impact', () => {
+  [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map) => {
+    freeObjectsOf(map)
+      .filter(({ object }) => object.kind === 'oxygen')
+      .forEach(({ object }) => assert.equal(object.params?.activationSpeed, 110, 'oxygen ore should not activate from a light touch'));
+  });
+});
+
 test('ascent trilogy is a playable bottom-to-top vertical mirror of descent', () => {
   ascentMapNames.forEach((name, index) => {
     const ascent = loadAscentMap(name);

@@ -889,7 +889,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
           addEvent(events, 'oxygen', `氧氣礦石：撞擊後釋放 ${Math.round(oxygen.recovered)} O₂。`);
         } else {
           actor.cooldowns[`oxygen:${key}`] = 0.25;
-          addEvent(events, 'oxygen', `氧氣礦石：需要 ${Math.round(requiredSpeed)} px/s 撞擊才會釋放氧氣。`);
+          addEvent(events, 'oxygen', `氧氣礦石：需要 ${Math.round(requiredSpeed)} m/s 撞擊才會釋放氧氣。`);
         }
       }
       if (object.kind === 'torricelli') {

@@ -490,6 +490,7 @@ test('official object and Edge settings stay explicit and resettable', () => {
   assert.deepEqual(getOfficialFreeObjectState('razor'), { size: 30, params: { count: 1, damage: 20, knockbackSpeed: 58, rotationSpeed: 180 } });
   assert.deepEqual(getOfficialFreeObjectState('button'), { size: 30, params: {} });
   assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 30, params: { breakSpeed: 31, weight: 4 } });
+  assert.deepEqual(getOfficialFreeObjectState('oxygen'), { size: 30, params: { oxygenAmount: 100, activationSpeed: 110 } });
   assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 30, params: { bounceMultiplier: 1.08 } });
   assert.equal(getFreeObjectSetting({ kind: 'mine', size: 17 }, 'size'), 30);
   assert.equal(getEdgeSetting({ type: 'spike', size: 1 }, 'size'), 30);

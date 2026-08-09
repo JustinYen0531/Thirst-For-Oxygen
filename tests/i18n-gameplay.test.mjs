@@ -66,7 +66,7 @@ test('live gameplay copy batches HUD mutations into one animation frame', () => 
     observe() {}
     disconnect() {}
   };
-  const textNode = { nodeType: 3, nodeValue: '速度 0' };
+  const textNode = { nodeType: 3, nodeValue: '速度 0 m/s' };
   const root = {
     childNodes: [textNode],
     documentElement: { lang: '' },
@@ -78,14 +78,14 @@ test('live gameplay copy batches HUD mutations into one animation frame', () => 
   };
   setLanguage('en', null);
   const cleanup = installLiveLocalization(root);
-  assert.equal(textNode.nodeValue, 'SPEED 0');
+  assert.equal(textNode.nodeValue, 'SPEED 0 m/s');
 
-  textNode.nodeValue = '速度 12';
+  textNode.nodeValue = '速度 12 m/s';
   observerCallback([{ type: 'characterData', target: textNode }]);
-  assert.equal(textNode.nodeValue, '速度 12', 'mutation work must not run inside the observer microtask');
+  assert.equal(textNode.nodeValue, '速度 12 m/s', 'mutation work must not run inside the observer microtask');
   assert.equal(callbacks.length, 1);
   callbacks.shift()();
-  assert.equal(textNode.nodeValue, 'SPEED 12');
+  assert.equal(textNode.nodeValue, 'SPEED 12 m/s');
 
   cleanup();
   globalThis.MutationObserver = previousObserver;

@@ -54,7 +54,7 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
   oxygen: freezeFields([
     fixedSizeField(),
     { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 100 },
-    { key: 'activationSpeed', label: '釋放所需速度', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 31 },
+    { key: 'activationSpeed', label: '釋放所需速度', unit: 'm/s', min: 0, max: 140, step: 1, defaultValue: 110 },
   ]),
   bubble: freezeFields([
     fixedSizeField(),

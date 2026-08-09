@@ -14951,7 +14951,7 @@
           "size": 30,
           "params": {
             "oxygenAmount": 100,
-            "activationSpeed": 31
+            "activationSpeed": 110
           }
         }
       ],

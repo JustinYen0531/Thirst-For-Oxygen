@@ -9,7 +9,7 @@ const EXACT_ENGLISH = Object.freeze({
   '開啟遊玩設定': 'Open play settings',
   '設定': 'Settings',
   '地圖遊玩測試': 'Map playtest',
-  '速度 0': 'SPEED 0',
+  '速度 0 m/s': 'SPEED 0 m/s',
   '主角水平錨點 60%': 'PLAYER HORIZONTAL ANCHOR 60%',
   'R 重設 · Space 暫停': 'R Reset · Space Pause',
   'HUD 鏡片內的遊戲畫面': 'Gameplay view inside the HUD visor',
@@ -305,7 +305,7 @@ const TERM_ENGLISH = Object.freeze({
 });
 
 const SENTENCE_REPLACEMENTS = Object.freeze([
-  [/^速度 (\d+)$/, 'SPEED $1'],
+  [/^速度 (\d+) m\/s$/, 'SPEED $1 m/s'],
   [/^目前下沉 (\d+) 公尺$/, 'Current depth: $1 meters'],
   [/^剩餘嘗試次數 (\d+)，共 (\d+) 次$/, '$1 attempts remaining out of $2'],
   [/^主角 60% 錨點 · (.+)$/, 'Player 60% Anchor · $1'],
@@ -355,7 +355,7 @@ const SENTENCE_REPLACEMENTS = Object.freeze([
   [/^剃刀：碰觸後被強制推開並受到 (\d+) 點傷害。$/, 'Razor contact forced the player away and dealt $1 damage.'],
   [/^深海地雷：強力反彈並受到 (\d+) 點傷害。$/, 'Abyss Mine caused a powerful rebound and dealt $1 damage.'],
   [/^氧氣礦石：撞擊後釋放 (\d+) O₂。$/, 'Oxygen Ore released $1 O₂ after impact.'],
-  [/^氧氣礦石：需要 (\d+) px\/s 撞擊才會釋放氧氣。$/, 'Oxygen Ore requires an impact of $1 px/s to release oxygen.'],
+  [/^氧氣礦石：需要 (\d+) m\/s 撞擊才會釋放氧氣。$/, 'Oxygen Ore requires an impact of $1 m/s to release oxygen.'],
   [/^托里切利空間：以 (.+) O₂\/s 回復氧氣。$/, 'Torricelli Pocket restores oxygen at $1 O₂/s.'],
   [/^光合作用氣泡：\+(\d+) O₂，(.+) 秒免疫水域重力。$/, 'Photosynthesis Bubble: +$1 O₂ and immunity to water gravity for $2s.'],
   [/^氧氣耗盡：生命 -([\d.]+)，請尋找氧氣補給。$/, 'Oxygen depleted: health -$1. Find an oxygen supply.'],

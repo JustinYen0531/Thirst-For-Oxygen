@@ -1472,7 +1472,7 @@ function updateHud() {
     segment.querySelector('b').style.setProperty('--segment-fill', `${healthHud.fills[index] * 100}%`);
   });
   healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
-  speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
+  speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))} m/s`;
   const nextEventLogMarkup = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
   if (nextEventLogMarkup !== eventLogMarkup) {
     eventLogMarkup = nextEventLogMarkup;
