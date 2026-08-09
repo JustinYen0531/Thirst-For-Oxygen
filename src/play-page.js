@@ -1759,7 +1759,7 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
-  if (paused || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade) return;
+  if (paused || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
   if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
@@ -1770,7 +1770,7 @@ canvas.addEventListener('pointerdown', (event) => {
   updateHud();
 });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與篇章進度保留。'); updateCamera(); updateHud(); });
@@ -1894,6 +1894,12 @@ function simulate(elapsed, now = performance.now()) {
       refillUnlimitedResources();
       const previousPosition = { x: actor.x, y: actor.y };
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
+      if (actor.launchLockTimer > 0 && dragging) {
+        dragging = false;
+        aimPoint = null;
+        trajectory = [];
+        lastTrajectoryAt = -Infinity;
+      }
       const katanaEntry = syncKatanaState();
       if (katanaEntry) markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
       const enemyResult = updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, {
@@ -2002,7 +2008,7 @@ window.render_game_to_text = () => {
     mapArc,
     mapPart,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), activeEffects: actor.activeEffects ?? {} } : null,
+    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
     attempt: actor ? getPlayAttemptState(actor) : null,
     awakening: getPlayAwakeningRenderState(awakeningState),
     hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),

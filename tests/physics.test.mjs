@@ -646,9 +646,16 @@ test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   const bubbleActor = actorIn(map, '0,0');
   stepPhysics({ map, actor: bubbleActor, origin: ORIGIN });
   const afterContact = bubbleActor.vy;
+  assert.equal(map.cells['0,0'].objects.some((object) => object.kind === 'bubble'), false, 'a photosynthesis bubble is consumed on contact');
+  assert.equal(bubbleActor.launchLockTimer, 1.5);
+  assert.deepEqual(launchActor(bubbleActor, { x: bubbleActor.x + 80, y: bubbleActor.y }), { launched: false, reason: 'bubbleLock' });
   stepPhysics({ map, actor: bubbleActor, origin: ORIGIN });
   assert.ok(bubbleActor.gravityImmunity > 2.4);
+  assert.ok(bubbleActor.launchLockTimer > 1.4);
   assert.ok(bubbleActor.vy < afterContact + 0.2, 'the next step should not add L3 gravity');
+  stepPhysics({ map, actor: bubbleActor, origin: ORIGIN, dt: 1.6 });
+  assert.equal(bubbleActor.launchLockTimer, 0);
+  assert.equal(launchActor(bubbleActor, { x: bubbleActor.x + 80, y: bubbleActor.y }).launched, true);
 
   const seaweedActor = actorIn(map, '1,0');
   const attached = toggleSeaweedAttachment(seaweedActor, map, 'chapter1', ORIGIN);
@@ -931,8 +938,8 @@ test('all four passive abilities apply their authored gameplay effects', () => {
   assert.equal(applyDamage(carapaceActor, 1, 'shield test').blocked, true);
 
   const amplifierLoadout = [{ id: 'abyssalAmplifier', level: 3 }];
-  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 100 }) - 26.91 * 0.6) < 1e-9);
-  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 40 }) - 23.4 * 0.6) < 1e-9);
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 100 }) - 26.91) < 1e-9);
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 40 }) - 23.4) < 1e-9);
 });
 
 test('sandbox can run every defined enemy skill without a missing implementation', () => {

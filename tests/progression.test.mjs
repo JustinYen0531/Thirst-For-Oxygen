@@ -46,9 +46,9 @@ test('new progression starts with one level-one knife and no other slots', () =>
 });
 
 test('enemy experience is derived from its authored tier', () => {
-  assert.equal(getEnemyExperienceReward('explodingLanternfish'), 14);
-  assert.equal(getEnemyExperienceReward('arcTideRay'), 38);
-  assert.equal(getEnemyExperienceReward('abyssalSpermWhale'), 600);
+  assert.equal(getEnemyExperienceReward('explodingLanternfish'), 42);
+  assert.equal(getEnemyExperienceReward('arcTideRay'), 114);
+  assert.equal(getEnemyExperienceReward('abyssalSpermWhale'), 1800);
   assert.equal(getEnemyExperienceReward('missing-enemy'), 0);
 });
 
@@ -67,7 +67,7 @@ test('sandbox enemy defeat drops a stationary orb instead of granting instant ex
       id: 'exp-1',
       x: enemy.x,
       y: enemy.y,
-      value: 24,
+      value: 72,
       radius: 7,
       source: 'crabGuard',
       collected: false,
@@ -155,7 +155,7 @@ test('knife Lv.2 creates side trails that deal seventy percent damage', () => {
   stepSandbox(state);
 
   assert.ok(primary.health < primary.maxHealth, 'the movement path should hit the primary target');
-  assert.equal(side.health, 1000 - 24 * 0.7 * 0.6, 'the side trail should use seventy percent of the reduced main damage');
+  assert.equal(side.health, 1000 - 24 * 0.7, 'the side trail should use seventy percent of the main damage');
   const sideTrails = state.effects.filter((effect) => effect.type === 'knifeTrail');
   assert.ok(sideTrails.length >= 2);
   assert.ok(sideTrails.every((effect) => effect.pathAlpha > 0), 'Lv.2 side trails should be visible from their first frame');
@@ -246,7 +246,7 @@ test('katana Lv.2 empowers only the next slash after movement', () => {
   enemy.y = state.actor.y;
   const result = playerAttack(state);
   assert.equal(result.ok, true);
-  assert.equal(enemy.health, 1000 - 38 * 2 * 0.6);
+  assert.equal(enemy.health, 1000 - 38 * 2);
   assert.equal(state.actor.katanaEmpoweredNextSlash, false);
   const slash = [...state.effects].reverse().find((effect) => effect.type === 'katanaSwing');
   assert.equal(slash.empowered, true);

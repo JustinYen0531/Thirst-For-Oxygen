@@ -20,7 +20,7 @@ export const OBJECT_DISCOVERY_GUIDES = Object.freeze({
   mine: guide('深海地雷', 'danger', '危險物', '接近或撞擊會引爆；爆炸也可能波及附近敵人。'),
   razor: guide('剃刀', 'danger', '危險物', '接觸會造成傷害，並把潛水員強制推離。'),
   oxygen: guide('氧氣礦石', 'supply', '補給物', '以足夠速度撞開後，會釋放氧氣補給。'),
-  bubble: guide('光合作用氣泡', 'supply', '補給物', '取得後會暫時隔絕水域重力。'),
+  bubble: guide('光合作用氣泡', 'supply', '補給物', '接觸後會短暫隔絕水域重力，並在氣泡消失前鎖住彈射。'),
   torricelli: guide('托里切利空間', 'supply', '補給物', '偏離主路的氧氣補給區，可恢復呼吸資源。'),
   checkpoint: guide('Checkpoint', 'mechanism', '機關', '啟動後記錄重生位置，並補滿玩家資源。'),
   weightStone: guide('重石', 'mechanism', '機關', '需要高速撞擊才能破壞，並打開原本封住的路。'),

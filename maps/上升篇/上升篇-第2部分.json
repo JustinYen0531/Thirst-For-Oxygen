@@ -7824,7 +7824,8 @@
           "size": 30,
           "params": {
             "oxygenAmount": 20,
-            "gravityImmunitySeconds": 2.5
+            "gravityImmunitySeconds": 2.5,
+            "launchLockSeconds": 1.5
           }
         }
       ],
@@ -20127,7 +20128,8 @@
           "size": 30,
           "params": {
             "oxygenAmount": 20,
-            "gravityImmunitySeconds": 2.5
+            "gravityImmunitySeconds": 2.5,
+            "launchLockSeconds": 1.5
           }
         }
       ],
@@ -23325,10 +23327,46 @@
       "size": 30,
       "params": {}
     },
+    "-21,72|-21,73": {
+      "cells": [
+        "-21,73",
+        "-21,72"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
     "-15,67|-16,67": {
       "cells": [
         "-15,67",
         "-16,67"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-22,54|-23,55": {
+      "cells": [
+        "-23,55",
+        "-22,54"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-14,42|-14,43": {
+      "cells": [
+        "-14,43",
+        "-14,42"
       ],
       "type": "seaweed",
       "blocksPassage": false,
@@ -23349,10 +23387,106 @@
       "size": 30,
       "params": {}
     },
+    "-7,19|-8,19": {
+      "cells": [
+        "-7,19",
+        "-8,19"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-3,10|-4,11": {
+      "cells": [
+        "-4,11",
+        "-3,10"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "0,3|1,3": {
+      "cells": [
+        "1,3",
+        "0,3"
+      ],
+      "type": "seaweed",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-21,78|-22,78": {
+      "cells": [
+        "-21,78",
+        "-22,78"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-16,69|-17,69": {
+      "cells": [
+        "-16,69",
+        "-17,69"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
     "-15,60|-16,60": {
       "cells": [
         "-15,60",
         "-16,60"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-23,51|-24,51": {
+      "cells": [
+        "-23,51",
+        "-24,51"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-3,42|-4,42": {
+      "cells": [
+        "-3,42",
+        "-4,42"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-11,33|-12,33": {
+      "cells": [
+        "-11,33",
+        "-12,33"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -23373,10 +23507,58 @@
       "size": 30,
       "params": {}
     },
+    "-5,15|-6,15": {
+      "cells": [
+        "-5,15",
+        "-6,15"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-2,9|-3,9": {
+      "cells": [
+        "-2,9",
+        "-3,9"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "-1,6|-2,6": {
+      "cells": [
+        "-1,6",
+        "-2,6"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
     "-1,4|0,4": {
       "cells": [
         "0,4",
         "-1,4"
+      ],
+      "type": "coralCluster",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {}
+    },
+    "1,1|2,1": {
+      "cells": [
+        "2,1",
+        "1,1"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -23501,10 +23683,10 @@
         "damage": 20
       }
     },
-    "-7,19|-8,19": {
+    "-8,19|-8,20": {
       "cells": [
         "-8,19",
-        "-7,19"
+        "-8,20"
       ],
       "type": "spike",
       "blocksPassage": true,
@@ -23571,10 +23753,10 @@
         "damage": 20
       }
     },
-    "-16,69|-17,69": {
+    "-17,69|-17,70": {
       "cells": [
         "-17,69",
-        "-16,69"
+        "-17,70"
       ],
       "type": "spike",
       "blocksPassage": true,
@@ -23599,10 +23781,10 @@
         "damage": 20
       }
     },
-    "-5,15|-6,15": {
+    "-6,15|-6,16": {
       "cells": [
         "-6,15",
-        "-5,15"
+        "-6,16"
       ],
       "type": "current",
       "blocksPassage": false,
@@ -23635,10 +23817,10 @@
       "size": 30,
       "params": {}
     },
-    "-21,78|-22,78": {
+    "-21,78|-22,79": {
       "cells": [
-        "-22,78",
-        "-21,78"
+        "-21,78",
+        "-22,79"
       ],
       "type": "current",
       "blocksPassage": false,

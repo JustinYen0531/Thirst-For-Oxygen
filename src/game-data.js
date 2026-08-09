@@ -38,8 +38,6 @@ export function getEnemyProjectileSpeed(speed) {
   return Math.max(0, Number(speed) || 0) * ENEMY_DAMAGE_BALANCE.projectileSpeedMultiplier;
 }
 
-export const PLAYER_OUTGOING_DAMAGE_MULTIPLIER = 0.6;
-
 export const PLAYER_BASE_STATS = Object.freeze({
   launchEnergyCostMultiplier: 1,
   weaponEnergyCostMultiplier: 1,
@@ -494,12 +492,15 @@ export const EXPERIENCE_REWARDS_BY_TIER = Object.freeze({
   finalBoss: 600,
 });
 
+export const EXPERIENCE_REWARD_MULTIPLIER = 3;
+
 export const ENEMY_ORDER = Object.freeze(Object.keys(ENEMY_DEFINITIONS));
 
 export function getEnemyExperienceReward(enemyId) {
   const definition = ENEMY_DEFINITIONS[enemyId];
   if (!definition) return 0;
-  return definition.experienceReward ?? EXPERIENCE_REWARDS_BY_TIER[definition.tier] ?? 0;
+  const baseReward = definition.experienceReward ?? EXPERIENCE_REWARDS_BY_TIER[definition.tier] ?? 0;
+  return baseReward * EXPERIENCE_REWARD_MULTIPLIER;
 }
 
 export function getPassiveModifiers(loadout = []) {
@@ -540,7 +541,7 @@ export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxy
     maxOxygen,
     launchEnergyCostMultiplier: modifiers.launchEnergyCostMultiplier * conditionalEnergyMultiplier,
     weaponEnergyCostMultiplier: modifiers.weaponEnergyCostMultiplier * conditionalEnergyMultiplier,
-    currentDamageMultiplier: PLAYER_OUTGOING_DAMAGE_MULTIPLIER * modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
+    currentDamageMultiplier: modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
   };
 }
 

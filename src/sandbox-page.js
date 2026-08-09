@@ -505,7 +505,7 @@ function selectOrPlace(event) {
   if (isSandboxPlayerHit(state, point)) {
     const result = beginSandboxAim(state, point);
     if (!result.ok) {
-      status.textContent = result.reason === 'upgrade' ? '請先完成升級選擇，再操控潛水員。' : '目前無法操控潛水員。';
+      status.textContent = result.reason === 'upgrade' ? '請先完成升級選擇，再操控潛水員。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '目前無法操控潛水員。';
       render();
       return;
     }
@@ -547,7 +547,7 @@ function releaseAim(event) {
   canvas.releasePointerCapture?.(event.pointerId);
   status.textContent = result.launched
     ? `彈射成功：初速 ${Math.round(result.speed)}；沙盒零重力已接管，方向不會被重力改彎。`
-    : `彈射失敗：${result.reason === 'tooClose' ? '請拉出更長距離。' : result.reason === 'attached' ? '玩家目前附著中。' : '能量不足。'}`;
+    : `彈射失敗：${result.reason === 'tooClose' ? '請拉出更長距離。' : result.reason === 'attached' ? '玩家目前附著中。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '能量不足。'}`;
   render();
 }
 
@@ -1360,7 +1360,7 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
   weaponMode: 'all-equipped',
-  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
+  player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), launchLockedRemaining: format(state.actor.launchLockTimer), gravityImmuneRemaining: format(state.actor.gravityImmunity), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
   autoWeapons: getSandboxAutoWeaponStatuses(state).map(({ id, level, phase, label, remaining, progress }) => ({ id, level, phase, label, remaining: format(remaining), progress: format(progress) })),

@@ -9,6 +9,7 @@ export const RESONANCE_RULES = Object.freeze({
   rangedProjectileGainPerSecond: 12,
   disengageGraceSeconds: 0.28,
   decayPerSecond: 18,
+  damageProgressLossPerHit: 8,
 });
 
 const buff = (enemyId, name, description, combatStyle, maxStacks, modifiers) => Object.freeze({
@@ -62,6 +63,15 @@ export function getResonanceRequirement(enemy) {
 
 export function isResonanceCombatant(enemy) {
   return Boolean(enemy && !enemy.defeated && !enemy.resonanceNeutral && Number(enemy.health) > 0);
+}
+
+export function reduceEnemyResonanceOnDamage(enemy) {
+  if (!enemy || enemy.resonanceNeutral) return 0;
+  const before = Math.max(0, Number(enemy.resonanceProgress) || 0);
+  const loss = Math.min(before, RESONANCE_RULES.damageProgressLossPerHit);
+  enemy.resonanceProgress = before - loss;
+  if (loss > 0) enemy.resonanceSource = 'damage';
+  return loss;
 }
 
 function near(actor, target, padding) {

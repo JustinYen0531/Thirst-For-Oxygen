@@ -27,6 +27,7 @@ import {
   createResonanceState,
   getResonanceRenderState,
   isResonanceCombatant,
+  reduceEnemyResonanceOnDamage,
 } from './resonance.js';
 
 export const PLAY_COMBAT_FIXED_STEP = 1 / 60;
@@ -231,6 +232,7 @@ function damageEnemy(state, actor, enemy, rawDamage, source) {
     ?? 1));
   const damage = Math.max(0, rawDamage * multiplier * enemyMultiplier);
   enemy.health = Math.max(0, enemy.health - damage);
+  if (damage > 0) reduceEnemyResonanceOnDamage(enemy);
   if (damage > 0 && enemy.passiveState?.enraged && Number(passive?.thornsDamage) > 0) {
     const retaliation = applyDamage(actor, getEnemyDamageToPlayer(passive.thornsDamage), `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
     addEffect(state, { type: 'thornsHit', weaponId: source, ownerId: enemy.instanceId, x: actor.x, y: actor.y, damage: retaliation.applied, duration: 0.24 });

@@ -201,6 +201,74 @@ function addEdgeSet(map, type, rows) {
   });
 }
 
+function reachableWaterKeys(map) {
+  const start = Object.entries(map.cells).find(([, cell]) => (
+    cell.actors?.some((actor) => actor.kind === 'playerStart')
+  ))?.[0];
+  if (!start) return new Set();
+
+  const openedGates = new Set();
+  Object.values(map.cells).forEach((cell) => {
+    [...(cell.objects ?? []), ...(cell.freeObjects ?? [])].forEach((object) => {
+      if (object.kind !== 'button') return;
+      (object.targetGates ?? []).forEach((gateKey) => openedGates.add(gateKey));
+    });
+  });
+
+  const portalDestinations = new Map();
+  Object.entries(map.edges).forEach(([key, edge]) => {
+    if (edge.type !== 'multiPortal' || !edge.portalTargetKey) return;
+    const sourceCellKey = edge.cells.find((cellKey) => map.cells[cellKey]?.terrain === 'water');
+    const targetEdge = map.edges[edge.portalTargetKey];
+    const targetCellKey = targetEdge?.cells?.find((cellKey) => map.cells[cellKey]?.terrain === 'water');
+    if (sourceCellKey && targetCellKey) portalDestinations.set(sourceCellKey, targetCellKey);
+  });
+
+  const canTraverse = (fromKey, toKey) => {
+    const from = map.cells[fromKey];
+    const to = map.cells[toKey];
+    const destinationOpen = to?.terrain === 'water' || (to?.conditionalGate && openedGates.has(toKey));
+    if (!from || !to || !destinationOpen) return false;
+    const edge = map.edges[edgeKey(fromKey, toKey)];
+    if (edge?.blocksPassage && edge.type !== 'layerPortal') return false;
+    if (from.waterLayer !== to.waterLayer && edge?.type !== 'layerPortal') return false;
+    return true;
+  };
+
+  const reachable = new Set([start]);
+  const queue = [start];
+  while (queue.length) {
+    const key = queue.shift();
+    DIRECTIONS.forEach((_, direction) => {
+      const next = neighborKey(key, direction);
+      if (reachable.has(next) || !canTraverse(key, next)) return;
+      reachable.add(next);
+      queue.push(next);
+    });
+    const portalDestination = portalDestinations.get(key);
+    if (portalDestination && !reachable.has(portalDestination)) {
+      reachable.add(portalDestination);
+      queue.push(portalDestination);
+    }
+  }
+  return reachable;
+}
+
+function addReachableSupportSet(map, type, rows) {
+  const used = new Set(Object.entries(map.edges).filter(([, edge]) => edge.type !== 'none').map(([key]) => key));
+  const reachable = reachableWaterKeys(map);
+  rows.forEach((row, index) => {
+    const entry = boundaryEdges(map, row, used).find(({ a, b }) => (
+      [a, b].some((cellKey) => map.cells[cellKey]?.terrain === 'water' && reachable.has(cellKey))
+    ));
+    if (!entry) throw new Error(`row ${row} 找不到可抵達水側的 ${type} 邊界`);
+    addEdge(map, entry, type, type === 'current'
+      ? { currentDirection: index % 6, currentStrength: 0.78 + (index % 3) * 0.16 }
+      : {});
+    used.add(entry.key);
+  });
+}
+
 function addPassageBarrierSet(map, rows) {
   const used = new Set(Object.entries(map.edges).filter(([, edge]) => edge.type !== 'none').map(([key]) => key));
   const openNeighbourCount = (key) => DIRECTIONS.filter((_, direction) => {
@@ -701,8 +769,8 @@ function buildPart1() {
   addEdgeNear(map, 'current', 65, 9, { currentDirection: 5, currentStrength: 0.92 });
   addEdgeNear(map, 'current', 128, 13, { currentDirection: 4, currentStrength: 0.98 });
   addEdgeNear(map, 'spike', 105, 2);
-  addEdgeSet(map, 'seaweed', [26, 55, 90, 126, 150]);
-  addEdgeSet(map, 'coralCluster', [12, 34, 68, 98, 134, 156]);
+  addEdgeSet(map, 'seaweed', [14, 22, 26, 34, 42, 50, 55, 64, 72, 82, 90, 100, 110, 120, 126, 136, 144, 150, 156, 158]);
+  addEdgeSet(map, 'coralCluster', [8, 12, 18, 20, 28, 34, 42, 50, 58, 64, 68, 76, 84, 92, 98, 106, 114, 122, 134, 140, 146, 152, 156, 158]);
   setRuntimeExit(map, 183, 9);
   return map;
 }
@@ -772,8 +840,8 @@ function buildPart2() {
   addEdgeSet(map, 'springJelly', [14, 37, 60, 80]);
   addEdgeSet(map, 'spike', [33, 67]);
   addEdgeSet(map, 'barrier', [41, 76]);
-  addEdgeSet(map, 'seaweed', [20, 56]);
-  addEdgeSet(map, 'coralCluster', [27, 63, 83]);
+  addEdgeSet(map, 'seaweed', [14, 20, 32, 44, 56, 68, 76, 84]);
+  addEdgeSet(map, 'coralCluster', [9, 18, 27, 36, 45, 54, 63, 72, 78, 81, 83, 86]);
   addLayerPortal(map, 21);
   addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
   setRuntimeExit(map, 85, 12);
@@ -837,6 +905,8 @@ function buildPart3(source) {
     ['-15,76|-15,77', '-17,76|-18,76'],
     ['-30,106|-30,107', '-32,104|-32,105'],
   ].forEach(([fromKey, toKey]) => moveExistingEdge(map, fromKey, toKey));
+  addReachableSupportSet(map, 'seaweed', [10, 18, 36, 45, 55, 70, 82, 100, 114]);
+  addReachableSupportSet(map, 'coralCluster', [14, 24, 34, 52, 62, 86, 104, 112, 116]);
   setRuntimeExit(map, 116, 12);
   return map;
 }

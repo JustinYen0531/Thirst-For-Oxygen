@@ -37,6 +37,7 @@ import {
   setActiveWeapon,
 } from './progression.js';
 import { getKatanaWavePose } from './katana-visual.js';
+import { reduceEnemyResonanceOnDamage } from './resonance.js';
 
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
@@ -358,6 +359,7 @@ function damageEnemy(state, enemy, amount, source) {
   }
   const damage = Math.max(0, amount * (state.actor.derivedStats?.currentDamageMultiplier ?? 1));
   enemy.health = Math.max(0, enemy.health - damage);
+  if (damage > 0) reduceEnemyResonanceOnDamage(enemy);
   enemy.lastHitAt = state.time;
   addEffect(state, { type: 'hit', x: enemy.x, y: enemy.y, radius: enemy.radius + 10, duration: 0.18, colour: '#fff0a8' });
   logEvent(state, `${enemyDefinition(enemy).name} 受到 ${Math.round(damage)} 傷害（${source}）。`);
@@ -721,8 +723,8 @@ export function resetSandboxPlayer(state) {
 }
 
 export function beginSandboxAim(state, point) {
-  if (!point || state.awaitingUpgrade || state.actor.attached || state.actor.dead || (state.actor.stunnedUntil ?? 0) > state.time) {
-    return { ok: false, reason: state.awaitingUpgrade ? 'upgrade' : (state.actor.stunnedUntil ?? 0) > state.time ? 'stunned' : 'unavailable' };
+  if (!point || state.awaitingUpgrade || state.actor.attached || state.actor.dead || (state.actor.stunnedUntil ?? 0) > state.time || (state.actor.launchLockTimer ?? 0) > 0) {
+    return { ok: false, reason: state.awaitingUpgrade ? 'upgrade' : (state.actor.stunnedUntil ?? 0) > state.time ? 'stunned' : (state.actor.launchLockTimer ?? 0) > 0 ? 'bubbleLock' : 'unavailable' };
   }
   state.aiming = true;
   state.aimPoint = { x: point.x, y: point.y };

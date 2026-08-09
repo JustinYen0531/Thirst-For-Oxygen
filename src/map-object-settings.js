@@ -60,6 +60,7 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
     fixedSizeField(),
     { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 20 },
     { key: 'gravityImmunitySeconds', label: '免疫重力時間', unit: '秒', min: 0, max: 12, step: 0.1, defaultValue: 2.5 },
+    { key: 'launchLockSeconds', label: '禁止彈射時間', unit: '秒', min: 0, max: 6, step: 0.1, defaultValue: 1.5 },
   ]),
   torricelli: freezeFields([
     fixedSizeField(),

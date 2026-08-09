@@ -337,6 +337,7 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     attached: false,
     blockedResting: false,
     gravityImmunity: 0,
+    launchLockTimer: 0,
     safe: false,
     inInk: false,
     spawn: { ...position },
@@ -465,12 +466,15 @@ export function respawnActor(actor, spawn) {
   actor.shieldCooldown = 0;
   actor.activeEffects = {};
   actor.stunnedUntil = 0;
+  actor.gravityImmunity = 0;
+  actor.launchLockTimer = 0;
   actor.energyRecoveryDelay = ENERGY_RECOVERY_DELAY_SECONDS;
   return true;
 }
 
 export function launchActor(actor, pointer) {
   if (actor.attached) return { launched: false, reason: 'attached' };
+  if ((actor.launchLockTimer ?? 0) > 0) return { launched: false, reason: 'bubbleLock' };
   const distance = launchDistance(actor, pointer);
   if (distance < 5) return { launched: false, reason: 'tooClose' };
   const costs = getLaunchCosts(distance, actor);
@@ -901,10 +905,12 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
       }
       if (object.kind === 'bubble' && actor.gravityImmunity <= 0) {
         const duration = getFreeObjectSetting(object, 'gravityImmunitySeconds');
+        const launchLockDuration = getFreeObjectSetting(object, 'launchLockSeconds');
         const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenAmount'), 'photosynthesisBubble');
         actor.gravityImmunity = duration;
-        actor.cooldowns[`bubble:${key}`] = Math.max(0.1, duration);
-        addEvent(events, 'bubble', `光合作用氣泡：+${Math.round(oxygen.recovered)} O₂，${duration} 秒免疫水域重力。`);
+        actor.launchLockTimer = Math.max(actor.launchLockTimer ?? 0, launchLockDuration);
+        if (mutateMap) removeContactObject(map, { key, ownerKey, object, free, index }, chapter);
+        addEvent(events, 'bubble', `光合作用氣泡：+${Math.round(oxygen.recovered)} O₂，${duration} 秒免疫水域重力，${launchLockDuration} 秒內無法彈射；氣泡已消失。`);
       }
       if (object.kind === 'checkpoint') {
         activeCheckpointKey = key;
@@ -956,6 +962,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.cooldowns[key] = Math.max(0, actor.cooldowns[key] - dt);
   });
   actor.gravityImmunity = Math.max(0, actor.gravityImmunity - dt);
+  actor.launchLockTimer = Math.max(0, (actor.launchLockTimer ?? 0) - dt);
   actor.launchMomentumTimer = Math.max(0, (actor.launchMomentumTimer ?? 0) - dt);
   const nextEnergyRecoveryDelay = Math.max(0, (actor.energyRecoveryDelay ?? 0) - dt);
   actor.energyRecoveryDelay = nextEnergyRecoveryDelay < 1e-6 ? 0 : nextEnergyRecoveryDelay;

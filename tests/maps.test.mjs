@@ -64,6 +64,22 @@ test('every authored oxygen ore requires a high-speed 110 m/s impact', () => {
   });
 });
 
+test('beginner-friendly coral and seaweed support edges are distributed at four times the old count', () => {
+  const expected = [
+    { coralCluster: 24, seaweed: 20 },
+    { coralCluster: 12, seaweed: 8 },
+    { coralCluster: 12, seaweed: 12 },
+  ];
+  [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map, index) => {
+    const part = index % 3;
+    const counts = { coralCluster: 0, seaweed: 0 };
+    Object.values(map.edges).forEach((edge) => {
+      if (edge.type in counts) counts[edge.type] += 1;
+    });
+    assert.deepEqual(counts, expected[part], `${map.metadata.title} should keep a frequent beginner support rhythm`);
+  });
+});
+
 test('ascent trilogy is a playable bottom-to-top vertical mirror of descent', () => {
   ascentMapNames.forEach((name, index) => {
     const ascent = loadAscentMap(name);

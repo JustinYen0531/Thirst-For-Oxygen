@@ -2634,6 +2634,7 @@ function recordEvents(events) {
 function stepGame() {
   if (state.mode !== 'play' || state.actor.gameOver) return;
   const events = stepPhysics({ map: state.map, chapter: state.chapter, actor: state.actor, origin: state.origin, bounds: WORLD_BOUNDS, time: state.animationTime });
+  if (state.actor.launchLockTimer > 0) state.dragging = null;
   if (state.actor.health <= 0) {
     const cause = '生命歸零';
     const death = registerPlayerDeath(state.actor, cause);
@@ -2666,7 +2667,7 @@ canvas.addEventListener('pointerdown', (event) => {
   const point = eventPoint(event);
   state.hoverPoint = point;
   if (state.mode === 'play') {
-    if (!state.actor.attached && Math.hypot(point.x - state.actor.x, point.y - state.actor.y) < 52) {
+    if (!state.actor.attached && (state.actor.launchLockTimer ?? 0) <= 0 && Math.hypot(point.x - state.actor.x, point.y - state.actor.y) < 52) {
       state.dragging = { pointer: point };
       canvas.setPointerCapture(event.pointerId);
     }
@@ -2853,6 +2854,8 @@ canvas.addEventListener('pointerup', (event) => {
   const launch = launchActor(state.actor, pointer);
   if (launch.launched) {
     recordEvents([{ type: 'launch', message: `彈射初速度：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}。氧氣改為時間倒數，滿氧約 40 秒。` }]);
+  } else if (launch.reason === 'bubbleLock') {
+    recordEvents([{ type: 'launchBlocked', message: '光合作用氣泡作用中，暫時無法彈射。' }]);
   } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
     const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
     recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法彈射，請補給或原地休息。` }]);
@@ -3005,7 +3008,9 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     const launch = launchActor(state.actor, { x: state.actor.x, y: state.actor.y + 115 });
     if (launch.launched) recordEvents([{ type: 'launch', message: `快速向上彈射：${Math.round(launch.speed)} px/s；能量 -${Math.ceil(launch.costs.energy)}。氧氣改為時間倒數，滿氧約 40 秒。` }]);
-    else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
+    else if (launch.reason === 'bubbleLock') {
+      recordEvents([{ type: 'launchBlocked', message: '光合作用氣泡作用中，暫時無法彈射。' }]);
+    } else if (launch.reason === 'oxygen' || launch.reason === 'energy') {
       const label = launch.reason === 'oxygen' ? '氧氣' : '能量';
       recordEvents([{ type: 'launchBlocked', message: `${label}不足：無法快速彈射。` }]);
     }
@@ -3035,6 +3040,7 @@ window.render_game_to_text = () => {
       animation: getPlayerAnimationState(state.actor),
       facing: getPlayerFacingDirection(state.actor),
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
+      launchLockedFor: formatNumber(state.actor.launchLockTimer),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
     viewport: {

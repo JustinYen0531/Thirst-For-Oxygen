@@ -8,6 +8,7 @@ import {
   createResonanceState,
   getResonanceRequirement,
   getResonanceRenderState,
+  reduceEnemyResonanceOnDamage,
   stepEnemyResonance,
 } from '../src/resonance.js';
 
@@ -67,6 +68,15 @@ test('breaking continuous proximity grants a short grace then rapidly decays the
   assert.ok(target.resonanceProgress < gained);
 });
 
+test('each successful player damage hit lowers the target Resonance value', () => {
+  const target = enemy({ resonanceProgress: 12 });
+  assert.equal(reduceEnemyResonanceOnDamage(target), RESONANCE_RULES.damageProgressLossPerHit);
+  assert.equal(target.resonanceProgress, 4);
+  assert.equal(target.resonanceSource, 'damage');
+  assert.equal(reduceEnemyResonanceOnDamage(target), 4);
+  assert.equal(target.resonanceProgress, 0);
+});
+
 test('a species buff unlocks only once while later individuals can still become neutral', () => {
   const state = createResonanceState();
   const first = enemy({ resonanceProgress: 109 });
@@ -111,7 +121,7 @@ test('powerful Boss Resonance buffs use three micro-stacks while preserving thei
   assert.equal(render.buffs[0].stacks, 3);
   assert.equal(render.buffs[0].maxStacks, 3);
   const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
-  assert.ok(Math.abs(stats.currentDamageMultiplier - 0.6 * 1.1) < 1e-9);
+  assert.ok(Math.abs(stats.currentDamageMultiplier - 1.1) < 1e-9);
   assert.equal(stats.resonanceDamageTakenMultiplier, 0.96);
 });
 
@@ -124,7 +134,7 @@ test('unlocked buffs are applied from a fresh base without compounding each fram
   const first = applyResonanceBuffsToStats(base, state);
   const second = applyResonanceBuffsToStats(base, state);
   assert.ok(Math.abs(first.maxOxygen - 100 * Math.cbrt(1.08)) < 1e-9);
-  assert.ok(Math.abs(first.currentDamageMultiplier - 0.6 * Math.cbrt(1.06)) < 1e-9);
+  assert.ok(Math.abs(first.currentDamageMultiplier - Math.cbrt(1.06)) < 1e-9);
   assert.ok(Math.abs(first.oxygenDrainMultiplier - Math.cbrt(0.94)) < 1e-9);
   assert.deepEqual(second, first);
 });
