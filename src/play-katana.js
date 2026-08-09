@@ -99,13 +99,30 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   if (!state || !actor || !Array.isArray(enemies)) return { ok: false, reason: 'missingState' };
   if (!force && state.cooldown > 0) return { ok: false, reason: 'cooldown', remaining: state.cooldown };
   const weapon = getWeaponStats('katana', state.level);
-  const target = targetId
+  const targetCandidate = targetId
     ? activeEnemies(enemies).find((enemy) => enemy.instanceId === targetId) ?? null
     : nearestEnemy(actor, enemies);
+  const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon));
+  if (!hitEnemies.length) {
+    state.lastHitCount = 0;
+    state.lastDamage = 0;
+    return {
+      ok: false,
+      reason: 'noTarget',
+      hit: false,
+      hitCount: 0,
+      damage: 0,
+      totalDamage: 0,
+      empowered: false,
+      targetId: targetCandidate?.instanceId ?? null,
+    };
+  }
+  const target = targetCandidate && isWithinArc(actor, targetCandidate, weapon)
+    ? targetCandidate
+    : nearestEnemy(actor, hitEnemies);
   const angle = target ? angleBetween(actor, target) : (actor.facing === 'left' ? Math.PI : 0);
   const empowered = Boolean(weapon.effect?.empowerAfterMovement && state.empowerNextSlash);
   const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
-  const hitEnemies = activeEnemies(enemies).filter((enemy) => isWithinArc(actor, enemy, weapon));
   const damage = weapon.damage * multiplier * Math.max(0, Number(damageMultiplier) || 1);
   hitEnemies.forEach((enemy) => {
     enemy.health = Math.max(0, enemy.health - damage);

@@ -197,15 +197,19 @@ test('katana levels use a clockwise sword sprite contract instead of a white sla
 
   assert.equal(levelOne.effect.style, 'katanaClockwiseSwing');
   assert.match(levelOne.effect.sprite, /abyssal-katana\.png$/);
+  assert.equal(levelOne.effect.weaponLength, 36);
+  assert.equal(levelOne.effect.weaponThickness, 5.6);
   assert.equal(levelOne.effect.afterimageCount >= 5, true);
   assert.equal(levelOne.effect.empowerAfterMovement, undefined);
   assert.ok(levelOne.range >= 48 && levelOne.range <= 56, 'katana should reach roughly two Cells');
   assert.equal(levelTwo.effect.empowerAfterMovement, true);
   assert.equal(levelTwo.effect.empoweredDamageMultiplier, 2);
+  assert.equal(levelTwo.effect.weaponLength, 37);
   assert.equal(levelTwo.effect.afterimageCount > levelOne.effect.afterimageCount, true);
   assert.notEqual(levelTwo.effect.colour, levelOne.effect.colour);
   assert.notEqual(levelThree.effect.colour, levelTwo.effect.colour);
   assert.equal(levelThree.effect.wave.style, 'katanaProjectileWave');
+  assert.equal(levelThree.effect.weaponLength, 38);
   assert.equal(levelThree.effect.wave.travelDistance > levelThree.effect.wave.startDistance, true);
   assert.equal(levelThree.effect.wave.arcDegrees < 120, true);
   assert.equal(levelThree.effect.wave.thickness > 0, true);
@@ -559,6 +563,21 @@ test('light machine gun Lv.2 changes the last three outlines and Lv.3 uses disti
   assert.equal(levelThreeShots.length, 6);
   assert.ok(levelThreeShots.every((shot) => shot.visual.bulletStyle === 'prism'));
   assert.equal(new Set(levelThreeShots.map((shot) => shot.visual.bulletColour)).size, 6);
+});
+
+test('equipped light machine gun auto-fires a burst after its cooldown without manual input', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, { weaponId: 'lightMachineGun', weaponLevel: 1 });
+
+  stepSandbox(state, 0.1);
+  assert.equal(state.projectiles.length, 1, '自動連射應該先立即發射第一發');
+  assert.ok(state.weaponBurst, '第一發應該建立六發連射狀態');
+
+  stepSandbox(state, 0.6);
+  assert.equal(state.projectiles.length, 6, '連射狀態應該在短時間內完成六發');
+
+  stepSandbox(state, 0.1);
+  assert.equal(state.projectiles.length, 7, '冷卻結束後應該自動開始下一輪');
 });
 
 test('squid sniper warns before firing and ray bombardment keeps its cast position', () => {

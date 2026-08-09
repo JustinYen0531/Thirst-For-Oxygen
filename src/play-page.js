@@ -42,7 +42,7 @@ import {
   stepPlayKatana,
 } from './play-katana.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
-import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlots } from './visor-hud.js';
+import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 import {
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
@@ -208,25 +208,6 @@ function chooseSpawn(nextMap) {
   return getHexCenter(safe[0] ?? Object.values(nextMap.cells)[0], origin);
 }
 
-function prepareKatanaShowcaseTarget() {
-  const target = enemies
-    .filter((enemy) => !enemy.defeated && Number(enemy.health) > 0)
-    .sort((left, right) => Math.hypot(left.x - spawn.x, left.y - spawn.y) - Math.hypot(right.x - spawn.x, right.y - spawn.y))[0];
-  if (!target) return null;
-  const targetX = clamp(spawn.x + 44, physicsBounds.minX + 16, physicsBounds.maxX - 16);
-  const targetY = clamp(spawn.y, physicsBounds.minY + 16, physicsBounds.maxY - 16);
-  Object.assign(target, {
-    x: targetX,
-    y: targetY,
-    homeX: targetX,
-    homeY: targetY,
-    moveSpeed: 0,
-    alerted: true,
-    katanaShowcase: true,
-  });
-  return target;
-}
-
 function setupWorld(nextMap) {
   map = nextMap;
   origin = { x: 36, y: 36 };
@@ -234,19 +215,8 @@ function setupWorld(nextMap) {
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
   actor = createTestActor(spawn);
-  actor.activeWeapon = { id: 'katana', level: INITIAL_KATANA_LEVEL };
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
   katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
-  const showcaseTarget = prepareKatanaShowcaseTarget();
-  const showcaseSlash = resolvePlayKatanaSlash({
-    state: katanaState,
-    actor,
-    enemies,
-    force: true,
-    persistent: true,
-    targetId: showcaseTarget?.instanceId ?? null,
-    damageMultiplier: actor.derivedStats?.currentDamageMultiplier ?? 1,
-  });
   worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
@@ -259,7 +229,7 @@ function setupWorld(nextMap) {
     '拖曳潛水夫，放開即可彈射。',
     `${MAPS[mapPart].label} 已載入。`,
     `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`,
-    `武士刀 Lv.${katanaState.level} 已示範：${showcaseSlash.hit ? `命中 ${showcaseSlash.hitCount} 隻，造成 ${showcaseSlash.totalDamage} 傷害` : '等待近距離目標'}`,
+    `武士刀 Lv.${katanaState.level} 待命：範圍內有敵人才會揮刀。`,
   ];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
@@ -800,13 +770,39 @@ function updateHud() {
 }
 
 function updateHudIconSlots() {
+  const slotRoot = document.querySelector('.visor-icon-slots');
+  if (slotRoot) {
+    if (!slotRoot.querySelector('[data-visor-group-label="weapon"]')) {
+      const label = document.createElement('span');
+      label.className = 'visor-group-label visor-group-label-weapon';
+      label.dataset.visorGroupLabel = 'weapon';
+      label.textContent = '武器槽位';
+      slotRoot.append(label);
+    }
+    if (!slotRoot.querySelector('[data-visor-group-label="passive"]')) {
+      const label = document.createElement('span');
+      label.className = 'visor-group-label visor-group-label-passive';
+      label.dataset.visorGroupLabel = 'passive';
+      label.textContent = '被動能力';
+      slotRoot.append(label);
+    }
+  }
   const slots = getPlayerHudSlots(PLAYER_HUD_LOADOUT);
   visorSlots.forEach((slotElement, index) => {
     const slot = slots[index];
     const icon = slotElement.querySelector('[data-visor-icon]');
     if (!slot || !icon) return;
+    let label = slotElement.querySelector('[data-visor-slot-label]');
+    if (!label) {
+      label = document.createElement('small');
+      label.className = 'visor-slot-label';
+      label.dataset.visorSlotLabel = '';
+      slotElement.append(label);
+    }
     const filled = Boolean(slot.path);
     slotElement.dataset.visorFilled = String(filled);
+    label.hidden = !filled;
+    label.textContent = getPlayerHudSlotLabel(slot);
     if (!filled) {
       icon.hidden = true;
       icon.removeAttribute('src');
@@ -814,9 +810,9 @@ function updateHudIconSlots() {
       return;
     }
     icon.src = slot.path;
-    icon.alt = `${slot.name} Lv.${slot.level}`;
+    icon.alt = getPlayerHudSlotLabel(slot);
     icon.hidden = false;
-    slotElement.setAttribute('aria-label', `${slot.name} Lv.${slot.level}`);
+    slotElement.setAttribute('aria-label', getPlayerHudSlotLabel(slot));
   });
 }
 
@@ -894,7 +890,7 @@ canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPo
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); Object.assign(actor, createTestActor(spawn)); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); Object.assign(actor, createTestActor(spawn)); katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });

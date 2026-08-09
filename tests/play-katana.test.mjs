@@ -35,6 +35,8 @@ test('formal play katana Lv.1 hits a nearby enemy and exposes the actual sword s
   assert.ok(swing);
   assert.equal(swing.style, 'katanaClockwiseSwing');
   assert.match(swing.sprite, /abyssal-katana\.png$/);
+  assert.equal(swing.weaponLength, 36);
+  assert.equal(swing.weaponThickness, 5.6);
   assert.equal(swing.afterimageCount >= 5, true);
   const frames = getKatanaSwingFrames(swing, 0.82);
   assert.equal(frames.currentAngle > frames.startAngle, true, 'positive Canvas angles produce a clockwise swing');
@@ -81,6 +83,18 @@ test('formal play katana damages every active enemy inside its range', () => {
   assert.equal(scenario.enemy.health, 72);
   assert.equal(sideEnemy.health, 72);
   assert.equal(farEnemy.health, 100, 'enemies beyond the range remain unharmed');
+});
+
+test('formal play katana stays idle when no enemy is in range', () => {
+  const scenario = createScenario(1);
+  scenario.enemy.x = 220;
+  const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'noTarget');
+  assert.equal(scenario.state.effects.length, 0);
+  assert.equal(scenario.state.slashCount, 0);
+  assert.equal(scenario.enemy.health, 100);
 });
 
 test('katana Lv.3 adds a persistent outward projectile wave that survives simulation steps', () => {
