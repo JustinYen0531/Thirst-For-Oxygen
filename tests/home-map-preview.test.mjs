@@ -4,90 +4,75 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
-  HOME_LENS_WARP,
-  HOME_PREVIEW_ROUTES,
-  getHomePreviewDurations,
-  getHomePreviewPlaybackState,
-} from '../src/home-map-preview.js';
+  HOME_HELMET_TURN_DURATION_MS,
+  HOME_HELMET_TURN_FRAME_COUNT,
+  getHomeHelmetTurnFrame,
+} from '../src/home-page.js';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 
-test('home helmet preview uses the authored descent maps in walkthrough order', () => {
-  assert.deepEqual(HOME_PREVIEW_ROUTES.descent.map((route) => route.part), [1, 2, 3]);
-  HOME_PREVIEW_ROUTES.descent.forEach((route) => {
-    const filePath = `${ROOT}${decodeURIComponent(route.path).replaceAll('/', '\\')}`;
-    assert.equal(existsSync(filePath), true, route.path);
-    assert.equal(route.url.startsWith('file:') || route.url.startsWith('http'), true);
-  });
-  assert.deepEqual(HOME_PREVIEW_ROUTES.ascent, []);
-});
-
-test('home walkthrough moves down each map before advancing to the next part', () => {
-  const routes = HOME_PREVIEW_ROUTES.descent.map((route, index) => ({
-    ...route,
-    height: [160, 88, 117][index],
-  }));
-  const durations = getHomePreviewDurations(routes);
-  assert.equal(durations[0].moveSeconds > durations[1].moveSeconds, true);
-
-  const part1Middle = getHomePreviewPlaybackState(durations[0].moveSeconds / 2, routes);
-  assert.equal(part1Middle.partIndex, 0);
-  assert.equal(part1Middle.progress > 0.45 && part1Middle.progress < 0.55, true);
-
-  const part2StartAt = durations[0].moveSeconds + durations[0].transitionSeconds + 0.01;
-  const part2Start = getHomePreviewPlaybackState(part2StartAt, routes);
-  assert.equal(part2Start.partIndex, 1);
-  assert.equal(part2Start.progress < 0.01, true);
-});
-
-test('home markup replaces the old placeholder with a convex real-map helmet player', () => {
+test('home is reduced to the dark video, centered helmet, logo and turn frames', () => {
   const html = read('../home.html');
-  const css = read('../src/home.css');
-  const page = read('../src/home-page.js');
-  const preview = read('../src/home-map-preview.js');
 
-  assert.match(html, /id="home-map-preview"/);
-  assert.match(html, /abandoned-diving-helmet-left-v2\.png/);
-  assert.match(html, /下沉篇第一至第三部分真實地圖自動巡覽/);
-  assert.match(html, /上浮篇 <small>地圖待接入<\/small>/);
-  assert.doesNotMatch(html, /hero-player|T1 \/ L1|O₂ 72%/);
-  assert.doesNotMatch(html, /helmet-sediment|abandoned-diving-helmet-map-frame/);
-  assert.match(css, /\.helmet-lens/);
-  assert.match(css, /helmet-lens-reflection/);
-  assert.match(page, /attachHomeMapPreview/);
-  assert.match(preview, /drawConvexMap/);
-  assert.match(preview, /window\.advanceHomePreview/);
-});
-
-test('home helmet uses an unmistakable convex warp instead of a subtle zoom', () => {
-  assert.equal(HOME_LENS_WARP.horizontalEdgeScale < 0.9, true);
-  assert.equal(HOME_LENS_WARP.horizontalCenterScale > 1.1, true);
-  assert.equal(HOME_LENS_WARP.verticalEdgeScale < 0.9, true);
-  assert.equal(HOME_LENS_WARP.verticalCenterScale > 1.1, true);
-});
-
-test('home helmet asset is the isolated transparent cutout', () => {
-  const helmetPath = fileURLToPath(new URL('../public/assets/home/abandoned-diving-helmet-left-v2.png', import.meta.url));
-  const rejectedScenePath = fileURLToPath(new URL('../public/assets/home/abandoned-diving-helmet-map-frame.png', import.meta.url));
-  const png = readFileSync(helmetPath);
-
-  assert.equal(existsSync(rejectedScenePath), false);
-  assert.equal(png.subarray(1, 4).toString('ascii'), 'PNG');
-  assert.equal(png.readUInt32BE(16), 1568);
-  assert.equal(png.readUInt32BE(20), 1003);
-  assert.equal(png[25], 6, 'PNG must preserve RGBA transparency');
-});
-
-test('home uses the prepared slow ping-pong abyss video behind a lower 1.2x helmet', () => {
-  const html = read('../home.html');
-  const css = read('../src/home.css');
-  const videoPath = fileURLToPath(new URL('../public/assets/home/abyss-seafloor-ping-pong-067.mp4', import.meta.url));
-
-  assert.match(html, /<video class="home-abyss-video" autoplay muted loop playsinline/);
+  assert.match(html, /class="home-abyss-video" autoplay muted loop playsinline/);
   assert.match(html, /abyss-seafloor-ping-pong-067\.mp4/);
-  assert.equal(existsSync(videoPath), true);
-  assert.equal(readFileSync(videoPath).byteLength > 1_000_000, true);
-  assert.match(css, /\.home-abyss-video/);
-  assert.match(css, /transform: translate\(-5%, 7%\) scale\(1\.2\)/);
+  assert.match(html, /id="home-intro"/);
+  assert.match(html, /helmet-turn-00-front\.png/);
+  assert.match(html, /helmet-turn-01\.png/);
+  assert.match(html, /helmet-turn-02\.png/);
+  assert.match(html, /abandoned-diving-helmet-left-v2\.png/);
+  assert.match(html, /thirst-for-oxygen-logo-v2\.png/);
+  assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control|home-map-preview/);
+});
+
+test('all homepage helmet and logo assets are RGBA PNG files', () => {
+  const assetNames = [
+    'helmet-turn-00-front.png',
+    'helmet-turn-01.png',
+    'helmet-turn-02.png',
+    'abandoned-diving-helmet-left-v2.png',
+    'thirst-for-oxygen-logo-v2.png',
+  ];
+
+  assetNames.forEach((assetName) => {
+    const assetPath = fileURLToPath(new URL(`../public/assets/home/${assetName}`, import.meta.url));
+    assert.equal(existsSync(assetPath), true, assetName);
+    const png = readFileSync(assetPath);
+    assert.equal(png.subarray(1, 4).toString('ascii'), 'PNG', assetName);
+    assert.equal(png[25], 6, `${assetName} must preserve RGBA transparency`);
+  });
+});
+
+test('home keeps the abyss video dark while the front helmet starts largest', () => {
+  const css = read('../src/home.css');
+
+  assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.42/);
+  assert.match(css, /brightness\(0\.42\)/);
+  assert.match(css, /\.home-helmet-stage[\s\S]*scale\(1\.1\)/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*scale\(0\.9\)/);
+});
+
+test('helmet turn advances through four frames and ends on the side frame', () => {
+  assert.equal(HOME_HELMET_TURN_FRAME_COUNT, 4);
+  assert.equal(HOME_HELMET_TURN_DURATION_MS, 1250);
+  assert.equal(getHomeHelmetTurnFrame(0), 0);
+  assert.equal(getHomeHelmetTurnFrame(400), 1);
+  assert.equal(getHomeHelmetTurnFrame(700), 2);
+  assert.equal(getHomeHelmetTurnFrame(1250), 3);
+  assert.equal(getHomeHelmetTurnFrame(5000), 3);
+});
+
+test('homepage supports click-anywhere, keyboard input and deterministic text state', () => {
+  const page = read('../src/home-page.js');
+  const css = read('../src/home.css');
+
+  assert.match(page, /eventTarget\.addEventListener\('pointerdown'/);
+  assert.match(page, /event\.key !== 'Enter' && event\.key !== ' '/);
+  assert.match(page, /window\.advanceTime/);
+  assert.match(page, /window\.render_game_to_text/);
+  assert.match(css, /@keyframes helmet-frame-front/);
+  assert.match(css, /@keyframes helmet-frame-one/);
+  assert.match(css, /@keyframes helmet-frame-two/);
+  assert.match(css, /@keyframes helmet-frame-side/);
+  assert.match(css, /@keyframes helmet-visor-turn/);
 });

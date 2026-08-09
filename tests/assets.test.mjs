@@ -100,16 +100,16 @@ test('runtime literal asset scan has no broken artwork references', () => {
   assert.deepEqual(missing, []);
 });
 
-test('public navigation starts the full descent route and labels unfinished previews honestly', () => {
+test('public entry uses the authored helmet title screen while utility pages keep navigation honest', () => {
   const home = readFileSync(path.join(ROOT, 'home.html'), 'utf8');
   const sandbox = readFileSync(path.join(ROOT, 'sandbox.html'), 'utf8');
   const encyclopedia = readFileSync(path.join(ROOT, 'enemy-encyclopedia.html'), 'utf8');
   const sandboxPage = readFileSync(path.join(ROOT, 'src', 'sandbox-page.js'), 'utf8');
 
-  assert.match(home, /從第一部分進入完整下沉航線/);
-  assert.match(home, /已有素材可切換演示/);
-  assert.match(home, /尚未完成的動畫會清楚標示待補/);
-  assert.doesNotMatch(home, /範本地圖|每一隻敵人[^。]*正式殘影演示/);
+  assert.match(home, /id="home-intro"/);
+  assert.match(home, /helmet-turn-00-front\.png/);
+  assert.match(home, /thirst-for-oxygen-logo-v2\.png/);
+  assert.doesNotMatch(home, /範本地圖|home-map-preview|destination-grid/);
   assert.match(sandbox, /href="\/play\.html">遊玩地圖<\/a>/);
   assert.match(encyclopedia, /href="\/play\.html">遊玩地圖<\/a>/);
   assert.doesNotMatch(`${sandbox}\n${encyclopedia}`, /play\.html\?part=3/);

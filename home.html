@@ -3,99 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thirst for Oxygen — 水下主控台</title>
+    <title>Thirst for Oxygen</title>
     <link rel="stylesheet" href="/src/home.css" />
   </head>
   <body>
     <video class="home-abyss-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
       <source src="/assets/home/abyss-seafloor-ping-pong-067.mp4" type="video/mp4" />
     </video>
-    <main class="home-shell">
-      <header class="home-topbar">
-        <a class="brand-lockup" href="/home.html" aria-label="回到水下主控台">
-          <span class="brand-glyph" aria-hidden="true">◈</span>
-          <span><strong>THIRST FOR OXYGEN</strong><small>ABYSSAL AQUARIUM / CONTROL DECK</small></span>
-        </a>
-        <nav class="home-nav" aria-label="主導航">
-          <a href="/play.html">遊玩</a>
-            <a href="/enemy-encyclopedia.html">世界圖鑑</a>
-          <a href="/sandbox.html">敵人沙盒</a>
-          <a href="/">地圖編輯器</a>
-        </nav>
-      </header>
 
-      <section class="home-hero" aria-labelledby="home-title">
-        <div class="hero-copy">
-          <p class="eyebrow">DESCENT / PART 01 · BEGIN THE DIVE</p>
-          <h1 id="home-title">在藍寶石般的深海裡，<em>看見下一次呼吸。</em></h1>
-          <p class="hero-lede">遊玩、觀察敵人，或進入沙盒驗收每一個技能。這裡是暫時的水下主控台，先讓你快速抵達真正要測試的地方。</p>
-          <div class="hero-actions">
-            <a class="primary-action" href="/play.html"><span>▶</span> 開始遊玩</a>
-            <a class="secondary-action" href="/enemy-encyclopedia.html">開啟世界圖鑑</a>
-          </div>
-          <div id="home-music-control"></div>
-          <p class="hero-note"><span class="signal-dot"></span> 地圖狀態：下沉篇三部分已串接 · 從第一部分開始</p>
+    <main
+      class="home-intro"
+      id="home-intro"
+      data-turn-state="front"
+      role="button"
+      tabindex="0"
+      aria-label="點擊任意位置，讓深海頭盔轉向側面"
+    >
+      <div class="home-helmet-stage" aria-live="polite">
+        <img
+          class="home-helmet-frame home-helmet-frame--front"
+          src="/assets/home/helmet-turn-00-front.png"
+          alt="正面朝向玩家的古老深海潛水頭盔"
+        />
+        <img
+          class="home-helmet-frame home-helmet-frame--turn-one"
+          src="/assets/home/helmet-turn-01.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          class="home-helmet-frame home-helmet-frame--turn-two"
+          src="/assets/home/helmet-turn-02.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          class="home-helmet-frame home-helmet-frame--side"
+          src="/assets/home/abandoned-diving-helmet-left-v2.png"
+          alt=""
+          aria-hidden="true"
+        />
+
+        <div class="home-helmet-visor" aria-hidden="true">
+          <img src="/assets/home/thirst-for-oxygen-logo-v2.png" alt="" />
         </div>
-        <div class="hero-helmet-preview" id="home-helmet-preview" aria-label="朝向左前方的古老潛水頭盔，凸面面罩正播放下沉篇真實地圖">
-          <div class="helmet-scene">
-            <img src="/assets/home/abandoned-diving-helmet-left-v2.png" alt="略微朝左上方傾斜的古老深海潛水頭盔" />
-            <div class="helmet-lens">
-              <canvas id="home-map-preview" width="720" height="760" aria-label="下沉篇第一至第三部分真實地圖自動巡覽"></canvas>
-              <div class="helmet-lens-reflection" aria-hidden="true"></div>
-              <p class="helmet-preview-loading" id="home-preview-loading">正在讀取真實遊戲地圖…</p>
-            </div>
-          </div>
-          <div class="helmet-preview-toolbar">
-            <div class="preview-arc-tabs" aria-label="篇章地圖預覽">
-              <button type="button" class="is-active" aria-pressed="true">下沉篇</button>
-              <button type="button" disabled aria-disabled="true" title="上浮篇真實地圖完成後即可接入">上浮篇 <small>地圖待接入</small></button>
-            </div>
-            <button type="button" class="preview-pause" id="home-preview-toggle" aria-pressed="false">Ⅱ 暫停巡覽</button>
-          </div>
-          <div class="helmet-preview-caption" aria-live="polite">
-            <span><strong id="home-preview-part">第一部分｜深海森林入口</strong><small id="home-preview-direction">自動下潛 · 下一段為第二部分</small></span>
-            <span class="preview-part-markers" aria-label="巡覽進度">
-              <i class="is-active" data-preview-part="1" aria-current="step">1</i>
-              <i data-preview-part="2" aria-current="false">2</i>
-              <i data-preview-part="3" aria-current="false">3</i>
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <section class="destination-grid" aria-label="功能入口">
-        <a class="destination-card destination-play" href="/play.html">
-          <span class="card-index">01 / PLAY</span>
-          <span class="card-icon" aria-hidden="true">✦</span>
-          <h2>遊玩</h2>
-          <p>從第一部分進入完整下沉航線，在實際地圖中體驗水域重力、彈射、戰鬥與已放置物件。</p>
-          <span class="card-link">進入地圖 <b>→</b></span>
-        </a>
-        <a class="destination-card destination-guide" href="/enemy-encyclopedia.html">
-          <span class="card-index">02 / FIELD GUIDE</span>
-          <span class="card-icon" aria-hidden="true">◎</span>
-          <h2>世界圖鑑</h2>
-          <p>查看敵人的生態輪廓與攻擊技能；已有素材可切換演示，尚未完成的動畫會清楚標示待補。</p>
-          <span class="card-link">查看圖鑑 <b>→</b></span>
-        </a>
-        <a class="destination-card destination-sandbox" href="/sandbox.html">
-          <span class="card-index">03 / COMBAT LAB</span>
-          <span class="card-icon" aria-hidden="true">⌁</span>
-          <h2>敵人沙盒</h2>
-          <p>自由放置敵人、選擇指定技能、調整武器 Build，驗收每一次命中。</p>
-          <span class="card-link">開啟沙盒 <b>→</b></span>
-        </a>
-      </section>
-
-      <section class="home-status" aria-label="目前開發狀態">
-        <div><span>ACTIVE RUN</span><strong>下沉篇・第一至第三部分</strong></div>
-        <div><span>MAP FLOW</span><strong>可達終點・跨段保留 Build</strong></div>
-        <div><span>PHYSICS</span><strong>L1 重力・0.1×速度</strong></div>
-        <div><span>BUILD</span><strong>小刀 Lv.1 起始・拾取 EXP 升級</strong></div>
-      </section>
-
-      <footer class="home-footer"><span>水下主控台不是最終主頁面。</span><span>先讓每一次測試都找得到入口。</span></footer>
+      </div>
+      <span class="visually-hidden" id="home-intro-status">頭盔目前面向正前方。</span>
     </main>
+
     <script type="module" src="/src/home-page.js"></script>
   </body>
 </html>
