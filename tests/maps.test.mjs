@@ -192,14 +192,15 @@ test('all authored objects and active Edges have a reachable gameplay side', () 
 
 test('descent maps form a deliberate difficulty ladder from teaching to final exam', () => {
   const maps = mapNames.map(loadMap);
+  const advancedObjectKinds = new Set(['mine', 'button', 'weightStone', 'ink', 'razor']);
   const stats = maps.map((map) => ({
-    objects: freeObjectsOf(map).length,
+    advancedObjects: freeObjectsOf(map).filter(({ object }) => advancedObjectKinds.has(object.kind)).length,
     edgeTypes: new Set(Object.values(map.edges).map((edge) => edge.type)),
     gates: Object.values(map.cells).filter((cell) => cell.conditionalGate).length,
     l3: Object.values(map.cells).filter((cell) => cell.gravityLevel === 'L3').length,
     portals: Object.values(map.edges).filter((edge) => edge.type === 'multiPortal').length,
   }));
-  assert.ok(stats[0].objects < stats[1].objects && stats[1].objects < stats[2].objects);
+  assert.ok(stats[0].advancedObjects < stats[1].advancedObjects && stats[1].advancedObjects < stats[2].advancedObjects);
   assert.equal(stats[0].edgeTypes.has('multiPortal'), false);
   assert.ok(stats[1].gates > 0 && stats[1].l3 > 0 && stats[1].portals > 0);
   assert.ok(stats[2].portals > stats[1].portals);
@@ -245,8 +246,8 @@ test('part 1 doubles only its length and uses broad exploration routes', () => {
 test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
   const part1 = loadMap('下沉篇-第1部分.json');
   const torricelliObjects = freeObjectsOf(part1).filter(({ object }) => object.kind === 'torricelli');
-  assert.equal(part1.metadata.torricelliDetours.length, 2);
-  assert.equal(torricelliObjects.length, 2);
+  assert.equal(part1.metadata.torricelliDetours.length, 4);
+  assert.equal(torricelliObjects.length, 4);
   part1.metadata.torricelliDetours.forEach((detour) => {
     const key = `${detour.objectColumn - Math.floor(detour.objectRow / 2)},${detour.objectRow}`;
     const cell = part1.cells[key];

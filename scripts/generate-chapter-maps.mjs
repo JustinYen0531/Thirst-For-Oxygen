@@ -484,14 +484,22 @@ function paintPart1Terrain(map) {
   // Loop 1: two broad routes around the first forest monolith. Both are easy
   // to steer through, but they contain different optional rewards.
   carveBroadRoute(map, [
-    { column: 8, row: 8 }, { column: 4, row: 16 }, { column: 4, row: 29 }, { column: 9, row: 36 },
+    { column: 9, row: 8 }, { column: 9, row: 23 }, { column: 4, row: 29 }, { column: 9, row: 36 },
   ], 'monolith-west-route');
   carveBroadRoute(map, [
     { column: 10, row: 8 }, { column: 13, row: 16 }, { column: 14, row: 29 }, { column: 9, row: 36 },
   ], 'monolith-east-route');
-  carveBroadRoute(map, [
-    { column: 4, row: 20 }, { column: 1, row: 20 }, { column: 1, row: 14 },
-  ], 'upper-oxygen-grotto', 'L0');
+  // The first Torricelli cavern replaces the old shallow upper grotto. Its
+  // sealed cap is separated from the entry route by two rock columns, so the
+  // player must first descend to the row-23 junction and then swim back up.
+  carveTorricelliDetour(map, {
+    objectRow: 12,
+    ascentEndRow: 22,
+    columnStart: 1,
+    columnEnd: 4,
+    region: 'torricelli-ascent-early-left',
+  });
+  carveRoom(map, { rowStart: 23, rowEnd: 27, columnStart: 1, columnEnd: 9, region: 'torricelli-junction-early-left' });
 
   // A long west-to-east canopy traverse forces macro navigation around a
   // horizontal rock shelf without reducing the route to a precision tunnel.
@@ -510,6 +518,17 @@ function paintPart1Terrain(map) {
     region: 'torricelli-ascent-right',
   });
   carveRoom(map, { rowStart: 58, rowEnd: 63, columnStart: 11, columnEnd: 16, region: 'torricelli-junction-right' });
+
+  // A second new cavern uses the sealed western rock mass beneath the canopy.
+  // Its only opening is the broad row-79 junction into the sunken garden.
+  carveTorricelliDetour(map, {
+    objectRow: 62,
+    ascentEndRow: 78,
+    columnStart: 1,
+    columnEnd: 4,
+    region: 'torricelli-ascent-mid-left',
+  });
+  carveRoom(map, { rowStart: 79, rowEnd: 84, columnStart: 1, columnEnd: 9, region: 'torricelli-junction-mid-left' });
 
   // Loop 2: a large central reef offers two readable routes that rejoin much
   // later, giving exploration without any one-cell squeezes.
@@ -571,13 +590,15 @@ function buildPart1() {
         { id: 'hot-spring-threshold', splitRow: 136, mergeRow: 158, routes: ['west', 'east'] },
       ],
       broadRouteSamples: [
-        { row: 8, column: 9 }, { row: 18, column: 4 }, { row: 18, column: 13 },
+        { row: 8, column: 9 }, { row: 18, column: 9 }, { row: 18, column: 13 },
         { row: 44, column: 4 }, { row: 60, column: 9 }, { row: 80, column: 9 },
         { row: 82, column: 14 }, { row: 112, column: 7 }, { row: 120, column: 14 },
         { row: 128, column: 4 }, { row: 144, column: 4 }, { row: 144, column: 13 },
       ],
       torricelliDetours: [
+        { side: 'left', region: 'torricelli-ascent-early-left', objectRow: 12, objectColumn: 1, ascentEndRow: 22, junctionRow: 23, junctionColumn: 8, ascentRows: 11, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 2 },
         { side: 'right', region: 'torricelli-ascent-right', objectRow: 39, objectColumn: 16, ascentEndRow: 57, junctionRow: 57, junctionColumn: 12, ascentRows: 19, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 3 },
+        { side: 'left', region: 'torricelli-ascent-mid-left', objectRow: 62, objectColumn: 1, ascentEndRow: 78, junctionRow: 79, junctionColumn: 8, ascentRows: 17, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 2 },
         { side: 'left', region: 'torricelli-ascent-left', objectRow: 87, objectColumn: 1, ascentEndRow: 109, junctionRow: 110, junctionColumn: 8, ascentRows: 23, terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS, shaftWidth: 4, separationWallWidth: 2 },
       ],
       teachingSequence: [
@@ -596,9 +617,9 @@ function buildPart1() {
   [[18, 4], [24, 14], [45, 4], [65, 13], [84, 9], [92, 14], [120, 4], [128, 13], [146, 4]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
   const used = new Set();
   [
-    ['oxygen', 6, 9], ['bubble', 17, 4], ['oxygen', 25, 14],
+    ['oxygen', 6, 9], ['torricelli', 12, 1], ['bubble', 17, 4], ['oxygen', 25, 14],
     ['checkpoint', 35, 9], ['torricelli', 39, 16], ['oxygen', 50, 3],
-    ['bubble', 60, 9], ['checkpoint', 72, 9], ['oxygen', 84, 9],
+    ['bubble', 60, 9], ['torricelli', 62, 1], ['checkpoint', 72, 9], ['oxygen', 84, 9],
     ['torricelli', 87, 1], ['bubble', 90, 14], ['oxygen', 96, 9],
     ['checkpoint', 103, 9], ['oxygen', 118, 14], ['bubble', 126, 4],
     ['checkpoint', 136, 9], ['oxygen', 146, 13], ['checkpoint', 157, 9],
