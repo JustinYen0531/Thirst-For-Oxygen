@@ -18,8 +18,11 @@ export const RESOURCE_HEALTH_RECOVERY = Object.freeze({
 
 export const ENEMY_DAMAGE_BALANCE = Object.freeze({
   playerDamageMultiplier: 0.4,
-  projectileDamageMultiplier: 0.5,
-  projectileSpeedMultiplier: 0.5,
+  // Projectile attacks need a second, stronger reduction on top of the
+  // global enemy multiplier. The authored values are tuned for a much larger
+  // arena and remained oppressive even after the first fifty-percent pass.
+  projectileDamageMultiplier: 0.25,
+  projectileSpeedMultiplier: 0.25,
 });
 
 export function getEnemyDamageToPlayer(amount, damageType = 'generic') {

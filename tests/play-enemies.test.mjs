@@ -391,16 +391,23 @@ test('formal enemy projectiles exist in flight and use swept collision instead o
   let render = getPlayEnemyRenderState(enemies, now);
   assert.equal(damage, 0);
   assert.equal(render.projectiles.length, 1, 'resolving the cast creates a renderable projectile first');
-  assert.equal(render.projectiles[0].speed, 130, 'enemy projectile speed is fifty percent of the authored spear speed');
+  assert.equal(render.projectiles[0].speed, 65, 'enemy projectile speed is twenty-five percent of the authored spear speed');
   assert.ok(render.projectiles[0].x < actor.x);
 
   now = advanceCombat(enemies, actor, 0.2, { start: now, onDamage });
   assert.equal(damage, 0, 'the projectile cannot damage before it reaches the actor');
-  updatePlayEnemies(enemies, actor, 1, now + 1, onDamage);
-  render = getPlayEnemyRenderState(enemies, now + 1);
+  updatePlayEnemies(enemies, actor, 3, now + 3, onDamage);
+  render = getPlayEnemyRenderState(enemies, now + 3);
   assert.equal(ENEMY_DAMAGE_BALANCE.playerDamageMultiplier, 0.4);
-  assert.equal(damage, getEnemyDamageToPlayer(24, 'projectile'), 'a swept hit applies the projectile-specific twenty percent final damage');
+  assert.equal(damage, getEnemyDamageToPlayer(24, 'projectile'), 'a swept hit applies the projectile-specific ten percent final damage');
   assert.equal(render.projectiles.length, 0);
+});
+
+test('lobbed enemy ordnance uses the same projectile damage reduction', () => {
+  const mortar = resolveAuthoredSkill('nautilusOracle', 'coralMortar');
+  assert.equal(mortar.damage(), 0, 'the mortar telegraph cannot deal remote instant damage');
+  advanceCombat(mortar.enemies, mortar.actor, 0.3, { start: mortar.now, onDamage: mortar.onDamage });
+  assert.equal(mortar.damage(), getEnemyDamageToPlayer(30, 'projectile'));
 });
 
 test('juvenile seahorse finishes its six-second rescue cast before adding two core enemies', () => {
@@ -491,7 +498,7 @@ test('tide-law nautilus models four Lv.2 summons, seven returning rounds, and an
   const buckshot = resolveAuthoredSkill('tideLawNautilus', 'returningBuckshot');
   render = getPlayEnemyRenderState(buckshot.enemies, buckshot.now);
   assert.equal(render.projectiles.length, 7);
-  assert.ok(render.projectiles.every((projectile) => projectile.speed === 130 && projectile.returnDelay === 1.4 && projectile.damage === 16));
+  assert.ok(render.projectiles.every((projectile) => projectile.speed === 65 && projectile.returnDelay === 1.4 && projectile.damage === 16));
   buckshot.actor.y = 220;
   const returnTime = advanceCombat(buckshot.enemies, buckshot.actor, 1.42, { start: buckshot.now, onDamage: buckshot.onDamage });
   render = getPlayEnemyRenderState(buckshot.enemies, returnTime);
@@ -537,7 +544,7 @@ test('abyssal whale reconstruction, echo barrage, and miniature form expose thei
   render = getPlayEnemyRenderState(echo.enemies, echo.now);
   assert.equal(echo.damage(), 0);
   assert.equal(render.projectiles.length, 3);
-  assert.ok(render.projectiles.every((projectile) => projectile.speed === 85 && projectile.damage === 18 && projectile.cloneHealthRatio === 0.18));
+  assert.ok(render.projectiles.every((projectile) => projectile.speed === 42.5 && projectile.damage === 18 && projectile.cloneHealthRatio === 0.18));
   assert.ok(render.summons.some((summon) => summon.kind === 'abyssEcho' && summon.count === 3 && summon.healthEach === 900));
 
   const miniature = resolveAuthoredSkill('abyssalSpermWhale', 'miniatureForm', { x: 160 });

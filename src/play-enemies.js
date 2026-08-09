@@ -792,7 +792,7 @@ function updatePlayEnemyZones(runtime, actor, dt, onDamage) {
     zone.remaining -= dt;
     if (zone.remaining > 1e-6) return true;
     if (distanceBetween(zone, actor) <= zone.radius + (actor.radius ?? 0)) {
-      playEnemyDamage(actor, zone.damage, zone.source, onDamage, 'ranged');
+      playEnemyDamage(actor, zone.damage, zone.source, onDamage, zone.damageType ?? 'ranged');
     }
     addPlayEnemyEffect(runtime, {
       type: 'areaImpact',
@@ -1196,6 +1196,7 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
       radius: skill.radius ?? 56,
       remaining: 0.28,
       damage: playEnemyDamageAmount(enemy, skill.damage),
+      damageType: 'projectile',
       source,
     });
     return;

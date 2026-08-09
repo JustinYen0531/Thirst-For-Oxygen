@@ -884,6 +884,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
         radius: skill.radius ?? 56,
         delay: skill.telegraph ?? 1,
         damage: skill.damage ?? 0,
+        damageType: 'projectile',
         source,
         ownerId: enemy.instanceId,
         elapsed: 0,
@@ -1639,7 +1640,7 @@ function updateZones(state, dt) {
     }
     if (!zone.triggered && zone.elapsed >= zone.delay) {
       zone.triggered = true;
-      areaDamage(state, zone, zone.radius, zone.damage, zone.source);
+      areaDamage(state, zone, zone.radius, zone.damage, zone.source, zone.damageType ?? 'area');
       applyKnockback(state, zone, zone.radius, zone.knockback);
       spawnZoneSpread(state, zone);
       if (zone.oxygenDrain && !state.infiniteResources) state.actor.oxygen = Math.max(0, state.actor.oxygen - zone.oxygenDrain);

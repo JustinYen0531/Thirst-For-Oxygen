@@ -378,7 +378,7 @@ test('lionfish venom projectile applies a timed player status', () => {
   const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 70, y: state.actor.y }, { moveSpeed: 0 });
 
   assert.equal(executeEnemySkill(state, enemy.instanceId, 'venomStraightShot').ok, true);
-  stepSandbox(state, 0.6);
+  stepSandbox(state, 1.2);
 
   assert.ok((state.actor.activeEffects.venom ?? 0) > 0, '毒刺命中後應保留持續效果');
   const healthAfterHit = state.actor.health;
@@ -443,6 +443,7 @@ test('nautilus mortar bursts into a spread and dual-core magic emits a spiral st
   const mortarState = createSandboxState();
   const mortar = spawnSandboxEnemy(mortarState, 'nautilusOracle', { x: mortarState.actor.x + 300, y: mortarState.actor.y }, { moveSpeed: 0 });
   executeEnemySkill(mortarState, mortar.instanceId, 'coralMortar');
+  assert.equal(mortarState.zones[0].damageType, 'projectile');
   stepSandbox(mortarState, 1.1);
   assert.equal(mortarState.projectiles.length, 3);
   assert.ok(mortarState.projectiles.every((projectile) => projectile.source === 'enemy'));
@@ -497,7 +498,7 @@ test('lobster spear and lionfish scatter each create their authored projectile c
   stepSandbox(lobsterState, 0.32);
   assert.equal(lobsterState.projectiles.length, 1);
   assert.equal(lobsterState.projectiles[0].damage, 24);
-  assert.equal(Math.hypot(lobsterState.projectiles[0].vx, lobsterState.projectiles[0].vy), 130);
+  assert.equal(Math.hypot(lobsterState.projectiles[0].vx, lobsterState.projectiles[0].vy), 65);
 
   const lionfishState = createSandboxState();
   const lionfish = spawnSandboxEnemy(lionfishState, 'lionfishGunner', { x: lionfishState.actor.x + 180, y: lionfishState.actor.y }, { moveSpeed: 0 });
