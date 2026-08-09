@@ -108,6 +108,10 @@ body::before {
   will-change: transform;
 }
 
+.home-intro:not(.is-turning):not(.is-side) .home-helmet-stage {
+  animation: home-helmet-breathe-front 5.6s ease-in-out infinite;
+}
+
 .home-helmet-frame {
   position: absolute;
   inset: 0;
@@ -404,13 +408,13 @@ body::before {
 .home-logo-viewport img {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 53%;
   width: 88%;
   height: 88%;
   object-fit: contain;
   filter: drop-shadow(0 0 18px rgba(94, 226, 255, 0.68));
   transform: translate(-50%, -50%);
-  transition: width 900ms ease, height 900ms ease, filter 900ms ease;
+  transition: top 900ms ease, width 900ms ease, height 900ms ease, filter 900ms ease;
 }
 
 .home-main-menu {
@@ -502,6 +506,7 @@ body::before {
 
 .home-intro.is-turning .home-logo-viewport img,
 .home-intro.is-side .home-logo-viewport img {
+  top: 50%;
   width: 100%;
   height: 100%;
   filter: drop-shadow(0 0 24px rgba(94, 226, 255, 0.42));
@@ -527,6 +532,7 @@ body::before {
 
 .home-intro.is-side .home-helmet-stage {
   transform: translate3d(27vw, 20vh, 0) scale(0.72);
+  animation: home-helmet-breathe-side 6.2s ease-in-out infinite;
 }
 
 .home-intro.is-side .home-helmet-frame--front,
@@ -542,6 +548,16 @@ body::before {
 @keyframes helmet-stage-turn {
   from { transform: translate3d(0, 1.5vh, 0) scale(0.88); }
   to { transform: translate3d(27vw, 20vh, 0) scale(0.72); }
+}
+
+@keyframes home-helmet-breathe-front {
+  0%, 100% { transform: translate3d(0, 1.5vh, 0) scale(0.88); }
+  50% { transform: translate3d(0, 1.15vh, 0) scale(0.887); }
+}
+
+@keyframes home-helmet-breathe-side {
+  0%, 100% { transform: translate3d(27vw, 20vh, 0) scale(0.72); }
+  50% { transform: translate3d(27vw, 19.85vh, 0) scale(0.723); }
 }
 
 @keyframes helmet-frame-front {
@@ -620,12 +636,19 @@ body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-intro:not(.is-turning):not(.is-side) .home-helmet-stage,
+  .home-intro.is-side .home-helmet-stage,
   .home-intro.is-turning .home-helmet-stage,
   .home-intro.is-turning .home-helmet-frame,
   .home-intro.is-turning .home-menu-panel,
   .home-intro.is-turning .home-main-menu {
     animation-duration: 1ms;
     animation-delay: 0ms;
+  }
+
+  .home-intro:not(.is-turning):not(.is-side) .home-helmet-stage,
+  .home-intro.is-side .home-helmet-stage {
+    animation-name: none;
   }
 
   .home-tap-prompt,

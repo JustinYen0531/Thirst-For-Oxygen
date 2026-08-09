@@ -70,6 +70,9 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 20vh, 0\) scale\(0\.72\)/);
   assert.match(css, /\.home-helmet-frame[\s\S]*brightness\(0\.5\)[\s\S]*saturate\(0\.55\)/);
   assert.match(css, /#home-map-preview[\s\S]*brightness\(0\.48\)[\s\S]*saturate\(0\.56\)/);
+  assert.match(css, /\.home-logo-viewport img[\s\S]*top: 53%/);
+  assert.match(css, /@keyframes home-helmet-breathe-front[\s\S]*scale\(0\.887\)/);
+  assert.match(css, /@keyframes home-helmet-breathe-side[\s\S]*scale\(0\.723\)/);
 });
 
 test('helmet map preview uses all three authored descent maps', () => {
