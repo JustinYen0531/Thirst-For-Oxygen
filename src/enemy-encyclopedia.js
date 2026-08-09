@@ -35,6 +35,12 @@ const VISUALS = {
   mutantMantisShrimp: { idle: gif('base-float-move'), actions: { mutantPunch: gif('attack-tracking-punch'), mutantGroundSmash: gif('skill-pressure-arena'), mutantBeaconAssault: gif('skill-beacon-afterimage') } },
   mutantNautilusOracle: { idle: gif('base-float-move-v3'), actions: { mutantCoralMortar: gif('attack-overloaded-relic-bodycast-v5'), mutantDualCoreMagic: gif('skill-360-core-scatter-bodycast-v5'), persistentCoreVolley: gif('skill-everlasting-core-bodycast-v5') } },
   mutantArcTideRay: { idle: gif('base-float-move-v3'), actions: { mutantWingRam: gif('attack-pressure-blade-aftershock-bodycast-v5'), mutantArcTideBombardment: gif('skill-secondary-pressure-burst-bodycast-v5') } },
+  // Mini Boss idle loops already exist in public/. Their authored skill animations
+  // do not, so actions intentionally stay empty and remain marked as pending.
+  prismCrabGuardian: { idle: gif('base-float-move'), actions: {} },
+  tideLawNautilus: { idle: gif('base-float-move'), actions: {} },
+  mutantPrismCrabGuardian: { idle: gif('base-float-move'), actions: {} },
+  mutantTideLawNautilus: { idle: gif('base-float-move'), actions: {} },
 };
 
 const TIER_LABELS = Object.freeze({
@@ -410,24 +416,40 @@ const MAP_ENTRY_DETAILS = Object.freeze({
   },
 });
 
-const mapEntries = (ids, fallbackGroup) => ids.map((id) => {
+const mapEntries = (ids, fallbackGroup, placementKind) => ids.map((id) => {
   const entry = MAP_ENTRY_DETAILS[id] ?? {
     group: fallbackGroup,
     name: id,
     description: '此地圖元素的介紹仍在整理中。',
     details: [],
   };
-  return Object.freeze({ id, ...entry });
+  const legacyCellAttachment = placementKind === 'cell' && ['seaweed', 'coralCluster'].includes(id);
+  const preferredEdgeAttachment = placementKind === 'edge' && ['seaweed', 'coralCluster'].includes(id);
+  const placement = legacyCellAttachment
+    ? 'Cell 放置（舊地圖相容）'
+    : preferredEdgeAttachment
+      ? 'Edge 附著（新配置）'
+      : fallbackGroup;
+  return Object.freeze({
+    id,
+    placementId: `${placementKind}:${id}`,
+    placementKind,
+    placement,
+    ...entry,
+  });
 });
 
 export const MAP_ENCYCLOPEDIA = Object.freeze([
-  ...mapEntries(TERRAIN_TYPES, '地形'),
-  ...mapEntries(['L-1', 'L0', 'L1', 'L2', 'L3', 'conditionalGate'], '水域重力'),
-  ...mapEntries(WATER_LAYERS, '水域層級'),
-  ...mapEntries(OVERLAY_TYPES, 'Cell 環境效果'),
-  ...mapEntries(CELL_OBJECT_TYPES, 'Cell 物件'),
-  ...mapEntries(EDGE_TYPES.filter((id) => id !== 'none'), 'Edge 互動'),
+  ...mapEntries(TERRAIN_TYPES, '地形', 'terrain'),
+  ...mapEntries(['L-1', 'L0', 'L1', 'L2', 'L3', 'conditionalGate'], '水域重力', 'gravity'),
+  ...mapEntries(WATER_LAYERS, '水域層級', 'layer'),
+  ...mapEntries(OVERLAY_TYPES, 'Cell 環境效果', 'overlay'),
+  ...mapEntries(CELL_OBJECT_TYPES, 'Cell 物件', 'cell'),
+  ...mapEntries(EDGE_TYPES.filter((id) => id !== 'none'), 'Edge 互動', 'edge'),
 ]);
+
+export const MAP_PLACEMENT_COUNT = MAP_ENCYCLOPEDIA.length;
+export const MAP_UNIQUE_ELEMENT_COUNT = new Set(MAP_ENCYCLOPEDIA.map(({ id }) => id)).size;
 
 const WEAPON_LORE = Object.freeze({
   knife: {
@@ -463,6 +485,7 @@ export const WEAPON_ENCYCLOPEDIA = Object.freeze(Object.values(WEAPONS).map((wea
     description: lore.description,
     levels: Object.freeze(Object.entries(weapon.levels).map(([level, values]) => Object.freeze({
       level: Number(level),
+      icon: `/assets/editor/icons/weapons/${weapon.id}/lv${level}.png`,
       summary: lore.levels[level],
       values: Object.freeze(values),
     }))),
@@ -502,6 +525,7 @@ export const PASSIVE_ENCYCLOPEDIA = Object.freeze(Object.values(PASSIVE_ABILITIE
     description: lore.description,
     levels: Object.freeze(Object.entries(passive.levels).map(([level, values]) => Object.freeze({
       level: Number(level),
+      icon: `/assets/editor/icons/passives/${passive.id}/lv${level}.png`,
       summary: lore.levels[level],
       values: Object.freeze(values),
     }))),
@@ -510,7 +534,7 @@ export const PASSIVE_ENCYCLOPEDIA = Object.freeze(Object.values(PASSIVE_ABILITIE
 
 export const ENCYCLOPEDIA_SECTIONS = Object.freeze([
   { id: 'enemies', label: '敵人／Boss', description: '生物原型、視覺識別與戰鬥技能演示。' },
-  { id: 'map', label: '地圖元素', description: '從 Cell、重力、水域層到 Edge 的完整地圖語言。' },
+  { id: 'map', label: '地圖元素', description: `${MAP_PLACEMENT_COUNT} 種放置語彙、${MAP_UNIQUE_ELEMENT_COUNT} 個唯一元素；從 Cell、重力、水域層到 Edge 的完整地圖語言。` },
   { id: 'weapons', label: '武器', description: '四把武器的定位、等級變化與建構角色。' },
   { id: 'passives', label: '被動能力', description: '四條能力線的生存、資源與輸出方向。' },
 ]);

@@ -125,15 +125,15 @@ function enemyCard(enemy) {
 }
 
 function mapCard(entry) {
-  return `<article class="entry-card map-card">
-    <div class="entry-card-heading"><span class="tier-chip">${escapeHtml(entry.group)}</span><h2>${escapeHtml(entry.name)}</h2></div>
+  return `<article class="entry-card map-card" data-placement-id="${escapeHtml(entry.placementId)}">
+    <div class="entry-card-heading"><div><span class="tier-chip">${escapeHtml(entry.group)}</span><h2>${escapeHtml(entry.name)}</h2></div><span class="placement-label">${escapeHtml(entry.placement)}</span></div>
     <p class="entry-description">${escapeHtml(entry.description)}</p>
     <dl class="entry-details">${entry.details.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl>
   </article>`;
 }
 
 function levelList(entry) {
-  return `<ol class="level-list">${entry.levels.map((level) => `<li><div class="level-heading"><strong>Lv.${level.level}</strong><span>${escapeHtml(level.summary)}</span></div><div class="entry-values">${entryValues(level.values)}</div></li>`).join('')}</ol>`;
+  return `<ol class="level-list">${entry.levels.map((level) => `<li><img class="level-icon" src="${escapeHtml(level.icon)}" alt="${escapeHtml(entry.name)} Lv.${level.level} 圖示" /><div class="level-content"><div class="level-heading"><strong>Lv.${level.level}</strong><span>${escapeHtml(level.summary)}</span></div><div class="entry-values">${entryValues(level.values)}</div></div></li>`).join('')}</ol>`;
 }
 
 function weaponCard(weapon) {
@@ -142,6 +142,7 @@ function weaponCard(weapon) {
     <p class="entry-role"><b>定位</b>${escapeHtml(weapon.role)}</p>
     <p class="entry-description">${escapeHtml(weapon.description)}</p>
     ${levelList(weapon)}
+    <a class="sandbox-entry-link" href="/sandbox.html">前往驗收沙盒</a>
   </article>`;
 }
 

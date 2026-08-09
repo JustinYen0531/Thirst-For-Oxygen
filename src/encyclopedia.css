@@ -74,6 +74,7 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .entry-card { padding: 15px; }
 .entry-card-heading { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
 .entry-card-heading h2 { margin-top: 8px; font-size: 20px; }
+.placement-label { max-width: 48%; color: #9fdbe6; font: 700 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; }
 .entry-description, .entry-role { color: #bfd4df; font-size: 13px; line-height: 1.65; }
 .entry-description { margin-top: 13px; }
 .entry-role { margin-top: 13px; color: #dceef7; }
@@ -82,15 +83,18 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .entry-details div { display: grid; gap: 3px; }
 .entry-details dt { color: #7fdce7; font-size: 11px; font-weight: 700; }
 .entry-details dd { margin: 0; color: #b9d0df; font-size: 12px; line-height: 1.5; }
-.level-list { display: grid; gap: 10px; margin: 15px 0 0; padding: 12px 0 0 28px; border-top: 1px solid #31566f; }
-.level-list li { padding-left: 4px; color: #c3d8e4; }
-.level-list li::marker { color: #83e4ee; font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.level-list { display: grid; gap: 10px; margin: 15px 0 0; padding: 12px 0 0; border-top: 1px solid #31566f; list-style: none; }
+.level-list li { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; align-items: start; color: #c3d8e4; }
+.level-icon { width: 52px; height: 52px; object-fit: contain; border: 1px solid rgba(91, 177, 205, .35); border-radius: 8px; background: rgba(3, 19, 31, .68); }
+.level-content { min-width: 0; }
 .level-heading { display: grid; gap: 4px; }
 .level-heading strong { color: #8df1e7; font: 700 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .level-heading span { color: #c3d8e4; font-size: 12px; line-height: 1.55; }
 .entry-values { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 7px; color: #9fb9c8; font-size: 10px; }
 .entry-values span { display: inline-flex; gap: 4px; }
 .entry-values b { color: #6e9bb2; font-weight: 500; }
+.sandbox-entry-link { display: inline-flex; margin-top: 14px; padding: 8px 10px; border: 1px solid #4e829c; border-radius: 5px; color: #bdf6ff; background: rgba(23, 78, 107, .42); text-decoration: none; font-size: 12px; }
+.sandbox-entry-link:hover, .sandbox-entry-link:focus-visible { border-color: #8fefff; color: #fff; outline: none; }
 .afterimage-controls[hidden], .tier-filters[hidden] { display: none; }
 .enemy-card.is-lore-open .preview-actions, .enemy-card.is-lore-open .enemy-stats, .enemy-card.is-lore-open .enemy-description, .enemy-card.is-lore-open .selected-skill-panel { display: none; }
 @media (max-width: 720px) { body { min-width: 0; } .encyclopedia-shell { padding: 20px 12px 40px; } .encyclopedia-header { align-items: start; flex-direction: column; } .guide-note { display: block; } .guide-note span { display: block; margin-top: 5px; } .enemy-grid { grid-template-columns: 1fr; } }
