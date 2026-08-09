@@ -30,8 +30,8 @@ body {
   object-fit: cover;
   object-position: center;
   pointer-events: none;
-  opacity: 0.42;
-  filter: brightness(0.42) saturate(0.72) contrast(1.18) blur(0.7px);
+  opacity: 0.76;
+  filter: brightness(0.68) saturate(0.88) contrast(1.1) blur(0.35px);
 }
 
 body::before {
@@ -41,8 +41,8 @@ body::before {
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 45%, rgba(22, 107, 143, 0.08) 0 18%, rgba(0, 4, 10, 0.22) 42%, rgba(0, 0, 0, 0.78) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.36), rgba(0, 0, 0, 0.62));
+    radial-gradient(circle at 50% 45%, rgba(22, 107, 143, 0.04) 0 18%, rgba(0, 4, 10, 0.1) 42%, rgba(0, 0, 0, 0.5) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.3));
 }
 
 .home-intro {
@@ -71,7 +71,7 @@ body::before {
   background: radial-gradient(circle, rgba(66, 218, 255, 0.22) 0, rgba(24, 115, 155, 0.08) 36%, transparent 70%);
   filter: blur(28px);
   transform: translate(-50%, -50%);
-  transition: opacity 700ms ease, transform 1250ms ease;
+  transition: left 1250ms ease, opacity 700ms ease, transform 1250ms ease;
 }
 
 .home-intro:focus-visible::after {
@@ -88,7 +88,7 @@ body::before {
   position: relative;
   width: min(1240px, 106vw);
   aspect-ratio: 3 / 2;
-  transform: translate3d(0, 1.5vh, 0) scale(1.1);
+  transform: translate3d(0, 1.5vh, 0) scale(0.88);
   transform-origin: 50% 52%;
   filter: drop-shadow(0 34px 50px rgba(0, 0, 0, 0.86));
   will-change: transform;
@@ -111,36 +111,42 @@ body::before {
   opacity: 1;
 }
 
-.home-helmet-visor {
+.home-menu-panel {
   position: absolute;
   left: 50%;
-  top: 43.6%;
-  z-index: 3;
-  width: 30.6%;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: 50%;
+  top: 46.5%;
+  z-index: 4;
+  width: min(27vw, 335px);
   pointer-events: none;
   transform: translate(-50%, -50%);
-  transform-origin: center;
+  transition: left 1250ms cubic-bezier(0.4, 0, 0.18, 1), top 1250ms cubic-bezier(0.4, 0, 0.18, 1), width 1250ms cubic-bezier(0.4, 0, 0.18, 1), transform 1250ms cubic-bezier(0.4, 0, 0.18, 1);
   will-change: left, top, width, transform;
 }
 
-.home-helmet-visor::before {
+.home-logo-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  clip-path: circle(49% at 50% 50%);
+  transition: clip-path 900ms ease;
+}
+
+.home-logo-viewport::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 2;
-  border-radius: inherit;
+  border-radius: 50%;
   pointer-events: none;
   background:
     linear-gradient(132deg, rgba(222, 252, 255, 0.22), transparent 19% 70%, rgba(93, 211, 255, 0.05)),
     radial-gradient(circle at 32% 20%, rgba(200, 249, 255, 0.18), transparent 30%),
     radial-gradient(circle at center, transparent 48%, rgba(0, 5, 10, 0.38) 88%);
   mix-blend-mode: screen;
+  transition: opacity 600ms ease;
 }
 
-.home-helmet-visor img {
+.home-logo-viewport img {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -149,6 +155,56 @@ body::before {
   object-fit: contain;
   filter: drop-shadow(0 0 18px rgba(94, 226, 255, 0.68));
   transform: translate(-50%, -50%);
+  transition: width 900ms ease, height 900ms ease, filter 900ms ease;
+}
+
+.home-main-menu {
+  display: grid;
+  margin-top: -18px;
+  border-top: 1px solid rgba(137, 229, 255, 0.34);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(26px);
+}
+
+.home-menu-link {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  align-items: center;
+  min-height: 54px;
+  padding: 0 14px 0 6px;
+  border-bottom: 1px solid rgba(137, 229, 255, 0.22);
+  color: rgba(224, 244, 249, 0.82);
+  text-decoration: none;
+  background: linear-gradient(90deg, rgba(1, 13, 22, 0.84), rgba(1, 13, 22, 0.38));
+  backdrop-filter: blur(8px);
+  transition: color 160ms ease, padding-left 160ms ease, background 160ms ease;
+}
+
+.home-menu-link span {
+  color: rgba(99, 216, 244, 0.62);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+}
+
+.home-menu-link strong {
+  font-size: 0.94rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+}
+
+.home-menu-link--primary {
+  color: #eaffff;
+  background: linear-gradient(90deg, rgba(15, 101, 132, 0.8), rgba(2, 24, 37, 0.46));
+}
+
+.home-menu-link:hover,
+.home-menu-link:focus-visible {
+  padding-left: 14px;
+  color: #fff;
+  background: linear-gradient(90deg, rgba(24, 139, 173, 0.82), rgba(4, 38, 55, 0.52));
+  outline: none;
 }
 
 .home-intro.is-turning .home-helmet-stage {
@@ -171,17 +227,50 @@ body::before {
   animation: helmet-frame-side 1250ms linear forwards;
 }
 
-.home-intro.is-turning .home-helmet-visor {
-  animation: helmet-visor-turn 1250ms cubic-bezier(0.4, 0, 0.18, 1) forwards;
+.home-intro.is-turning .home-menu-panel,
+.home-intro.is-side .home-menu-panel {
+  left: clamp(28px, 6vw, 110px);
+  top: clamp(28px, 6vh, 70px);
+  width: min(31vw, 440px);
+  transform: none;
+}
+
+.home-intro.is-turning .home-logo-viewport,
+.home-intro.is-side .home-logo-viewport {
+  clip-path: inset(0 round 0);
+}
+
+.home-intro.is-turning .home-logo-viewport::before,
+.home-intro.is-side .home-logo-viewport::before {
+  opacity: 0;
+}
+
+.home-intro.is-turning .home-logo-viewport img,
+.home-intro.is-side .home-logo-viewport img {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 24px rgba(94, 226, 255, 0.42));
+}
+
+.home-intro.is-turning .home-main-menu {
+  animation: home-menu-reveal 430ms ease 820ms forwards;
+}
+
+.home-intro.is-side .home-main-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .home-intro.is-side::before {
   opacity: 0.58;
-  transform: translate(-42%, -50%) scale(0.82);
+  left: 87%;
+  transform: translate(-50%, -50%) scale(0.72);
 }
 
 .home-intro.is-side .home-helmet-stage {
-  transform: translate3d(3.5vw, 2.5vh, 0) scale(0.9);
+  transform: translate3d(40vw, 4vh, 0) scale(0.72);
 }
 
 .home-intro.is-side .home-helmet-frame--front,
@@ -194,16 +283,9 @@ body::before {
   opacity: 1;
 }
 
-.home-intro.is-side .home-helmet-visor {
-  left: 38%;
-  top: 42.7%;
-  width: 25.2%;
-  transform: translate(-50%, -50%) perspective(900px) rotateY(-7deg) rotate(-3.5deg);
-}
-
 @keyframes helmet-stage-turn {
-  from { transform: translate3d(0, 1.5vh, 0) scale(1.1); }
-  to { transform: translate3d(3.5vw, 2.5vh, 0) scale(0.9); }
+  from { transform: translate3d(0, 1.5vh, 0) scale(0.88); }
+  to { transform: translate3d(40vw, 4vh, 0) scale(0.72); }
 }
 
 @keyframes helmet-frame-front {
@@ -228,19 +310,9 @@ body::before {
   84%, 100% { opacity: 1; }
 }
 
-@keyframes helmet-visor-turn {
-  from {
-    left: 50%;
-    top: 43.6%;
-    width: 30.6%;
-    transform: translate(-50%, -50%);
-  }
-  to {
-    left: 38%;
-    top: 42.7%;
-    width: 25.2%;
-    transform: translate(-50%, -50%) perspective(900px) rotateY(-7deg) rotate(-3.5deg);
-  }
+@keyframes home-menu-reveal {
+  from { opacity: 0; visibility: hidden; transform: translateY(26px); }
+  to { opacity: 1; visibility: visible; transform: translateY(0); }
 }
 
 .visually-hidden {
@@ -263,12 +335,25 @@ body::before {
   .home-intro::before {
     width: 126vw;
   }
+
+  .home-intro.is-turning .home-menu-panel,
+  .home-intro.is-side .home-menu-panel {
+    left: 20px;
+    top: 24px;
+    width: min(54vw, 320px);
+  }
+
+  .home-menu-link {
+    min-height: 48px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-intro.is-turning .home-helmet-stage,
   .home-intro.is-turning .home-helmet-frame,
-  .home-intro.is-turning .home-helmet-visor {
+  .home-intro.is-turning .home-menu-panel,
+  .home-intro.is-turning .home-main-menu {
     animation-duration: 1ms;
+    animation-delay: 0ms;
   }
 }

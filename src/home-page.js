@@ -12,6 +12,7 @@ export function attachHomeHelmetIntro(root, options = {}) {
 
   const eventTarget = options.eventTarget ?? document;
   const status = root.querySelector('#home-intro-status');
+  const mainMenu = root.querySelector('#home-main-menu');
   const reducedMotion = options.reducedMotion
     ?? window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     ?? false;
@@ -24,9 +25,16 @@ export function attachHomeHelmetIntro(root, options = {}) {
     root.dataset.turnState = turnState;
     root.classList.toggle('is-turning', turnState === 'turning');
     root.classList.toggle('is-side', turnState === 'side');
+    root.setAttribute('role', turnState === 'front' ? 'button' : 'main');
+    root.tabIndex = turnState === 'front' ? 0 : -1;
     root.setAttribute('aria-label', turnState === 'front'
       ? '點擊任意位置，讓深海頭盔轉向側面'
       : '深海頭盔已轉向側面');
+    if (mainMenu) {
+      const menuVisible = turnState === 'side';
+      mainMenu.toggleAttribute('inert', !menuVisible);
+      mainMenu.setAttribute('aria-hidden', String(!menuVisible));
+    }
     if (status) {
       status.textContent = turnState === 'front'
         ? '頭盔目前面向正前方。'
@@ -68,6 +76,7 @@ export function attachHomeHelmetIntro(root, options = {}) {
 
   function onKeyDown(event) {
     if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (turnState !== 'front') return;
     event.preventDefault();
     turn();
   }
@@ -94,6 +103,7 @@ if (typeof document !== 'undefined') {
     window.render_game_to_text = () => JSON.stringify({
       coordinateSystem: 'DOM title screen; no gameplay coordinates',
       helmet: intro.getState(),
+      menuVisible: intro.getState().state === 'side',
       interaction: 'pointerdown anywhere or Enter/Space turns the helmet from front to side',
     });
     window.turnHomeHelmet = () => intro.turn();

@@ -11,7 +11,7 @@ import {
 
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 
-test('home is reduced to the dark video, centered helmet, logo and turn frames', () => {
+test('home contains the dark video, helmet turn, movable logo and final menu', () => {
   const html = read('../home.html');
 
   assert.match(html, /class="home-abyss-video" autoplay muted loop playsinline/);
@@ -22,6 +22,11 @@ test('home is reduced to the dark video, centered helmet, logo and turn frames',
   assert.match(html, /helmet-turn-02\.png/);
   assert.match(html, /abandoned-diving-helmet-left-v2\.png/);
   assert.match(html, /thirst-for-oxygen-logo-v2\.png/);
+  assert.match(html, /id="home-main-menu"/);
+  assert.match(html, /href="\/play\.html"/);
+  assert.match(html, /href="\/enemy-encyclopedia\.html"/);
+  assert.match(html, /href="\/sandbox\.html"/);
+  assert.match(html, /href="\/"/);
   assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control|home-map-preview/);
 });
 
@@ -43,13 +48,13 @@ test('all homepage helmet and logo assets are RGBA PNG files', () => {
   });
 });
 
-test('home keeps the abyss video dark while the front helmet starts largest', () => {
+test('home brightens the abyss video and shrinks the helmet from front to side', () => {
   const css = read('../src/home.css');
 
-  assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.42/);
-  assert.match(css, /brightness\(0\.42\)/);
-  assert.match(css, /\.home-helmet-stage[\s\S]*scale\(1\.1\)/);
-  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*scale\(0\.9\)/);
+  assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.76/);
+  assert.match(css, /brightness\(0\.68\)/);
+  assert.match(css, /\.home-helmet-stage[\s\S]*scale\(0\.88\)/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(40vw, 4vh, 0\) scale\(0\.72\)/);
 });
 
 test('helmet turn advances through four frames and ends on the side frame', () => {
@@ -70,9 +75,10 @@ test('homepage supports click-anywhere, keyboard input and deterministic text st
   assert.match(page, /event\.key !== 'Enter' && event\.key !== ' '/);
   assert.match(page, /window\.advanceTime/);
   assert.match(page, /window\.render_game_to_text/);
+  assert.match(page, /mainMenu\.toggleAttribute\('inert'/);
   assert.match(css, /@keyframes helmet-frame-front/);
   assert.match(css, /@keyframes helmet-frame-one/);
   assert.match(css, /@keyframes helmet-frame-two/);
   assert.match(css, /@keyframes helmet-frame-side/);
-  assert.match(css, /@keyframes helmet-visor-turn/);
+  assert.match(css, /@keyframes home-menu-reveal/);
 });
