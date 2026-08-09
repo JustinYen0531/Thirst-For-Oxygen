@@ -1,6 +1,9 @@
 .home-menu-button {
   width: 100%;
   margin: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
   font: inherit;
   text-align: left;
   appearance: none;
@@ -139,11 +142,15 @@
   box-shadow: inset 3px 0 #77e6ff, 0 0 24px rgba(77, 203, 237, 0.12);
 }
 
-.home-menu-button:focus-visible,
 .home-settings-close:focus-visible,
 .home-language-options button:focus-visible {
   outline: 2px solid #b7f4ff;
   outline-offset: 3px;
+}
+
+.home-menu-button:focus-visible {
+  outline: none;
+  box-shadow: inset 3px 0 #b7f4ff;
 }
 
 .home-language-options button:hover {

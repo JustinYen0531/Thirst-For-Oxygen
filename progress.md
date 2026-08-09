@@ -1001,3 +1001,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 19 種已定義敵人各自擁有可調整的永久 Buff 合約，涵蓋氧氣上限／消耗、武器傷害／能耗、彈射速度／能耗、減傷、回血與資源回生；同物種只解鎖一次 Buff，但後續個體仍可被中立化。
 - 下沉篇第三部分完成後會保留同一個 actor、生命／資源、EXP、Build 與 Resonance 狀態，自動進入上升篇第一部分；共鳴中立的最終 Boss 也視為通關，無須再殺死它。
 - `render_game_to_text` 與正式戰鬥狀態會回報已解鎖 Buff、各敵人的進度／需求／來源／中立狀態。針對性 Resonance、戰鬥、流程、Play 頁與物理測試 126/126，Vite production build 與 `git diff --check` 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 122 complete
+
+- 移除首頁 Settings 選單列的整圈白色焦點框，改用左側 3px 光條保留鍵盤定位；同時清除冒險頭盔隱藏互動區的大型青色橢圓框，焦點回饋改為面罩內極淡的亮度。
+- 新增首頁樣式回歸測試；完整 `npm run check` 269/269 與 production build 均通過。依專案規則未執行瀏覽器／Playwright。

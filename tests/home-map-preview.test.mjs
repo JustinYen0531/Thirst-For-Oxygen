@@ -136,6 +136,16 @@ test('helmet no-signal easter egg stays brief and leaves the map underneath', ()
   assert.match(css, /\.home-intro\.is-side \.home-helmet-signal-trigger:not\(:disabled\)[\s\S]*pointer-events: auto/);
 });
 
+test('homepage focus feedback does not draw frames around settings or the helmet', () => {
+  const homeCss = read('../src/home.css');
+  const settingsCss = read('../src/settings.css');
+
+  assert.match(homeCss, /\.home-helmet-signal-trigger:focus-visible\s*{\s*outline: none;/);
+  assert.doesNotMatch(homeCss, /\.home-helmet-signal-trigger:focus-visible\s*{[^}]*outline-offset/);
+  assert.match(settingsCss, /\.home-menu-button\s*{[^}]*border: 0;/);
+  assert.match(settingsCss, /\.home-menu-button:focus-visible\s*{\s*outline: none;\s*box-shadow: inset 3px 0/);
+});
+
 test('helmet turn advances through four frames and ends on the side frame', () => {
   assert.equal(HOME_HELMET_TURN_FRAME_COUNT, 4);
   assert.equal(HOME_HELMET_TURN_DURATION_MS, 1250);
