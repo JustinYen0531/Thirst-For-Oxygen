@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
+  HOME_LENS_WARP,
   HOME_PREVIEW_ROUTES,
   getHomePreviewDurations,
   getHomePreviewPlaybackState,
@@ -47,13 +48,33 @@ test('home markup replaces the old placeholder with a convex real-map helmet pla
   const preview = read('../src/home-map-preview.js');
 
   assert.match(html, /id="home-map-preview"/);
-  assert.match(html, /abandoned-diving-helmet-map-frame\.png/);
+  assert.match(html, /abandoned-diving-helmet-left-v2\.png/);
   assert.match(html, /下沉篇第一至第三部分真實地圖自動巡覽/);
   assert.match(html, /上浮篇 <small>地圖待接入<\/small>/);
   assert.doesNotMatch(html, /hero-player|T1 \/ L1|O₂ 72%/);
+  assert.doesNotMatch(html, /helmet-sediment|abandoned-diving-helmet-map-frame/);
   assert.match(css, /\.helmet-lens/);
   assert.match(css, /helmet-lens-reflection/);
   assert.match(page, /attachHomeMapPreview/);
   assert.match(preview, /drawConvexMap/);
   assert.match(preview, /window\.advanceHomePreview/);
+});
+
+test('home helmet uses an unmistakable convex warp instead of a subtle zoom', () => {
+  assert.equal(HOME_LENS_WARP.horizontalEdgeScale < 0.9, true);
+  assert.equal(HOME_LENS_WARP.horizontalCenterScale > 1.1, true);
+  assert.equal(HOME_LENS_WARP.verticalEdgeScale < 0.9, true);
+  assert.equal(HOME_LENS_WARP.verticalCenterScale > 1.1, true);
+});
+
+test('home helmet asset is the isolated transparent cutout', () => {
+  const helmetPath = fileURLToPath(new URL('../public/assets/home/abandoned-diving-helmet-left-v2.png', import.meta.url));
+  const rejectedScenePath = fileURLToPath(new URL('../public/assets/home/abandoned-diving-helmet-map-frame.png', import.meta.url));
+  const png = readFileSync(helmetPath);
+
+  assert.equal(existsSync(rejectedScenePath), false);
+  assert.equal(png.subarray(1, 4).toString('ascii'), 'PNG');
+  assert.equal(png.readUInt32BE(16), 1568);
+  assert.equal(png.readUInt32BE(20), 1003);
+  assert.equal(png[25], 6, 'PNG must preserve RGBA transparency');
 });

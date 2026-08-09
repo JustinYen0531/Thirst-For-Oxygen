@@ -17,10 +17,17 @@ import {
 import { PLAYER_ANIMATION_ASSETS } from './player-animation.js';
 
 const TILE_SIZE = 24;
-const PREVIEW_WIDTH = 800;
-const PREVIEW_HEIGHT = 620;
+const PREVIEW_WIDTH = 720;
+const PREVIEW_HEIGHT = 760;
 const TRANSITION_SECONDS = 1.15;
 const SECONDS_PER_ROW = 0.18;
+
+export const HOME_LENS_WARP = Object.freeze({
+  horizontalEdgeScale: 0.82,
+  horizontalCenterScale: 1.16,
+  verticalEdgeScale: 0.84,
+  verticalCenterScale: 1.13,
+});
 
 const TILE_ASSETS = Object.freeze({
   'L-1': '/assets/editor/water/L-1.png',
@@ -370,19 +377,22 @@ function renderMapToBuffer(buffer, preparedRoute, images, progress) {
   context.fillRect(0, 0, buffer.width, buffer.height);
 }
 
-// The map is first stretched horizontally by scanline and then vertically by
-// column. The centre receives the most magnification while the perimeter is
-// compressed by the lens mask, producing a convex glass reading without
-// replacing the actual map artwork.
+// The map is first pinched/stretched horizontally by scanline and then
+// vertically by column. Unlike a subtle zoom, this compresses the perimeter
+// below 1x while enlarging the centre above 1x, so straight hex rows visibly
+// bow around the helmet's convex glass.
 function drawConvexMap(output, source, rowWarp, opacity = 1) {
   const rowContext = rowWarp.getContext('2d');
   rowContext.setTransform(1, 0, 0, 1, 0, 0);
   rowContext.clearRect(0, 0, rowWarp.width, rowWarp.height);
-  for (let y = 0; y < source.height; y += 2) {
-    const normalizedY = (y + 1) / source.height * 2 - 1;
-    const magnification = 1 + 0.1 * (1 - normalizedY * normalizedY);
+  rowContext.imageSmoothingEnabled = true;
+  for (let y = 0; y < source.height; y += 1) {
+    const normalizedY = (y + 0.5) / source.height * 2 - 1;
+    const curve = 1 - normalizedY * normalizedY;
+    const magnification = HOME_LENS_WARP.horizontalEdgeScale
+      + (HOME_LENS_WARP.horizontalCenterScale - HOME_LENS_WARP.horizontalEdgeScale) * curve;
     const width = source.width * magnification;
-    rowContext.drawImage(source, 0, y, source.width, 2, (source.width - width) / 2, y, width, 2);
+    rowContext.drawImage(source, 0, y, source.width, 1, (source.width - width) / 2, y, width, 1);
   }
 
   const context = output.getContext('2d');
@@ -390,11 +400,14 @@ function drawConvexMap(output, source, rowWarp, opacity = 1) {
   context.clearRect(0, 0, output.width, output.height);
   context.save();
   context.globalAlpha = opacity;
-  for (let x = 0; x < rowWarp.width; x += 2) {
-    const normalizedX = (x + 1) / rowWarp.width * 2 - 1;
-    const magnification = 1 + 0.075 * (1 - normalizedX * normalizedX);
+  context.imageSmoothingEnabled = true;
+  for (let x = 0; x < rowWarp.width; x += 1) {
+    const normalizedX = (x + 0.5) / rowWarp.width * 2 - 1;
+    const curve = 1 - normalizedX * normalizedX;
+    const magnification = HOME_LENS_WARP.verticalEdgeScale
+      + (HOME_LENS_WARP.verticalCenterScale - HOME_LENS_WARP.verticalEdgeScale) * curve;
     const height = rowWarp.height * magnification;
-    context.drawImage(rowWarp, x, 0, 2, rowWarp.height, x, (rowWarp.height - height) / 2, 2, height);
+    context.drawImage(rowWarp, x, 0, 1, rowWarp.height, x, (rowWarp.height - height) / 2, 1, height);
   }
   context.restore();
 }
