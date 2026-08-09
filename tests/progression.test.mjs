@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   addExperience,
@@ -17,6 +18,7 @@ import {
   SANDBOX_PLAYER_INTERACTION_RADIUS,
   createSandboxState,
   executeEnemySkill,
+  getSandboxAutoWeaponStatuses,
   isSandboxPlayerHit,
   playerAttack,
   playerAttackAllWeapons,
@@ -578,6 +580,32 @@ test('equipped light machine gun auto-fires a burst after its cooldown without m
 
   stepSandbox(state, 0.1);
   assert.equal(state.projectiles.length, 7, '冷卻結束後應該自動開始下一輪');
+});
+
+test('sandbox exposes readable auto-fire countdown and burst status', () => {
+  const tridentState = createSandboxState();
+  setSandboxBuild(tridentState, { weapons: [{ id: 'trident', level: 1 }], allowEmpty: true });
+  assert.match(getSandboxAutoWeaponStatuses(tridentState)[0].label, /1\.0 秒後自動發射/);
+  stepSandbox(tridentState, 0.5);
+  assert.match(getSandboxAutoWeaponStatuses(tridentState)[0].label, /0\.5 秒後自動發射/);
+  tridentState.aiming = true;
+  assert.equal(getSandboxAutoWeaponStatuses(tridentState)[0].label, '暫停：拉射中');
+
+  const machineGunState = createSandboxState();
+  setSandboxBuild(machineGunState, { weapons: [{ id: 'lightMachineGun', level: 1 }], allowEmpty: true });
+  assert.equal(getSandboxAutoWeaponStatuses(machineGunState)[0].label, '準備自動六連射');
+  stepSandbox(machineGunState, 0.1);
+  assert.match(getSandboxAutoWeaponStatuses(machineGunState)[0].label, /自動六連射 1\/6/);
+});
+
+test('sandbox build selectors apply immediately and expose auto-fire status in the page contract', () => {
+  const html = readFileSync(new URL('../sandbox.html', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../src/sandbox-page.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(html, /id="apply-build"/);
+  assert.match(html, /id="auto-weapon-status"/);
+  assert.match(page, /weaponBuildList\.addEventListener\('change',[\s\S]*?applyBuild\(\);[\s\S]*?render\(\);/);
+  assert.match(page, /passiveList\.addEventListener\('change',[\s\S]*?applyBuild\(\);[\s\S]*?render\(\);/);
 });
 
 test('squid sniper warns before firing and ray bombardment keeps its cast position', () => {

@@ -19,6 +19,7 @@ import {
   chooseUpgradeCategory,
   createSandboxState,
   executeEnemySkill,
+  getSandboxAutoWeaponStatuses,
   getSandboxEnemyIds,
   isSandboxPlayerHit,
   listSandboxSkills,
@@ -51,6 +52,7 @@ const enemySelect = document.querySelector('#enemy-select');
 const weaponBuildList = document.querySelector('#weapon-build-list');
 const passiveList = document.querySelector('#passive-list');
 const weaponSlots = document.querySelector('#weapon-slots');
+const autoWeaponStatus = document.querySelector('#auto-weapon-status');
 const progressionReadout = document.querySelector('#progression-readout');
 const upgradeCategoryActions = document.querySelector('#upgrade-category-actions');
 const upgradeChoiceList = document.querySelector('#upgrade-choice-list');
@@ -394,6 +396,17 @@ function renderProgression() {
     button.dataset.upgradeLevel = String(choice.level);
     button.innerHTML = `<strong>${choice.label}</strong><small>${choice.detail}</small>`;
     upgradeChoiceList.append(button);
+  });
+}
+
+function renderAutoWeaponStatus() {
+  autoWeaponStatus.replaceChildren();
+  getSandboxAutoWeaponStatuses(state).forEach((weaponStatus) => {
+    const item = document.createElement('span');
+    item.className = 'auto-weapon-state';
+    item.dataset.phase = weaponStatus.phase;
+    item.textContent = `${WEAPONS[weaponStatus.id].name} Lv.${weaponStatus.level}｜${weaponStatus.label}`;
+    autoWeaponStatus.append(item);
   });
 }
 
@@ -1176,6 +1189,7 @@ function render() {
   updateSkillPicker();
   renderPlacedEnemyList();
   renderProgression();
+  renderAutoWeaponStatus();
   renderSandboxHud();
 }
 
@@ -1193,7 +1207,6 @@ document.querySelector('#place-enemy').addEventListener('click', () => {
   status.textContent = placementMode ? '放置模式已開啟；點擊潛水員周圍仍優先操控潛水員。' : '放置模式已關閉；目前點擊場地不會召喚敵人。';
 });
 document.querySelector('#clear-enemies').addEventListener('click', () => { clearSandboxEnemies(state); updateSkillPicker(); render(); });
-document.querySelector('#apply-build').addEventListener('click', () => { applyBuild(); render(); });
 document.querySelector('#player-attack').addEventListener('click', () => {
   const result = playerAttackAllWeapons(state);
   status.textContent = playerAttackAllStatus(result);
@@ -1242,18 +1255,26 @@ upgradeChoiceList.addEventListener('click', (event) => {
 });
 enemySelect.addEventListener('change', () => { status.textContent = `下一個放置：${ENEMY_DEFINITIONS[enemySelect.value].name}。`; });
 weaponBuildList.addEventListener('change', (event) => {
-  const select = event.target.closest('select[data-build-weapon-slot]');
+  const select = event.target.closest('select[data-build-weapon-slot], select[data-build-weapon-level]');
   if (!select) return;
-  const level = weaponBuildList.querySelector(`[data-build-weapon-level="${select.dataset.buildWeaponSlot}"]`);
-  if (level) level.disabled = Number(select.dataset.buildWeaponSlot) > 0 && !select.value;
-  const preview = weaponBuildList.querySelector(`[data-build-preview-weapon-slot="${select.dataset.buildWeaponSlot}"]`);
-  if (preview) preview.disabled = !select.value;
+  const slot = select.dataset.buildWeaponSlot ?? select.dataset.buildWeaponLevel;
+  const weapon = weaponBuildList.querySelector(`[data-build-weapon-slot="${slot}"]`);
+  const level = weaponBuildList.querySelector(`[data-build-weapon-level="${slot}"]`);
+  if (level) level.disabled = !weapon?.value;
+  const preview = weaponBuildList.querySelector(`[data-build-preview-weapon-slot="${slot}"]`);
+  if (preview) preview.disabled = !weapon?.value;
+  applyBuild();
+  render();
 });
 passiveList.addEventListener('change', (event) => {
-  const select = event.target.closest('select[data-build-passive-slot]');
+  const select = event.target.closest('select[data-build-passive-slot], select[data-build-passive-level]');
   if (!select) return;
-  const level = passiveList.querySelector(`[data-build-passive-level="${select.dataset.buildPassiveSlot}"]`);
-  if (level) level.disabled = !select.value;
+  const slot = select.dataset.buildPassiveSlot ?? select.dataset.buildPassiveLevel;
+  const passive = passiveList.querySelector(`[data-build-passive-slot="${slot}"]`);
+  const level = passiveList.querySelector(`[data-build-passive-level="${slot}"]`);
+  if (level) level.disabled = !passive?.value;
+  applyBuild();
+  render();
 });
 skillSelect.addEventListener('change', () => {
   state.selectedSkillId = skillSelect.value;
@@ -1310,6 +1331,7 @@ window.render_game_to_text = () => JSON.stringify({
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
+  autoWeapons: getSandboxAutoWeaponStatuses(state).map(({ id, level, phase, label, remaining, progress }) => ({ id, level, phase, label, remaining: format(remaining), progress: format(progress) })),
   build: state.build,
   hudLoadout: getPlayerHudSlots({ weapons: state.build.weapons, passives: state.build.passives }).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
   progression: {

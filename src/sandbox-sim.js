@@ -1240,6 +1240,62 @@ function processLightMachineGunAutoAttack(state) {
   playerAttack(state, { auto: true, weaponId: 'lightMachineGun', weaponLevel: entry.level });
 }
 
+export function getSandboxAutoWeaponStatuses(state) {
+  const pauseReason = !state.running
+    ? '沙盒已暫停'
+    : state.awaitingUpgrade
+      ? '等待升級選擇'
+      : state.actor.dead
+        ? '玩家死亡'
+        : state.aiming
+          ? '拉射中'
+          : state.actor.attached
+            ? '附著中'
+            : null;
+  return getEquippedWeaponEntries(state)
+    .filter((entry) => entry.id === 'trident' || entry.id === 'lightMachineGun')
+    .map((entry) => {
+      const weapon = getWeaponStats(entry.id, entry.level);
+      if (entry.id === 'trident') {
+        const delay = weapon.effect?.stationaryDelay ?? 1;
+        const threshold = weapon.effect?.stationarySpeedThreshold ?? 8;
+        const speed = Math.hypot(state.actor.vx, state.actor.vy);
+        const cooldown = Math.max(0, state.actor.cooldowns?.['weapon:trident'] ?? 0);
+        const stationary = Math.min(delay, Math.max(0, state.actor.tridentStationaryTime ?? 0));
+        if (pauseReason) return { id: entry.id, level: entry.level, phase: 'paused', label: `暫停：${pauseReason}` };
+        if (speed > threshold) return { id: entry.id, level: entry.level, phase: 'moving', label: `移動中；停止後蓄能 ${delay.toFixed(1)} 秒` };
+        const remaining = Math.max(cooldown, delay - stationary);
+        return {
+          id: entry.id,
+          level: entry.level,
+          phase: remaining > 0 ? 'charging' : 'ready',
+          label: remaining > 0 ? `${remaining.toFixed(1)} 秒後自動發射` : '準備自動發射',
+          remaining,
+          progress: delay > 0 ? stationary / delay : 1,
+        };
+      }
+      const burst = state.weaponBurst?.weaponId === 'lightMachineGun' ? state.weaponBurst : null;
+      if (burst) {
+        return {
+          id: entry.id,
+          level: entry.level,
+          phase: 'burst',
+          label: `自動六連射 ${Math.min(burst.nextShotIndex, burst.shotCount)}/${burst.shotCount}`,
+          remaining: Math.max(0, burst.finishAt - state.time),
+        };
+      }
+      if (pauseReason) return { id: entry.id, level: entry.level, phase: 'paused', label: `暫停：${pauseReason}` };
+      const remaining = Math.max(0, state.actor.cooldowns?.['weapon:lightMachineGun'] ?? 0);
+      return {
+        id: entry.id,
+        level: entry.level,
+        phase: remaining > 0 ? 'cooldown' : 'ready',
+        label: remaining > 0 ? `${remaining.toFixed(1)} 秒後下一輪` : '準備自動六連射',
+        remaining,
+      };
+    });
+}
+
 function knifeSwipeSegment(state, weapon, target = null) {
   const direction = knifeDirection(state, target);
   const targetDistance = target ? Math.hypot(target.x - state.actor.x, target.y - state.actor.y) : 0;
