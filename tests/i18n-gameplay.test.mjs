@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { translateGameplayText } from '../src/i18n-gameplay.js';
+import { setLanguage } from '../src/i18n.js';
+import { installLiveLocalization, translateGameplayText } from '../src/i18n-gameplay.js';
 
 const CJK_PATTERN = /[\u3400-\u9fff]/;
 
@@ -49,4 +50,38 @@ test('play settings exposes the shared language selector', () => {
   assert.match(html, /value="zh-Hant"/);
   assert.match(source, /bindLanguageSelect\(document\.querySelector\('#play-language'\)\)/);
   assert.match(source, /installLiveLocalization\(document\)/);
+});
+
+test('live gameplay copy batches HUD mutations into one animation frame', () => {
+  const callbacks = [];
+  let observerCallback = null;
+  const previousObserver = globalThis.MutationObserver;
+  globalThis.MutationObserver = class FakeMutationObserver {
+    constructor(callback) { observerCallback = callback; }
+    observe() {}
+    disconnect() {}
+  };
+  const textNode = { nodeType: 3, nodeValue: '速度 0' };
+  const root = {
+    childNodes: [textNode],
+    documentElement: { lang: '' },
+    defaultView: {
+      requestAnimationFrame(callback) { callbacks.push(callback); return callbacks.length; },
+      cancelAnimationFrame() {},
+    },
+    querySelectorAll() { return []; },
+  };
+  setLanguage('en', null);
+  const cleanup = installLiveLocalization(root);
+  assert.equal(textNode.nodeValue, 'SPEED 0');
+
+  textNode.nodeValue = '速度 12';
+  observerCallback([{ type: 'characterData', target: textNode }]);
+  assert.equal(textNode.nodeValue, '速度 12', 'mutation work must not run inside the observer microtask');
+  assert.equal(callbacks.length, 1);
+  callbacks.shift()();
+  assert.equal(textNode.nodeValue, 'SPEED 12');
+
+  cleanup();
+  globalThis.MutationObserver = previousObserver;
 });

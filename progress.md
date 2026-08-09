@@ -987,3 +987,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 新增全遊戲共用語言設定，預設英文並以 `thirst-for-oxygen-language` 儲存在本機；首頁主選單加入第 05 項 Settings，可即時切換 English／繁體中文，且具備 Escape、背景關閉、鍵盤焦點循環與焦點回復。
 - 正式遊玩、敵人沙盒、世界圖鑑與地圖編輯器全部接上相同設定。正式遊玩 Settings 亦可切換語言；戰鬥狀態、物理事件、HUD／Canvas 標示、工具與 Inspector 等動態文字均跟隨語言，切換不會重置 Build、關卡或編輯器狀態。
 - 世界圖鑑英文版完整涵蓋 19 種敵人與技能／生態／Lore、29 個放置項、4 把武器各 3 級與 4 個被動各 3 級；繁中資料完整保留。英文資料 no-CJK gate、完整 `npm run check` 258/258、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 120 complete
+
+- 修正英文語言層讓 Play 卡在純黑喚醒畫面的回歸：先前 MutationObserver 會和每幀 HUD／事件列表重建互相觸發，造成大量連鎖 microtask；現在改為將同一幀的文字異動合併，下一個 animation frame 僅處理一次。
+- 新增 HUD 動態文字批次回歸，確認 Observer 當下不改寫、不阻塞，下一幀才把 `速度 12` 更新成 `SPEED 12`；繁中來源與同頁切換仍保留。
+- focused 語言／喚醒／正式 Play 測試 18/18 通過；依專案規則未執行瀏覽器／Playwright。

@@ -414,6 +414,15 @@ export function installLiveLocalization(root = document) {
   const originalAttributes = new WeakMap();
   const attributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'];
   let applying = false;
+  let scheduledFlush = null;
+  const pendingMutations = [];
+  const view = root.defaultView ?? root.ownerDocument?.defaultView ?? globalThis;
+  const scheduleFrame = typeof view.requestAnimationFrame === 'function'
+    ? view.requestAnimationFrame.bind(view)
+    : (callback) => setTimeout(callback, 0);
+  const cancelFrame = typeof view.cancelAnimationFrame === 'function'
+    ? view.cancelAnimationFrame.bind(view)
+    : clearTimeout;
 
   function localizeTextNode(node, refreshSource = false) {
     if (!originalText.has(node) || refreshSource) originalText.set(node, node.nodeValue ?? '');
@@ -456,8 +465,10 @@ export function installLiveLocalization(root = document) {
   }
 
   localizeTree(root);
-  const observer = typeof MutationObserver === 'undefined' ? null : new MutationObserver((mutations) => {
-    if (applying) return;
+  function flushMutations() {
+    scheduledFlush = null;
+    if (applying || !pendingMutations.length) return;
+    const mutations = pendingMutations.splice(0);
     applying = true;
     mutations.forEach((mutation) => {
       if (mutation.type === 'characterData' && !isAppliedTextMutation(mutation.target)) localizeTextNode(mutation.target, true);
@@ -465,10 +476,20 @@ export function installLiveLocalization(root = document) {
       mutation.addedNodes?.forEach((node) => localizeTree(node, true));
     });
     applying = false;
+  }
+
+  const observer = typeof MutationObserver === 'undefined' ? null : new MutationObserver((mutations) => {
+    pendingMutations.push(...mutations);
+    if (scheduledFlush === null) scheduledFlush = scheduleFrame(flushMutations);
   });
   observer?.observe(root.documentElement ?? root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: attributes });
   const unsubscribe = subscribeLanguage(() => localizeTree(root));
-  return () => { observer?.disconnect(); unsubscribe?.(); };
+  return () => {
+    observer?.disconnect();
+    if (scheduledFlush !== null) cancelFrame(scheduledFlush);
+    pendingMutations.length = 0;
+    unsubscribe?.();
+  };
 }
 
 export function bindLanguageSelect(select) {
