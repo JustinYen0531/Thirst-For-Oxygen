@@ -494,7 +494,10 @@ export const EXPERIENCE_REWARDS_BY_TIER = Object.freeze({
   finalBoss: 600,
 });
 
-export const EXPERIENCE_REWARD_MULTIPLIER = 3;
+// Keep authored enemy rewards at their original values. Progression pacing is
+// tuned around these base rewards; temporary multiplier experiments must not
+// silently make the opening stage skip most of its level curve.
+export const EXPERIENCE_REWARD_MULTIPLIER = 1;
 
 export const ENEMY_ORDER = Object.freeze(Object.keys(ENEMY_DEFINITIONS));
 

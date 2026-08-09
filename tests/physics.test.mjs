@@ -258,7 +258,7 @@ test('oxygen is a fixed forty-second timer independent of travel distance', () =
   stepPhysics({ map, actor: idle, origin: ORIGIN, dt: 1 });
   stepPhysics({ map, actor: moving, origin: ORIGIN, dt: 1 });
   assert.equal(OXYGEN_DURATION_SECONDS, 40);
-  assert.equal(OXYGEN_STARVATION_DAMAGE_PER_SECOND, 12, 'oxygen starvation should keep the authored fourfold damage');
+  assert.equal(OXYGEN_STARVATION_DAMAGE_PER_SECOND, 36, 'oxygen starvation should use the requested threefold damage');
   assert.ok(Math.abs((idleBefore - idle.oxygen) - OXYGEN_DRAIN_PER_SECOND) < 0.0001, 'one second should consume the fixed oxygen rate');
   assert.ok(Math.abs((movingBefore - moving.oxygen) - OXYGEN_DRAIN_PER_SECOND) < 0.0001, 'travel distance must not change oxygen consumption');
   assert.equal(Math.round(getOxygenSecondsRemaining(idle)), 39, 'HUD time should show thirty-nine seconds after one second');

@@ -45,10 +45,10 @@ test('new progression starts with one level-one knife and no other slots', () =>
   });
 });
 
-test('enemy experience is derived from its authored tier', () => {
-  assert.equal(getEnemyExperienceReward('explodingLanternfish'), 42);
-  assert.equal(getEnemyExperienceReward('arcTideRay'), 114);
-  assert.equal(getEnemyExperienceReward('abyssalSpermWhale'), 1800);
+test('enemy experience uses the original authored tier rewards', () => {
+  assert.equal(getEnemyExperienceReward('explodingLanternfish'), 14);
+  assert.equal(getEnemyExperienceReward('arcTideRay'), 38);
+  assert.equal(getEnemyExperienceReward('abyssalSpermWhale'), 600);
   assert.equal(getEnemyExperienceReward('missing-enemy'), 0);
 });
 
@@ -67,7 +67,7 @@ test('sandbox enemy defeat drops a stationary orb instead of granting instant ex
       id: 'exp-1',
       x: enemy.x,
       y: enemy.y,
-      value: 72,
+      value: 24,
       radius: 7,
       source: 'crabGuard',
       collected: false,

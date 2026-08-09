@@ -6,6 +6,7 @@ import test from 'node:test';
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 const page = read('../src/play-page.js');
 const preload = read('../src/play-preload.js');
+const sandbox = read('../src/sandbox-page.js');
 const html = read('../play.html');
 const home = read('../home.html');
 const css = read('../src/play.css');
@@ -26,6 +27,7 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
 });
 
 test('formal play exposes Resonance bars, neutral partners, permanent buffs, and descent-to-ascent carryover', () => {
+  assert.match(page, /if \(enemy\.resonanceNeutral\) return;/);
   assert.match(page, /drawEnemyResonanceBar\(enemy/);
   assert.match(page, /drawEnemyResonanceRange\(enemy/);
   assert.match(page, /RESONANCE_RULES\.bodyGrazePadding/);
@@ -41,6 +43,10 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(html, /id="play-resonance-panel"/);
   assert.match(page, /\$\{entry\.stacks\}\/\$\{entry\.maxStacks\}/);
   assert.match(page, /不提供 EXP/);
+});
+
+test('sandbox also hides the enemy health bar after Resonance neutrality', () => {
+  assert.match(sandbox, /if \(!enemy\.resonanceNeutral\) \{/);
 });
 
 test('optional Resonance inspection cannot prevent the player and HUD from booting', () => {

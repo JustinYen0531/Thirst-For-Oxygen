@@ -1140,6 +1140,7 @@ function drawKatanaWave(effect, progress) {
 }
 
 function drawEnemyHealthBar(enemy, x, y, width, height) {
+  if (enemy.resonanceNeutral) return;
   const ratio = clamp(Number(enemy.health) / Math.max(Number(enemy.maxHealth) || 1, 1), 0, 1);
   context.save();
   context.globalAlpha = .94;

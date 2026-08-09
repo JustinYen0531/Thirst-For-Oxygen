@@ -1136,10 +1136,12 @@ function renderEnemyMarkers() {
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, enemy.radius + 6, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(3, 12, 22, .75)';
-    ctx.fillRect(enemy.x - 28, enemy.y - enemy.radius - 15, 56, 5);
-    ctx.fillStyle = enemy.defeated ? '#8495a7' : '#ff7187';
-    ctx.fillRect(enemy.x - 28, enemy.y - enemy.radius - 15, 56 * Math.max(0, enemy.health / enemy.maxHealth), 5);
+    if (!enemy.resonanceNeutral) {
+      ctx.fillStyle = 'rgba(3, 12, 22, .75)';
+      ctx.fillRect(enemy.x - 28, enemy.y - enemy.radius - 15, 56, 5);
+      ctx.fillStyle = enemy.defeated ? '#8495a7' : '#ff7187';
+      ctx.fillRect(enemy.x - 28, enemy.y - enemy.radius - 15, 56 * Math.max(0, enemy.health / enemy.maxHealth), 5);
+    }
     ctx.restore();
   });
 }
