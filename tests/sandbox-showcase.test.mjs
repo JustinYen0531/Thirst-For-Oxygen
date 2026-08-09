@@ -21,7 +21,7 @@ test('sandbox katana showcase ingredients hit a nearby target with the sword spr
 
   const result = playerAttack(state);
   assert.equal(result.hit, true);
-  assert.equal(enemy.health, 72);
+  assert.equal(enemy.health, 100 - 28 * 0.6);
   assert.equal(state.effects.some((effect) => effect.type === 'katanaSwing'), true);
   stepSandbox(state);
 });

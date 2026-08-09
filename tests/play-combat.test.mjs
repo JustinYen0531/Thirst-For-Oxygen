@@ -108,9 +108,9 @@ test('knife path pierces every crossed enemy and Lv.2 side tracks deal seventy p
     dt: 1 / 60,
   });
 
-  assert.equal(centreA.health, 176);
-  assert.equal(centreB.health, 176, 'main path must penetrate instead of stopping at the first target');
-  assert.ok(Math.abs(side.health - (200 - 24 * 0.7)) < 1e-9);
+  assert.equal(centreA.health, 200 - 24 * 0.6);
+  assert.equal(centreB.health, 200 - 24 * 0.6, 'main path must penetrate instead of stopping at the first target');
+  assert.ok(Math.abs(side.health - (200 - 24 * 0.7 * 0.6)) < 1e-9);
   assert.ok(state.effects.some((effect) => effect.type === 'knifePath' && effect.hitIds.length === 2));
 });
 
@@ -211,7 +211,7 @@ test('passive damage multiplier flows through formal projectile damage and exter
   actor.oxygen = actor.derivedStats.maxOxygen;
   const target = enemy('amplified-target', 'crabGuard', 190, 100, 100);
   advance(state, actor, [target], 1.35);
-  assert.ok(target.health < 100 - 20, 'high-oxygen amplifier must raise trident damage above its raw value');
+  assert.ok(target.health < 100 - 20 * 0.6, 'high-oxygen amplifier must raise damage above the reduced baseline');
 
   const katanaVictim = enemy('katana-victim', 'lionfishGunner', 220, 100, 0);
   katanaVictim.defeated = true;
@@ -241,7 +241,7 @@ test('formal projectile weapons respect authored Boss damage reduction', () => {
     previousPosition: { x: 100, y: 100 },
     dt: 1 / 60,
   });
-  assert.equal(guardian.health, 186.5, '18 knife damage is reduced to 13.5 by deep-sea carapace');
+  assert.equal(guardian.health, 200 - 18 * 0.6 * 0.75, 'global player damage and deep-sea carapace reductions both apply');
 });
 
 test('abyss-awakened whale thorns retaliate against a successful formal weapon hit', () => {

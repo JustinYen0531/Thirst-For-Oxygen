@@ -931,8 +931,8 @@ test('all four passive abilities apply their authored gameplay effects', () => {
   assert.equal(applyDamage(carapaceActor, 1, 'shield test').blocked, true);
 
   const amplifierLoadout = [{ id: 'abyssalAmplifier', level: 3 }];
-  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 100 }) - 26.91) < 1e-9);
-  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 40 }) - 23.4) < 1e-9);
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 100 }) - 26.91 * 0.6) < 1e-9);
+  assert.ok(Math.abs(calculateWeaponDamage('knife', 1, { loadout: amplifierLoadout, oxygen: 40 }) - 23.4 * 0.6) < 1e-9);
 });
 
 test('sandbox can run every defined enemy skill without a missing implementation', () => {
