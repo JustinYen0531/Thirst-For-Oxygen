@@ -39,6 +39,7 @@ export const MAX_HEALTH = RESOURCE_LIMITS.health;
 export const MAX_OXYGEN = RESOURCE_LIMITS.oxygen;
 export const MAX_ENERGY = RESOURCE_LIMITS.energy;
 export const MAX_LIVES = RESOURCE_LIMITS.lives;
+export const MAX_PLAYER_DAMAGE_REDUCTION = 0.9;
 export const EDGE_ATTACHMENT_HELP_RADIUS = 18;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const LAUNCH_MOMENTUM_DURATION = 0.75;
@@ -387,11 +388,21 @@ export function setPlayerLoadout(actor, abilities = [], weapon = { id: 'knife', 
   return actor.derivedStats;
 }
 
+export function setPlayerDamageReduction(actor, reduction = 0) {
+  const numericReduction = Number(reduction);
+  actor.damageReduction = Math.min(
+    MAX_PLAYER_DAMAGE_REDUCTION,
+    Math.max(0, Number.isFinite(numericReduction) ? numericReduction : 0),
+  );
+  return actor.damageReduction;
+}
+
 export function applyDamage(actor, amount, source = 'unknown', damageType = 'generic') {
   if (actor.gameOver || actor.dead || actor.invulnerability > 0 || actor.shieldTimer > 0) return { applied: 0, source, damageType, blocked: true };
   let multiplier = 1;
   if (damageType === 'ranged') multiplier *= actor.derivedStats?.rangedDamageTakenMultiplier ?? 1;
   if (actor.oxygen < maxOxygenFor(actor) * 0.5) multiplier *= actor.derivedStats?.lowOxygenDamageTakenMultiplier ?? 1;
+  multiplier *= 1 - Math.min(MAX_PLAYER_DAMAGE_REDUCTION, Math.max(0, Number(actor.damageReduction) || 0));
   const damage = Math.max(0, amount * multiplier);
   actor.health = Math.max(0, actor.health - damage);
   if (damage > 0) actor.hurtTimer = PLAYER_HURT_DURATION;

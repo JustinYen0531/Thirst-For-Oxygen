@@ -49,6 +49,7 @@ import {
   recoverPlayerResource,
   registerPlayerDeath,
   respawnActor,
+  setPlayerDamageReduction,
   stepPhysics,
   toggleSeaweedAttachment,
 } from '../src/physics.js';
@@ -769,6 +770,17 @@ test('health is 0-100 and losing all health permanently consumes one life', () =
   assert.equal(actor.lives, MAX_LIVES - 1);
   assert.deepEqual(actor.activeEffects, {});
   assert.equal(actor.stunnedUntil, 0);
+});
+
+test('play assistance supports the authored player damage-reduction choices', () => {
+  const choices = new Map([[0, 100], [0.3, 70], [0.5, 50], [0.75, 25], [0.9, 10]]);
+  choices.forEach((expectedDamage, reduction) => {
+    const actor = createTestActor();
+    assert.equal(setPlayerDamageReduction(actor, reduction), reduction);
+    assert.ok(Math.abs(applyDamage(actor, 100, 'difficulty assistance').applied - expectedDamage) < 1e-9);
+  });
+  const actor = createTestActor();
+  assert.equal(setPlayerDamageReduction(actor, 4), 0.9, '減傷必須封頂於 90% 而不是形成無敵');
 });
 
 test('the last life enters permanent game over and cannot respawn', () => {

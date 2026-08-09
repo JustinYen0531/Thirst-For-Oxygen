@@ -22,6 +22,7 @@ import {
   launchActor,
   registerPlayerDeath,
   respawnActor,
+  setPlayerDamageReduction,
   stepPhysics,
   toggleSeaweedAttachment,
 } from './physics.js';
@@ -108,6 +109,7 @@ const context = canvas.getContext('2d');
 const mapSelect = document.querySelector('#play-map-select');
 const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
+const damageReductionSelect = document.querySelector('#play-damage-reduction');
 const musicController = createMusicController(getMusicTrack({ part: 1, arc: 'descent', mode: 'normal' }));
 attachMusicControls(document.querySelector('#play-music-control'), musicController);
 const sfxController = createSfxController();
@@ -162,6 +164,21 @@ let lastTrajectoryAt = -Infinity;
 let paused = false;
 let unlimitedResources = false;
 let ambientEnabled = true;
+const DAMAGE_REDUCTION_STORAGE_KEY = 'thirst-for-oxygen-play-damage-reduction';
+const DAMAGE_REDUCTION_DEFAULT = 0.5;
+const DAMAGE_REDUCTION_OPTIONS = new Set([0, 0.3, 0.5, 0.75, 0.9]);
+function readDamageReductionPreference() {
+  try {
+    const storedValue = localStorage.getItem(DAMAGE_REDUCTION_STORAGE_KEY);
+    if (storedValue === null) return DAMAGE_REDUCTION_DEFAULT;
+    const value = Number(storedValue);
+    return DAMAGE_REDUCTION_OPTIONS.has(value) ? value : DAMAGE_REDUCTION_DEFAULT;
+  } catch {
+    return DAMAGE_REDUCTION_DEFAULT;
+  }
+}
+let playerDamageReduction = readDamageReductionPreference();
+damageReductionSelect.value = String(playerDamageReduction);
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
@@ -249,6 +266,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
   actor = createTestActor(spawn);
+  setPlayerDamageReduction(actor, playerDamageReduction);
   if (previousActor) {
     actor.health = previousActor.health;
     actor.oxygen = previousActor.oxygen;
@@ -1448,9 +1466,19 @@ canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPo
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build 與篇章進度保留。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與篇章進度保留。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
+damageReductionSelect.addEventListener('change', () => {
+  const requestedReduction = Number(damageReductionSelect.value);
+  playerDamageReduction = DAMAGE_REDUCTION_OPTIONS.has(requestedReduction) ? requestedReduction : DAMAGE_REDUCTION_DEFAULT;
+  damageReductionSelect.value = String(playerDamageReduction);
+  if (actor) setPlayerDamageReduction(actor, playerDamageReduction);
+  try { localStorage.setItem(DAMAGE_REDUCTION_STORAGE_KEY, String(playerDamageReduction)); } catch { /* Storage may be disabled; the current run still keeps the selection. */ }
+  sfxController.play('menuSelection');
+  eventLog.push(`玩家減傷已調整為 ${Math.round(playerDamageReduction * 100)}%。`);
+  updateHud();
+});
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
@@ -1628,6 +1656,7 @@ window.render_game_to_text = () => {
       pending: [...discoverySession.pendingByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
     },
     unlimitedResources,
+    damageReductionPercent: Math.round(playerDamageReduction * 100),
     paused,
   });
 };

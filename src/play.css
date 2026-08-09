@@ -176,6 +176,7 @@ body { min-width: 0; }
 .settings-section h3 { margin: 0 0 10px; color: var(--cyan); font-size: .7rem; letter-spacing: .12em; }
 .settings-field { display: grid; gap: 5px; margin: 9px 0; color: #8faecc; font-size: .66rem; }
 .settings-field select { padding: 9px 8px; font-size: .72rem; }
+.settings-help { margin: 7px 0 0; color: #789ab7; font-size: .62rem; line-height: 1.5; }
 .play-settings .music-control { margin-top: 12px; }
 .play-settings .play-actions { margin: 12px 0 9px; }
 .play-settings .resource-toggle { margin-top: 0; }

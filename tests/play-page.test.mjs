@@ -16,6 +16,14 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
   assert.doesNotMatch(page, /const PLAYER_LEVEL|const PLAYER_EXPERIENCE|PLAYER_HUD_LOADOUT/);
 });
 
+test('play settings expose a persistent player damage-reduction mode', () => {
+  assert.match(html, /id="play-damage-reduction"/);
+  ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
+  assert.match(page, /thirst-for-oxygen-play-damage-reduction/);
+  assert.match(page, /setPlayerDamageReduction\(actor, playerDamageReduction\)/);
+  assert.match(page, /damageReductionPercent: Math\.round\(playerDamageReduction \* 100\)/);
+});
+
 test('formal play renders and reports stationary experience orbs, projectiles, and upgrades', () => {
   assert.match(page, /drawExperienceOrbs\(\)/);
   assert.match(page, /drawCombatProjectiles\(\)/);
