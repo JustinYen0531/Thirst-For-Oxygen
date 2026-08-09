@@ -1434,12 +1434,7 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [
-        {
-          "kind": "miniBossSpawn",
-          "enemyId": "prismCrabGuardian"
-        }
-      ],
+      "actors": [],
       "region": "thermal-rise"
     },
     "7,5": {

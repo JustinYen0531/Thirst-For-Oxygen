@@ -34,11 +34,16 @@ export function getPlayStageExitState({
 } = {}) {
   const part = normalizeDescentPart(mapPart);
   const exit = getPlayExitPosition(map, origin, chapter);
-  const finalBosses = enemies.filter((enemy) => enemy?.enemyId === FINAL_BOSS_ID);
-  const finalBossPresent = finalBosses.length > 0;
-  const bossDefeated = finalBossPresent && finalBosses.every(isEnemyDefeated);
+  const authoredEncounterId = map?.metadata?.bossRoom?.enemyId ?? null;
   const finalBossRequired = part === LAST_DESCENT_PART;
-  const unlocked = Boolean(exit) && (!finalBossRequired || bossDefeated);
+  const requiredBossId = authoredEncounterId ?? (finalBossRequired ? FINAL_BOSS_ID : null);
+  const encounterBosses = requiredBossId ? enemies.filter((enemy) => enemy?.enemyId === requiredBossId) : [];
+  const encounterPresent = encounterBosses.length > 0;
+  const encounterDefeated = encounterPresent && encounterBosses.every(isEnemyDefeated);
+  const encounterRequired = Boolean(requiredBossId);
+  const bossDefeated = encounterDefeated;
+  const finalBossPresent = requiredBossId === FINAL_BOSS_ID && encounterPresent;
+  const unlocked = Boolean(exit) && (!encounterRequired || encounterDefeated);
   const hasActorPosition = Number.isFinite(actor?.x) && Number.isFinite(actor?.y);
   const distance = exit && hasActorPosition ? Math.hypot(actor.x - exit.x, actor.y - exit.y) : null;
   const effectiveArrivalRadius = Number.isFinite(arrivalRadius) ? Math.max(0, arrivalRadius) : HEX_SIZE * 0.72;
@@ -51,6 +56,10 @@ export function getPlayStageExitState({
     arrived,
     completed: arrived && part >= LAST_DESCENT_PART,
     nextPart: arrived && part < LAST_DESCENT_PART ? part + 1 : null,
+    encounterRequired,
+    requiredBossId,
+    encounterPresent,
+    encounterDefeated,
     finalBossRequired,
     finalBossPresent,
     bossDefeated,

@@ -33,6 +33,24 @@ test('reaching exits advances parts one and two', () => {
   });
 });
 
+test('an authored Part 1 Mini Boss room locks progression until its guardian is resolved', () => {
+  const bossRoomMap = { ...map, metadata: { ...map.metadata, bossRoom: { id: 'prism-crab-sanctum', enemyId: 'prismCrabGuardian' } } };
+  const exit = getPlayExitPosition(bossRoomMap, origin);
+  const missing = getPlayStageExitState({ map: bossRoomMap, mapPart: 1, actor: { ...exit, radius: 6 }, enemies: [], origin });
+  assert.equal(missing.requiredBossId, 'prismCrabGuardian');
+  assert.equal(missing.encounterPresent, false);
+  assert.equal(missing.unlocked, false);
+  const alive = { enemyId: 'prismCrabGuardian', health: 900, defeated: false };
+  const locked = getPlayStageExitState({ map: bossRoomMap, mapPart: 1, actor: { ...exit, radius: 6 }, enemies: [alive], origin });
+  assert.equal(locked.encounterRequired, true);
+  assert.equal(locked.encounterPresent, true);
+  assert.equal(locked.unlocked, false);
+  const cleared = getPlayStageExitState({ map: bossRoomMap, mapPart: 1, actor: { ...exit, radius: 6 }, enemies: [{ ...alive, resonanceNeutral: true }], origin });
+  assert.equal(cleared.encounterDefeated, true);
+  assert.equal(cleared.unlocked, true);
+  assert.equal(cleared.nextPart, 2);
+});
+
 test('being away from the exit never advances or completes a part', () => {
   const exit = getPlayExitPosition(map, origin);
   const result = getPlayStageExitState({

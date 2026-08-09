@@ -144,6 +144,21 @@ function addConditionalGateWall(map, row, doorColumns) {
   return keys;
 }
 
+function addBossRoomGateWall(map, row, doorColumns, role) {
+  const width = Number(map.layout.width);
+  const keys = doorColumns.map((column) => cellKeyFromColumn(column, row));
+  keys.forEach((key) => {
+    const cell = map.cells[key];
+    if (!cell || cell.terrain !== 'water' || columnOf(cell) <= 0 || columnOf(cell) >= width - 1) {
+      throw new Error(`無效的 Boss 房閘門位置：${key}`);
+    }
+    cell.gravityLevel = 'L1';
+    cell.region = `boss-room-${role}-gate`;
+    cell.conditionalGate = { opened: true, bossRoomGate: true, role };
+  });
+  return keys;
+}
+
 function boundaryEdges(map, rowHint, usedEdges = new Set()) {
   return allMapEdges(map)
     .filter(({ key, a, b }) => {
@@ -601,16 +616,26 @@ function paintPart1Terrain(map) {
     { column: 9, row: 136 }, { column: 13, row: 143 }, { column: 13, row: 152 }, { column: 9, row: 158 },
   ], 'threshold-east-route');
   carveRoom(map, { rowStart: 155, rowEnd: 159, columnStart: 6, columnEnd: 12, region: 'hot-spring-threshold', gravityLevel: 'L0' });
+
+  // The first descent now ends in a dedicated Prism Crab sanctuary. The
+  // three-cell throats are broad enough to enter without precision steering,
+  // but become full-width seals once the encounter is triggered.
+  carveRoom(map, { rowStart: 160, rowEnd: 164, columnStart: 8, columnEnd: 10, region: 'prism-sanctum-entry', gravityLevel: 'L0' });
+  carveRoom(map, { rowStart: 165, rowEnd: 165, columnStart: 6, columnEnd: 12, region: 'prism-sanctum', gravityLevel: 'L0' });
+  carveRoom(map, { rowStart: 166, rowEnd: 167, columnStart: 4, columnEnd: 14, region: 'prism-sanctum', gravityLevel: 'L0' });
+  carveRoom(map, { rowStart: 168, rowEnd: 178, columnStart: 2, columnEnd: 15, region: 'prism-sanctum', gravityLevel: 'L0' });
+  carveRoom(map, { rowStart: 179, rowEnd: 180, columnStart: 5, columnEnd: 12, region: 'prism-sanctum', gravityLevel: 'L0' });
+  carveRoom(map, { rowStart: 181, rowEnd: 183, columnStart: 8, columnEnd: 10, region: 'prism-sanctum-exit', gravityLevel: 'L0' });
 }
 
 function buildPart1() {
   const map = createAuthoredMap({
     width: 18,
-    height: 160,
+    height: 184,
     metadata: {
       chapter: '下沉篇', part: 1, title: '下沉篇・第一部分｜深海森林入口', difficulty: 'light',
       designIntent: '超過原長度兩倍的宏觀探索地圖：以大型森林岩體、寬闊環路與長距離橫越製造繞路判斷，不使用微小操作當作難度。',
-      routeBeats: ['安全入口', '雙路巨礁', '橫向倒木棚', '沉沒花園', '托里切利回返洞', '下層教堂', '雙路熱泉門檻'],
+      routeBeats: ['安全入口', '雙路巨礁', '橫向倒木棚', '沉沒花園', '托里切利回返洞', '下層教堂', '雙路熱泉門檻', '稜鏡巨蟹封印房'],
       mainAxisColumn: 9,
       minimumRouteWidth: 5,
       originalHeight: 72,
@@ -640,7 +665,7 @@ function buildPart1() {
         '托里切利空間：先越過偏軸岔口，再逆著下沉方向向上折返取得持續氧氣。',
         '珊瑚群落：先認得保護範圍，第二部分才加入傷害物。',
       ],
-      endGoal: '抵達森林底部的熱泉門檻。',
+      endGoal: '穿過熱泉門檻，在不可逃離的封印房擊敗稜鏡巨蟹。',
     },
   });
   paintPart1Terrain(map);
@@ -655,6 +680,21 @@ function buildPart1() {
     ['checkpoint', 103, 9], ['oxygen', 118, 14], ['bubble', 126, 4],
     ['checkpoint', 136, 9], ['oxygen', 146, 13], ['checkpoint', 157, 9],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
+  addFreeObject(map, 'oxygen', 171, 4, used);
+  addFreeObject(map, 'bubble', 176, 13, used);
+  const miniBossCellKey = addActor(map, 'miniBossSpawn', 173, 9, { enemyId: 'prismCrabGuardian' });
+  const triggerCellKey = cellKeyFromColumn(9, 167);
+  const entranceGateCellKeys = addBossRoomGateWall(map, 164, [8, 9, 10], 'entrance');
+  const exitGateCellKeys = addBossRoomGateWall(map, 181, [8, 9, 10], 'exit');
+  map.metadata.bossRoom = {
+    id: 'prism-crab-sanctum',
+    enemyId: 'prismCrabGuardian',
+    miniBossCellKey,
+    triggerCellKey,
+    entranceGateCellKeys,
+    exitGateCellKeys,
+    room: { rowStart: 165, rowEnd: 180, columnStart: 2, columnEnd: 15 },
+  };
   addEdgeSet(map, 'springJelly', [15, 42, 78, 118, 144]);
   addEdgeNear(map, 'current', 57, 15, { currentDirection: 5, currentStrength: 1.08 });
   addEdgeNear(map, 'current', 109, 2, { currentDirection: 4, currentStrength: 1.18 });
@@ -663,7 +703,7 @@ function buildPart1() {
   addEdgeNear(map, 'spike', 105, 2);
   addEdgeSet(map, 'seaweed', [26, 55, 90, 126, 150]);
   addEdgeSet(map, 'coralCluster', [12, 34, 68, 98, 134, 156]);
-  setRuntimeExit(map, 157, 9);
+  setRuntimeExit(map, 183, 9);
   return map;
 }
 
@@ -718,7 +758,6 @@ function buildPart2() {
   const gateKeys = addConditionalGateWall(map, 44, [9, 10]);
   addActor(map, 'playerStart', 3, 8);
   [[18, 13], [38, 5], [59, 14], [78, 6]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
-  addActor(map, 'miniBossSpawn', 82, 11, { enemyId: 'prismCrabGuardian' });
   const used = new Set();
   [
     ['oxygen', 6, 7], ['bubble', 11, 12], ['torricelli', 17, 4],
@@ -843,6 +882,11 @@ function mirrorMapVertically(source, part) {
     }));
     map.cells[targetKey] = mirroredCell;
   });
+  Object.values(map.cells).forEach((cell) => {
+    if (!cell.conditionalGate?.bossRoomGate) return;
+    cell.terrain = 'water';
+    cell.conditionalGate = null;
+  });
 
   const edgeKeyMap = new Map();
   Object.entries(source.edges).forEach(([sourceEdgeKey, sourceEdge]) => {
@@ -902,6 +946,10 @@ function mirrorMapVertically(source, part) {
   delete map.metadata.torricelliDetours;
   delete map.metadata.broadRouteSamples;
   delete map.metadata.explorationLoops;
+  // The sealed Prism Crab room is a one-way descent encounter. The mirrored
+  // ascent keeps the geometry and enemy but must not inherit downward trigger
+  // keys or the descent-only progression lock.
+  delete map.metadata.bossRoom;
   return map;
 }
 

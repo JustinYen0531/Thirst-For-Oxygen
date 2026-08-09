@@ -72,6 +72,7 @@ import {
   syncPlayCombatBuild,
 } from './play-combat.js';
 import { getPlayStageExitState } from './play-flow.js';
+import { createPlayBossRoomState, getPlayBossRoomRenderState, stepPlayBossRoom } from './play-boss-room.js';
 import {
   getPlayEdgeVisual,
   getPlayObjectVisual,
@@ -220,6 +221,7 @@ const requestedPart = new URLSearchParams(window.location.search).get('part');
 const requestedRoute = new URLSearchParams(window.location.search).get('route');
 let combatState = createPlayCombatState();
 let katanaState = createPlayKatanaState(1);
+let bossRoomState = createPlayBossRoomState(null);
 let transitioning = false;
 let runCompleted = false;
 let awakeningState = createPlayAwakeningState({ enabled: false });
@@ -332,6 +334,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   syncPlayCombatBuild(combatState, actor);
   actor.oxygen = Math.min(actor.oxygen, actor.derivedStats?.maxOxygen ?? MAX_OXYGEN);
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
+  bossRoomState = createPlayBossRoomState(map);
   syncKatanaState();
   if (!previousActor) worldTime = 0;
   awakeningState = createPlayAwakeningState({
@@ -1937,6 +1940,9 @@ function simulate(elapsed, now = performance.now()) {
         const gained = combatResult.collected.collected.reduce((total, orb) => total + (orb.value ?? 0), 0);
         eventLog.push(`拾取 ${gained} EXP${combatResult.collected.levelUps ? `，提升 ${combatResult.collected.levelUps} 級` : ''}。`);
       }
+      const bossRoomResult = stepPlayBossRoom(bossRoomState, { map, actor, enemies, origin, chapter: 'chapter1' });
+      if (bossRoomResult.changed) visibleRenderKey = '';
+      addEvents(bossRoomResult.events);
       enemies.forEach((enemy) => {
         enemy.hitFlash = Math.max(0, (enemy.hitFlash ?? 0) - FIXED_STEP);
       });
@@ -2008,6 +2014,7 @@ window.render_game_to_text = () => {
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
     stageExit,
+    bossRoom: getPlayBossRoomRenderState(bossRoomState, map),
     runCompleted,
     transitioning,
     discoveries: {

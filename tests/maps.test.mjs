@@ -229,7 +229,7 @@ test('all three maps expose a reachable late runtime exit', () => {
     assert.equal(map.cells[map.metadata.exitCellKey]?.terrain, 'water', `${name} exit should be a water cell`);
     assert.ok(map.cells[map.metadata.exitCellKey].r >= map.layout.height - 4, `${name} exit should sit in the closing section`);
     assert.equal(reachable.has(map.metadata.exitCellKey), true, `${name} exit should be reachable from playerStart`);
-    Object.entries(map.cells).filter(([, cell]) => cell.conditionalGate).forEach(([gateKey]) => {
+    Object.entries(map.cells).filter(([, cell]) => cell.conditionalGate && !cell.conditionalGate.opened).forEach(([gateKey]) => {
       assert.equal(openedGates.has(gateKey), true, `${name} gate ${gateKey} should only open from a reachable button`);
     });
   });
@@ -304,7 +304,7 @@ test('part 1 doubles only its length and uses broad exploration routes', () => {
   const part1 = loadMap('下沉篇-第1部分.json');
   assert.equal(part1.layout.width, 18, 'Part 1 should keep its original horizontal scale');
   assert.ok(part1.layout.height >= part1.metadata.originalHeight * 2, 'Part 1 height should be at least twice the old 72-row length');
-  assert.equal(part1.layout.height, 160);
+  assert.equal(part1.layout.height, 184);
   assert.ok(part1.metadata.explorationLoops.length >= 4, 'Part 1 should contain several split-and-rejoin exploration loops');
   assert.ok(new Set(Object.values(part1.cells).filter((cell) => cell.terrain === 'water').map((cell) => cell.region)).size >= 12);
   part1.metadata.broadRouteSamples.forEach(({ row, column }) => {
@@ -396,9 +396,40 @@ test('part 3 preserves the player-authored template geometry as the final exam',
   assert.ok(actorsOf(part3, 'bossSpawn')[0].cell.r >= part3.layout.height - 8);
 });
 
-test('part 2 Mini Boss marker identifies the prism crab guardian', () => {
+test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
+  const part1 = loadMap('下沉篇-第1部分.json');
   const part2 = loadMap('下沉篇-第2部分.json');
-  assert.equal(actorsOf(part2, 'miniBossSpawn')[0].actor.enemyId, 'prismCrabGuardian');
+  const room = part1.metadata.bossRoom;
+  const miniBosses = actorsOf(part1, 'miniBossSpawn');
+  assert.equal(miniBosses.length, 1);
+  assert.equal(miniBosses[0].actor.enemyId, 'prismCrabGuardian');
+  assert.equal(miniBosses[0].key, room.miniBossCellKey);
+  assert.equal(actorsOf(part2, 'miniBossSpawn').some(({ actor }) => actor.enemyId === 'prismCrabGuardian'), false);
+  assert.ok(room.room.rowStart > 159, 'the fixed encounter room should extend below the former Part 1 ending');
+  assert.ok(part1.cells[part1.metadata.exitCellKey].r > room.room.rowEnd, 'the runtime exit should sit beyond the lower seal');
+  assert.equal(part1.cells[room.triggerCellKey].terrain, 'water');
+  const entranceRows = new Set(room.entranceGateCellKeys.map((key) => part1.cells[key].r));
+  const exitRows = new Set(room.exitGateCellKeys.map((key) => part1.cells[key].r));
+  assert.equal(entranceRows.size, 1);
+  assert.equal(exitRows.size, 1);
+  assert.equal(room.entranceGateCellKeys.length, 3);
+  assert.equal(room.exitGateCellKeys.length, 3);
+  [...room.entranceGateCellKeys, ...room.exitGateCellKeys].forEach((key) => {
+    assert.equal(part1.cells[key].terrain, 'water');
+    assert.deepEqual(part1.cells[key].conditionalGate, {
+      opened: true,
+      bossRoomGate: true,
+      role: room.entranceGateCellKeys.includes(key) ? 'entrance' : 'exit',
+    });
+  });
+  for (let row = room.room.rowStart; row <= room.room.rowEnd; row += 1) {
+    const waterColumns = Object.values(part1.cells)
+      .filter((cell) => cell.r === row && cell.terrain === 'water')
+      .map((cell) => cell.q + Math.floor(cell.r / 2));
+    assert.ok(waterColumns.length >= 7, `Boss room row ${row} should remain broad instead of becoming a precision tunnel`);
+    assert.equal(Math.min(...waterColumns) > 0, true);
+    assert.equal(Math.max(...waterColumns) < part1.layout.width - 1, true);
+  }
 });
 
 test('all generated multi-edge portals touch a blocked hex', () => {

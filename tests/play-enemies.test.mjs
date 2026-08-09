@@ -227,7 +227,7 @@ test('all nine regular descent visuals exist and enemy display size is at least 
   assert.equal(PLAY_ENEMY_RENDER_SCALE >= 2, true);
 
   const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
-  enemies.forEach((enemy) => {
+  regularEnemies(enemies).forEach((enemy) => {
     assert.ok(enemy.renderSize >= (12 + enemy.tier * 1.8) * 2);
     assert.ok(enemy.radius >= (4.5 + enemy.tier * 0.65) * 2);
   });
@@ -317,8 +317,8 @@ test('a skill animation starts with its cast, survives resolution, then returns 
 
 test('special map markers instantiate the documented Mini Bosses and Boss without reducing regular populations', () => {
   const expectedSpecials = [
-    [],
     [['miniBossSpawn', 'prismCrabGuardian']],
+    [],
     [['miniBossSpawn', 'tideLawNautilus'], ['bossSpawn', 'abyssalSpermWhale']],
   ];
   PART_MAP_PATHS.forEach((relativePath, index) => {
