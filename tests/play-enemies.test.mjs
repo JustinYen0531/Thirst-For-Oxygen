@@ -104,7 +104,7 @@ function resolveAuthoredSkill(enemyId, skillId, actorOverrides = {}) {
   let damage = 0;
   const onDamage = (amount) => { damage += amount; };
   let now = advanceCombat(enemies, actor, 1 / 60, { onDamage });
-  if (enemy.pendingSkill) now = advanceCombat(enemies, actor, enemy.pendingSkill.remaining + 1 / 60, { start: now, onDamage });
+  if (enemy.pendingSkill) now = advanceCombat(enemies, actor, enemy.pendingSkill.remaining + 1e-6, { start: now, onDamage });
   return { actor, damage: () => damage, enemies, enemy, now, onDamage, render: () => getPlayEnemyRenderState(enemies, now) };
 }
 

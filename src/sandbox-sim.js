@@ -131,6 +131,12 @@ const CONTACT_ATTACK_TYPES = new Set(['contact', 'melee']);
 const RANGED_ATTACK_TYPES = new Set(['projectile', 'spread', 'lobbed', 'boomerangSpread', 'shieldBoomerang']);
 const CORE_SUMMON_IDS = Object.freeze(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin']);
 
+function hasPlayerDamage(skill) {
+  return Number(skill?.damage ?? 0) > 0
+    || Number(skill?.damagePerSecond ?? 0) > 0
+    || Number(skill?.aftermathDamage ?? 0) > 0;
+}
+
 function isEnemyEnraged(enemy) {
   return Number(enemy.health) > 0 && Number(enemy.maxHealth) > 0 && enemy.health / enemy.maxHealth <= 0.3;
 }
@@ -473,12 +479,12 @@ function spawnSkillProjectiles(state, enemy, skill, type = skill.type) {
 function shouldTelegraphSkill(skill, minimumCast = false) {
   if (!skill) return false;
   if (skill.type === 'lobbed' || skill.type === 'suicideCharge' || skill.id === 'beaconAssault') return false;
-  return Number(skill.castTime ?? skill.telegraph ?? 0) > 0 || (minimumCast && Number(skill.damage ?? 0) > 0);
+  return Number(skill.castTime ?? skill.telegraph ?? 0) > 0 || (minimumCast && hasPlayerDamage(skill));
 }
 
 function skillCastDuration(skill, minimumCast = false) {
   const authored = Math.max(0, Number(skill.castTime ?? skill.telegraph ?? 0));
-  return authored > 0 ? authored : minimumCast && Number(skill.damage ?? 0) > 0 ? 0.32 : 0;
+  return authored > 0 ? authored : minimumCast && hasPlayerDamage(skill) ? 0.32 : 0;
 }
 
 function startEnemySkillCast(state, enemy, skill, { minimumCast = false } = {}) {
@@ -784,7 +790,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   }
   if (!options.resolve) enemy.cooldowns[skill.id] = (skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy);
   setAnimation(enemy, skill.id, state.time);
-  if (!options.resolve && startEnemySkillCast(state, enemy, skill, { minimumCast: options.minimumCast })) {
+  if (!options.resolve && startEnemySkillCast(state, enemy, skill, { minimumCast: options.minimumCast ?? hasPlayerDamage(skill) })) {
     return { ok: true, pending: true, enemy: enemy.instanceId, skill: skill.id };
   }
   const distance = distanceBetween(enemy, state.actor);
@@ -1855,7 +1861,7 @@ function updateEnemies(state, dt) {
     const distance = distanceBetween(enemy, state.actor);
     const ready = getNextReadySkill(enemy, distance);
     if (!ready) return;
-    const result = executeEnemySkill(state, enemy.instanceId, ready.skill.id);
+    const result = executeEnemySkill(state, enemy.instanceId, ready.skill.id, { minimumCast: true });
     enemy.nextAutoSkillIndex = (ready.index + 1) % definition.attacks.length;
     // Contact attacks are also handled by collision cadence. Other skills use
     // a short scheduler gap so zero-cooldown skills remain readable in the lab.

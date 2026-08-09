@@ -329,6 +329,18 @@ test('sandbox melee overlap starts a visible cast before dealing damage', () => 
   assert.ok(state.actor.health < 100, '只有技能讀條完成後才能造成近戰傷害');
 });
 
+test('manual enemy attack activation also waits for the attack cast', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x, y: state.actor.y }, { moveSpeed: 0 });
+
+  const result = executeEnemySkill(state, enemy.instanceId, 'clawSwipe');
+  assert.equal(result.pending, true);
+  assert.equal(state.actor.health, 100, '選擇攻擊不能在攻擊動畫完成前直接造成傷害');
+
+  stepSandbox(state, 0.32);
+  assert.ok(state.actor.health < 100, '攻擊動畫完成後才可結算傷害');
+});
+
 test('telegraphed enemy skills resolve after their authored cast window', () => {
   const state = createSandboxState();
   const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 60, y: state.actor.y }, { moveSpeed: 0 });
@@ -366,7 +378,7 @@ test('lionfish venom projectile applies a timed player status', () => {
   const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 70, y: state.actor.y }, { moveSpeed: 0 });
 
   assert.equal(executeEnemySkill(state, enemy.instanceId, 'venomStraightShot').ok, true);
-  stepSandbox(state, 0.25);
+  stepSandbox(state, 0.35);
 
   assert.ok((state.actor.activeEffects.venom ?? 0) > 0, '毒刺命中後應保留持續效果');
   const healthAfterHit = state.actor.health;
@@ -438,6 +450,7 @@ test('nautilus mortar bursts into a spread and dual-core magic emits a spiral st
   const magicState = createSandboxState();
   const oracle = spawnSandboxEnemy(magicState, 'nautilusOracle', { x: magicState.actor.x + 300, y: magicState.actor.y }, { moveSpeed: 0 });
   executeEnemySkill(magicState, oracle.instanceId, 'dualCoreMagic');
+  stepSandbox(magicState, 0.32);
   assert.equal(magicState.projectiles.filter((projectile) => projectile.spiral).length, 2);
   stepSandbox(magicState, 0.35);
   assert.ok(magicState.projectiles.some((projectile) => !projectile.spiral), '雙核應該沿途發射小子彈');
@@ -449,6 +462,7 @@ test('nautilus short thrust pushes instead of dealing direct damage', () => {
   const before = state.actor.vx;
 
   executeEnemySkill(state, enemy.instanceId, 'shortThrust');
+  stepSandbox(state, 0.32);
 
   assert.equal(state.actor.health, 100);
   assert.ok(state.actor.vx < before, '短距離刺擊應把玩家往外推');
@@ -480,12 +494,14 @@ test('lobster spear and lionfish scatter each create their authored projectile c
   const lobsterState = createSandboxState();
   const lobster = spawnSandboxEnemy(lobsterState, 'lobsterSoldier', { x: lobsterState.actor.x + 180, y: lobsterState.actor.y }, { moveSpeed: 0 });
   executeEnemySkill(lobsterState, lobster.instanceId, 'spearThrow');
+  stepSandbox(lobsterState, 0.32);
   assert.equal(lobsterState.projectiles.length, 1);
   assert.equal(lobsterState.projectiles[0].damage, 24);
 
   const lionfishState = createSandboxState();
   const lionfish = spawnSandboxEnemy(lionfishState, 'lionfishGunner', { x: lionfishState.actor.x + 180, y: lionfishState.actor.y }, { moveSpeed: 0 });
   executeEnemySkill(lionfishState, lionfish.instanceId, 'spineScatter');
+  stepSandbox(lionfishState, 0.32);
   assert.equal(lionfishState.projectiles.length, 5);
   assert.ok(new Set(lionfishState.projectiles.map((projectile) => projectile.vy)).size > 1);
 });

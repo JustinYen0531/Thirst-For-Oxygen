@@ -495,6 +495,12 @@ function attackReach(enemy, skill) {
   return (skill.range ?? skill.radius ?? 44) + enemy.radius + (enemy.actorRadius ?? 6);
 }
 
+function hasPlayerDamage(skill) {
+  return Number(skill?.damage ?? 0) > 0
+    || Number(skill?.damagePerSecond ?? 0) > 0
+    || Number(skill?.aftermathDamage ?? 0) > 0;
+}
+
 function preferredDistance(enemy, definition) {
   const contact = definition.attacks.find((skill) => skill.type === 'contact' || skill.type === 'melee');
   if (contact) return Math.max(24, (contact.range ?? contact.radius ?? 44) + enemy.radius + 2);
@@ -1363,7 +1369,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       return;
     }
     const authoredCastTime = Number(skill.castTime ?? skill.telegraph ?? 0);
-    const castTime = authoredCastTime > 0 ? authoredCastTime : skill.damage > 0 ? .32 : 0;
+    const castTime = authoredCastTime > 0 ? authoredCastTime : hasPlayerDamage(skill) ? .32 : 0;
     if (castTime > 0) {
       enemy.pendingSkill = {
         skillId: skill.id,
