@@ -10,9 +10,9 @@ import {
 } from '../src/play-awakening.js';
 
 test('Attempt uses remaining-total notation without reusing HP terminology', () => {
-  assert.deepEqual(getPlayAttemptState({ lives: 3, maxLives: 3 }), { remaining: 3, maximum: 3, label: 'ATTEMPT 3-3' });
-  assert.deepEqual(getPlayAttemptState({ lives: 2, maxLives: 3 }), { remaining: 2, maximum: 3, label: 'ATTEMPT 2-3' });
-  assert.deepEqual(getPlayAttemptState({ lives: 0, maxLives: 3 }), { remaining: 0, maximum: 3, label: 'ATTEMPT 0-3' });
+  assert.deepEqual(getPlayAttemptState({ lives: 3, maxLives: 3 }), { remaining: 3, maximum: 3, label: 'ATTEMPT 3/3' });
+  assert.deepEqual(getPlayAttemptState({ lives: 2, maxLives: 3 }), { remaining: 2, maximum: 3, label: 'ATTEMPT 2/3' });
+  assert.deepEqual(getPlayAttemptState({ lives: 0, maxLives: 3 }), { remaining: 0, maximum: 3, label: 'ATTEMPT 0/3' });
 });
 
 test('part-one awakening reveals Attempt and HUD before three eye blinks', () => {

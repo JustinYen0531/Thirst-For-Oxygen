@@ -917,9 +917,14 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 ## 2026-08-09 — Step 111 complete
 
 - 中心物件、自由放置物件與所有非空 Edge 共用固定 30 px 尺寸；正式遊玩、首頁地圖預覽、地圖編輯器、三張下沉地圖 JSON 與舊地圖載入正規化全部對齊。視覺尺寸不再改變既有碰撞足跡，避免相鄰六邊形互相誤觸。
-- 正式 HUD 將永久嘗試次數與 0–100 HP 分離，章節上方固定顯示 `ATTEMPT 3-3`；死亡回最近 Checkpoint 後顯示 `ATTEMPT 2-3`，不再以「失去一條命」對玩家描述。
+- 正式 HUD 將永久嘗試次數與 0–100 HP 分離，章節上方固定顯示 `ATTEMPT 3/3`；死亡回最近 Checkpoint 後顯示 `ATTEMPT 2/3`，不再以「失去一條命」對玩家描述。
 - 下沉篇第一部分新增純黑開場：Attempt 先出現、HUD 淡入，再用橫向橢圓完成三次睜閉眼與最後完全睜眼；約 5.85 秒演出期間暫停氧氣、敵人與玩家模擬，減少動態偏好會縮短演出。
 - focused 物件／地圖／Attempt／正式頁面測試 80/80、完整 `npm run check` 230/230、Vite build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 112 complete
+
+- 依使用者校正 Attempt 分隔格式：由錯誤的 `ATTEMPT 3-3` 改為 `ATTEMPT 3/3`，死亡後同步顯示 `ATTEMPT 2/3`；初始 HTML、runtime 狀態與回歸測試使用同一格式。
+- focused Attempt／正式頁面測試 14/14、完整 `npm run check` 229/229、Vite build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
 
 ## 2026-08-09 — Step 112 complete
 

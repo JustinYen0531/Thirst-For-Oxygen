@@ -26,7 +26,7 @@ export function getPlayAwakeningDuration(timing = PLAY_AWAKENING_TIMING) {
 export function getPlayAttemptState(actor) {
   const maximum = Math.max(1, Math.floor(Number(actor?.maxLives) || 1));
   const remaining = Math.min(maximum, Math.max(0, Math.floor(Number(actor?.lives) || 0)));
-  return Object.freeze({ remaining, maximum, label: `ATTEMPT ${remaining}-${maximum}` });
+  return Object.freeze({ remaining, maximum, label: `ATTEMPT ${remaining}/${maximum}` });
 }
 
 export function createPlayAwakeningState({ enabled = true, reducedMotion = false } = {}) {

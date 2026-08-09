@@ -81,7 +81,7 @@ test('formal play draws deterministic static frames selected by runtime skill st
 });
 
 test('Part 1 presents Attempt separately from HP and blocks play during the awakening mask', () => {
-  assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3-3</);
+  assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3\/3</);
   assert.doesNotMatch(html, /Attempts 3\/3/);
   assert.match(page, /enabled: mapPart === 1 && !previousActor/);
   assert.match(page, /stepPlayAwakening\(awakeningState, elapsed\)/);
