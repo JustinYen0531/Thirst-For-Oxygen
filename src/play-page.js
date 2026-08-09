@@ -46,7 +46,7 @@ import {
 } from './play-katana.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
-import { WEAPONS, getWeaponStats } from './game-data.js';
+import { WEAPONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import {
   choosePlayUpgrade,
   choosePlayUpgradeCategory,
@@ -263,6 +263,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   trajectory = [];
   activeCollisionSoundKeys.clear();
   discoverySession.activeByGuideKey.clear();
+  discoverySession.pendingByGuideKey.clear();
   discoveryAcknowledgementTargets = [];
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
   eventLog = [
@@ -597,7 +598,7 @@ function stepPlayerStatusEffects(dt) {
   Object.entries(actor.activeEffects).forEach(([effectId, effectState]) => {
     const remaining = typeof effectState === 'number' ? effectState : Number(effectState?.remaining ?? 0);
     if (effectId === 'venom' && remaining > 0 && !unlimitedResources) {
-      applyDamage(actor, 4 * dt, '毒刺持續傷害', 'ranged');
+      applyDamage(actor, getEnemyDamageToPlayer(4 * dt), '毒刺持續傷害', 'ranged');
     }
     const nextRemaining = Math.max(0, remaining - dt);
     if (nextRemaining <= 0) {
@@ -1619,6 +1620,7 @@ window.render_game_to_text = () => {
     discoveries: {
       seen: [...discoverySession.seenGuideKeys],
       active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
+      pending: [...discoverySession.pendingByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
     },
     unlimitedResources,
     paused,

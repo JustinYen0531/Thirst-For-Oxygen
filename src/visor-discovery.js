@@ -58,25 +58,41 @@ export function getEnemyDiscoveryGuide(enemyId) {
 }
 
 export function createDiscoverySession() {
-  return { seenGuideKeys: new Set(), activeByGuideKey: new Map() };
+  return { seenGuideKeys: new Set(), activeByGuideKey: new Map(), pendingByGuideKey: new Map() };
 }
 
 export function updateDiscoverySession(session, visibleTargets, timeSeconds) {
+  session.pendingByGuideKey ??= new Map();
   const visibleByInstanceId = new Map(visibleTargets.map((target) => [target.instanceId, target]));
   session.activeByGuideKey.forEach((active, guideKey) => {
     const current = visibleByInstanceId.get(active.instanceId);
     if (!current) session.activeByGuideKey.delete(guideKey);
     else session.activeByGuideKey.set(guideKey, { ...active, ...current });
   });
+  session.pendingByGuideKey.forEach((pending, guideKey) => {
+    const current = visibleByInstanceId.get(pending.instanceId);
+    if (!current) session.pendingByGuideKey.delete(guideKey);
+    else session.pendingByGuideKey.set(guideKey, { ...pending, ...current });
+  });
 
   visibleTargets.forEach((target) => {
-    if (session.seenGuideKeys.has(target.guideKey)) return;
-    session.seenGuideKeys.add(target.guideKey);
-    session.activeByGuideKey.set(target.guideKey, {
-      ...target,
-      startedAt: Number.isFinite(timeSeconds) ? timeSeconds : 0,
-    });
+    if (session.seenGuideKeys.has(target.guideKey)
+      || session.activeByGuideKey.has(target.guideKey)
+      || session.pendingByGuideKey.has(target.guideKey)) return;
+    session.pendingByGuideKey.set(target.guideKey, target);
   });
+
+  if (session.activeByGuideKey.size === 0) {
+    const next = session.pendingByGuideKey.values().next().value;
+    if (next) {
+      session.pendingByGuideKey.delete(next.guideKey);
+      session.seenGuideKeys.add(next.guideKey);
+      session.activeByGuideKey.set(next.guideKey, {
+        ...next,
+        startedAt: Number.isFinite(timeSeconds) ? timeSeconds : 0,
+      });
+    }
+  }
 
   return [...session.activeByGuideKey.values()];
 }

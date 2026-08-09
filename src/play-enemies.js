@@ -1,4 +1,4 @@
-import { ENEMY_DEFINITIONS } from './game-data.js';
+import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
 import {
   DIRECTIONS,
@@ -518,8 +518,9 @@ function canUsePlaySkill(enemy, skill, distance) {
 
 function playEnemyDamage(actor, amount, source, onDamage, damageType = 'generic') {
   if (!amount || actor.dead || actor.invulnerability > 0) return;
-  if (typeof onDamage === 'function') onDamage(amount, source, damageType);
-  else actor.health = Math.max(0, actor.health - amount);
+  const scaledDamage = getEnemyDamageToPlayer(amount);
+  if (typeof onDamage === 'function') onDamage(scaledDamage, source, damageType);
+  else actor.health = Math.max(0, actor.health - scaledDamage);
   actor.hurtTimer = Math.max(actor.hurtTimer ?? 0, 0.18);
 }
 

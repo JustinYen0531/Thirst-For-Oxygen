@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { getEnemyDamageToPlayer } from '../src/game-data.js';
 import { createTestActor } from '../src/physics.js';
 import {
   choosePlayUpgrade,
@@ -217,6 +218,6 @@ test('abyss-awakened whale thorns retaliate against a successful formal weapon h
     previousPosition: { x: 100, y: 100 },
     dt: 1 / 60,
   });
-  assert.equal(actor.health, 82);
-  assert.ok(state.effects.some((effect) => effect.type === 'thornsHit' && effect.damage === 18));
+  assert.equal(actor.health, 100 - getEnemyDamageToPlayer(18));
+  assert.ok(state.effects.some((effect) => effect.type === 'thornsHit' && effect.damage === getEnemyDamageToPlayer(18)));
 });

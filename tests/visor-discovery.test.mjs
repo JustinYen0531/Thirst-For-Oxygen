@@ -61,14 +61,32 @@ test('the OK control acknowledges a guide for the rest of the current session', 
   assert.equal(acknowledgeDiscoveryGuide(session, 'object:mine'), false);
 });
 
-test('the OK hit target occupies the lower-right corner of its visor panel', () => {
+test('new discoveries queue and expose only one active card at a time', () => {
+  const session = createDiscoverySession();
+  const mine = target('mine-1', 'object:mine', OBJECT_DISCOVERY_GUIDES.mine);
+  const razor = target('razor-1', 'object:razor', OBJECT_DISCOVERY_GUIDES.razor);
+  const oxygen = target('oxygen-1', 'object:oxygen', OBJECT_DISCOVERY_GUIDES.oxygen);
+
+  let active = updateDiscoverySession(session, [mine, razor, oxygen], 1);
+  assert.deepEqual(active.map((entry) => entry.guideKey), ['object:mine']);
+  assert.deepEqual([...session.pendingByGuideKey.keys()], ['object:razor', 'object:oxygen']);
+  assert.equal(session.activeByGuideKey.size, 1);
+
+  assert.equal(acknowledgeDiscoveryGuide(session, 'object:mine'), true);
+  active = updateDiscoverySession(session, [mine, razor, oxygen], 2);
+  assert.deepEqual(active.map((entry) => entry.guideKey), ['object:razor']);
+  assert.deepEqual([...session.pendingByGuideKey.keys()], ['object:oxygen']);
+  assert.equal(session.activeByGuideKey.size, 1);
+});
+
+test('the entire visor card acknowledges its discovery while OK remains a visual cue', () => {
   const active = { ...target('mine-1', 'object:mine', OBJECT_DISCOVERY_GUIDES.mine), startedAt: 0 };
   const layout = getDiscoveryGuideLayout(active, 0, { x: 0, y: 0 }, { width: 240, height: 160 });
   assert.ok(layout.ok.x > layout.panelX + layout.panelWidth * .7);
   assert.ok(layout.ok.y > layout.panelY + layout.panelHeight * .65);
-  const hit = hitTestDiscoveryAcknowledgement([{ guideKey: active.guideKey, ...layout.ok }], {
-    x: layout.ok.x + layout.ok.width / 2,
-    y: layout.ok.y + layout.ok.height / 2,
+  const hit = hitTestDiscoveryAcknowledgement([{ guideKey: active.guideKey, ...layout.panel }], {
+    x: layout.panel.x + layout.panel.width * .25,
+    y: layout.panel.y + layout.panel.height * .5,
   });
   assert.equal(hit.guideKey, 'object:mine');
 });

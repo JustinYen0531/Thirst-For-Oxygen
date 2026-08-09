@@ -4,6 +4,7 @@ import {
   PASSIVE_ABILITIES,
   WEAPONS,
   createEnemyState,
+  getEnemyDamageToPlayer,
   getWeaponStats,
 } from './game-data.js';
 import {
@@ -330,7 +331,7 @@ function collectSandboxExperience(state) {
 function applyPlayerDamage(state, amount, source, damageType = 'generic') {
   const result = state.invincible
     ? { applied: 0, blocked: true }
-    : applyDamage(state.actor, amount, source, damageType);
+    : applyDamage(state.actor, getEnemyDamageToPlayer(amount), source, damageType);
   if (result.applied > 0) {
     logEvent(state, `玩家受到 ${Math.round(result.applied)} 傷害（${source}）。`, 'danger');
   } else if (state.invincible) {

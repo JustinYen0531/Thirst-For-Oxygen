@@ -6,6 +6,7 @@ import {
   resolvePlayKatanaSlash,
   stepPlayKatana,
 } from '../src/play-katana.js';
+import { getEnemyDamageToPlayer } from '../src/game-data.js';
 import { getKatanaSwingFrames, getKatanaWavePose } from '../src/katana-visual.js';
 
 function createScenario(level) {
@@ -140,5 +141,5 @@ test('formal katana receives authored thorns retaliation from an awakened whale'
     passiveState: { enraged: true },
   });
   resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies });
-  assert.equal(scenario.actor.health, 82);
+  assert.equal(scenario.actor.health, 100 - getEnemyDamageToPlayer(18));
 });

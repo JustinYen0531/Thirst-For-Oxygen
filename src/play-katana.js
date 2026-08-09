@@ -1,4 +1,4 @@
-import { ENEMY_DEFINITIONS, getWeaponStats } from './game-data.js';
+import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import { applyDamage } from './physics.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -134,7 +134,7 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
     const appliedDamage = damage * enemyMultiplier;
     enemy.health = Math.max(0, enemy.health - appliedDamage);
     if (appliedDamage > 0 && enemy.passiveState?.enraged && Number(passive?.thornsDamage) > 0 && Number.isFinite(actor.health)) {
-      applyDamage(actor, passive.thornsDamage, `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
+      applyDamage(actor, getEnemyDamageToPlayer(passive.thornsDamage), `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
     }
     enemy.hitFlash = 0.22;
     damagedHitCount += 1;

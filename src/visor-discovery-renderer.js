@@ -50,6 +50,7 @@ export function getDiscoveryGuideLayout(active, index, camera, viewport) {
     panelY,
     panelWidth,
     panelHeight,
+    panel: { x: panelX, y: panelY, width: panelWidth, height: panelHeight },
     ok: { x: panelX + panelWidth - 14, y: panelY + panelHeight - 7, width: 11, height: 4.5 },
   };
 }
@@ -66,9 +67,9 @@ export function hitTestDiscoveryAcknowledgement(hitTargets, point) {
 export function drawDiscoveryGuides(context, activeGuides, camera, viewport, timeSeconds) {
   if (!activeGuides.length) return [];
   const hitTargets = [];
-
-  activeGuides.forEach((active, index) => {
-    const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, ok } = getDiscoveryGuideLayout(active, index, camera, viewport);
+  const active = activeGuides[0];
+  {
+    const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, panel, ok } = getDiscoveryGuideLayout(active, 0, camera, viewport);
     const lineEndX = placeOnRight ? panelX : panelX + panelWidth;
     const typedDescription = getDiscoveryTypedDescription(active, timeSeconds);
     const descriptionLines = splitText(typedDescription);
@@ -117,7 +118,7 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     context.fillStyle = '#effff8';
     context.fillText('OK', ok.x + ok.width * .5, ok.y + ok.height * .5 + .1);
     context.restore();
-    hitTargets.push({ guideKey: active.guideKey, ...ok });
-  });
+    hitTargets.push({ guideKey: active.guideKey, ...panel });
+  }
   return hitTargets;
 }

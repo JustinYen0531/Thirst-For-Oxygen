@@ -27,7 +27,7 @@ import {
   spawnSandboxEnemy,
   stepSandbox,
 } from '../src/sandbox-sim.js';
-import { getWeaponStats } from '../src/game-data.js';
+import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getWeaponStats } from '../src/game-data.js';
 
 test('new progression starts with one level-one knife and no other slots', () => {
   const progression = createProgressionState();
@@ -339,7 +339,8 @@ test('telegraphed enemy skills resolve after their authored cast window', () => 
 
   stepSandbox(state, 0.65);
 
-  assert.ok(state.actor.health < 100, 'the dash should resolve after the telegraph');
+  const dash = ENEMY_DEFINITIONS.crabGuard.attacks.find((skill) => skill.id === 'dashClamp');
+  assert.equal(state.actor.health, 100 - getEnemyDamageToPlayer(dash.damage), 'the dash should resolve at forty percent damage after the telegraph');
   assert.equal(enemy.pendingSkill, null);
 });
 

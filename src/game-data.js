@@ -16,6 +16,14 @@ export const RESOURCE_HEALTH_RECOVERY = Object.freeze({
   fastHealthPerSecond: 5,
 });
 
+export const ENEMY_DAMAGE_BALANCE = Object.freeze({
+  playerDamageMultiplier: 0.4,
+});
+
+export function getEnemyDamageToPlayer(amount) {
+  return Math.max(0, Number(amount) || 0) * ENEMY_DAMAGE_BALANCE.playerDamageMultiplier;
+}
+
 export const PLAYER_BASE_STATS = Object.freeze({
   launchEnergyCostMultiplier: 1,
   weaponEnergyCostMultiplier: 1,

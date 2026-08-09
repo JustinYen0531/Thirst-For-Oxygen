@@ -848,3 +848,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 新增氧氣／能量共同驅動的生命恢復：兩者都達 60% 時回復 2 HP/s，兩者都達 80% 時改為 5 HP/s；使用氧氣實際上限計算比例，生命不超過 100，死亡狀態不會自行復活。
 - 門檻與速率集中於 `RESOURCE_HEALTH_RECOVERY` 可調整資料契約，正式物理與沙盒共用；毒素測試改用低資源情境，避免沙盒無限資源的快速回血掩蓋持續傷害驗證。
 - focused physics/progression tests 103/103、完整 `npm run check` 204/204 通過；Vite build 與 `git diff --check` 也通過。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 107 complete
+
+- 所有敵人對玩家的最終生命傷害統一降為原始 authored 數值的 40%；正式敵技、沙盒敵技、毒素與 Boss 荊棘反傷共用同一資料契約，環境傷害維持原值。
+- 首次接觸資訊卡改為單張 active 加 pending queue；整張卡片都可點擊關閉，按下後才顯示下一個仍在畫面內的目標，renderer 最多繪製一張。
+- focused discovery／formal enemy／combat／katana／sandbox tests 101/101、完整 `npm run check` 206/206 通過；Vite build 與 `git diff --check` 也通過。依專案規則未執行瀏覽器／Playwright。

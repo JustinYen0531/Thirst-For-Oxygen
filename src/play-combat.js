@@ -2,6 +2,7 @@ import {
   PASSIVE_ABILITIES,
   WEAPONS,
   ENEMY_DEFINITIONS,
+  getEnemyDamageToPlayer,
   getPlayerDerivedStats,
   getWeaponStats,
 } from './game-data.js';
@@ -210,7 +211,7 @@ function damageEnemy(state, actor, enemy, rawDamage, source) {
   const damage = Math.max(0, rawDamage * multiplier * enemyMultiplier);
   enemy.health = Math.max(0, enemy.health - damage);
   if (damage > 0 && enemy.passiveState?.enraged && Number(passive?.thornsDamage) > 0) {
-    const retaliation = applyDamage(actor, passive.thornsDamage, `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
+    const retaliation = applyDamage(actor, getEnemyDamageToPlayer(passive.thornsDamage), `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
     addEffect(state, { type: 'thornsHit', weaponId: source, ownerId: enemy.instanceId, x: actor.x, y: actor.y, damage: retaliation.applied, duration: 0.24 });
   }
   enemy.hitFlash = Math.max(enemy.hitFlash ?? 0, 0.18);

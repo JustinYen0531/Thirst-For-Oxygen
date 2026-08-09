@@ -20,7 +20,7 @@ import {
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from '../src/play-enemies.js';
-import { ENEMY_DEFINITIONS } from '../src/game-data.js';
+import { ENEMY_DAMAGE_BALANCE, ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from '../src/game-data.js';
 import { getHexCenter } from '../src/map-model.js';
 
 const PART_MAP_PATHS = [
@@ -340,7 +340,8 @@ test('formal enemy projectiles exist in flight and use swept collision instead o
   assert.equal(damage, 0, 'the projectile cannot damage before it reaches the actor');
   updatePlayEnemies(enemies, actor, 1, now + 1, onDamage);
   render = getPlayEnemyRenderState(enemies, now + 1);
-  assert.equal(damage, 24, 'a large fixed step still detects the swept crossing');
+  assert.equal(ENEMY_DAMAGE_BALANCE.playerDamageMultiplier, 0.4);
+  assert.equal(damage, getEnemyDamageToPlayer(24), 'a large fixed step detects the swept crossing and applies forty percent damage');
   assert.equal(render.projectiles.length, 0);
 });
 
@@ -408,11 +409,11 @@ test('prism guardian models its Lv.1 summons, exact resource drain, beam, and lo
     { damagePerSecond: 24, remaining: 3, maxReflections: 4 },
   );
   updatePlayEnemies(laser.enemies, laser.actor, 0.5, laser.now + 0.5, laser.onDamage);
-  assert.equal(laser.damage(), 12, 'the primary beam applies authored damage over time only while crossed');
+  assert.equal(laser.damage(), getEnemyDamageToPlayer(12), 'the primary beam applies forty percent of its authored damage over time while crossed');
 
   const gravity = resolveAuthoredSkill('prismCrabGuardian', 'deepSeaGravityField');
   render = getPlayEnemyRenderState(gravity.enemies, gravity.now);
-  assert.equal(gravity.damage(), 20);
+  assert.equal(gravity.damage(), getEnemyDamageToPlayer(20));
   assert.ok(gravity.actor.stunnedUntil > gravity.now + 0.75);
   assert.ok(render.rules.some((rule) => rule.type === 'gravityField'
     && rule.radius === 150
@@ -523,7 +524,7 @@ test('abyssal whale gravity dominion and corrupted oxygen are rule and delayed-z
   assert.equal(oxygen.actor.oxygen, 100);
   now = advanceCombat(oxygen.enemies, oxygen.actor, 0.12, { start: now, onDamage: oxygen.onDamage });
   render = getPlayEnemyRenderState(oxygen.enemies, now);
-  assert.equal(oxygen.damage(), 26);
+  assert.equal(oxygen.damage(), getEnemyDamageToPlayer(26));
   assert.equal(oxygen.actor.oxygen, 65);
   assert.ok(render.zones.some((zone) => zone.type === 'corruptOxygen' && zone.phase === 'oxygenZone' && zone.remaining > 9.8));
   assert.deepEqual(render.playerResources, { health: 100, oxygen: 65, energy: 100, stunnedUntil: 0 });
