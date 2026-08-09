@@ -254,6 +254,7 @@ export function attachHomeStartLoading(root, options = {}) {
     root.classList.add('is-start-ready');
     root.removeAttribute('aria-busy');
     state = Object.freeze({ ...state, ...assetResult, active: true, video: videoResult });
+    loadingVideo.pause?.();
     navigate(destination);
     return true;
   }

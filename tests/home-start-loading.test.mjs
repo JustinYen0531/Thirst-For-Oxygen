@@ -80,10 +80,13 @@ test('loading movie skips its slow opening and begins at the authored third seco
   assert.equal(video.muted, false);
 });
 
-test('shared Play preload manifest covers every formal runtime image and first map', () => {
+test('formal Play knows every runtime image while homepage startup warms only the critical first frame', () => {
   assert.ok(PLAY_IMAGE_ASSET_PATHS.length > 300);
   assert.equal(new Set(PLAY_STARTUP_ASSET_PATHS).size, PLAY_STARTUP_ASSET_PATHS.length);
+  assert.ok(PLAY_STARTUP_ASSET_PATHS.length < 20, 'homepage must not decode hundreds of animation frames before navigation');
   assert.ok(PLAY_STARTUP_ASSET_PATHS.includes(PLAY_MAP_ASSET_URLS.descent[1]));
+  assert.equal(PLAY_STARTUP_ASSET_PATHS.some((path) => path.includes('/enemies-afterimage/')), false);
+  assert.equal(PLAY_STARTUP_ASSET_PATHS.filter((path) => path.includes('/actors/player/')).length, 1);
   Object.values(PLAY_TILE_ASSETS).forEach((path) => assert.ok(PLAY_IMAGE_ASSET_PATHS.includes(path), path));
   PLAY_IMAGE_ASSET_PATHS.forEach((path) => {
     assert.equal(existsSync(`${ROOT}\\public${decodeURIComponent(path).replaceAll('/', '\\')}`), true, path);
@@ -144,12 +147,14 @@ test('Start Game waits for both the movie and asset work before navigating', asy
       this.classNames = new Set();
       this.classList = { add: (...names) => names.forEach((name) => this.classNames.add(name)) };
       this.hidden = true;
+      this.pauseCount = 0;
       this.style = {};
       this.textContent = '';
     }
     getAttribute(name) { return this.attributes.get(name) ?? null; }
     removeAttribute(name) { this.attributes.delete(name); }
     setAttribute(name, value) { this.attributes.set(name, String(value)); }
+    pause() { this.pauseCount += 1; }
   }
 
   const startLink = new FakeElement({ href: '/play.html' });
@@ -197,6 +202,7 @@ test('Start Game waits for both the movie and asset work before navigating', asy
   assert.equal(progressFill.style.width, '100%');
   assert.equal(percentage.textContent, '100%');
   assert.deepEqual(navigation, ['/play.html']);
+  assert.equal(loadingVideo.pauseCount, 1);
   assert.deepEqual(controller.getState(), {
     active: true,
     completed: 2,

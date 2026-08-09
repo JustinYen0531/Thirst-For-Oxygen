@@ -55,6 +55,16 @@ export const PLAY_IMAGE_ASSET_PATHS = Object.freeze([...new Set([
 ].filter(Boolean))]);
 
 export const PLAY_STARTUP_ASSET_PATHS = Object.freeze([
-  ...PLAY_IMAGE_ASSET_PATHS,
+  // The homepage transition must not decode the complete animation library.
+  // Play creates those images after navigation; decoding them here as well
+  // temporarily keeps two documents' worth of large bitmaps alive and can
+  // starve the first gameplay frames. Only warm the assets needed to reveal
+  // the map, diver and visor immediately.
+  PLAYER_ANIMATION_ASSETS.swim[0],
+  ...Object.values(PLAY_TILE_ASSETS),
+  VISOR_HUD_ASSET,
+  '/assets/editor/hud/visor-surround-balanced.png',
+  '/assets/editor/hud/slot-locked-octagon.png',
+  getPlayerHudIconPath('weapon', 'knife', 1),
   PLAY_MAP_ASSET_URLS.descent[1],
-]);
+].filter(Boolean));
