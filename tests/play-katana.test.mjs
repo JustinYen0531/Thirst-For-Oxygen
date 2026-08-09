@@ -111,3 +111,14 @@ test('katana Lv.3 adds a persistent outward projectile wave that survives simula
   stepPlayKatana(scenario.state, 10);
   assert.equal(scenario.state.effects.some((effect) => effect.type === 'katanaWave' && effect.persistent), true);
 });
+
+test('formal katana reports but does not damage a life-linked protected enemy', () => {
+  const scenario = createScenario(1);
+  scenario.enemy.linkedProtection = 'coral-protector';
+  const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies });
+  assert.equal(result.ok, true);
+  assert.equal(result.hitCount, 1);
+  assert.equal(result.protectedHitCount, 1);
+  assert.equal(result.totalDamage, 0);
+  assert.equal(scenario.enemy.health, 100);
+});

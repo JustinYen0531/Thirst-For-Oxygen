@@ -43,9 +43,27 @@ import {
 } from './play-katana.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
+import { WEAPONS, getWeaponStats } from './game-data.js';
+import {
+  choosePlayUpgrade,
+  choosePlayUpgradeCategory,
+  createPlayCombatState,
+  getPlayCombatRenderState,
+  recordPlayEnemyDefeats,
+  stepPlayCombat,
+  syncPlayCombatBuild,
+} from './play-combat.js';
+import { getPlayStageExitState } from './play-flow.js';
+import {
+  getPlayEdgeVisual,
+  getPlayObjectVisual,
+  getPlayOverlayVisual,
+  getPlayWorldAssetPaths,
+} from './play-world-visuals.js';
 import {
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
+  getPlayEnemyRenderState,
   getPlayEnemyPose,
   isPlayEnemyVisible,
   updatePlayEnemies,
@@ -62,8 +80,8 @@ import {
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
 
 const MAPS = {
-  1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分（輕）' },
-  2: { path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分（中）' },
+  1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分' },
+  2: { path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分' },
   3: { path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分' },
 };
 // A 4x world scale intentionally shows only about 60% of the reference map's
@@ -75,21 +93,18 @@ const TILE_ASSETS = {
   'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
   blocked: '/assets/editor/terrain/blocked-dark-stone.png',
 };
-const OBJECT_ASSETS = {
-  coralCluster: '/assets/editor/objects/coral-cluster.png', mine: '/assets/editor/objects/deep-sea-mine.png', weightStone: '/assets/editor/objects/heavy-stone.png', seaweed: '/assets/editor/objects/sea-grass.png', oxygen: '/assets/editor/objects/oxygen-ore.png', checkpoint: '/assets/editor/objects/checkpoint.png', bubble: '/assets/editor/objects/photosynthesis-bubble.png', torricelli: '/assets/editor/objects/torricelli-space.png', razor: '/assets/editor/objects/razor-blade.png', button: '/assets/editor/objects/button.png',
-};
-const EDGE_ASSETS = { springJelly: '/assets/editor/edges/spring-jellyfish.png', spike: '/assets/editor/edges/edge-spike-barrier.png', barrier: '/assets/editor/edges/edge-spike-barrier.png', current: '/assets/editor/edges/edge-spike-barrier.png', layerPortal: '/assets/editor/edges/layer-portal-stair.png', multiPortal: '/assets/editor/edges/multi-portal.png', seaweed: OBJECT_ASSETS.seaweed, coralCluster: OBJECT_ASSETS.coralCluster };
 const PLAYER_ASSETS = { ...PLAYER_ANIMATION_ASSETS };
-const WEAPON_ASSETS = [KATANA_SPRITE];
-const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱', button: 'B' };
-const edgeColors = { springJelly: '#e77dff', spike: '#ff8394', barrier: '#ff9e78', current: '#6fe5ff', layerPortal: '#f4d56d', multiPortal: '#8cc7ff', seaweed: '#76e49c', coralCluster: '#f1a0ff' };
+const WEAPON_ASSETS = [...new Set(Object.values(WEAPONS).flatMap((weapon) => (
+  Object.values(weapon.levels).map((level) => level.effect?.sprite).filter(Boolean)
+)))];
+const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱' };
 
 const canvas = document.querySelector('#play-canvas');
 const context = canvas.getContext('2d');
 const mapSelect = document.querySelector('#play-map-select');
 const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
-const musicController = createMusicController(getMusicTrack({ part: 3, arc: 'descent', mode: 'normal' }));
+const musicController = createMusicController(getMusicTrack({ part: 1, arc: 'descent', mode: 'normal' }));
 attachMusicControls(document.querySelector('#play-music-control'), musicController);
 const sfxController = createSfxController();
 attachSfxVolumeControl(document.querySelector('[aria-labelledby="music-settings-title"]'), sfxController);
@@ -107,6 +122,11 @@ const eventsList = document.querySelector('#play-events');
 const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
 const ambientToggle = document.querySelector('#play-ambient-toggle');
 const attemptsReadout = document.querySelector('#play-attempts');
+const upgradeOverlay = document.querySelector('#play-upgrade-overlay');
+const upgradeNote = document.querySelector('#play-upgrade-note');
+const upgradeCategories = document.querySelector('#play-upgrade-categories');
+const upgradeChoices = document.querySelector('#play-upgrade-choices');
+const completionOverlay = document.querySelector('#play-completion-overlay');
 const settingsToggle = document.querySelector('#play-settings-toggle');
 const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
@@ -119,10 +139,10 @@ const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-se
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const visorSlots = [...document.querySelectorAll('[data-visor-slot]')];
 const images = new Map();
-[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...Object.values(OBJECT_ASSETS), ...Object.values(EDGE_ASSETS), ...Object.values(PLAY_ENEMY_VISUALS), ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...getPlayWorldAssetPaths(), ...Object.values(PLAY_ENEMY_VISUALS), ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
-let mapPart = 3;
+let mapPart = 1;
 let origin = { x: 40, y: 40 };
 let mapBounds = null;
 let physicsBounds = null;
@@ -144,18 +164,11 @@ let eventLog = ['拖曳潛水夫，放開即可彈射。'];
 let activeCollisionSoundKeys = new Set();
 const discoverySession = createDiscoverySession();
 let discoveryAcknowledgementTargets = [];
-const PLAYER_LEVEL = 1;
-const PLAYER_EXPERIENCE = 0;
-const EXPERIENCE_TO_NEXT_LEVEL = 100;
-const PLAYER_HUD_LOADOUT = Object.freeze({
-  weapons: Object.freeze([{ id: 'knife', level: 1 }]),
-  passives: Object.freeze([]),
-});
 const requestedPart = new URLSearchParams(window.location.search).get('part');
-const requestedKatanaLevel = Number(new URLSearchParams(window.location.search).get('katanaLevel'));
-const defaultKatanaLevel = requestedPart === '1' || requestedPart === '2' ? 1 : 3;
-const INITIAL_KATANA_LEVEL = clamp(requestedKatanaLevel || defaultKatanaLevel, 1, 3);
-let katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
+let combatState = createPlayCombatState();
+let katanaState = createPlayKatanaState(1);
+let transitioning = false;
+let runCompleted = false;
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
@@ -208,16 +221,40 @@ function chooseSpawn(nextMap) {
   return getHexCenter(safe[0] ?? Object.values(nextMap.cells)[0], origin);
 }
 
-function setupWorld(nextMap) {
+function equippedWeapon(weaponId) {
+  return combatState.build.weapons.find((entry) => entry.id === weaponId) ?? null;
+}
+
+function syncKatanaState() {
+  const entry = equippedWeapon('katana');
+  if (!entry) {
+    katanaState = createPlayKatanaState(1);
+    return null;
+  }
+  if (!katanaState || katanaState.level !== entry.level) katanaState = createPlayKatanaState(entry.level);
+  return entry;
+}
+
+function setupWorld(nextMap, { previousActor = null } = {}) {
   map = nextMap;
   origin = { x: 36, y: 36 };
   mapBounds = getOddRRectangularBounds(map, origin);
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
   actor = createTestActor(spawn);
+  if (previousActor) {
+    actor.health = previousActor.health;
+    actor.oxygen = previousActor.oxygen;
+    actor.energy = previousActor.energy;
+    actor.lives = previousActor.lives;
+    actor.maxLives = previousActor.maxLives;
+    actor.deathCount = previousActor.deathCount;
+  }
+  syncPlayCombatBuild(combatState, actor);
+  actor.oxygen = Math.min(actor.oxygen, actor.derivedStats?.maxOxygen ?? MAX_OXYGEN);
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
-  katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL);
-  worldTime = 0;
+  syncKatanaState();
+  if (!previousActor) worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
   trajectory = [];
@@ -228,8 +265,8 @@ function setupWorld(nextMap) {
   eventLog = [
     '拖曳潛水夫，放開即可彈射。',
     `${MAPS[mapPart].label} 已載入。`,
-    `已生成 ${enemies.length} 隻小怪（${encounterGroupCount} 個遭遇群）。`,
-    `武士刀 Lv.${katanaState.level} 待命：範圍內有敵人才會揮刀。`,
+    `已生成 ${enemies.length} 名敵人（${encounterGroupCount} 個遭遇群）。`,
+    `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
   ];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
@@ -243,13 +280,20 @@ function refillUnlimitedResources() {
   actor.energy = MAX_ENERGY;
 }
 
-async function loadMap(part) {
-  mapPart = Number(part) || 3;
+async function loadMap(part, { preserveRun = false } = {}) {
+  const previousActor = preserveRun ? actor : null;
+  if (!preserveRun) {
+    combatState = createPlayCombatState();
+    runCompleted = false;
+    completionOverlay.hidden = true;
+  }
+  mapPart = Number(part) || 1;
   loadingMask.classList.remove('is-hidden');
+  loadingMask.textContent = '正在潛入水域…';
   try {
     const response = await fetch(MAPS[mapPart].path);
     if (!response.ok) throw new Error(`map ${response.status}`);
-    setupWorld(await response.json());
+    setupWorld(await response.json(), { previousActor });
   } catch (error) {
     eventLog = [`地圖載入失敗：${error.message}`];
     eventsList.innerHTML = `<li>${eventLog[0]}</li>`;
@@ -294,6 +338,10 @@ function renderCell(cell, key) {
   drawImage(activeTilePath(cell), center.x, center.y, TILE_SIZE * 1.78, TILE_SIZE * 2.03, cell.terrain === 'blocked' ? .98 : .86);
   if (cell.waterLayer === 'T2' && cell.terrain !== 'blocked') { context.fillStyle = 'rgba(11, 16, 49, .24)'; context.fillRect(center.x - TILE_SIZE, center.y - TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2); }
   if (cell.terrain === 'water') drawWaterMotion(cell, center);
+  (cell.overlays ?? []).forEach((kind) => {
+    const visual = getPlayOverlayVisual(kind);
+    drawImage(visual.assetPath, center.x, center.y, TILE_SIZE * 1.8, TILE_SIZE * 1.8, .62);
+  });
   context.restore();
   if (cell.conditionalGate && !cell.conditionalGate.opened) {
     context.save();
@@ -386,7 +434,45 @@ function drawTerrainBoundaries() {
 function drawObject(object, x, y) {
   const size = Math.min(21, Math.max(10, Number(object.size) || 16));
   const guide = getObjectDiscoveryGuide(object.kind);
-  if (!drawImage(OBJECT_ASSETS[object.kind], x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
+  const visual = object.kind === 'ink' ? getPlayOverlayVisual('ink') : getPlayObjectVisual(object.kind);
+  if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(visual.label ?? objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
+}
+
+function drawProgrammaticEdge(visual, geometry) {
+  if (visual.shape === 'current-chevrons') {
+    context.save();
+    context.translate(geometry.midpoint.x, geometry.midpoint.y);
+    context.rotate(geometry.pointsIntoOpenAngle);
+    context.strokeStyle = visual.color;
+    context.shadowColor = visual.color;
+    context.shadowBlur = 4;
+    context.lineWidth = 1.1;
+    [-4, 0, 4].forEach((offset) => {
+      context.beginPath();
+      context.moveTo(offset - 2.5, -3);
+      context.lineTo(offset + 1, 0);
+      context.lineTo(offset - 2.5, 3);
+      context.stroke();
+    });
+    context.restore();
+    return;
+  }
+  if (visual.shape === 'double-barrier') {
+    const dx = geometry.edgeEnd.x - geometry.edgeStart.x;
+    const dy = geometry.edgeEnd.y - geometry.edgeStart.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const normal = { x: -dy / length, y: dx / length };
+    context.save();
+    context.strokeStyle = visual.color;
+    context.lineWidth = 1.15;
+    [-1.8, 1.8].forEach((offset) => {
+      context.beginPath();
+      context.moveTo(geometry.edgeStart.x + normal.x * offset, geometry.edgeStart.y + normal.y * offset);
+      context.lineTo(geometry.edgeEnd.x + normal.x * offset, geometry.edgeEnd.y + normal.y * offset);
+      context.stroke();
+    });
+    context.restore();
+  }
 }
 
 function drawEdges() {
@@ -404,13 +490,17 @@ function drawEdges() {
     if (!geometry) return;
     const mid = geometry.midpoint;
     if (mid.y < camera.y - 45 || mid.y > camera.y + canvas.height / SCALE + 45) return;
-    const color = edgeColors[edge.type] ?? '#bcecff';
+    const visual = getPlayEdgeVisual(edge.type);
+    const color = visual.color ?? '#bcecff';
     context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
     context.beginPath(); context.moveTo(geometry.edgeStart.x, geometry.edgeStart.y); context.lineTo(geometry.edgeEnd.x, geometry.edgeEnd.y); context.stroke(); context.restore();
-    const asset = EDGE_ASSETS[edge.type];
-    if (!asset) return;
+    const asset = visual.assetPath;
+    if (!asset) {
+      drawProgrammaticEdge(visual, geometry);
+      return;
+    }
     const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
-    const isAnchoredPlant = edge.type === 'seaweed' || edge.type === 'coralCluster';
+    const isAnchoredPlant = visual.anchoredPlant;
     const pointsIntoWater = edge.type === 'spike' || edge.type === 'barrier' || edge.type === 'current';
     const sitsInsideWall = pointsIntoWater || edge.type === 'springJelly';
     let renderX = sitsInsideWall ? geometry.attachmentPoint.x : mid.x;
@@ -534,6 +624,146 @@ function drawKatanaEffects() {
   });
 }
 
+function drawExperienceOrbs() {
+  combatState.experienceOrbs.forEach((orb, index) => {
+    const pulse = 0.72 + Math.sin(worldTime * 4.2 + index) * 0.16;
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.shadowColor = '#b5f7ff';
+    context.shadowBlur = 9;
+    context.fillStyle = `rgba(133, 237, 255, ${pulse})`;
+    context.beginPath();
+    context.arc(orb.x, orb.y, (orb.radius ?? 7) * (0.82 + pulse * 0.2), 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = 'rgba(239, 255, 255, .92)';
+    context.lineWidth = 0.8;
+    context.stroke();
+    context.restore();
+  });
+}
+
+function drawCombatProjectiles() {
+  combatState.projectiles.forEach((projectile) => {
+    const visual = projectile.visual ?? {};
+    if (projectile.weaponId === 'trident') {
+      const trailLength = visual.trailLength ?? 28;
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.strokeStyle = visual.colour ?? '#73e6ff';
+      context.shadowColor = visual.glowColour ?? '#d9fbff';
+      context.shadowBlur = 8;
+      context.lineWidth = visual.trailWidth ?? 2.4;
+      context.beginPath();
+      context.moveTo(projectile.x - Math.cos(projectile.angle) * trailLength, projectile.y - Math.sin(projectile.angle) * trailLength);
+      context.lineTo(projectile.x, projectile.y);
+      context.stroke();
+      context.restore();
+      const size = 31 * (visual.spriteScale ?? 0.72);
+      if (!drawImage(visual.sprite, projectile.x, projectile.y, size, size * 0.34, 1, projectile.angle)) {
+        context.save(); context.translate(projectile.x, projectile.y); context.rotate(projectile.angle); context.fillStyle = visual.colour ?? '#73e6ff'; context.fillRect(-size * .5, -1.2, size, 2.4); context.restore();
+      }
+      return;
+    }
+    const length = visual.bulletLength ?? 18;
+    const width = visual.bulletWidth ?? 5;
+    const colour = visual.bulletColour ?? visual.colour ?? '#8fe8ff';
+    context.save();
+    context.translate(projectile.x, projectile.y);
+    context.rotate(projectile.angle);
+    context.globalCompositeOperation = 'lighter';
+    context.shadowColor = visual.bulletGlow ?? colour;
+    context.shadowBlur = 7;
+    context.fillStyle = colour;
+    context.strokeStyle = visual.bulletOutline ?? '#efffff';
+    context.lineWidth = visual.bulletStyle === 'outlined' ? 1.6 : 0.7;
+    context.beginPath();
+    context.roundRect(-length * .5, -width * .5, length, width, width * .5);
+    if (visual.bulletStyle !== 'outlined') context.fill();
+    context.stroke();
+    context.restore();
+  });
+}
+
+function drawCombatEffects() {
+  combatState.effects.forEach((effect) => {
+    const progress = clamp(effect.elapsed / Math.max(effect.duration, 0.001), 0, 1);
+    const alpha = Math.max(0, 1 - progress);
+    if (effect.type === 'knifePath' || effect.type === 'knifeSidePath') {
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = effect.type === 'knifeSidePath' ? alpha * .58 : alpha * .88;
+      context.strokeStyle = effect.level >= 3 ? '#eaa7ff' : effect.level >= 2 ? '#ffbd6e' : '#8fe8ff';
+      context.shadowColor = context.strokeStyle;
+      context.shadowBlur = 8;
+      context.lineWidth = effect.type === 'knifeSidePath' ? 2.2 : 5.2;
+      context.lineCap = 'round';
+      context.beginPath();
+      context.moveTo(effect.start.x, effect.start.y);
+      context.lineTo(effect.end.x, effect.end.y);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (effect.type === 'knifeStationaryArea') {
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = .18 + alpha * .24;
+      context.fillStyle = '#d6b5ff';
+      context.strokeStyle = '#f1d7ff';
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.arc(effect.x, effect.y, effect.radius * (0.92 + progress * .08), 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (effect.type === 'weaponHit' || effect.type === 'weaponBlocked') {
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = alpha;
+      context.strokeStyle = effect.type === 'weaponBlocked' ? '#78ffc2' : '#fff4cf';
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.arc(effect.x, effect.y, 4 + progress * 13, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (effect.type === 'lightMachineGunBurst') {
+      const weapon = getWeaponStats('lightMachineGun', effect.level);
+      const visual = weapon.effect ?? {};
+      const sprite = visual.sprite;
+      const size = (visual.gunLength ?? 66) * .62;
+      drawImage(sprite, effect.x + Math.cos(effect.angle) * 8, effect.y + Math.sin(effect.angle) * 8, size, (visual.gunWidth ?? 14) * .62, Math.max(.3, alpha), effect.angle);
+    }
+  });
+}
+
+function drawStageExit() {
+  const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+  if (!stageExit.exit) return;
+  const { x, y } = stageExit.exit;
+  const colour = stageExit.unlocked ? '#7cf2ff' : '#ff9d78';
+  const pulse = 1 + Math.sin(worldTime * 2.4) * .08;
+  context.save();
+  context.globalCompositeOperation = 'lighter';
+  context.strokeStyle = colour;
+  context.shadowColor = colour;
+  context.shadowBlur = 10;
+  context.lineWidth = 1.4;
+  context.setLineDash(stageExit.unlocked ? [3, 2] : [1, 2]);
+  context.beginPath();
+  context.arc(x, y, 11 * pulse, 0, Math.PI * 2);
+  context.stroke();
+  context.setLineDash([]);
+  context.font = 'bold 5px system-ui';
+  context.textAlign = 'center';
+  context.fillStyle = colour;
+  context.fillText(stageExit.unlocked ? 'EXIT' : 'BOSS', x, y + 1.8);
+  context.restore();
+}
+
 function drawKatanaBlade(effect, angle, alpha) {
   const sprite = images.get(effect.sprite ?? KATANA_SPRITE);
   const length = effect.weaponLength ?? 72;
@@ -601,7 +831,7 @@ function drawEnemyHealthBar(enemy, x, y, width, height) {
   context.fillRect(x - width * .5, y - height * .5, width, height);
   context.fillStyle = enemy.hitFlash > 0 ? '#fff0f5' : '#ff6f91';
   context.fillRect(x - width * .5 + .6, y - height * .5 + .6, Math.max(0, (width - 1.2) * ratio), height - 1.2);
-  context.strokeStyle = enemy.katanaShowcase ? '#ff9eb8' : 'rgba(255, 255, 255, .55)';
+  context.strokeStyle = enemy.linkedProtection ? '#78ffc2' : 'rgba(255, 255, 255, .55)';
   context.lineWidth = .7;
   context.strokeRect(x - width * .5, y - height * .5, width, height);
   if (enemy.hitFlash > 0) {
@@ -655,6 +885,102 @@ function drawEnemies() {
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(String(enemy.tier), pose.x, pose.y);
+    context.restore();
+  });
+}
+
+function drawEnemyCombatRuntime() {
+  const runtime = getPlayEnemyRenderState(enemies, worldTime);
+  runtime.zones.forEach((zone) => {
+    const progress = 1 - clamp(zone.remaining / .28, 0, 1);
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.globalAlpha = .28 + progress * .35;
+    context.fillStyle = '#9d78ff';
+    context.strokeStyle = '#e0cfff';
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.restore();
+  });
+  runtime.effects.forEach((effect) => {
+    const progress = clamp(effect.elapsed / Math.max(effect.duration, .001), 0, 1);
+    const alpha = Math.max(0, 1 - progress);
+    if (['telegraph', 'lockedTarget', 'detonationTelegraph'].includes(effect.type)) {
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = .28 + alpha * .45;
+      context.strokeStyle = effect.type === 'lockedTarget' ? '#ff8f78' : '#e5b2ff';
+      context.lineWidth = 1.2;
+      context.setLineDash([3, 2]);
+      context.beginPath();
+      context.arc(effect.x, effect.y, Math.min(effect.radius ?? 24, 92), 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (['detonation', 'areaImpact', 'areaStun', 'gravityField', 'supportPulse', 'summon'].includes(effect.type)) {
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = alpha * .72;
+      context.strokeStyle = effect.type === 'supportPulse' ? '#7fffc4' : effect.type === 'summon' ? '#8fe8ff' : '#ff9d78';
+      context.shadowColor = context.strokeStyle;
+      context.shadowBlur = 10;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(effect.x, effect.y, (effect.radius ?? 20) * (.35 + progress * .8), 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (effect.type === 'unsupportedSkill') {
+      context.save();
+      context.globalAlpha = alpha * .8;
+      context.strokeStyle = '#f6d979';
+      context.lineWidth = 1;
+      context.setLineDash([2, 2]);
+      context.beginPath();
+      context.moveTo(effect.x, effect.y);
+      context.lineTo(effect.targetX, effect.targetY);
+      context.stroke();
+      context.restore();
+    }
+  });
+  runtime.enemies.forEach((entry) => {
+    const source = enemies.find((enemy) => enemy.instanceId === entry.instanceId);
+    if (!source || !entry.linkedTargets.length) return;
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.strokeStyle = '#78ffc2';
+    context.globalAlpha = .58;
+    context.lineWidth = 1;
+    entry.linkedTargets.forEach((targetId) => {
+      const target = enemies.find((enemy) => enemy.instanceId === targetId && !enemy.defeated);
+      if (!target) return;
+      context.beginPath();
+      context.moveTo(source.x, source.y);
+      context.lineTo(target.x, target.y);
+      context.stroke();
+    });
+    context.restore();
+  });
+  runtime.projectiles.forEach((projectile) => {
+    const length = 12;
+    context.save();
+    context.translate(projectile.x, projectile.y);
+    context.rotate(projectile.angle);
+    context.globalCompositeOperation = 'lighter';
+    context.shadowColor = projectile.colour ?? '#a5e8ff';
+    context.shadowBlur = 7;
+    context.strokeStyle = projectile.colour ?? '#a5e8ff';
+    context.lineWidth = Math.max(2, projectile.radius * .7);
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(-length, 0);
+    context.lineTo(length * .4, 0);
+    context.stroke();
     context.restore();
   });
 }
@@ -719,27 +1045,54 @@ function collectVisibleDiscoverables() {
   ));
 }
 
+function drawInkVisibilityMask() {
+  if (!actor?.inInk) return;
+  const centerX = (actor.x - camera.x) * SCALE;
+  const centerY = (actor.y - camera.y) * SCALE;
+  const radius = Math.max(36, (actor.inkVisionRange ?? 42) * SCALE);
+  context.save();
+  context.fillStyle = 'rgba(2, 5, 16, .9)';
+  context.beginPath();
+  context.rect(0, 0, canvas.width, canvas.height);
+  context.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
+  context.fill('evenodd');
+  context.strokeStyle = 'rgba(122, 94, 184, .52)';
+  context.lineWidth = 7;
+  context.shadowColor = '#7159ad';
+  context.shadowBlur = 18;
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  context.stroke();
+  context.restore();
+}
+
 function render() {
   renderBackground();
   if (!map || !actor) return;
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
-  drawTerrainBoundaries(); drawEdges(); drawEnemies(); drawTrajectory(); drawActor(); drawKatanaEffects();
+  drawTerrainBoundaries(); drawEdges(); drawStageExit(); drawExperienceOrbs(); drawCombatEffects(); drawEnemyCombatRuntime(); drawEnemies(); drawCombatProjectiles(); drawTrajectory(); drawActor(); drawKatanaEffects();
   const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
+  drawInkVisibilityMask();
 }
 
 function updateHud() {
   if (!actor) return;
   updateHudIconSlots();
+  updateUpgradeOverlay();
+  const combatRenderState = getPlayCombatRenderState(combatState);
+  const progress = combatRenderState.progression;
   const firstRowCenterY = (mapBounds?.top ?? origin.y) + HEX_SIZE;
   const depthMeters = Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
   depthReadout.textContent = `${String(depthMeters).padStart(3, '0')} m`;
   depthReadout.setAttribute('aria-label', `目前下沉 ${depthMeters} 公尺`);
-  levelReadout.textContent = String(PLAYER_LEVEL).padStart(2, '0');
-  experienceReadout.textContent = `EXP ${String(PLAYER_EXPERIENCE).padStart(3, '0')} / ${EXPERIENCE_TO_NEXT_LEVEL}`;
-  experienceFill.style.width = `${Math.min(100, Math.max(0, PLAYER_EXPERIENCE / EXPERIENCE_TO_NEXT_LEVEL * 100))}%`;
+  levelReadout.textContent = String(progress.level).padStart(2, '0');
+  experienceReadout.textContent = progress.atMaxLevel
+    ? `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / MAX`
+    : `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / ${progress.required}`;
+  experienceFill.style.width = `${progress.ratio * 100}%`;
   attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
@@ -787,7 +1140,7 @@ function updateHudIconSlots() {
       slotRoot.append(label);
     }
   }
-  const slots = getPlayerHudSlots(PLAYER_HUD_LOADOUT);
+  const slots = getPlayerHudSlots(combatState.build);
   visorSlots.forEach((slotElement, index) => {
     const slot = slots[index];
     const icon = slotElement.querySelector('[data-visor-icon]');
@@ -814,6 +1167,54 @@ function updateHudIconSlots() {
     icon.hidden = false;
     slotElement.setAttribute('aria-label', getPlayerHudSlotLabel(slot));
   });
+}
+
+let upgradeUiSignature = '';
+function updateUpgradeOverlay() {
+  if (!combatState.awaitingUpgrade) {
+    upgradeOverlay.hidden = true;
+    upgradeUiSignature = '';
+    return;
+  }
+  upgradeOverlay.hidden = false;
+  const signature = JSON.stringify({
+    category: combatState.upgradeCategory,
+    categories: combatState.upgradeCategories,
+    choices: combatState.upgradeChoices,
+    pending: combatState.progression.pendingLevelUps,
+  });
+  if (signature === upgradeUiSignature) return;
+  upgradeUiSignature = signature;
+  upgradeNote.textContent = combatState.upgradeCategory
+    ? `還有 ${combatState.progression.pendingLevelUps} 次升級待選；選擇一個合法項目。`
+    : `還有 ${combatState.progression.pendingLevelUps} 次升級待選；先決定武器或被動能力。`;
+  upgradeCategories.replaceChildren(...combatState.upgradeCategories.map((category) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.upgradeCategory = category;
+    button.classList.toggle('is-active', category === combatState.upgradeCategory);
+    button.textContent = category === 'weapon' ? '武器' : '被動能力';
+    return button;
+  }));
+  if (!combatState.upgradeCategory) {
+    upgradeChoices.replaceChildren();
+    return;
+  }
+  upgradeChoices.replaceChildren(...combatState.upgradeChoices.map((choice) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.upgradeChoice = 'true';
+    button.dataset.upgradeCategory = choice.category;
+    button.dataset.upgradeAction = choice.action;
+    button.dataset.upgradeId = choice.id;
+    button.dataset.upgradeLevel = String(choice.level);
+    const title = document.createElement('strong');
+    title.textContent = choice.label;
+    const detail = document.createElement('small');
+    detail.textContent = choice.detail;
+    button.append(title, detail);
+    return button;
+  }));
 }
 
 function setSettingsOpen(open) {
@@ -876,7 +1277,7 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
-  if (paused || actor.dead) return;
+  if (paused || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
   if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
@@ -887,10 +1288,10 @@ canvas.addEventListener('pointerdown', (event) => {
   updateHud();
 });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣改為時間倒數（滿氧約 40 秒）`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); Object.assign(actor, createTestActor(spawn)); katanaState = createPlayKatanaState(INITIAL_KATANA_LEVEL); eventLog.push('主角已回到中央安全水域。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; Object.assign(actor, resetActor); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build 與篇章進度保留。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
@@ -900,11 +1301,50 @@ exitButton.addEventListener('click', () => { sfxController.play('button'); windo
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
+
+function beginStageTransition(nextPart) {
+  if (transitioning || !MAPS[nextPart]) return;
+  transitioning = true;
+  accumulator = 0;
+  loadingMask.classList.remove('is-hidden');
+  loadingMask.textContent = `前往${MAPS[nextPart].label}…`;
+  mapSelect.value = String(nextPart);
+  mapPart = nextPart;
+  syncMusicTrack();
+  loadMap(nextPart, { preserveRun: true })
+    .then(() => { eventLog.push('跨段完成：生命、氧氣、能量、經驗與 Build 已保留。'); })
+    .finally(() => { transitioning = false; });
+}
 mapSelect.addEventListener('change', () => {
   sfxController.play('menuSelection');
-  mapPart = Number(mapSelect.value) || 3;
+  mapPart = Number(mapSelect.value) || 1;
   syncMusicTrack();
   loadMap(mapPart);
+});
+upgradeCategories.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-upgrade-category]');
+  if (!button) return;
+  sfxController.play('menuSelection');
+  choosePlayUpgradeCategory(combatState, button.dataset.upgradeCategory);
+  upgradeUiSignature = '';
+  updateHud();
+});
+upgradeChoices.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-upgrade-choice]');
+  if (!button) return;
+  sfxController.play('button');
+  const result = choosePlayUpgrade(combatState, {
+    category: button.dataset.upgradeCategory,
+    action: button.dataset.upgradeAction,
+    id: button.dataset.upgradeId,
+    level: Number(button.dataset.upgradeLevel),
+  }, actor);
+  if (result.ok) {
+    syncKatanaState();
+    eventLog.push(`Build 已更新：${result.choice.label}。`);
+  }
+  upgradeUiSignature = '';
+  updateHud();
 });
 musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
@@ -917,24 +1357,49 @@ window.addEventListener('keydown', (event) => {
 });
 
 function simulate(elapsed, now = performance.now()) {
-  if (!paused && map && actor && !actor.gameOver) {
+  if (!paused && !transitioning && !runCompleted && map && actor && !actor.gameOver) {
+    if (combatState.awaitingUpgrade) {
+      accumulator = 0;
+      updateHud();
+      return;
+    }
     accumulator += Math.min(.1, Math.max(0, elapsed));
     while (accumulator >= FIXED_STEP) {
       worldTime += FIXED_STEP;
       refillUnlimitedResources();
       const previousPosition = { x: actor.x, y: actor.y };
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
-      markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
+      const katanaEntry = syncKatanaState();
+      if (katanaEntry) markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
       updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
-      stepPlayKatana(katanaState, FIXED_STEP);
-      const katanaAttack = resolvePlayKatanaSlash({
-        state: katanaState,
+      if (katanaEntry) {
+        stepPlayKatana(katanaState, FIXED_STEP);
+        const katanaWeapon = getWeaponStats('katana', katanaEntry.level);
+        const energyCost = katanaWeapon.energyCost * (actor.derivedStats?.weaponEnergyCostMultiplier ?? 1);
+        if (actor.energy >= energyCost) {
+          const katanaAttack = resolvePlayKatanaSlash({
+            state: katanaState,
+            actor,
+            enemies,
+            damageMultiplier: actor.derivedStats?.currentDamageMultiplier ?? 1,
+          });
+          if (katanaAttack.ok && katanaAttack.hit) {
+            actor.energy = Math.max(0, actor.energy - energyCost);
+            recordPlayEnemyDefeats(combatState, enemies, actor);
+            eventLog.push(`武士刀 Lv.${katanaState.level}${katanaAttack.empowered ? ' 強化' : ''}斬擊命中 ${katanaAttack.hitCount} 隻，造成 ${katanaAttack.totalDamage} 傷害。`);
+          }
+        }
+      }
+      const combatResult = stepPlayCombat(combatState, {
         actor,
         enemies,
-        damageMultiplier: actor.derivedStats?.currentDamageMultiplier ?? 1,
+        previousPosition,
+        dt: FIXED_STEP,
+        aiming: dragging,
       });
-      if (katanaAttack.ok && katanaAttack.hit) {
-        eventLog.push(`武士刀 Lv.${katanaState.level}${katanaAttack.empowered ? ' 強化' : ''}斬擊命中 ${katanaAttack.hitCount} 隻，造成 ${katanaAttack.totalDamage} 傷害。`);
+      if (combatResult.ok && combatResult.collected.collected.length) {
+        const gained = combatResult.collected.collected.reduce((total, orb) => total + (orb.value ?? 0), 0);
+        eventLog.push(`拾取 ${gained} EXP${combatResult.collected.levelUps ? `，提升 ${combatResult.collected.levelUps} 級` : ''}。`);
       }
       enemies.forEach((enemy) => {
         enemy.hitFlash = Math.max(0, (enemy.hitFlash ?? 0) - FIXED_STEP);
@@ -947,8 +1412,23 @@ function simulate(elapsed, now = performance.now()) {
           eventLog.push(`${cause}：永久死亡。`);
         } else {
           sfxController.play('impactWet');
-          respawnActor(actor, spawn);
-          eventLog.push(`${cause}：失去 1 條命，已回到安全水域。`);
+          respawnActor(actor, actor.spawn ?? spawn);
+          eventLog.push(`${cause}：失去 1 條命，已回到最近啟用的 Checkpoint。`);
+        }
+      }
+      const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+      if (!actor.dead && stageExit.arrived) {
+        if (stageExit.nextPart) {
+          beginStageTransition(stageExit.nextPart);
+          accumulator = 0;
+          break;
+        }
+        if (stageExit.completed) {
+          runCompleted = true;
+          completionOverlay.hidden = false;
+          eventLog.push('深淵抹香鯨已擊敗：下沉篇完成。');
+          accumulator = 0;
+          break;
         }
       }
       refillUnlimitedResources();
@@ -959,24 +1439,34 @@ function simulate(elapsed, now = performance.now()) {
   }
 }
 
-window.render_game_to_text = () => JSON.stringify({
-  coordinateSystem: 'world origin is top-left; x right, y down',
-  map: MAPS[mapPart]?.label ?? 'loading',
-  camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-  player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon } : null,
-  hudLoadout: getPlayerHudSlots(PLAYER_HUD_LOADOUT).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
-  katana: { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) },
-  enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, katanaShowcase: Boolean(enemy.katanaShowcase), state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
-  totalEnemySpawns: enemies.length,
-  totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
-  totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
-  discoveries: {
-    seen: [...discoverySession.seenGuideKeys],
-    active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
-  },
-  unlimitedResources,
-  paused,
-});
+window.render_game_to_text = () => {
+  const combat = getPlayCombatRenderState(combatState);
+  const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+  return JSON.stringify({
+    coordinateSystem: 'world origin is top-left; x right, y down',
+    map: MAPS[mapPart]?.label ?? 'loading',
+    mapPart,
+    camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
+    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon } : null,
+    hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
+    combat,
+    enemyCombat: getPlayEnemyRenderState(enemies, worldTime),
+    katana: equippedWeapon('katana') ? { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) } : null,
+    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+    totalEnemySpawns: enemies.length,
+    totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
+    totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
+    stageExit,
+    runCompleted,
+    transitioning,
+    discoveries: {
+      seen: [...discoverySession.seenGuideKeys],
+      active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
+    },
+    unlimitedResources,
+    paused,
+  });
+};
 window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Math.max(0, milliseconds) / (1000 / 60))); for (let index = 0; index < steps; index += 1) simulate(FIXED_STEP, performance.now()); render(); };
 
 function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }

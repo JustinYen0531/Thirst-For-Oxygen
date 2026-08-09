@@ -79,7 +79,7 @@ test('weapon and passive encyclopedia entries reuse all 24 authored level icons'
   levels.forEach(({ icon }) => assert.equal(existsSync(publicPath(icon)), true, `icon should exist at ${icon}`));
 });
 
-test('runtime literal asset scan has only the documented button artwork blocker', () => {
+test('runtime literal asset scan has no broken artwork references', () => {
   const sourceFiles = readdirSync(path.join(ROOT, 'src'))
     .filter((name) => name.endsWith('.js'))
     .map((name) => path.join(ROOT, 'src', name));
@@ -93,7 +93,7 @@ test('runtime literal asset scan has only the documented button artwork blocker'
     for (const match of source.matchAll(literalAsset)) references.push(match[1]);
   });
   const missing = [...new Set(references.filter((url) => !existsSync(publicPath(url))))].sort();
-  assert.deepEqual(missing, ['/assets/editor/objects/button.png']);
+  assert.deepEqual(missing, []);
 });
 
 test('declared animated visuals and repaired GDD previews retain alpha without a connected black matte', () => {

@@ -14,10 +14,12 @@ import {
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
+  getPlayEnemyRenderState,
   getPlayEnemyPose,
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from '../src/play-enemies.js';
+import { ENEMY_DEFINITIONS } from '../src/game-data.js';
 import { getHexCenter } from '../src/map-model.js';
 
 const PART_MAP_PATHS = [
@@ -31,6 +33,51 @@ function readMap(relativePath) {
 }
 
 const regularEnemies = (enemies) => enemies.filter((enemy) => enemy.markerKind === 'enemySpawn');
+
+function authoredEnemy(enemyId, overrides = {}) {
+  const definition = ENEMY_DEFINITIONS[enemyId];
+  return {
+    instanceId: overrides.instanceId ?? `test-${enemyId}`,
+    enemyId,
+    name: definition.name,
+    tier: definition.tier,
+    x: 0,
+    y: 0,
+    homeX: 0,
+    homeY: 0,
+    health: definition.maxHealth,
+    maxHealth: definition.maxHealth,
+    moveSpeed: definition.moveSpeed ?? 0,
+    vx: 0,
+    vy: 0,
+    radius: 12,
+    state: 'idle',
+    facing: 'right',
+    alerted: false,
+    cooldowns: {},
+    nextSkillIndex: 0,
+    pendingSkill: null,
+    suicideCharge: null,
+    stunnedUntil: 0,
+    linkedTargets: [],
+    linkedTarget: null,
+    linkedProtection: null,
+    rescueCompleted: false,
+    defeated: false,
+    ...overrides,
+  };
+}
+
+function advanceCombat(enemies, actor, seconds, { start = 0, step = 1 / 60, onDamage = null } = {}) {
+  let now = start;
+  const end = start + seconds;
+  while (now + 1e-9 < end) {
+    const dt = Math.min(step, end - now);
+    now += dt;
+    updatePlayEnemies(enemies, actor, dt, now, onDamage);
+  }
+  return now;
+}
 
 test('all descent map parts distribute the required population with sparse authored clusters', () => {
   const allEnemyIds = new Set();
@@ -46,6 +93,18 @@ test('all descent map parts distribute the required population with sparse autho
     });
   });
   assert.deepEqual(new Set(DESCENT_ENEMY_ROSTER), allEnemyIds, 'the three descent parts should use the complete documented nine-enemy roster');
+});
+
+test('enemy instance IDs remain unique when combat state survives a map-part transition', () => {
+  const idsByPart = PART_MAP_PATHS.map((relativePath, index) => new Set(
+    createPlayEnemies(readMap(relativePath), index + 1, 'chapter1', { x: 36, y: 36 })
+      .map((enemy) => enemy.instanceId),
+  ));
+  const allIds = idsByPart.flatMap((ids) => [...ids]);
+  assert.equal(new Set(allIds).size, allIds.length);
+  idsByPart.forEach((ids, index) => {
+    assert.ok([...ids].every((id) => id.startsWith(`map-part-${index + 1}-`)));
+  });
 });
 
 test('enemy distribution protects the player start and covers the map instead of stacking at anchors', () => {
@@ -178,4 +237,131 @@ test('distant enemies remain dormant instead of converging on the player spawn',
   assert.deepEqual({ x: enemy.x, y: enemy.y }, start);
   assert.equal(enemy.state, 'idle');
   assert.equal(damage, 0);
+});
+
+test('stunnedUntil pauses movement, cooldowns, and an active cast until the stun expires', () => {
+  const enemy = authoredEnemy('crabGuard', {
+    alerted: true,
+    x: 40,
+    pendingSkill: { skillId: 'clawSwipe', remaining: 0.3, targetX: 0, targetY: 0 },
+    cooldowns: { clawSwipe: 0.8 },
+    stunnedUntil: 1,
+  });
+  const actor = { x: 0, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  let damage = 0;
+
+  updatePlayEnemies([enemy], actor, 0.5, 0.5, (amount) => { damage += amount; });
+  assert.equal(enemy.state, 'stunned');
+  assert.equal(enemy.pendingSkill.remaining, 0.3);
+  assert.equal(enemy.cooldowns.clawSwipe, 0.8);
+  assert.deepEqual({ x: enemy.x, y: enemy.y }, { x: 40, y: 0 });
+  assert.equal(damage, 0);
+
+  updatePlayEnemies([enemy], actor, 0.1, 1.1, (amount) => { damage += amount; });
+  assert.equal(enemy.stunnedUntil, 0);
+  assert.ok(enemy.pendingSkill.remaining < 0.3, 'the cast resumes only after the stun deadline');
+});
+
+test('lanternfish locks one destination, reaches it, then waits one second before exploding there', () => {
+  const enemy = authoredEnemy('explodingLanternfish');
+  const enemies = [enemy];
+  const actor = { x: 90, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  let damage = 0;
+  let now = advanceCombat(enemies, actor, 1 / 60, { onDamage: (amount) => { damage += amount; } });
+  assert.equal(enemy.suicideCharge.targetX, 90);
+  actor.x = 280;
+
+  while (enemy.suicideCharge?.phase === 'seeking' && now < 3) {
+    now = advanceCombat(enemies, actor, 1 / 60, { start: now, onDamage: (amount) => { damage += amount; } });
+  }
+  assert.equal(enemy.suicideCharge.phase, 'detonating');
+  assert.equal(enemy.x, 90);
+  assert.equal(enemy.suicideCharge.targetX, 90, 'moving the player cannot move the locked destination');
+  now = advanceCombat(enemies, actor, 0.9, { start: now, onDamage: (amount) => { damage += amount; } });
+  assert.equal(enemy.defeated, false);
+  now = advanceCombat(enemies, actor, 0.12, { start: now, onDamage: (amount) => { damage += amount; } });
+  assert.equal(enemy.defeated, true);
+  assert.equal(damage, 0, 'the explosion checks the locked point instead of following the player');
+  const render = getPlayEnemyRenderState(enemies, now);
+  assert.ok(render.effects.some((effect) => effect.type === 'detonation' && effect.x === 90));
+});
+
+test('formal enemy projectiles exist in flight and use swept collision instead of remote instant damage', () => {
+  const enemy = authoredEnemy('lobsterSoldier');
+  const enemies = [enemy];
+  const actor = { x: 150, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  let damage = 0;
+  const onDamage = (amount) => { damage += amount; };
+  let now = advanceCombat(enemies, actor, 0.36, { onDamage });
+  let render = getPlayEnemyRenderState(enemies, now);
+  assert.equal(damage, 0);
+  assert.equal(render.projectiles.length, 1, 'resolving the cast creates a renderable projectile first');
+  assert.ok(render.projectiles[0].x < actor.x);
+
+  now = advanceCombat(enemies, actor, 0.2, { start: now, onDamage });
+  assert.equal(damage, 0, 'the projectile cannot damage before it reaches the actor');
+  updatePlayEnemies(enemies, actor, 1, now + 1, onDamage);
+  render = getPlayEnemyRenderState(enemies, now + 1);
+  assert.equal(damage, 24, 'a large fixed step still detects the swept crossing');
+  assert.equal(render.projectiles.length, 0);
+});
+
+test('juvenile seahorse finishes its six-second rescue cast before adding two core enemies', () => {
+  const caller = authoredEnemy('juvenileSeahorseCaller');
+  const enemies = [caller];
+  const actor = { x: 100, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  let now = advanceCombat(enemies, actor, 5.9);
+  assert.equal(enemies.length, 1);
+  assert.equal(caller.pendingSkill?.skillId, 'callForHelp');
+  now = advanceCombat(enemies, actor, 0.2, { start: now });
+  assert.equal(enemies.length, 3);
+  assert.equal(caller.rescueCompleted, true);
+  const summons = enemies.slice(1);
+  assert.ok(summons.every((enemy) => DESCENT_CORE_ENEMIES.includes(enemy.enemyId)));
+  assert.ok(summons.every((enemy) => enemy.summonedBy === caller.instanceId));
+  assert.ok(getPlayEnemyRenderState(enemies, now).effects.some((effect) => effect.type === 'summon'));
+});
+
+test('coral-back seahorse exposes life links, continuous healing, and its support pulse', () => {
+  const coral = authoredEnemy('coralBackSeahorse', {
+    health: 100,
+    cooldowns: { coralPulse: 5 },
+  });
+  const ally = authoredEnemy('crabGuard', {
+    instanceId: 'linked-crab',
+    x: 30,
+    health: 100,
+    maxHealth: 200,
+  });
+  const enemies = [coral, ally];
+  const actor = { x: 80, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+
+  updatePlayEnemies(enemies, actor, 1, 1);
+  assert.deepEqual(coral.linkedTargets, [ally.instanceId]);
+  assert.equal(ally.linkedProtection, coral.instanceId);
+  assert.equal(ally.health, 106);
+  assert.equal(coral.health, 106);
+  let render = getPlayEnemyRenderState(enemies, 1);
+  assert.deepEqual(render.enemies.find((entry) => entry.instanceId === coral.instanceId).linkedTargets, [ally.instanceId]);
+
+  coral.cooldowns.coralPulse = 0;
+  updatePlayEnemies(enemies, actor, 0.01, 1.01);
+  render = getPlayEnemyRenderState(enemies, 1.01);
+  assert.ok(render.effects.some((effect) => effect.type === 'supportPulse'));
+  assert.ok(ally.health > 106, 'the authored pulse adds a visible nearby heal');
+});
+
+test('unsupported Mini Boss and Boss skills expose safe render cues without unavoidable remote damage', () => {
+  const miniBoss = authoredEnemy('prismCrabGuardian', { instanceId: 'mini-boss' });
+  const boss = authoredEnemy('abyssalSpermWhale', { instanceId: 'boss', x: 20 });
+  const enemies = [miniBoss, boss];
+  const actor = { x: 100, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  let damage = 0;
+  const now = advanceCombat(enemies, actor, 0.4, { onDamage: (amount) => { damage += amount; } });
+  const render = getPlayEnemyRenderState(enemies, now);
+
+  assert.equal(damage, 0);
+  assert.equal(actor.health, 100);
+  assert.ok(render.effects.filter((effect) => effect.type === 'unsupportedSkill' && effect.damageSuppressed).length >= 2);
+  assert.ok(render.enemies.every((enemy) => enemy.lastResolvedSkill?.supported === false));
 });

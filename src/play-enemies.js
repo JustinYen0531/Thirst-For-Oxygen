@@ -223,6 +223,12 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       cooldowns: {},
       nextSkillIndex: 0,
       pendingSkill: null,
+      suicideCharge: null,
+      stunnedUntil: 0,
+      linkedTarget: null,
+      linkedTargets: [],
+      linkedProtection: null,
+      rescueCompleted: false,
       defeated: false,
     };
   };
@@ -238,7 +244,7 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
         enemyId,
         spawn,
         anchorCellKey: marker.cellKey,
-        instanceId: `map-enemy-${spawn.cellKey}-${globalIndex}`,
+        instanceId: `map-part-${part}-enemy-${spawn.cellKey}-${globalIndex}`,
         markerKind: 'enemySpawn',
       });
   });
@@ -247,7 +253,7 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
     enemyId: entry.marker.enemyId,
     spawn: { cellKey: entry.cellKey, cell: entry.cell, spawnPattern: 'special' },
     anchorCellKey: entry.cellKey,
-    instanceId: `map-special-${entry.marker.kind}-${entry.cellKey}-${index}`,
+    instanceId: `map-part-${part}-special-${entry.marker.kind}-${entry.cellKey}-${index}`,
     markerKind: entry.marker.kind,
   }));
 
@@ -257,6 +263,57 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
 const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
 const angleBetween = (from, to) => Math.atan2(to.y - from.y, to.x - from.x);
+const playEnemyRuntimes = new WeakMap();
+
+function distanceToSegment(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const ratio = lengthSquared > 0
+    ? clampValue(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared, 0, 1)
+    : 0;
+  return Math.hypot(point.x - (start.x + dx * ratio), point.y - (start.y + dy * ratio));
+}
+
+function getPlayEnemyRuntime(enemies) {
+  let runtime = playEnemyRuntimes.get(enemies);
+  if (!runtime) {
+    runtime = {
+      time: 0,
+      projectiles: [],
+      zones: [],
+      effects: [],
+      nextProjectileId: 1,
+      nextZoneId: 1,
+      nextEffectId: 1,
+      nextSummonId: 1,
+    };
+    playEnemyRuntimes.set(enemies, runtime);
+  }
+  return runtime;
+}
+
+function addPlayEnemyEffect(runtime, effect) {
+  const next = {
+    id: `play-enemy-effect-${runtime.nextEffectId++}`,
+    elapsed: 0,
+    duration: 0.6,
+    ...effect,
+  };
+  runtime.effects.push(next);
+  return next;
+}
+
+function tickPlayEnemyEffects(runtime, dt) {
+  runtime.effects = runtime.effects.filter((effect) => {
+    effect.elapsed += dt;
+    return effect.elapsed < effect.duration;
+  });
+}
+
+function activePlayEnemies(enemies) {
+  return enemies.filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+}
 
 function attackReach(enemy, skill) {
   return (skill.range ?? skill.radius ?? 44) + enemy.radius + (enemy.actorRadius ?? 6);
@@ -273,6 +330,13 @@ function canUsePlaySkill(enemy, skill, distance) {
   if ((enemy.cooldowns[skill.id] ?? 0) > 0) return false;
   if (skill.type === 'contact' || skill.type === 'melee') return distance <= attackReach(enemy, skill);
   if (skill.type === 'suicideCharge') return distance <= (skill.triggerRange ?? 260);
+  if (skill.type === 'summon' && enemy.enemyId === 'juvenileSeahorseCaller') {
+    return !enemy.rescueCompleted && distance <= (skill.summonRadius ?? 190);
+  }
+  if (skill.type === 'link' || skill.type === 'split') return false;
+  if (['projectile', 'spread', 'boomerangSpread', 'shieldBoomerang', 'cloneBarrage'].includes(skill.type)) {
+    return distance <= (skill.range ?? 520);
+  }
   return true;
 }
 
@@ -283,10 +347,302 @@ function playEnemyDamage(actor, amount, source, onDamage, damageType = 'generic'
   actor.hurtTimer = Math.max(actor.hurtTimer ?? 0, 0.18);
 }
 
-function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
+function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
+  const count = Math.max(1, Math.round(skill.projectileCount ?? 1));
+  const spread = ((skill.spreadDegrees ?? (count > 1 ? 18 : 0)) * Math.PI) / 180;
+  const centre = angleBetween(enemy, target);
+  for (let index = 0; index < count; index += 1) {
+    const ratio = count === 1 ? 0 : index / (count - 1) - 0.5;
+    const angle = centre + ratio * spread;
+    const speed = Math.max(1, Number(skill.projectileSpeed ?? 280));
+    runtime.projectiles.push({
+      id: `play-enemy-projectile-${runtime.nextProjectileId++}`,
+      ownerId: enemy.instanceId,
+      enemyId: enemy.enemyId,
+      skillId: skill.id,
+      skillName: skill.name,
+      x: enemy.x,
+      y: enemy.y,
+      previousX: enemy.x,
+      previousY: enemy.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      angle,
+      radius: skill.projectileRadius ?? 6,
+      remainingDistance: skill.range ?? 360,
+      damage: skill.damage ?? 0,
+      applies: skill.applies ?? null,
+      effectDuration: skill.duration ?? 0,
+      colour: skill.type === 'spread' ? '#d6b6ff' : '#a5e8ff',
+    });
+  }
+  addPlayEnemyEffect(runtime, {
+    type: 'projectileVolley',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    x: enemy.x,
+    y: enemy.y,
+    targetX: target.x,
+    targetY: target.y,
+    projectileCount: count,
+    duration: 0.3,
+  });
+}
+
+function updatePlayEnemyProjectiles(runtime, actor, dt, onDamage) {
+  runtime.projectiles = runtime.projectiles.filter((projectile) => {
+    const previous = { x: projectile.x, y: projectile.y };
+    const travel = Math.hypot(projectile.vx, projectile.vy) * dt;
+    projectile.previousX = projectile.x;
+    projectile.previousY = projectile.y;
+    projectile.x += projectile.vx * dt;
+    projectile.y += projectile.vy * dt;
+    projectile.remainingDistance -= travel;
+    if (distanceToSegment(actor, previous, projectile) <= (actor.radius ?? 0) + projectile.radius) {
+      playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'ranged');
+      if (projectile.applies) {
+        actor.activeEffects ??= {};
+        actor.activeEffects[projectile.applies] = {
+          remaining: projectile.effectDuration,
+          source: projectile.skillId,
+        };
+      }
+      addPlayEnemyEffect(runtime, {
+        type: 'projectileImpact',
+        ownerId: projectile.ownerId,
+        skillId: projectile.skillId,
+        x: projectile.x,
+        y: projectile.y,
+        duration: 0.3,
+      });
+      return false;
+    }
+    return projectile.remainingDistance > 0;
+  });
+}
+
+function updatePlayEnemyZones(runtime, actor, dt, onDamage) {
+  runtime.zones = runtime.zones.filter((zone) => {
+    zone.remaining -= dt;
+    if (zone.remaining > 1e-6) return true;
+    if (distanceBetween(zone, actor) <= zone.radius + (actor.radius ?? 0)) {
+      playEnemyDamage(actor, zone.damage, zone.source, onDamage, 'ranged');
+    }
+    addPlayEnemyEffect(runtime, {
+      type: 'areaImpact',
+      ownerId: zone.ownerId,
+      skillId: zone.skillId,
+      x: zone.x,
+      y: zone.y,
+      radius: zone.radius,
+      duration: 0.55,
+    });
+    return false;
+  });
+}
+
+function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
+  const definition = ENEMY_DEFINITIONS[enemyId];
+  const tierWeight = enemyTierWeight(definition.tier);
+  return {
+    instanceId: `play-summon-${summoner.instanceId}-${runtime.nextSummonId++}-${index}`,
+    enemyId,
+    name: definition.name,
+    tier: definition.tier,
+    markerKind: 'summoned',
+    anchorCellKey: summoner.anchorCellKey ?? null,
+    spawnCellKey: null,
+    spawnPattern: 'summoned',
+    summonedBy: summoner.instanceId,
+    x,
+    y,
+    homeX: x,
+    homeY: y,
+    health: definition.maxHealth,
+    maxHealth: definition.maxHealth,
+    moveSpeed: definition.moveSpeed ?? 0,
+    vx: 0,
+    vy: 0,
+    radius: (4.5 + tierWeight * 0.65) * PLAY_ENEMY_RENDER_SCALE,
+    renderSize: (12 + tierWeight * 1.8) * PLAY_ENEMY_RENDER_SCALE,
+    visual: PLAY_ENEMY_VISUALS[enemyId] ?? null,
+    phase: (runtime.nextSummonId * 47 % 360) * Math.PI / 180,
+    state: 'idle',
+    facing: index % 2 ? 'left' : 'right',
+    alerted: true,
+    cooldowns: {},
+    nextSkillIndex: 0,
+    pendingSkill: null,
+    suicideCharge: null,
+    stunnedUntil: 0,
+    linkedTarget: null,
+    linkedTargets: [],
+    linkedProtection: null,
+    rescueCompleted: false,
+    defeated: false,
+  };
+}
+
+function summonJuvenileHelp(runtime, enemies, enemy, skill, bounds) {
+  const count = clampValue(Math.round(skill.summonCount ?? 2), 1, 8);
+  for (let index = 0; index < count; index += 1) {
+    const angle = Math.PI * 2 * index / count;
+    const enemyId = DESCENT_CORE_ENEMIES[(runtime.nextSummonId + index - 1) % DESCENT_CORE_ENEMIES.length];
+    let x = enemy.x + Math.cos(angle) * 34;
+    let y = enemy.y + Math.sin(angle) * 34;
+    if (bounds) {
+      x = clampValue(x, bounds.minX, bounds.maxX);
+      y = clampValue(y, bounds.minY, bounds.maxY);
+    }
+    enemies.push(createSummonedPlayEnemy(runtime, enemyId, enemy, x, y, index));
+  }
+  enemy.rescueCompleted = true;
+  addPlayEnemyEffect(runtime, {
+    type: 'summon',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    x: enemy.x,
+    y: enemy.y,
+    count,
+    duration: 0.9,
+  });
+}
+
+function updateLinkedSupport(runtime, enemies, enemy, definition, dt) {
+  if (enemy.enemyId !== 'coralBackSeahorse') return;
+  const link = definition.attacks.find((skill) => skill.type === 'link');
+  if (!link) return;
+  const previous = new Set(enemy.linkedTargets ?? []);
+  const targets = activePlayEnemies(enemies).filter((candidate) => (
+    candidate !== enemy
+    && candidate.tier === 2
+    && distanceBetween(enemy, candidate) <= (link.linkRange ?? 180)
+  ));
+  const nextIds = new Set(targets.map((candidate) => candidate.instanceId));
+  previous.forEach((targetId) => {
+    if (nextIds.has(targetId)) return;
+    const target = enemies.find((candidate) => candidate.instanceId === targetId);
+    if (target?.linkedProtection === enemy.instanceId) target.linkedProtection = null;
+  });
+  enemy.linkedTargets = [...nextIds];
+  enemy.linkedTarget = enemy.linkedTargets[0] ?? null;
+  let totalHeal = 0;
+  targets.forEach((target) => {
+    target.linkedProtection = link.linkedInvulnerable ? enemy.instanceId : null;
+    const heal = target.maxHealth * (link.healPerSecondRatio ?? 0.03) * dt;
+    const before = target.health;
+    target.health = Math.min(target.maxHealth, target.health + heal);
+    totalHeal += target.health - before;
+  });
+  enemy.health = Math.min(enemy.maxHealth, enemy.health + totalHeal);
+  if (targets.length && !previous.size) {
+    addPlayEnemyEffect(runtime, {
+      type: 'lifeLink',
+      ownerId: enemy.instanceId,
+      targetIds: [...nextIds],
+      x: enemy.x,
+      y: enemy.y,
+      duration: 0.8,
+    });
+  }
+}
+
+function beginSuicideCharge(runtime, enemy, skill, actor) {
+  enemy.suicideCharge = {
+    skillId: skill.id,
+    phase: 'seeking',
+    targetX: actor.x,
+    targetY: actor.y,
+    remaining: skill.detonationDelay ?? 1,
+  };
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.state = 'charging';
+  addPlayEnemyEffect(runtime, {
+    type: 'lockedTarget',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    x: actor.x,
+    y: actor.y,
+    radius: skill.radius ?? 52,
+    duration: 0.8,
+  });
+}
+
+function updateSuicideCharge(runtime, enemy, definition, actor, dt, onDamage, bounds) {
+  const charge = enemy.suicideCharge;
+  if (!charge) return false;
+  const skill = definition.attacks.find((candidate) => candidate.id === charge.skillId);
+  if (!skill) {
+    enemy.suicideCharge = null;
+    return false;
+  }
+  if (charge.phase === 'seeking') {
+    const target = { x: charge.targetX, y: charge.targetY };
+    const distance = distanceBetween(enemy, target);
+    const travel = (enemy.moveSpeed ?? definition.moveSpeed ?? 0) * dt;
+    if (distance <= Math.max(8, travel)) {
+      enemy.x = target.x;
+      enemy.y = target.y;
+      charge.phase = 'detonating';
+      charge.remaining = skill.detonationDelay ?? 1;
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'detonating';
+      addPlayEnemyEffect(runtime, {
+        type: 'detonationTelegraph',
+        ownerId: enemy.instanceId,
+        skillId: skill.id,
+        x: enemy.x,
+        y: enemy.y,
+        radius: skill.radius ?? 52,
+        duration: charge.remaining,
+      });
+    } else {
+      const angle = angleBetween(enemy, target);
+      enemy.vx = Math.cos(angle) * (enemy.moveSpeed ?? definition.moveSpeed ?? 0);
+      enemy.vy = Math.sin(angle) * (enemy.moveSpeed ?? definition.moveSpeed ?? 0);
+      enemy.x += Math.cos(angle) * travel;
+      enemy.y += Math.sin(angle) * travel;
+      enemy.state = 'charging';
+      if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
+      if (bounds) {
+        enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+        enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+      }
+    }
+    return true;
+  }
+  charge.remaining -= dt;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.state = 'detonating';
+  if (charge.remaining > 1e-6) return true;
+  const origin = { x: charge.targetX, y: charge.targetY };
+  if (distanceBetween(origin, actor) <= (skill.radius ?? 52) + (actor.radius ?? 0)) {
+    playEnemyDamage(actor, skill.damage, `${enemy.name}・${skill.name}`, onDamage, 'generic');
+  }
+  addPlayEnemyEffect(runtime, {
+    type: 'detonation',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    x: origin.x,
+    y: origin.y,
+    radius: skill.radius ?? 52,
+    duration: 0.7,
+  });
+  enemy.suicideCharge = null;
+  enemy.defeated = true;
+  enemy.health = 0;
+  enemy.state = 'defeated';
+  return true;
+}
+
+function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, lockedTarget = null, bounds = null) {
   const distance = distanceBetween(enemy, actor);
   const source = `${enemy.name}・${skill.name}`;
-  const damageType = ['contact', 'melee', 'teleportMelee', 'dash', 'suicideCharge'].includes(skill.type) ? 'generic' : 'ranged';
+  const damageType = ['contact', 'melee', 'teleportMelee', 'dash'].includes(skill.type) ? 'generic' : 'ranged';
+  enemy.lastResolvedSkill = { skillId: skill.id, skillType: skill.type, resolvedAt: runtime.time, supported: true };
   if (skill.type === 'teleportMelee' || skill.type === 'dash') {
     const angle = angleBetween(enemy, actor);
     enemy.x = actor.x - Math.cos(angle) * 28;
@@ -298,37 +654,106 @@ function resolvePlayEnemySkill(enemy, skill, actor, onDamage) {
     if (distance <= attackReach(enemy, skill)) {
       const angle = angleBetween(enemy, actor);
       if (skill.id === 'shortThrust' || skill.id === 'wingRam') {
-        actor.vx += Math.cos(angle) * 96;
-        actor.vy += Math.sin(angle) * 96;
+        actor.vx = (actor.vx ?? 0) + Math.cos(angle) * 96;
+        actor.vy = (actor.vy ?? 0) + Math.sin(angle) * 96;
       }
       if (skill.id !== 'shortThrust') playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
     }
     return;
   }
-  // The play page intentionally keeps projectiles lightweight: the sandbox
-  // owns their full swept collision model, while the authored encounter still
-  // needs a deterministic ranged hit cadence in the real map.
-  if (skill.type === 'lobbed' || skill.type === 'areaStun' || skill.type === 'gravityField') {
-    if (distance <= (skill.radius ?? 96) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+  if (['projectile', 'spread', 'boomerangSpread', 'shieldBoomerang', 'cloneBarrage'].includes(skill.type)) {
+    spawnPlayEnemyProjectiles(runtime, enemy, skill, lockedTarget ?? actor);
     return;
   }
-  if (skill.type === 'suicideCharge') {
-    if (distance <= (skill.radius ?? 52) + actor.radius) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
-    enemy.defeated = true;
-    enemy.health = 0;
+  if (skill.type === 'lobbed') {
+    const target = lockedTarget ?? actor;
+    runtime.zones.push({
+      id: `play-enemy-zone-${runtime.nextZoneId++}`,
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      x: target.x,
+      y: target.y,
+      radius: skill.radius ?? 56,
+      remaining: 0.28,
+      damage: skill.damage ?? 0,
+      source,
+    });
     return;
   }
-  if (skill.damage > 0) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+  if (skill.type === 'areaStun' || skill.type === 'gravityField') {
+    if (distance <= (skill.radius ?? 96) + (actor.radius ?? 0)) {
+      playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+      if (skill.stun) {
+        actor.stunnedUntil = Math.max(actor.stunnedUntil ?? 0, runtime.time + skill.stun);
+        actor.vx = 0;
+        actor.vy = 0;
+      }
+    }
+    addPlayEnemyEffect(runtime, { type: skill.type, ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, radius: skill.radius ?? 96, duration: skill.duration ?? 0.75 });
+    return;
+  }
+  if (skill.type === 'summon' && enemy.enemyId === 'juvenileSeahorseCaller') {
+    summonJuvenileHelp(runtime, enemies, enemy, skill, bounds);
+    return;
+  }
+  if (skill.type === 'supportPulse') {
+    const healedIds = [];
+    activePlayEnemies(enemies).forEach((candidate) => {
+      if (distanceBetween(enemy, candidate) > (skill.radius ?? 110)) return;
+      candidate.health = Math.min(candidate.maxHealth, candidate.health + candidate.maxHealth * (skill.healRatio ?? 0.08));
+      healedIds.push(candidate.instanceId);
+    });
+    addPlayEnemyEffect(runtime, { type: 'supportPulse', ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, radius: skill.radius ?? 110, healedIds, duration: 0.9 });
+    return;
+  }
+  // Complex Mini Boss/Boss contracts remain renderable but cannot silently
+  // become unavoidable global damage merely because their type is not yet
+  // simulated by the formal play scene.
+  enemy.lastResolvedSkill.supported = false;
+  addPlayEnemyEffect(runtime, {
+    type: 'unsupportedSkill',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    skillType: skill.type,
+    x: enemy.x,
+    y: enemy.y,
+    targetX: lockedTarget?.x ?? actor.x,
+    targetY: lockedTarget?.y ?? actor.y,
+    damageSuppressed: true,
+    duration: 0.8,
+  });
 }
 
 /** Advance authored descent enemies in the real play scene. */
-export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null, bounds = null, world = null) {
+export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = null, bounds = null, world = null) {
   if (!actor) return;
-  enemies.forEach((enemy) => {
+  const elapsed = Math.max(0, Number(dt) || 0);
+  const runtime = getPlayEnemyRuntime(enemies);
+  runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
+  tickPlayEnemyEffects(runtime, elapsed);
+  updatePlayEnemyProjectiles(runtime, actor, elapsed, onDamage);
+  updatePlayEnemyZones(runtime, actor, elapsed, onDamage);
+  enemies.forEach((candidate) => {
+    if (!candidate.linkedProtection) return;
+    const protector = enemies.find((enemy) => enemy.instanceId === candidate.linkedProtection);
+    if (!protector || protector.defeated || !protector.linkedTargets?.includes(candidate.instanceId)) candidate.linkedProtection = null;
+  });
+  [...enemies].forEach((enemy) => {
     if (enemy.defeated) return;
     const definition = ENEMY_DEFINITIONS[enemy.enemyId];
     if (!definition) return;
-    Object.keys(enemy.cooldowns).forEach((key) => { enemy.cooldowns[key] = Math.max(0, enemy.cooldowns[key] - dt); });
+    enemy.cooldowns ??= {};
+    enemy.linkedTargets ??= [];
+    if ((enemy.stunnedUntil ?? 0) > runtime.time) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'stunned';
+      return;
+    }
+    if ((enemy.stunnedUntil ?? 0) > 0) enemy.stunnedUntil = 0;
+    Object.keys(enemy.cooldowns).forEach((key) => { enemy.cooldowns[key] = Math.max(0, enemy.cooldowns[key] - elapsed); });
+    updateLinkedSupport(runtime, enemies, enemy, definition, elapsed);
+    if (updateSuicideCharge(runtime, enemy, definition, actor, elapsed, onDamage, bounds)) return;
     const distance = distanceBetween(enemy, actor);
     if (!enemy.pendingSkill) {
       if (distance <= PLAY_ENEMY_ACTIVATION_RADIUS) enemy.alerted = true;
@@ -341,14 +766,15 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
       }
     }
     if (enemy.pendingSkill) {
-      enemy.pendingSkill.remaining -= dt;
+      enemy.pendingSkill.remaining -= elapsed;
       enemy.vx = 0;
       enemy.vy = 0;
       enemy.state = 'casting';
       if (enemy.pendingSkill.remaining > 1e-6) return;
-      const skill = definition.attacks.find((candidate) => candidate.id === enemy.pendingSkill.skillId);
+      const pending = enemy.pendingSkill;
+      const skill = definition.attacks.find((candidate) => candidate.id === pending.skillId);
       enemy.pendingSkill = null;
-      if (skill) resolvePlayEnemySkill(enemy, skill, actor, onDamage);
+      if (skill) resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, { x: pending.targetX, y: pending.targetY }, bounds);
       enemy.state = enemy.defeated ? 'defeated' : 'attacking';
       return;
     }
@@ -357,7 +783,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
       const angle = angleBetween(enemy, actor);
       enemy.vx = Math.cos(angle) * enemy.moveSpeed;
       enemy.vy = Math.sin(angle) * enemy.moveSpeed;
-      const nextPosition = { x: enemy.x + enemy.vx * dt, y: enemy.y + enemy.vy * dt };
+      const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
       const nextCell = world?.map
         ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
         : null;
@@ -388,16 +814,59 @@ export function updatePlayEnemies(enemies, actor, dt, time = 0, onDamage = null,
     if (!selected) return;
     const { skill, index } = selected;
     enemy.nextSkillIndex = (index + 1) % attacks.length;
-    enemy.cooldowns[skill.id] = skill.cooldown ?? 0.6;
-    const authoredCastTime = Number(skill.castTime ?? skill.telegraph ?? skill.detonationDelay ?? 0);
-    const castTime = authoredCastTime > 0 ? authoredCastTime : skill.damage > 0 ? .32 : 0;
-    if (castTime > 0) {
-      enemy.pendingSkill = { skillId: skill.id, remaining: castTime };
-      enemy.state = 'casting';
+    enemy.cooldowns[skill.id] = Math.max(0.2, Number(skill.cooldown ?? 0.6));
+    if (skill.type === 'suicideCharge') {
+      beginSuicideCharge(runtime, enemy, skill, actor);
       return;
     }
-    resolvePlayEnemySkill(enemy, skill, actor, onDamage);
+    const authoredCastTime = Number(skill.castTime ?? skill.telegraph ?? 0);
+    const castTime = authoredCastTime > 0 ? authoredCastTime : skill.damage > 0 ? .32 : 0;
+    if (castTime > 0) {
+      enemy.pendingSkill = {
+        skillId: skill.id,
+        remaining: castTime,
+        targetX: actor.x,
+        targetY: actor.y,
+      };
+      enemy.state = 'casting';
+      addPlayEnemyEffect(runtime, {
+        type: 'telegraph',
+        ownerId: enemy.instanceId,
+        skillId: skill.id,
+        x: actor.x,
+        y: actor.y,
+        radius: skill.radius ?? skill.range ?? enemy.radius + 18,
+        duration: castTime,
+      });
+      return;
+    }
+    resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, { x: actor.x, y: actor.y }, bounds);
   });
+  return getPlayEnemyRenderState(enemies, runtime.time);
+}
+
+export function getPlayEnemyRenderState(enemies, time = null) {
+  const runtime = getPlayEnemyRuntime(enemies);
+  const now = Number.isFinite(time) ? time : runtime.time;
+  return {
+    time: now,
+    projectiles: runtime.projectiles.map((projectile) => ({ ...projectile })),
+    zones: runtime.zones.map((zone) => ({ ...zone })),
+    effects: runtime.effects.map((effect) => ({ ...effect })),
+    enemies: enemies.map((enemy) => ({
+      instanceId: enemy.instanceId,
+      enemyId: enemy.enemyId,
+      state: enemy.state,
+      stunnedRemaining: Math.max(0, (enemy.stunnedUntil ?? 0) - now),
+      pendingSkill: enemy.pendingSkill ? { ...enemy.pendingSkill } : null,
+      suicideCharge: enemy.suicideCharge ? { ...enemy.suicideCharge } : null,
+      linkedTarget: enemy.linkedTarget ?? null,
+      linkedTargets: [...(enemy.linkedTargets ?? [])],
+      linkedProtection: enemy.linkedProtection ?? null,
+      summonedBy: enemy.summonedBy ?? null,
+      lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,
+    })),
+  };
 }
 
 export function getPlayEnemyPose(enemy, timeSeconds) {

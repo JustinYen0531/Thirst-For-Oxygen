@@ -124,9 +124,12 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   const empowered = Boolean(weapon.effect?.empowerAfterMovement && state.empowerNextSlash);
   const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
   const damage = weapon.damage * multiplier * Math.max(0, Number(damageMultiplier) || 1);
+  let damagedHitCount = 0;
   hitEnemies.forEach((enemy) => {
+    if (enemy.linkedProtection) return;
     enemy.health = Math.max(0, enemy.health - damage);
     enemy.hitFlash = 0.22;
+    damagedHitCount += 1;
     if (enemy.health <= 0) {
       enemy.defeated = true;
       enemy.state = 'defeated';
@@ -136,14 +139,15 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   state.cooldown = weapon.cooldown ?? 0.7;
   state.slashCount += 1;
   state.lastHitCount = hitEnemies.length;
-  state.lastDamage = hitEnemies.length * damage;
+  state.lastDamage = damagedHitCount * damage;
   addSlashEffect(state, actor, weapon, angle, empowered, hitEnemies.length, damage, persistent);
   return {
     ok: true,
     hit: hitEnemies.length > 0,
     hitCount: hitEnemies.length,
     damage,
-    totalDamage: hitEnemies.length * damage,
+    totalDamage: damagedHitCount * damage,
+    protectedHitCount: hitEnemies.length - damagedHitCount,
     empowered,
     targetId: target?.instanceId ?? null,
   };

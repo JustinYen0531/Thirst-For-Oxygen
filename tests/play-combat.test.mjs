@@ -177,3 +177,14 @@ test('passive damage multiplier flows through formal projectile damage and exter
   const dropped = recordPlayEnemyDefeats(state, [katanaVictim], actor);
   assert.equal(dropped.length, 1, 'the outer play-katana system can report its defeated enemy exactly once');
 });
+
+test('formal weapons respect the coral seahorse life-link protection field', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 0, y: 0 });
+  const protectedEnemy = enemy('protected', 'crabGuard', 30, 0, 100);
+  protectedEnemy.linkedProtection = 'coral-protector';
+  actor.x = 60;
+  stepPlayCombat(state, { actor, enemies: [protectedEnemy], previousPosition: { x: 0, y: 0 }, dt: 1 / 60 });
+  assert.equal(protectedEnemy.health, 100);
+  assert.ok(state.effects.some((effect) => effect.type === 'weaponBlocked' && effect.protectorId === 'coral-protector'));
+});
