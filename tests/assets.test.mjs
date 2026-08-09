@@ -109,7 +109,8 @@ test('public entry uses the authored helmet title screen while utility pages kee
   assert.match(home, /id="home-intro"/);
   assert.match(home, /helmet-turn-00-front\.png/);
   assert.match(home, /thirst-for-oxygen-logo-v2\.png/);
-  assert.doesNotMatch(home, /範本地圖|home-map-preview|destination-grid/);
+  assert.match(home, /id="home-map-preview"/);
+  assert.doesNotMatch(home, /範本地圖|destination-grid/);
   assert.match(sandbox, /href="\/play\.html">遊玩地圖<\/a>/);
   assert.match(encyclopedia, /href="\/play\.html">遊玩地圖<\/a>/);
   assert.doesNotMatch(`${sandbox}\n${encyclopedia}`, /play\.html\?part=3/);

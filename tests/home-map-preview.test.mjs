@@ -4,11 +4,16 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
+  HOME_ENEMY_SHOWCASE,
   HOME_HELMET_TURN_DURATION_MS,
   HOME_HELMET_TURN_FRAME_COUNT,
+  getHomeEnemyAnimationFrames,
+  getHomeEnemyFrameIndex,
   getHomeHelmetTurnFrame,
 } from '../src/home-page.js';
+import { HOME_PREVIEW_ROUTES } from '../src/home-map-preview.js';
 
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 
 test('home contains the dark video, helmet turn, movable logo and final menu', () => {
@@ -23,11 +28,13 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   assert.match(html, /abandoned-diving-helmet-left-v2\.png/);
   assert.match(html, /thirst-for-oxygen-logo-v2\.png/);
   assert.match(html, /id="home-main-menu"/);
+  assert.match(html, /id="home-enemy-field"/);
+  assert.match(html, /id="home-map-preview"/);
   assert.match(html, /href="\/play\.html"/);
   assert.match(html, /href="\/enemy-encyclopedia\.html"/);
   assert.match(html, /href="\/sandbox\.html"/);
   assert.match(html, /href="\/"/);
-  assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control|home-map-preview/);
+  assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control/);
 });
 
 test('all homepage helmet and logo assets are RGBA PNG files', () => {
@@ -54,7 +61,30 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.76/);
   assert.match(css, /brightness\(0\.68\)/);
   assert.match(css, /\.home-helmet-stage[\s\S]*scale\(0\.88\)/);
-  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(40vw, 4vh, 0\) scale\(0\.72\)/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 2vh, 0\) scale\(0\.72\)/);
+});
+
+test('helmet map preview uses all three authored descent maps', () => {
+  assert.deepEqual(HOME_PREVIEW_ROUTES.descent.map((route) => route.part), [1, 2, 3]);
+  HOME_PREVIEW_ROUTES.descent.forEach((route) => {
+    assert.equal(existsSync(`${ROOT}${decodeURIComponent(route.path).replaceAll('/', '\\')}`), true, route.path);
+  });
+});
+
+test('background enemies use real six-frame idle and skill animations', () => {
+  assert.equal(HOME_ENEMY_SHOWCASE.length, 3);
+  HOME_ENEMY_SHOWCASE.forEach((enemy) => {
+    const idleFrames = getHomeEnemyAnimationFrames(enemy.enemyId);
+    const actionFrames = getHomeEnemyAnimationFrames(enemy.enemyId, enemy.actionId);
+    assert.equal(idleFrames.length, 6, `${enemy.enemyId} idle`);
+    assert.equal(actionFrames.length, 6, `${enemy.enemyId} action`);
+    [...idleFrames, ...actionFrames].forEach((assetPath) => {
+      assert.equal(existsSync(`${ROOT}\\public${assetPath.replaceAll('/', '\\')}`), true, assetPath);
+    });
+  });
+  assert.equal(getHomeEnemyFrameIndex(0), 0);
+  assert.equal(getHomeEnemyFrameIndex(180), 1);
+  assert.equal(getHomeEnemyFrameIndex(1080), 0);
 });
 
 test('helmet turn advances through four frames and ends on the side frame', () => {
@@ -76,9 +106,16 @@ test('homepage supports click-anywhere, keyboard input and deterministic text st
   assert.match(page, /window\.advanceTime/);
   assert.match(page, /window\.render_game_to_text/);
   assert.match(page, /mainMenu\.toggleAttribute\('inert'/);
+  assert.match(page, /attachHomeMapPreview\(homeRoot\)/);
+  assert.match(page, /attachHomeMusic\(document\)/);
+  assert.match(page, /eventTarget\.addEventListener\('pointermove'/);
+  assert.match(page, /window\.triggerHomeEnemySkill/);
+  assert.match(css, /mask-image: radial-gradient\(circle 250px at var\(--flashlight-x\) var\(--flashlight-y\)/);
   assert.match(css, /@keyframes helmet-frame-front/);
   assert.match(css, /@keyframes helmet-frame-one/);
   assert.match(css, /@keyframes helmet-frame-two/);
   assert.match(css, /@keyframes helmet-frame-side/);
   assert.match(css, /@keyframes home-menu-reveal/);
+  assert.match(css, /@keyframes home-map-lens-reveal/);
+  assert.match(css, /@keyframes home-enemy-drift/);
 });

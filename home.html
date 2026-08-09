@@ -19,6 +19,8 @@
       tabindex="0"
       aria-label="點擊任意位置，讓深海頭盔轉向側面"
     >
+      <div class="home-enemy-field" id="home-enemy-field" aria-label="隱藏在深海中的敵人"></div>
+
       <div class="home-helmet-stage" aria-live="polite">
         <img
           class="home-helmet-frame home-helmet-frame--front"
@@ -43,6 +45,15 @@
           alt=""
           aria-hidden="true"
         />
+
+        <div class="home-helmet-map-lens" aria-label="頭盔面罩中的正式遊戲地圖巡覽">
+          <canvas id="home-map-preview" width="720" height="760" aria-label="下沉篇第一至第三部分地圖巡覽"></canvas>
+          <div class="home-map-reflection" aria-hidden="true"></div>
+          <p class="home-preview-loading" id="home-preview-loading">正在讀取遊戲地圖…</p>
+          <span id="home-preview-part" hidden>第一部分｜深海森林入口</span>
+          <span id="home-preview-direction" hidden>自動下潛</span>
+          <button id="home-preview-toggle" type="button" hidden>Ⅱ 暫停巡覽</button>
+        </div>
 
       </div>
 
