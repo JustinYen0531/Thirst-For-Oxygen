@@ -1148,3 +1148,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 敵人 runtime 新增零複製 render view 與 instance ID 索引；每個物理步驟只回傳 Resonance 事件，完整快照只保留給 `render_game_to_text`。遠距生物以 0.25 秒低頻導航，進入玩家範圍後立即恢復完整模擬。
 - Play 由原本一次建立 328 張圖片，改為 76 張共用基礎素材加當前地圖敵人幀；Part 1/2/3 分別為 196/238/256 張，減少約 40%/27%/22%。教學辨識掃描降為 120 ms 一次，並移除 HUD 長駐 backdrop-filter。
 - 針對性測試 62/62、完整 `npm run check` 306/306、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器或 Playwright，因此不聲稱已實測 FPS。
+
+## 2026-08-10 — Step 136 complete
+
+- 正式 Play 的一般敵人警戒半徑由 168 提升到 264 世界單位，Mini Boss／Boss 使用 408；戰鬥漂移目標會隨玩家每約 24 世界單位的位置變化重新計算，不再沿用最多 5.2 秒前的舊目標。
+- 原始資料中移速為 0 的求援幼年海馬、珊瑚背海馬與變異鸚鵡螺祭司保留支援／定點職能，但加入 12–16 的低速自然漂浮；近戰怪技能冷卻期間也會在玩家周圍重新選位，不再原地等待。
+- Mini Boss／Boss 的控制型技能納入持續重新定位；每次 Boss 技能結束後保留 0.85 秒移動窗口，避免多招連續施放讓 Boss 全程停在 casting。Lv.1／2／3／4 的顯示尺寸固定為 28／34／40／46，Mini Boss 68、變異 Mini Boss 78、最終 Boss 96，碰撞半徑同步分級。
+- 敵人聚焦測試 36/36、完整 `npm run check` 311/311、Vite production build 與 scoped `git diff --check` 全部通過；涵蓋零移速怪自然漂浮、三個特殊 Boss 隨玩家換位、Boss 技能間移動窗口與完整尺寸階級。依專案規則未執行瀏覽器或 Playwright。

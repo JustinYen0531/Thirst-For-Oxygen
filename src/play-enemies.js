@@ -39,11 +39,48 @@ export const PLAY_ENEMY_POOLS = Object.freeze({
 export const PLAY_ENEMY_TARGETS = Object.freeze({ 1: 40, 2: 40, 3: 48 });
 export const PLAY_ENEMY_RENDER_SCALE = 2;
 export const PLAY_ENEMY_SPAWN_SAFE_RADIUS = HEX_SIZE * 18;
-export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 14;
+export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 22;
+export const PLAY_BOSS_ACTIVATION_RADIUS = HEX_SIZE * 34;
 export const PLAY_ENEMY_ACTION_VISUAL_HOLD = 1.44;
 export const PLAY_ENEMY_FRAME_COUNT = 6;
 export const PLAY_ENEMY_FRAME_DURATION = 0.18;
 export const PLAY_ENEMY_DORMANT_UPDATE_INTERVAL = 0.25;
+export const PLAY_BOSS_REPOSITION_RECOVERY = 0.85;
+
+export const PLAY_ENEMY_SIZE_BY_TIER = Object.freeze({
+  1: Object.freeze({ radius: 10, renderSize: 28 }),
+  2: Object.freeze({ radius: 12, renderSize: 34 }),
+  3: Object.freeze({ radius: 14, renderSize: 40 }),
+  4: Object.freeze({ radius: 16, renderSize: 46 }),
+  miniBoss: Object.freeze({ radius: 22, renderSize: 68 }),
+  mutatedMiniBoss: Object.freeze({ radius: 25, renderSize: 78 }),
+  finalBoss: Object.freeze({ radius: 30, renderSize: 96 }),
+});
+
+const PLAY_ENEMY_AMBIENT_SPEED_BY_ROLE = Object.freeze({
+  support: 16,
+  linkedSupport: 14,
+  stationaryRangedElite: 12,
+});
+
+const PLAY_ENEMY_MOBILE_CONTROLLER_SKILL_TYPES = new Set([
+  'projectile',
+  'spread',
+  'lobbed',
+  'boomerangSpread',
+  'shieldBoomerang',
+  'cloneBarrage',
+  'summonResourceDrain',
+  'reflectedBeam',
+  'gravityField',
+  'summon',
+  'ruleChange',
+  'sacrificeSummon',
+  'rebuildArena',
+  'speedForm',
+  'gravityRule',
+  'corruptOxygen',
+]);
 
 const encyclopediaById = Object.freeze(Object.fromEntries(
   ENEMY_ENCYCLOPEDIA.map((entry) => [entry.id, entry]),
@@ -182,9 +219,29 @@ function isDescentEnemy(enemyId) {
   return DESCENT_ENEMY_ROSTER.includes(enemyId);
 }
 
-function enemyTierWeight(tier) {
-  if (Number.isFinite(Number(tier))) return Number(tier);
-  return { miniBoss: 4, mutatedMiniBoss: 5, finalBoss: 6 }[tier] ?? 2;
+export function getPlayEnemySize(tier) {
+  return PLAY_ENEMY_SIZE_BY_TIER[tier] ?? PLAY_ENEMY_SIZE_BY_TIER[2];
+}
+
+function isPlayBossTier(tier) {
+  return ['miniBoss', 'mutatedMiniBoss', 'finalBoss'].includes(tier);
+}
+
+function playEnemyActivationRadius(enemy) {
+  return isPlayBossTier(enemy?.tier) ? PLAY_BOSS_ACTIVATION_RADIUS : PLAY_ENEMY_ACTIVATION_RADIUS;
+}
+
+function playEnemyMovementSpeed(enemy, definition) {
+  return Math.max(
+    0,
+    Number(enemy?.moveSpeed) || 0,
+    PLAY_ENEMY_AMBIENT_SPEED_BY_ROLE[definition?.role] ?? 0,
+  );
+}
+
+function playEnemyKeepsRepositioning(enemy, definition) {
+  return isPlayBossTier(enemy?.tier)
+    || (definition?.attacks ?? []).some((skill) => PLAY_ENEMY_MOBILE_CONTROLLER_SKILL_TYPES.has(skill.type));
 }
 
 function cellColumn(cell) {
@@ -410,7 +467,7 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
   const createInstance = ({ enemyId, spawn, anchorCellKey, instanceId, markerKind }) => {
     const definition = ENEMY_DEFINITIONS[enemyId];
     const position = getHexCenter(spawn.cell, origin);
-    const tierWeight = enemyTierWeight(definition.tier);
+    const size = getPlayEnemySize(definition.tier);
     const instance = {
       instanceId,
       enemyId,
@@ -429,8 +486,8 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       moveSpeed: definition.moveSpeed ?? 0,
       vx: 0,
       vy: 0,
-      radius: (4.5 + tierWeight * 0.65) * PLAY_ENEMY_RENDER_SCALE,
-      renderSize: (12 + tierWeight * 1.8) * PLAY_ENEMY_RENDER_SCALE,
+      radius: size.radius,
+      renderSize: size.renderSize,
       visual: PLAY_ENEMY_VISUALS[enemyId] ?? null,
       phase: ((spawn.cell.q * 31 + spawn.cell.r * 17) % 360) * Math.PI / 180,
       state: 'idle',
@@ -438,6 +495,7 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       alerted: false,
       cooldowns: {},
       nextSkillIndex: 0,
+      nextSkillDecisionAt: 0,
       pendingSkill: null,
       suicideCharge: null,
       visualAction: null,
@@ -777,7 +835,10 @@ function playEnemyCellOpenness(candidate, world) {
 
 export function getPlayEnemyLoiterTarget(enemy, center, radius, time, world = null, bounds = null, mode = 'home') {
   const plan = getEnemyLoiterPlan(enemy, time, { center, radius, bounds, margin: enemy.radius ?? 18 });
-  const cacheKey = `${mode}:${plan.cycle}`;
+  const centerBucket = mode === 'combat'
+    ? `:${Math.round(center.x / (HEX_SIZE * 2))}:${Math.round(center.y / (HEX_SIZE * 2))}`
+    : '';
+  const cacheKey = `${mode}:${plan.cycle}${centerBucket}`;
   if (enemy.loiterTarget?.key === cacheKey) return { ...enemy.loiterTarget, phase: plan.phase };
   let target = { x: plan.x, y: plan.y };
   const candidates = getLocalReachablePlayEnemyCells(enemy, world);
@@ -1103,7 +1164,7 @@ function addPlayEnemySummonEvent(runtime, event) {
 
 function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
   const definition = ENEMY_DEFINITIONS[enemyId];
-  const tierWeight = enemyTierWeight(definition.tier);
+  const size = getPlayEnemySize(definition.tier);
   const summoned = {
     instanceId: `play-summon-${summoner.instanceId}-${runtime.nextSummonId++}-${index}`,
     enemyId,
@@ -1123,8 +1184,8 @@ function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
     moveSpeed: definition.moveSpeed ?? 0,
     vx: 0,
     vy: 0,
-    radius: (4.5 + tierWeight * 0.65) * PLAY_ENEMY_RENDER_SCALE,
-    renderSize: (12 + tierWeight * 1.8) * PLAY_ENEMY_RENDER_SCALE,
+    radius: size.radius,
+    renderSize: size.renderSize,
     visual: PLAY_ENEMY_VISUALS[enemyId] ?? null,
     phase: (runtime.nextSummonId * 47 % 360) * Math.PI / 180,
     state: 'idle',
@@ -1132,6 +1193,7 @@ function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
     alerted: true,
     cooldowns: {},
     nextSkillIndex: 0,
+    nextSkillDecisionAt: 0,
     pendingSkill: null,
     suicideCharge: null,
     visualAction: null,
@@ -1450,7 +1512,7 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
   }
   if (skill.type === 'summonResourceDrain') {
     summonSpecialWave(runtime, enemies, enemy, skill, DESCENT_LV1_ENEMIES, bounds);
-    const inEncounterRange = distance <= PLAY_ENEMY_ACTIVATION_RADIUS;
+    const inEncounterRange = distance <= playEnemyActivationRadius(enemy);
     if (inEncounterRange) {
       actor.energy = Math.max(0, (actor.energy ?? 0) - (skill.energyDrain ?? 0));
       actor.oxygen = Math.max(0, (actor.oxygen ?? 0) - (skill.oxygenDrain ?? 0));
@@ -1637,10 +1699,11 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   const runtime = getPlayEnemyRuntime(enemies);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
   enemies.forEach((enemy) => {
+    const activationRadius = playEnemyActivationRadius(enemy);
     const requiresFullMaintenance = enemy.alerted
       || enemy.pendingSkill
       || enemy.suicideCharge
-      || distanceBetween(enemy, actor) <= PLAY_ENEMY_ACTIVATION_RADIUS * 1.6;
+      || distanceBetween(enemy, actor) <= activationRadius * 1.6;
     enemy.maintenanceElapsed = (enemy.maintenanceElapsed ?? 0) + elapsed;
     if (!requiresFullMaintenance && enemy.maintenanceElapsed < PLAY_ENEMY_DORMANT_UPDATE_INTERVAL) return;
     recoverPlayEnemyFromBlockedTerrain(enemy, world);
@@ -1692,13 +1755,15 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     updateLinkedSupport(runtime, enemies, enemy, definition, elapsed);
     if (updateSuicideCharge(runtime, enemy, definition, actor, elapsed, onDamage, bounds)) return;
     const distance = distanceBetween(enemy, actor);
+    const activationRadius = playEnemyActivationRadius(enemy);
+    const movementSpeed = playEnemyMovementSpeed(enemy, definition);
     if (!enemy.pendingSkill) {
-      if (distance <= PLAY_ENEMY_ACTIVATION_RADIUS) enemy.alerted = true;
-      else if (distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35) enemy.alerted = false;
+      if (distance <= activationRadius) enemy.alerted = true;
+      else if (distance > activationRadius * 1.35) enemy.alerted = false;
       if (!enemy.alerted) {
-        if ((enemy.moveSpeed ?? 0) > 0 && world?.map) {
+        if (movementSpeed > 0 && world?.map) {
           enemy.dormantMovementElapsed = (enemy.dormantMovementElapsed ?? 0) + elapsed;
-          const usesDormantLod = distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35;
+          const usesDormantLod = distance > activationRadius * 1.35;
           if (usesDormantLod && enemy.dormantMovementElapsed < PLAY_ENEMY_DORMANT_UPDATE_INTERVAL) {
             enemy.x += (enemy.vx ?? 0) * elapsed;
             enemy.y += (enemy.vy ?? 0) * elapsed;
@@ -1723,7 +1788,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
           enemy.movementGoal = { x: target.x, y: target.y, mode: 'home', phase: target.phase };
           if (target.phase === 'travel') {
             const steeringElapsed = usesDormantLod ? Math.min(movementElapsed, 1 / 30) : movementElapsed;
-            const moved = movePlayEnemyToward(enemy, target, enemy.moveSpeed * 0.58, steeringElapsed, world, bounds, 'roaming');
+            const moved = movePlayEnemyToward(enemy, target, movementSpeed * 0.58, steeringElapsed, world, bounds, 'roaming');
             const remainingElapsed = movementElapsed - steeringElapsed;
             if (moved && usesDormantLod && remainingElapsed > 0) {
               enemy.x += (enemy.vx ?? 0) * remainingElapsed;
@@ -1751,38 +1816,41 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       const skill = definition.attacks.find((candidate) => candidate.id === pending.skillId);
       enemy.pendingSkill = null;
       if (skill) resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, { x: pending.targetX, y: pending.targetY }, bounds);
+      if (isPlayBossTier(enemy.tier)) enemy.nextSkillDecisionAt = runtime.time + PLAY_BOSS_REPOSITION_RECOVERY;
       enemy.state = enemy.defeated ? 'defeated' : 'attacking';
       return;
     }
+    const attacks = definition.attacks ?? [];
     const preferred = preferredDistance(enemy, definition);
-    const rangedMover = definition.attacks.some((skill) => ['projectile', 'spread', 'lobbed', 'boomerangSpread', 'shieldBoomerang', 'cloneBarrage'].includes(skill.type));
-    if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
-      const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
-        * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
-      const speed = enemy.moveSpeed * moveSpeedMultiplier;
+    const controllerMover = playEnemyKeepsRepositioning(enemy, definition);
+    const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
+      * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
+    const speed = movementSpeed * moveSpeedMultiplier;
+    const hasReadySkill = attacks.some((skill) => canUsePlaySkill(enemy, skill, distance, actor.radius));
+    const shouldReposition = controllerMover || !hasReadySkill;
+    if (speed > 0 && distance > preferred) {
       enemy.movementGoal = { x: actor.x, y: actor.y, mode: 'engage', phase: 'travel' };
       movePlayEnemyToward(enemy, actor, speed, elapsed, world, bounds, 'chasing');
-    } else if ((enemy.moveSpeed ?? 0) > 0 && rangedMover) {
-      const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
-        * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
+    } else if (speed > 0 && shouldReposition) {
+      const combatRadius = controllerMover ? Math.max(84, preferred) : Math.max(28, preferred * 0.62);
       const target = getPlayEnemyLoiterTarget(
         enemy,
         actor,
-        Math.max(84, preferred),
+        combatRadius,
         runtime.time,
         world,
         bounds,
         'combat',
       );
       enemy.movementGoal = { x: target.x, y: target.y, mode: 'combat', phase: target.phase };
-      if (target.phase === 'travel') movePlayEnemyToward(enemy, target, enemy.moveSpeed * moveSpeedMultiplier, elapsed, world, bounds, 'repositioning');
+      if (target.phase === 'travel') movePlayEnemyToward(enemy, target, speed, elapsed, world, bounds, 'repositioning');
       else stopPlayEnemyMovement(enemy, 'loitering');
     } else {
       enemy.movementGoal = null;
       stopPlayEnemyMovement(enemy, 'attacking');
     }
-    const attacks = definition.attacks ?? [];
     if (!attacks.length) return;
+    if (runtime.time < (enemy.nextSkillDecisionAt ?? 0)) return;
     const start = enemy.nextSkillIndex % attacks.length;
     if (enemy.enemyId === 'lionfishGunner' && runtime.time < (enemy.nextSkillReadyAt ?? 0)) return;
     const offsets = enemy.enemyId === 'lionfishGunner' ? [0] : attacks.map((_, index) => index);
@@ -1826,6 +1894,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       return;
     }
     resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, { x: actor.x, y: actor.y }, bounds);
+    if (isPlayBossTier(enemy.tier)) enemy.nextSkillDecisionAt = runtime.time + PLAY_BOSS_REPOSITION_RECOVERY;
   });
   runtime.playerResources = {
     health: actor.health ?? null,

@@ -9,8 +9,11 @@ import {
   DESCENT_ENEMY_ROSTER,
   DESCENT_LV1_ENEMIES,
   PLAY_ENEMY_RENDER_SCALE,
+  PLAY_ENEMY_SIZE_BY_TIER,
   PLAY_SPECIAL_ENEMY_IDS,
   PLAY_ENEMY_ACTIVATION_RADIUS,
+  PLAY_BOSS_ACTIVATION_RADIUS,
+  PLAY_BOSS_REPOSITION_RECOVERY,
   PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_ACTION_VISUAL_HOLD,
@@ -21,6 +24,7 @@ import {
   PLAY_ENEMY_VISUAL_SETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
+  getPlayEnemySize,
   getReachablePlayCellKeys,
   getPlayEnemyFramePaths,
   getPlayEnemyFrameState,
@@ -216,7 +220,7 @@ test('explicit markers can select a documented descent enemy but cannot inject a
   assert.ok(enemies.filter((enemy) => enemy.anchorCellKey === anchors[1]).every((enemy) => enemy.enemyId !== 'splitLanternfish'));
 });
 
-test('all nine regular descent visuals exist and enemy display size is at least doubled', () => {
+test('all regular descent visuals exist and numeric tiers map directly to increasing display sizes', () => {
   DESCENT_ENEMY_ROSTER.forEach((enemyId) => {
     const source = PLAY_ENEMY_VISUALS[enemyId];
     assert.ok(source, `${enemyId} should have a play visual`);
@@ -228,9 +232,19 @@ test('all nine regular descent visuals exist and enemy display size is at least 
 
   const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
   regularEnemies(enemies).forEach((enemy) => {
-    assert.ok(enemy.renderSize >= (12 + enemy.tier * 1.8) * 2);
-    assert.ok(enemy.radius >= (4.5 + enemy.tier * 0.65) * 2);
+    assert.deepEqual(
+      { radius: enemy.radius, renderSize: enemy.renderSize },
+      getPlayEnemySize(enemy.tier),
+    );
   });
+
+  const numericSizes = [1, 2, 3, 4].map((tier) => PLAY_ENEMY_SIZE_BY_TIER[tier]);
+  numericSizes.slice(1).forEach((size, index) => {
+    assert.ok(size.radius > numericSizes[index].radius);
+    assert.ok(size.renderSize > numericSizes[index].renderSize);
+  });
+  assert.ok(PLAY_ENEMY_SIZE_BY_TIER.miniBoss.renderSize > PLAY_ENEMY_SIZE_BY_TIER[4].renderSize * 1.45);
+  assert.ok(PLAY_ENEMY_SIZE_BY_TIER.finalBoss.renderSize > PLAY_ENEMY_SIZE_BY_TIER.miniBoss.renderSize * 1.4);
 
   const enemy = { x: 100, y: 200, phase: 0, renderSize: 36 };
   const first = getPlayEnemyPose(enemy, 0);
@@ -330,7 +344,10 @@ test('special map markers instantiate the documented Mini Bosses and Boss withou
     specials.forEach((enemy) => {
       assert.equal(enemy.spawnPattern, 'special');
       assert.equal(enemy.anchorCellKey, enemy.spawnCellKey);
-      assert.ok(Number.isFinite(enemy.radius) && Number.isFinite(enemy.renderSize));
+      assert.deepEqual(
+        { radius: enemy.radius, renderSize: enemy.renderSize },
+        getPlayEnemySize(enemy.tier),
+      );
       if (enemy.visual) {
         assert.equal(existsSync(fileURLToPath(new URL(`../public${enemy.visual}`, import.meta.url))), true);
       }
@@ -341,6 +358,7 @@ test('special map markers instantiate the documented Mini Bosses and Boss withou
     '/assets/enemies-afterimage/abyssalSpermWhale/reconstructed-preview__base-float-move.webp',
     'the Final Boss should use its own authored idle art instead of borrowing another enemy asset',
   );
+  assert.ok(PLAY_BOSS_ACTIVATION_RADIUS > PLAY_ENEMY_ACTIVATION_RADIUS);
 });
 
 test('play enemies chase the actor and expose a real damage callback', () => {
@@ -403,6 +421,134 @@ test('mobile wildlife roams near home without converging when the diver is far a
   assert.ok(Math.hypot(enemy.x - start.x, enemy.y - start.y) < 180, 'home roaming must remain local instead of tracking a distant diver');
   assert.equal(enemy.movementGoal?.mode, 'home');
   assert.ok(['roaming', 'loitering'].includes(enemy.state));
+});
+
+test('authored zero-speed support creatures still drift naturally through open water', () => {
+  const map = createEmptyMap({ width: 11, height: 11 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['5,5'], origin);
+  ['juvenileSeahorseCaller', 'coralBackSeahorse', 'mutantNautilusOracle'].forEach((enemyId, enemyIndex) => {
+    const enemy = authoredEnemy(enemyId, {
+      instanceId: `ambient-${enemyId}`,
+      x: start.x,
+      y: start.y,
+      homeX: start.x,
+      homeY: start.y,
+      alerted: false,
+    });
+    const actor = {
+      x: start.x + PLAY_ENEMY_ACTIVATION_RADIUS * 2.2,
+      y: start.y,
+      radius: 6,
+      health: 100,
+      dead: false,
+      invulnerability: 0,
+    };
+    for (let index = 0; index < 480; index += 1) {
+      updatePlayEnemies([enemy], actor, 1 / 60, enemyIndex * 20 + (index + 1) / 60, null, null, { map, chapter: 'chapter1', origin });
+    }
+    assert.ok(Math.hypot(enemy.x - start.x, enemy.y - start.y) > 4, `${enemyId} should not remain pinned to its spawn point`);
+    assert.equal(enemy.movementGoal?.mode, 'home');
+    assert.ok(['roaming', 'loitering'].includes(enemy.state));
+  });
+});
+
+test('Mini Bosses and the Final Boss reposition when the diver changes place inside the arena', () => {
+  const map = createEmptyMap({ width: 19, height: 19 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['9,9'], origin);
+  PLAY_SPECIAL_ENEMY_IDS.forEach((enemyId, enemyIndex) => {
+    const definition = ENEMY_DEFINITIONS[enemyId];
+    const size = getPlayEnemySize(definition.tier);
+    const enemy = authoredEnemy(enemyId, {
+      instanceId: `moving-boss-${enemyId}`,
+      markerKind: definition.tier === 'finalBoss' ? 'bossSpawn' : 'miniBossSpawn',
+      x: start.x,
+      y: start.y,
+      homeX: start.x,
+      homeY: start.y,
+      radius: size.radius,
+      renderSize: size.renderSize,
+      alerted: true,
+    });
+    definition.attacks.forEach((skill) => { enemy.cooldowns[skill.id] = 999; });
+    const actor = {
+      x: start.x + 110,
+      y: start.y,
+      radius: 6,
+      health: 100,
+      oxygen: 100,
+      energy: 100,
+      dead: false,
+      invulnerability: 0,
+      vx: 0,
+      vy: 0,
+    };
+    let now = enemyIndex * 30;
+    for (let index = 0; index < 150; index += 1) {
+      now += 1 / 60;
+      updatePlayEnemies([enemy], actor, 1 / 60, now, null, null, { map, chapter: 'chapter1', origin });
+    }
+    const firstGoal = { x: enemy.movementGoal?.x, y: enemy.movementGoal?.y };
+    const firstPosition = { x: enemy.x, y: enemy.y };
+    assert.ok(['engage', 'combat'].includes(enemy.movementGoal?.mode));
+
+    actor.x = start.x - 80;
+    actor.y = start.y + 118;
+    for (let index = 0; index < 150; index += 1) {
+      now += 1 / 60;
+      updatePlayEnemies([enemy], actor, 1 / 60, now, null, null, { map, chapter: 'chapter1', origin });
+    }
+    const nextGoal = { x: enemy.movementGoal?.x, y: enemy.movementGoal?.y };
+    assert.ok(Math.hypot(nextGoal.x - firstGoal.x, nextGoal.y - firstGoal.y) > 20, `${enemyId} should recompute its combat position around the moved diver`);
+    assert.ok(Math.hypot(enemy.x - firstPosition.x, enemy.y - firstPosition.y) > 4, `${enemyId} should visibly move in response`);
+    assert.ok(['engage', 'combat'].includes(enemy.movementGoal?.mode));
+  });
+});
+
+test('Boss skill cadence reserves a visible movement window between consecutive casts', () => {
+  const map = createEmptyMap({ width: 19, height: 19 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['9,9'], origin);
+  const size = getPlayEnemySize('miniBoss');
+  const boss = authoredEnemy('prismCrabGuardian', {
+    instanceId: 'boss-recovery-prism',
+    markerKind: 'miniBossSpawn',
+    x: start.x,
+    y: start.y,
+    homeX: start.x,
+    homeY: start.y,
+    radius: size.radius,
+    renderSize: size.renderSize,
+    alerted: true,
+  });
+  const actor = {
+    x: start.x + 110,
+    y: start.y,
+    radius: 6,
+    health: 100,
+    oxygen: 100,
+    energy: 100,
+    dead: false,
+    invulnerability: 0,
+    vx: 0,
+    vy: 0,
+  };
+  const enemies = [boss];
+  let now = 1 / 60;
+  updatePlayEnemies(enemies, actor, 1 / 60, now, null, null, { map, chapter: 'chapter1', origin });
+  while (boss.pendingSkill && now < 2) {
+    now += 1 / 60;
+    updatePlayEnemies(enemies, actor, 1 / 60, now, null, null, { map, chapter: 'chapter1', origin });
+  }
+  assert.ok(boss.nextSkillDecisionAt >= now + PLAY_BOSS_REPOSITION_RECOVERY - 1 / 30, 'the first resolved skill should start the Boss recovery window');
+  const positionAfterSkill = { x: boss.x, y: boss.y };
+  const usedSkillCount = Object.values(boss.cooldowns).filter((cooldown) => cooldown > 0).length;
+
+  updatePlayEnemies(enemies, actor, 0.4, now + 0.4, null, null, { map, chapter: 'chapter1', origin });
+  assert.ok(Math.hypot(boss.x - positionAfterSkill.x, boss.y - positionAfterSkill.y) > 4, 'the Boss should move while it is between skills');
+  assert.equal(Object.values(boss.cooldowns).filter((cooldown) => cooldown > 0).length, usedSkillCount, 'another skill must not begin during the recovery window');
+  assert.ok(['engage', 'combat'].includes(boss.movementGoal?.mode));
 });
 
 test('seahorse-summoned ranged wildlife leaves a cramped bottom edge for open water', () => {
@@ -752,7 +898,13 @@ test('abyssal whale reconstruction, echo barrage, and miniature form expose thei
   assert.ok(Math.abs(Math.hypot(miniature.enemy.vx, miniature.enemy.vy) - 46 * 1.7) < 1e-9);
   miniature.enemy.nextSkillIndex = ENEMY_DEFINITIONS.abyssalSpermWhale.attacks.findIndex((skill) => skill.id === 'gravityDominion');
   miniature.enemy.cooldowns.gravityDominion = 0;
-  updatePlayEnemies(miniature.enemies, miniature.actor, 1 / 60, miniature.now + 0.1 + 1 / 60, miniature.onDamage);
+  updatePlayEnemies(
+    miniature.enemies,
+    miniature.actor,
+    PLAY_BOSS_REPOSITION_RECOVERY + 1 / 60,
+    miniature.now + 0.1 + PLAY_BOSS_REPOSITION_RECOVERY + 1 / 60,
+    miniature.onDamage,
+  );
   assert.equal(miniature.enemy.cooldowns.gravityDominion, 7);
 });
 
