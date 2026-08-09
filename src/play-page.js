@@ -45,6 +45,7 @@ import {
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 import { attachSfxVolumeControl, createSfxController } from './sfx.js';
+import { bindLanguageSelect, installLiveLocalization } from './i18n-gameplay.js';
 import {
   createPlayKatanaState,
   markPlayKatanaMovement,
@@ -1792,5 +1793,7 @@ function unlockAmbientAudio() {
 // canvas child; repeated attempts also recover from a browser autoplay reject.
 window.addEventListener('pointerdown', unlockAmbientAudio, { capture: true });
 window.addEventListener('keydown', unlockAmbientAudio, { capture: true });
+installLiveLocalization(document);
+bindLanguageSelect(document.querySelector('#play-language'));
 loadMap(mapPart, { arc: mapArc });
 requestAnimationFrame(frame);

@@ -1,5 +1,12 @@
 import { attachHomeMapPreview } from './home-map-preview.js';
 import {
+  applyDocumentLanguage,
+  getLanguage,
+  setLanguage,
+  subscribeLanguage,
+  translateText,
+} from './i18n.js';
+import {
   PLAY_ENEMY_FRAME_DURATION,
   PLAY_ENEMY_VISUAL_SETS,
   getPlayEnemyFramePaths,
@@ -12,15 +19,22 @@ export const HOME_ENEMY_SWIM_DURATION_MS = 32000;
 export const HOME_NO_SIGNAL_DURATION_MS = 950;
 
 export const HOME_ENEMY_SHOWCASE = Object.freeze([
-  Object.freeze({ instanceId: 'lanternfish-1', enemyId: 'explodingLanternfish', label: '爆炸燈籠魚', actionId: 'contactExplosion', actionLabel: '接觸爆炸', laneY: 8, scale: 0.82, swimDurationMs: 26000, swimPhase: 0 }),
-  Object.freeze({ instanceId: 'seahorse-1', enemyId: 'juvenileSeahorseCaller', label: '幼年海馬', actionId: 'callForHelp', actionLabel: '呼喚援軍', laneY: 21, scale: 0.74, swimDurationMs: 44000, swimPhase: 0.25 }),
-  Object.freeze({ instanceId: 'crab-1', enemyId: 'crabGuard', label: '螃蟹守衛', actionId: 'clawSwipe', actionLabel: '螯擊', laneY: 35, scale: 0.88, swimDurationMs: 34000, swimPhase: 1 / 6 }),
-  Object.freeze({ instanceId: 'lobster-1', enemyId: 'lobsterSoldier', label: '龍蝦士兵', actionId: 'spearThrow', actionLabel: '長槍投擲', laneY: 49, scale: 0.86, swimDurationMs: 34000, swimPhase: 0.5 }),
-  Object.freeze({ instanceId: 'lionfish-1', enemyId: 'lionfishGunner', label: '獅子魚砲手', actionId: 'spineScatter', actionLabel: '棘刺散射', laneY: 63, scale: 0.8, swimDurationMs: 26000, swimPhase: 1 / 3 }),
-  Object.freeze({ instanceId: 'squid-1', enemyId: 'squidAssassin', label: '烏賊刺客', actionId: 'inkShadowSlash', actionLabel: '墨影斬', laneY: 76, scale: 0.78, swimDurationMs: 44000, swimPhase: 0.75 }),
-  Object.freeze({ instanceId: 'mantis-1', enemyId: 'mantisShrimpBrute', label: '螳螂蝦猛將', actionId: 'punch', actionLabel: '重拳', laneY: 28, scale: 0.9, swimDurationMs: 34000, swimPhase: 5 / 6 }),
-  Object.freeze({ instanceId: 'ray-1', enemyId: 'arcTideRay', label: '弧潮獵鰩', actionId: 'arcTideBombardment', actionLabel: '弧潮轟炸', laneY: 69, scale: 1.08, swimDurationMs: 26000, swimPhase: 2 / 3 }),
+  Object.freeze({ instanceId: 'lanternfish-1', enemyId: 'explodingLanternfish', labelKey: 'home.enemy.explodingLanternfish', actionId: 'contactExplosion', actionLabelKey: 'home.action.contactExplosion', laneY: 8, scale: 0.82, swimDurationMs: 26000, swimPhase: 0 }),
+  Object.freeze({ instanceId: 'seahorse-1', enemyId: 'juvenileSeahorseCaller', labelKey: 'home.enemy.juvenileSeahorseCaller', actionId: 'callForHelp', actionLabelKey: 'home.action.callForHelp', laneY: 21, scale: 0.74, swimDurationMs: 44000, swimPhase: 0.25 }),
+  Object.freeze({ instanceId: 'crab-1', enemyId: 'crabGuard', labelKey: 'home.enemy.crabGuard', actionId: 'clawSwipe', actionLabelKey: 'home.action.clawSwipe', laneY: 35, scale: 0.88, swimDurationMs: 34000, swimPhase: 1 / 6 }),
+  Object.freeze({ instanceId: 'lobster-1', enemyId: 'lobsterSoldier', labelKey: 'home.enemy.lobsterSoldier', actionId: 'spearThrow', actionLabelKey: 'home.action.spearThrow', laneY: 49, scale: 0.86, swimDurationMs: 34000, swimPhase: 0.5 }),
+  Object.freeze({ instanceId: 'lionfish-1', enemyId: 'lionfishGunner', labelKey: 'home.enemy.lionfishGunner', actionId: 'spineScatter', actionLabelKey: 'home.action.spineScatter', laneY: 63, scale: 0.8, swimDurationMs: 26000, swimPhase: 1 / 3 }),
+  Object.freeze({ instanceId: 'squid-1', enemyId: 'squidAssassin', labelKey: 'home.enemy.squidAssassin', actionId: 'inkShadowSlash', actionLabelKey: 'home.action.inkShadowSlash', laneY: 76, scale: 0.78, swimDurationMs: 44000, swimPhase: 0.75 }),
+  Object.freeze({ instanceId: 'mantis-1', enemyId: 'mantisShrimpBrute', labelKey: 'home.enemy.mantisShrimpBrute', actionId: 'punch', actionLabelKey: 'home.action.punch', laneY: 28, scale: 0.9, swimDurationMs: 34000, swimPhase: 5 / 6 }),
+  Object.freeze({ instanceId: 'ray-1', enemyId: 'arcTideRay', labelKey: 'home.enemy.arcTideRay', actionId: 'arcTideBombardment', actionLabelKey: 'home.action.arcTideBombardment', laneY: 69, scale: 1.08, swimDurationMs: 26000, swimPhase: 2 / 3 }),
 ]);
+
+function interpolateTranslation(key, language, values = {}) {
+  return Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+    translateText(key, language),
+  );
+}
 
 export function getHomeHelmetTurnFrame(elapsedMs, durationMs = HOME_HELMET_TURN_DURATION_MS) {
   const safeDuration = Math.max(1, Number(durationMs) || HOME_HELMET_TURN_DURATION_MS);
@@ -63,6 +77,7 @@ export function attachHomeEnemyShowcase(root, options = {}) {
 
   const requestFrame = options.requestFrame ?? window.requestAnimationFrame.bind(window);
   const cancelFrame = options.cancelFrame ?? window.cancelAnimationFrame.bind(window);
+  let language = options.language ?? getLanguage();
   let clockMs = 0;
   let lastFrameAt = performance.now();
   let animationFrame = 0;
@@ -79,7 +94,10 @@ export function attachHomeEnemyShowcase(root, options = {}) {
     button.style.setProperty('--enemy-index', String(index));
     button.style.setProperty('--enemy-lane-y', `${config.laneY}vh`);
     button.style.setProperty('--enemy-scale', String(config.scale));
-    button.setAttribute('aria-label', `${config.label}：播放${config.actionLabel}`);
+    button.setAttribute('aria-label', interpolateTranslation('home.enemy.actionAria', language, {
+      action: translateText(config.actionLabelKey, language),
+      enemy: translateText(config.labelKey, language),
+    }));
     image.alt = '';
     image.draggable = false;
     image.src = idleFrames[0] ?? '';
@@ -158,6 +176,16 @@ export function attachHomeEnemyShowcase(root, options = {}) {
     return true;
   }
 
+  function renderLanguage(nextLanguage) {
+    language = nextLanguage;
+    enemies.forEach((enemy) => {
+      enemy.button.setAttribute('aria-label', interpolateTranslation('home.enemy.actionAria', language, {
+        action: translateText(enemy.actionLabelKey, language),
+        enemy: translateText(enemy.labelKey, language),
+      }));
+    });
+  }
+
   render();
   animationFrame = requestFrame(frame);
   return {
@@ -180,6 +208,7 @@ export function attachHomeEnemyShowcase(root, options = {}) {
       xVw: Number(enemy.xVw.toFixed(2)),
       yVh: Number(enemy.yVh.toFixed(2)),
     })),
+    setLanguage: renderLanguage,
     trigger,
   };
 }
@@ -276,6 +305,99 @@ export function attachHomeMusic(eventTarget = document) {
   return { start: startMusic };
 }
 
+export function attachHomeSettings(root, options = {}) {
+  if (!root) return null;
+  const panel = root.querySelector('#home-settings-panel');
+  const openButton = root.querySelector('#home-settings-open');
+  const closeButton = panel?.querySelector('.home-settings-close');
+  const mainMenu = root.querySelector('#home-main-menu');
+  const languageStatus = panel?.querySelector('#home-language-status');
+  const languageButtons = [...(panel?.querySelectorAll('[data-language-option]') ?? [])];
+  if (!panel || !openButton || !closeButton || !languageStatus || languageButtons.length !== 2) return null;
+
+  let language = options.language ?? getLanguage();
+  let open = false;
+  let returnFocus = null;
+
+  function languageName(languageId, displayLanguage = language) {
+    return translateText(
+      languageId === 'zh-Hant' ? 'home.settings.traditionalChinese' : 'home.settings.english',
+      displayLanguage,
+    );
+  }
+
+  function renderLanguage(nextLanguage) {
+    language = nextLanguage;
+    languageButtons.forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.languageOption === language));
+    });
+    languageStatus.textContent = interpolateTranslation('home.settings.currentLanguage', language, {
+      language: languageName(language),
+    });
+  }
+
+  function setOpen(nextOpen, { restoreFocus = true } = {}) {
+    const shouldOpen = Boolean(nextOpen);
+    if (open === shouldOpen) return open;
+    open = shouldOpen;
+    panel.hidden = !open;
+    panel.setAttribute('aria-hidden', String(!open));
+    openButton.setAttribute('aria-expanded', String(open));
+    root.classList.toggle('is-settings-open', open);
+    if (mainMenu) mainMenu.toggleAttribute('inert', open || root.dataset.turnState !== 'side');
+    if (open) {
+      returnFocus = panel.ownerDocument?.activeElement ?? openButton;
+      closeButton.focus();
+    } else if (restoreFocus) {
+      const target = returnFocus?.isConnected ? returnFocus : openButton;
+      target?.focus?.();
+    }
+    return open;
+  }
+
+  function onPanelClick(event) {
+    const languageButton = event.target.closest('[data-language-option]');
+    if (languageButton) {
+      const nextLanguage = setLanguage(languageButton.dataset.languageOption);
+      renderLanguage(nextLanguage);
+      return;
+    }
+    if (event.target.closest('[data-settings-close]')) setOpen(false);
+  }
+
+  function onPanelKeyDown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [closeButton, ...languageButtons].filter((element) => !element.disabled && !element.hidden);
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    const activeElement = panel.ownerDocument?.activeElement;
+    if (event.shiftKey && activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  openButton.addEventListener('click', () => setOpen(true));
+  panel.addEventListener('click', onPanelClick);
+  panel.addEventListener('keydown', onPanelKeyDown);
+  renderLanguage(language);
+
+  return {
+    close: () => setOpen(false),
+    getState: () => ({ language, open }),
+    open: () => setOpen(true),
+    setLanguage: renderLanguage,
+  };
+}
+
 export function attachHomeHelmetIntro(root, options = {}) {
   if (!root) return null;
 
@@ -287,6 +409,7 @@ export function attachHomeHelmetIntro(root, options = {}) {
     ?? window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     ?? false;
   const durationMs = reducedMotion ? 1 : HOME_HELMET_TURN_DURATION_MS;
+  let language = options.language ?? getLanguage();
   let turnState = 'front';
   let elapsedMs = 0;
   let finishTimer = null;
@@ -297,9 +420,10 @@ export function attachHomeHelmetIntro(root, options = {}) {
     root.classList.toggle('is-side', turnState === 'side');
     root.setAttribute('role', turnState === 'front' ? 'button' : 'main');
     root.tabIndex = turnState === 'front' ? 0 : -1;
-    root.setAttribute('aria-label', turnState === 'front'
-      ? '點擊任意位置，讓深海頭盔轉向側面'
-      : '深海頭盔已轉向側面');
+    root.setAttribute('aria-label', translateText(
+      turnState === 'front' ? 'home.intro.frontAria' : 'home.intro.sideAria',
+      language,
+    ));
     if (mainMenu) {
       const menuVisible = turnState === 'side';
       mainMenu.toggleAttribute('inert', !menuVisible);
@@ -307,11 +431,14 @@ export function attachHomeHelmetIntro(root, options = {}) {
     }
     if (signalTrigger) signalTrigger.disabled = turnState !== 'side';
     if (status) {
-      status.textContent = turnState === 'front'
-        ? '頭盔目前面向正前方。'
-        : turnState === 'turning'
-          ? '頭盔正在轉向側面。'
-          : '頭盔已轉向側面。';
+      status.textContent = translateText(
+        turnState === 'front'
+          ? 'home.status.front'
+          : turnState === 'turning'
+            ? 'home.status.turning'
+            : 'home.status.side',
+        language,
+      );
     }
   }
 
@@ -363,19 +490,44 @@ export function attachHomeHelmetIntro(root, options = {}) {
       frame: getHomeHelmetTurnFrame(elapsedMs, durationMs),
       state: turnState,
     }),
+    setLanguage(nextLanguage) {
+      language = nextLanguage;
+      renderState();
+    },
     turn,
   };
 }
 
 if (typeof document !== 'undefined') {
   const homeRoot = document.querySelector('#home-intro');
-  const intro = attachHomeHelmetIntro(homeRoot);
+  const initialLanguage = getLanguage();
+  applyDocumentLanguage(document, initialLanguage);
+  const intro = attachHomeHelmetIntro(homeRoot, { language: initialLanguage });
   if (intro) {
-    const enemyShowcase = attachHomeEnemyShowcase(homeRoot);
+    const enemyShowcase = attachHomeEnemyShowcase(homeRoot, { language: initialLanguage });
     const signalEasterEgg = attachHomeHelmetSignalEasterEgg(homeRoot);
+    const settings = attachHomeSettings(homeRoot, { language: initialLanguage });
     attachHomeFlashlight(homeRoot);
-    attachHomeMapPreview(homeRoot);
+    const previewLoading = homeRoot.querySelector('#home-preview-loading');
+    attachHomeMapPreview(homeRoot).then(() => {
+      if (!homeRoot.classList.contains('has-preview-error') || !previewLoading) return;
+      previewLoading.dataset.errorDetail = previewLoading.textContent.split('：').slice(1).join('：');
+      const detail = previewLoading.dataset.errorDetail;
+      previewLoading.textContent = `${translateText('home.map.loadFailed', getLanguage())}${detail ? `: ${detail}` : ''}`;
+    });
     attachHomeMusic(document);
+    const applyHomeLanguage = (language) => {
+      applyDocumentLanguage(document, language);
+      intro.setLanguage(language);
+      enemyShowcase?.setLanguage(language);
+      settings?.setLanguage(language);
+      if (homeRoot.classList.contains('has-preview-error') && previewLoading) {
+        const detail = previewLoading.dataset.errorDetail;
+        previewLoading.textContent = `${translateText('home.map.loadFailed', language)}${detail ? `: ${detail}` : ''}`;
+      }
+    };
+    subscribeLanguage(applyHomeLanguage);
+    applyHomeLanguage(initialLanguage);
     window.advanceTime = (ms) => {
       intro.advance(ms);
       enemyShowcase?.advance(ms);
@@ -386,13 +538,17 @@ if (typeof document !== 'undefined') {
       coordinateSystem: 'DOM title screen; no gameplay coordinates',
       enemies: enemyShowcase?.getState() ?? [],
       helmet: intro.getState(),
+      language: getLanguage(),
       noSignal: signalEasterEgg?.getState() ?? { active: false },
       menuVisible: intro.getState().state === 'side',
+      settings: settings?.getState() ?? { language: getLanguage(), open: false },
       interaction: 'pointerdown anywhere turns the helmet; pointer position reveals enemies; clicking an enemy plays its skill',
     });
     window.render_home_enemies_to_text = () => JSON.stringify(enemyShowcase?.getState() ?? []);
     window.triggerHomeEnemySkill = (enemyId) => enemyShowcase?.trigger(enemyId) ?? false;
     window.triggerHomeNoSignal = () => signalEasterEgg?.trigger() ?? false;
+    window.openHomeSettings = () => settings?.open() ?? false;
+    window.closeHomeSettings = () => settings?.close() ?? false;
     window.turnHomeHelmet = () => intro.turn();
   }
 }

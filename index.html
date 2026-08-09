@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thirst for Oxygen — Map Editor</title>
+    <title data-i18n="page.title">Thirst for Oxygen — Map Editor</title>
     <link rel="stylesheet" href="/src/styles.css" />
     <link rel="stylesheet" href="/src/visor-hud.css" />
   </head>
@@ -11,77 +11,79 @@
     <main class="app-shell">
       <header class="topbar">
         <div>
-          <h1>Thirst for Oxygen — 地圖編輯器</h1>
-          <p id="status-line">準備建立地圖。</p>
+          <h1 data-i18n="header.title">Thirst for Oxygen — Map Editor</h1>
+          <p id="status-line" data-i18n="status.ready">Ready to create a map.</p>
         </div>
         <div class="topbar-actions">
-          <a class="topbar-nav" href="/home.html">主控台</a>
-          <a class="topbar-nav" href="/play.html?part=3">遊玩</a>
-          <a class="topbar-nav" href="/enemy-encyclopedia.html">世界圖鑑</a>
-          <a class="topbar-nav" href="/sandbox.html">敵人沙盒</a>
-          <button id="editor-mode" class="is-active">編輯</button>
-          <button id="play-mode">物理測試</button>
-          <button id="reset-player">重設測試玩家 (R)</button>
-          <button id="fullscreen">全螢幕 (F)</button>
+          <a class="topbar-nav" href="/home.html" data-i18n="nav.home">Control Room</a>
+          <a class="topbar-nav" href="/play.html?part=3" data-i18n="nav.play">Play</a>
+          <a class="topbar-nav" href="/enemy-encyclopedia.html" data-i18n="nav.encyclopedia">World Encyclopedia</a>
+          <a class="topbar-nav" href="/sandbox.html" data-i18n="nav.sandbox">Enemy Sandbox</a>
+          <button type="button" data-editor-language="en" data-i18n-aria-label="language.en" aria-pressed="true">EN</button>
+          <button type="button" data-editor-language="zh-Hant" data-i18n-aria-label="language.zh" aria-pressed="false">繁中</button>
+          <button id="editor-mode" class="is-active" data-i18n="mode.edit">Edit</button>
+          <button id="play-mode" data-i18n="mode.play">Physics Test</button>
+          <button id="reset-player" data-i18n="mode.reset">Reset Test Player (R)</button>
+          <button id="fullscreen" data-i18n="mode.fullscreen">Fullscreen (F)</button>
         </div>
       </header>
 
       <section class="workspace">
         <aside class="panel tools-panel">
-          <h2>工具</h2>
+          <h2 data-i18n="tools.heading">Tools</h2>
           <div id="tool-buttons" class="button-stack"></div>
-          <label for="brush-value">目前筆刷</label>
+          <label for="brush-value" data-i18n="tools.currentBrush">Current Brush</label>
           <select id="brush-value"></select>
-          <p class="hint">水域上物件的定位切換在下方素材調色盤的橡皮擦按鈕下面；邊緣沾黏物件請點兩格中間的六角邊。</p>
+          <p class="hint" data-i18n="tools.hint">Change water-object positioning below the eraser in the asset palette. Attach edge objects by clicking the shared hex edge.</p>
 
-          <h2>地圖</h2>
-          <label for="chapter-select">章節狀態</label>
+          <h2 data-i18n="map.heading">Map</h2>
+          <label for="chapter-select" data-i18n="map.chapter">Chapter State</label>
           <select id="chapter-select">
-            <option value="chapter1">第一章：下沉篇</option>
-            <option value="chapter2">第二章：上浮篇</option>
+            <option value="chapter1" data-i18n="map.chapter1">Chapter 1: Descent</option>
+            <option value="chapter2" data-i18n="map.chapter2">Chapter 2: Ascent</option>
           </select>
-          <label for="current-direction">潮流方向</label>
+          <label for="current-direction" data-i18n="map.currentDirection">Current Direction</label>
           <select id="current-direction">
-            <option value="0">東</option>
-            <option value="1">東北</option>
-            <option value="2">西北</option>
-            <option value="3">西</option>
-            <option value="4">西南</option>
-            <option value="5">東南</option>
+            <option value="0" data-i18n="map.direction.e">East</option>
+            <option value="1" data-i18n="map.direction.ne">Northeast</option>
+            <option value="2" data-i18n="map.direction.nw">Northwest</option>
+            <option value="3" data-i18n="map.direction.w">West</option>
+            <option value="4" data-i18n="map.direction.sw">Southwest</option>
+            <option value="5" data-i18n="map.direction.se">Southeast</option>
           </select>
-          <label for="current-strength">潮流強度</label>
+          <label for="current-strength" data-i18n="map.currentStrength">Current Strength</label>
           <input id="current-strength" type="number" min="0" max="3" step="0.25" value="1.5" />
           <div class="button-stack spaced">
-            <button id="demo-map">重設空白地圖</button>
-            <button id="save-local">儲存到本機</button>
-            <button id="export-map">匯出 JSON</button>
-            <label class="file-button">匯入 JSON<input id="import-map" type="file" accept="application/json" /></label>
-            <button id="validate-map">驗證地圖</button>
+            <button id="demo-map" data-i18n="map.reset">Reset Blank Map</button>
+            <button id="save-local" data-i18n="map.save">Save Locally</button>
+            <button id="export-map" data-i18n="map.export">Export JSON</button>
+            <label class="file-button"><span data-i18n="map.import">Import JSON</span><input id="import-map" type="file" accept="application/json" /></label>
+            <button id="validate-map" data-i18n="map.validate">Validate Map</button>
           </div>
           <p id="dirty-indicator" class="hint"></p>
         </aside>
 
         <section class="canvas-wrap">
-          <div id="map-viewport" class="map-viewport" aria-label="可上下捲動的地圖鏡頭">
+          <div id="map-viewport" class="map-viewport" aria-label="Scrollable map viewport" data-i18n-aria-label="canvas.viewportAria">
             <div class="canvas-stage">
-              <canvas id="map-canvas" width="1000" height="680" aria-label="六邊形地圖編輯器"></canvas>
+              <canvas id="map-canvas" width="1000" height="680" aria-label="Hex map editor" data-i18n-aria-label="canvas.aria"></canvas>
               <p id="hud-attempts" class="hud-attempts" hidden>Attempts 3/3</p>
-              <section id="player-hud" class="player-hud visor-hud" aria-label="測試玩家狀態" hidden>
+              <section id="player-hud" class="player-hud visor-hud" aria-label="Test player status" data-i18n-aria-label="hud.playerAria" hidden>
                 <img class="visor-surround" src="/assets/editor/hud/visor-surround-balanced.png" alt="" aria-hidden="true" />
                 <img class="visor-frame" src="/assets/editor/hud/visor-frame-balanced.png" alt="" aria-hidden="true" />
-                <div class="visor-readout visor-oxygen" aria-label="氧氣">
+                <div class="visor-readout visor-oxygen" aria-label="Oxygen" data-i18n-aria-label="hud.oxygen">
                   <span class="visor-resource-label">O₂</span>
                   <output id="hud-oxygen-value" class="visor-resource-value">100%</output>
-                  <div id="hud-oxygen" class="oxygen-gauge" role="progressbar" aria-label="氧氣" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span data-oxygen-fill></span></div>
+                  <div id="hud-oxygen" class="oxygen-gauge" role="progressbar" aria-label="Oxygen" data-i18n-aria-label="hud.oxygen" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span data-oxygen-fill></span></div>
                 </div>
-                <div class="visor-readout visor-energy" aria-label="能量">
+                <div class="visor-readout visor-energy" aria-label="Energy" data-i18n-aria-label="hud.energy">
                   <span class="visor-resource-label">ENERGY</span>
                   <output id="hud-energy-value" class="visor-resource-value">5/5</output>
-                  <div id="hud-energy" class="energy-segments" role="progressbar" aria-label="能量" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
+                  <div id="hud-energy" class="energy-segments" role="progressbar" aria-label="Energy" data-i18n-aria-label="hud.energy" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
                     <span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span><span data-energy-segment><b></b></span>
                   </div>
                 </div>
-                <div id="hud-health" class="health-core is-full" role="progressbar" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                <div id="hud-health" class="health-core is-full" role="progressbar" aria-label="Health" data-i18n-aria-label="hud.health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
                   <div class="health-segments" aria-hidden="true">
                     <span data-health-segment style="--segment-angle: 180deg; --counter-angle: -180deg"><b></b></span><span data-health-segment style="--segment-angle: 216deg; --counter-angle: -216deg"><b></b></span><span data-health-segment style="--segment-angle: 252deg; --counter-angle: -252deg"><b></b></span><span data-health-segment style="--segment-angle: 288deg; --counter-angle: -288deg"><b></b></span><span data-health-segment style="--segment-angle: 324deg; --counter-angle: -324deg"><b></b></span><span data-health-segment style="--segment-angle: 360deg; --counter-angle: -360deg"><b></b></span><span data-health-segment style="--segment-angle: 396deg; --counter-angle: -396deg"><b></b></span><span data-health-segment style="--segment-angle: 432deg; --counter-angle: -432deg"><b></b></span><span data-health-segment style="--segment-angle: 468deg; --counter-angle: -468deg"><b></b></span><span data-health-segment style="--segment-angle: 504deg; --counter-angle: -504deg"><b></b></span>
                   </div>
@@ -89,37 +91,37 @@
                   <div class="health-center"><span>HP</span><output id="hud-health-value" class="health-value">100</output></div>
                 </div>
               </section>
-              <p id="play-help" class="play-help">物理測試：拖曳玩家並放開以彈射；氧氣以時間倒數，滿氧約 40 秒，不受彈射距離影響；E 附著／離開水草；R 重設。</p>
+              <p id="play-help" class="play-help" data-i18n="play.help">Physics test: drag and release the player to launch. Oxygen drains over time; a full tank lasts about 40 seconds regardless of launch distance. E attaches to or leaves seaweed. R resets.</p>
             </div>
           </div>
           <label class="zoom-control" for="zoom-slider">
-            地圖縮放
+            <span data-i18n="zoom.label">Map Zoom</span>
             <input id="zoom-slider" type="range" min="0.5" max="4" step="0.1" value="2" />
             <output id="zoom-value" for="zoom-slider">200%</output>
           </label>
-          <p class="hint map-growth-help">向下開拓：選「水域重力・整格」或「水域層級・整格」後，直接點最下方虛線格；每次會沿用最底列並自動保留下一段 4 列虛線。要批量改 T2，選水域層級的 T2 後拖曳即可。</p>
-          <section class="asset-palette" aria-label="地圖素材調色盤">
+          <p class="hint map-growth-help" data-i18n="map.growthHelp">Extend downward: select a full-cell water gravity or water-layer brush, then click a dashed cell below the map. Each extension preserves the last row and keeps four more dashed rows available. To paint T2 in bulk, select T2 and drag.</p>
+          <section class="asset-palette" aria-label="Map asset palette" data-i18n-aria-label="palette.aria">
             <div class="palette-heading">
               <div>
-                <h2>直接放置素材</h2>
-                <p>先點素材，再在畫布放置；格子素材按住拖曳可連續塗色，水域上物件仍以自身輪廓作為 hitbox。</p>
+                <h2 data-i18n="palette.heading">Place Assets Directly</h2>
+                <p data-i18n="palette.description">Choose an asset, then place it on the canvas. Hold and drag to paint cell assets continuously. Water objects keep their own outline as the hitbox.</p>
               </div>
               <div class="palette-heading-actions">
-                <button id="palette-eraser" class="palette-eraser" type="button" aria-pressed="false" title="清除游標附近的素材或 Edge">⌫ 橡皮擦</button>
+                <button id="palette-eraser" class="palette-eraser" type="button" aria-pressed="false" title="Remove nearby assets or Edges" data-i18n="palette.eraser" data-i18n-title="palette.eraserTitle">⌫ Eraser</button>
                 <fieldset id="object-placement-control" class="placement-control" disabled>
-                  <legend>水域上物件定位</legend>
-                  <div class="placement-options" role="group" aria-label="水域上物件定位模式">
-                    <button type="button" data-object-placement="free" aria-pressed="true">Free Snap</button>
-                    <button type="button" data-object-placement="center" aria-pressed="false">六邊形中央</button>
+                  <legend data-i18n="palette.placement">Water Object Position</legend>
+                  <div class="placement-options" role="group" aria-label="Water object positioning mode" data-i18n-aria-label="palette.placementAria">
+                    <button type="button" data-object-placement="free" aria-pressed="true" data-i18n="palette.free">Free Snap</button>
+                    <button type="button" data-object-placement="center" aria-pressed="false" data-i18n="palette.center">Hex Center</button>
                   </div>
                 </fieldset>
               </div>
             </div>
-            <div class="palette-tabs" role="tablist" aria-label="素材分類">
-              <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity">水域重力／層級・整格</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="overlay">水域上物件・Free Snap</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="actor">Actor／出生點</button>
-              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="edge">邊緣沾黏・Edge Snap</button>
+            <div class="palette-tabs" role="tablist" aria-label="Asset categories" data-i18n-aria-label="palette.tabsAria">
+              <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity" data-i18n="palette.tab.gravity">Water Gravity / Layer · Full Cell</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="overlay" data-i18n="palette.tab.overlay">Water Objects · Free Snap</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="actor" data-i18n="palette.tab.actor">Actor / Spawn</button>
+              <button class="palette-tab" role="tab" aria-selected="false" data-palette-tab="edge" data-i18n="palette.tab.edge">Edge Attachments · Edge Snap</button>
             </div>
             <div class="palette-groups">
               <section class="palette-group" data-palette-panel="gravity"><div id="palette-gravity" class="palette-items"></div></section>
@@ -131,12 +133,12 @@
         </section>
 
         <aside class="panel inspector-panel">
-          <h2>Inspector</h2>
-          <section id="inspector" aria-live="polite">未選取 Cell、Edge 或水域上物件。</section>
-          <h2>驗證結果</h2>
-          <ul id="validation-list" class="validation-list"><li>尚未執行。</li></ul>
-          <h2>測試事件</h2>
-          <ul id="event-list" class="event-list"><li>尚無事件。</li></ul>
+          <h2 data-i18n="inspector.heading">Inspector</h2>
+          <section id="inspector" aria-live="polite" data-i18n="inspector.empty">No Cell, Edge, or water object selected.</section>
+          <h2 data-i18n="validation.heading">Validation Results</h2>
+          <ul id="validation-list" class="validation-list"><li data-i18n="validation.notRun">Not run yet.</li></ul>
+          <h2 data-i18n="events.heading">Test Events</h2>
+          <ul id="event-list" class="event-list"><li data-i18n="events.empty">No events yet.</li></ul>
         </aside>
       </section>
     </main>

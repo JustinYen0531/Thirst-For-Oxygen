@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en" data-i18n-document-title="home.documentTitle">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thirst for Oxygen</title>
     <link rel="stylesheet" href="/src/home.css" />
+    <link rel="stylesheet" href="/src/settings.css" />
   </head>
   <body>
     <video class="home-abyss-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
@@ -17,15 +18,17 @@
       data-turn-state="front"
       role="button"
       tabindex="0"
-      aria-label="點擊任意位置，讓深海頭盔轉向側面"
+      aria-label="Click anywhere to turn the deep-sea helmet sideways"
+      data-i18n-aria-label="home.intro.frontAria"
     >
-      <div class="home-enemy-field" id="home-enemy-field" aria-label="隱藏在深海中的敵人"></div>
+      <div class="home-enemy-field" id="home-enemy-field" aria-label="Enemies hidden in the deep sea" data-i18n-aria-label="home.enemyFieldAria"></div>
 
       <div class="home-helmet-stage" aria-live="polite">
         <img
           class="home-helmet-frame home-helmet-frame--front"
           src="/assets/home/helmet-turn-00-front.png"
-          alt="正面朝向玩家的古老深海潛水頭盔"
+          alt="An ancient deep-sea diving helmet facing the player"
+          data-i18n-alt="home.helmet.frontAlt"
         />
         <img
           class="home-helmet-frame home-helmet-frame--turn-one"
@@ -46,41 +49,76 @@
           aria-hidden="true"
         />
 
-        <div class="home-helmet-map-lens" aria-label="頭盔面罩中的正式遊戲地圖巡覽">
-          <canvas id="home-map-preview" width="720" height="760" aria-label="下沉篇第一至第三部分地圖巡覽"></canvas>
+        <div class="home-helmet-map-lens" aria-label="Playable map route inside the helmet visor" data-i18n-aria-label="home.mapLensAria">
+          <canvas id="home-map-preview" width="720" height="760" aria-label="Descent map tour from Part One to Part Three" data-i18n-aria-label="home.mapCanvasAria"></canvas>
           <div class="home-map-reflection" aria-hidden="true"></div>
           <div class="home-no-signal" id="home-no-signal" aria-hidden="true">
-            <span>NO SIGNAL</span>
+            <span data-i18n="home.map.noSignal">NO SIGNAL</span>
           </div>
-          <p class="home-preview-loading" id="home-preview-loading">正在讀取遊戲地圖…</p>
-          <span id="home-preview-part" hidden>第一部分｜深海森林入口</span>
-          <span id="home-preview-direction" hidden>自動下潛</span>
-          <button id="home-preview-toggle" type="button" hidden>Ⅱ 暫停巡覽</button>
+          <p class="home-preview-loading" id="home-preview-loading" data-i18n="home.map.loading">Loading playable maps…</p>
+          <span id="home-preview-part" data-i18n="home.map.partOne" hidden>Part One | Deep-Sea Forest Entrance</span>
+          <span id="home-preview-direction" data-i18n="home.map.autoDive" hidden>Automatic descent</span>
+          <button id="home-preview-toggle" type="button" data-i18n="home.map.pause" hidden>Ⅱ Pause tour</button>
         </div>
 
         <button
           class="home-helmet-signal-trigger"
           id="home-helmet-signal-trigger"
           type="button"
-          aria-label="敲一下頭盔面罩"
+          aria-label="Tap the helmet visor"
+          data-i18n-aria-label="home.signalAria"
           disabled
         ></button>
 
       </div>
 
-      <section class="home-menu-panel" aria-label="Thirst for Oxygen 主選單">
+      <section class="home-menu-panel" aria-label="Thirst for Oxygen main menu" data-i18n-aria-label="home.menuPanelAria">
         <div class="home-logo-viewport" aria-hidden="true">
           <img src="/assets/home/thirst-for-oxygen-logo-v2.png" alt="" />
         </div>
-        <nav class="home-main-menu" id="home-main-menu" aria-label="主選單" aria-hidden="true" inert>
-          <a class="home-menu-link home-menu-link--primary" href="/play.html"><span>01</span><strong>開始遊玩</strong></a>
-          <a class="home-menu-link" href="/enemy-encyclopedia.html"><span>02</span><strong>世界圖鑑</strong></a>
-          <a class="home-menu-link" href="/sandbox.html"><span>03</span><strong>敵人沙盒</strong></a>
-          <a class="home-menu-link" href="/"><span>04</span><strong>地圖編輯器</strong></a>
+        <nav class="home-main-menu" id="home-main-menu" aria-label="Main menu" data-i18n-aria-label="home.mainMenuAria" aria-hidden="true" inert>
+          <a class="home-menu-link home-menu-link--primary" href="/play.html"><span>01</span><strong data-i18n="home.menu.play">Start Game</strong></a>
+          <a class="home-menu-link" href="/enemy-encyclopedia.html"><span>02</span><strong data-i18n="home.menu.encyclopedia">World Encyclopedia</strong></a>
+          <a class="home-menu-link" href="/sandbox.html"><span>03</span><strong data-i18n="home.menu.sandbox">Enemy Sandbox</strong></a>
+          <a class="home-menu-link" href="/"><span>04</span><strong data-i18n="home.menu.editor">Map Editor</strong></a>
+          <button class="home-menu-link home-menu-button" id="home-settings-open" type="button" aria-haspopup="dialog" aria-controls="home-settings-panel" aria-expanded="false"><span>05</span><strong data-i18n="home.menu.settings">Settings</strong></button>
         </nav>
       </section>
-      <p class="home-tap-prompt" id="home-tap-prompt">Tap anywhere to begin</p>
-      <span class="visually-hidden" id="home-intro-status">頭盔目前面向正前方。</span>
+      <p class="home-tap-prompt" id="home-tap-prompt" data-i18n="home.tapPrompt">Tap anywhere to begin</p>
+      <span class="visually-hidden" id="home-intro-status" data-i18n="home.status.front">The helmet is facing forward.</span>
+
+      <section
+        class="home-settings-panel"
+        id="home-settings-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="home-settings-title"
+        aria-describedby="home-settings-description"
+        aria-hidden="true"
+        hidden
+      >
+        <div class="home-settings-backdrop" data-settings-close aria-hidden="true"></div>
+        <div class="home-settings-dialog">
+          <header class="home-settings-heading">
+            <div>
+              <p data-i18n="home.settings.eyebrow">SYSTEM / SETTINGS</p>
+              <h2 id="home-settings-title" data-i18n="home.settings.title">Settings</h2>
+            </div>
+            <button class="home-settings-close" type="button" data-settings-close aria-label="Close settings" data-i18n-aria-label="home.settings.closeAria">
+              <span aria-hidden="true">×</span><span class="visually-hidden" data-i18n="home.settings.close">Close</span>
+            </button>
+          </header>
+          <p class="home-settings-description" id="home-settings-description" data-i18n="home.settings.description">Changes apply immediately and are saved on this device.</p>
+          <fieldset class="home-settings-fieldset">
+            <legend data-i18n="home.settings.language">Language</legend>
+            <div class="home-language-options" role="group" aria-label="Choose language" data-i18n-aria-label="home.settings.languageGroupAria">
+              <button type="button" data-language-option="en" aria-pressed="true" aria-label="Switch language to English" data-i18n-aria-label="home.settings.selectEnglishAria"><span lang="en" data-i18n="home.settings.english">English</span><small>EN</small></button>
+              <button type="button" data-language-option="zh-Hant" aria-pressed="false" aria-label="Switch language to Traditional Chinese" data-i18n-aria-label="home.settings.selectTraditionalChineseAria"><span lang="zh-Hant" data-i18n="home.settings.traditionalChinese">Traditional Chinese</span><small>繁中</small></button>
+            </div>
+          </fieldset>
+          <p class="home-language-status" id="home-language-status" aria-live="polite">Current language: English</p>
+        </div>
+      </section>
     </main>
 
     <script type="module" src="/src/home-page.js"></script>

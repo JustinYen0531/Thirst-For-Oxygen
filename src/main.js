@@ -80,6 +80,17 @@ import {
   getPlayerSpriteScaleX,
 } from './player-animation.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
+import {
+  applyEditorTranslations,
+  editorT,
+  getEditorLanguage,
+  onEditorLanguageChange,
+  setEditorLanguage,
+  translateEditorText,
+  translateEditorTree,
+} from './i18n-editor.js';
+
+applyEditorTranslations(document);
 
 const canvas = document.querySelector('#map-canvas');
 const ctx = canvas.getContext('2d');
@@ -183,17 +194,17 @@ const actorImagePaths = {
   playerFastAscent: PLAYER_ANIMATION_ASSETS.fastAscent[0],
 };
 const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGatePath, ...terrainImagePaths, ...objectImagePaths, ...edgeImagePaths, ...actorImagePaths };
-const paletteLabels = {
-  water: '可通行水域', blocked: '不可通行', T1: '水域第一層（T1）', T2: '水域第二層（T2）',
-  ink: '墨水區', coralCluster: '珊瑚群落',
-  mine: '深海地雷', weightStone: '重石', seaweed: '水草', oxygen: '氧氣礦石',
-  checkpoint: 'Checkpoint', bubble: '光合作用氣泡', torricelli: '托里切利空間', razor: '剃刀', button: '一次性開門按鈕',
-  conditionalGate: '條件通行門（L1）',
-  noGate: '不是條件通行門', buttonGate: '條件通行門',
-  once: '一次性開門', toggle: '開關門',
-  playerStart: '玩家起點', enemySpawn: '敵人出生點', miniBossSpawn: 'Mini Boss', bossSpawn: 'Boss',
-  none: '清除 Edge', springJelly: '彈簧水母', spike: '尖刺邊界', barrier: '通用邊界', current: '潮流', layerPortal: '層間轉接門', multiPortal: '多邊傳送門',
-};
+const paletteLabelKeys = new Set([
+  'water', 'blocked', ...GRAVITY_ORDER, ...WATER_LAYERS, 'ink', 'coralCluster', 'mine', 'weightStone', 'seaweed', 'oxygen',
+  'checkpoint', 'bubble', 'torricelli', 'razor', 'button', 'conditionalGate', 'noGate', 'buttonGate', 'once', 'toggle',
+  'playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn', 'none', 'springJelly', 'spike', 'barrier', 'current', 'layerPortal', 'multiPortal',
+]);
+const paletteLabels = new Proxy({}, {
+  get(_target, property) {
+    const key = String(property);
+    return paletteLabelKeys.has(key) ? editorT(`label.${key}`) : undefined;
+  },
+});
 const waterTiles = Object.fromEntries(Object.entries(waterTilePaths).map(([level, source]) => {
   const image = new Image();
   image.src = source;
@@ -249,16 +260,20 @@ const actorSymbols = {
   bossSpawn: 'B',
 };
 const toolDefinitions = {
-  select: { label: '選取', values: [] },
-  terrain: { label: '地形', values: TERRAIN_TYPES },
-  gravity: { label: '重力', values: [...GRAVITY_ORDER, 'conditionalGate'] },
-  waterLayer: { label: '水域層級', values: WATER_LAYERS },
-  overlay: { label: '環境效果', values: OVERLAY_TYPES },
-  object: { label: 'Cell 物件', values: CELL_OBJECT_TYPES },
-  actor: { label: 'Actor／出生點', values: ACTOR_TYPES },
-  edge: { label: 'Edge 互動', values: EDGE_TYPES.filter((value) => value !== 'none') },
-  erase: { label: '橡皮擦', values: [] },
+  select: { labelKey: 'tool.select', values: [] },
+  terrain: { labelKey: 'tool.terrain', values: TERRAIN_TYPES },
+  gravity: { labelKey: 'tool.gravity', values: [...GRAVITY_ORDER, 'conditionalGate'] },
+  waterLayer: { labelKey: 'tool.waterLayer', values: WATER_LAYERS },
+  overlay: { labelKey: 'tool.overlay', values: OVERLAY_TYPES },
+  object: { labelKey: 'tool.object', values: CELL_OBJECT_TYPES },
+  actor: { labelKey: 'tool.actor', values: ACTOR_TYPES },
+  edge: { labelKey: 'tool.edge', values: EDGE_TYPES.filter((value) => value !== 'none') },
+  erase: { labelKey: 'tool.erase', values: [] },
 };
+
+function getToolLabel(tool) {
+  return editorT(toolDefinitions[tool]?.labelKey ?? String(tool));
+}
 
 const DEFAULT_ZOOM = 2;
 const MAP_VERTICAL_BUFFER_ROWS = 4;
@@ -351,8 +366,12 @@ const state = {
   animationTime: 0,
 };
 
+let currentStatusMessage = '準備建立地圖。';
+let dirtyMessageKey = 'editor.ready';
+
 function setStatus(message) {
-  statusLine.textContent = message;
+  currentStatusMessage = String(message);
+  statusLine.textContent = translateEditorText(currentStatusMessage);
 }
 
 function formatNumber(value) {
@@ -414,7 +433,7 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   values.forEach((value) => {
     const option = document.createElement('option');
     option.value = value;
-    option.textContent = value;
+    option.textContent = paletteLabels[value] ?? value;
     brushValue.append(option);
   });
   if (preferredValue && values.includes(preferredValue)) brushValue.value = preferredValue;
@@ -425,7 +444,7 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
   [...toolButtons.children].forEach((button) => button.classList.toggle('is-active', button.dataset.tool === tool));
   eraserButton.classList.toggle('is-active', tool === 'erase');
   eraserButton.setAttribute('aria-pressed', String(tool === 'erase'));
-  setStatus(`已選擇工具：${toolDefinitions[tool].label}`);
+  setStatus(`已選擇工具：${getToolLabel(tool)}`);
   updatePaletteSelection();
   updateCanvasCursor();
   render();
@@ -433,14 +452,16 @@ function setTool(tool, preferredValue = null, paletteTab = null) {
 
 function markDirty(message) {
   state.dirty = true;
-  dirtyIndicator.textContent = '尚未儲存到本機或匯出 JSON。';
+  dirtyMessageKey = 'dirty.unsaved';
+  dirtyIndicator.textContent = editorT(dirtyMessageKey);
   setStatus(message);
 }
 
 function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.map));
   state.dirty = false;
-  dirtyIndicator.textContent = '已儲存到瀏覽器本機。';
+  dirtyMessageKey = 'dirty.saved';
+  dirtyIndicator.textContent = editorT(dirtyMessageKey);
   setStatus('已儲存地圖到本機。');
 }
 
@@ -450,7 +471,7 @@ function createToolButtons() {
     const button = document.createElement('button');
     button.type = 'button';
     button.dataset.tool = key;
-    button.textContent = definition.label;
+    button.textContent = editorT(definition.labelKey);
     button.addEventListener('click', () => setTool(key));
     toolButtons.append(button);
   });
@@ -480,8 +501,8 @@ function createPalette() {
       choice.className = 'palette-choice palette-face palette-front';
       choice.dataset.paletteTool = tool;
       choice.dataset.paletteValue = value;
-      choice.title = '選擇此素材';
-      choice.setAttribute('aria-label', `選擇${paletteLabels[value] ?? value}`);
+      choice.title = editorT('action.chooseAsset');
+      choice.setAttribute('aria-label', `${editorT('action.chooseAsset')}: ${paletteLabels[value] ?? value}`);
       const visual = createPaletteVisual(tool, value);
       const label = document.createElement('span');
       label.className = 'palette-choice-label';
@@ -497,8 +518,8 @@ function createPalette() {
       info.type = 'button';
       info.className = 'palette-info';
       info.textContent = 'i';
-      info.title = '查看素材用途';
-      info.setAttribute('aria-label', `查看${paletteLabels[value] ?? value}用途`);
+      info.title = editorT('action.viewUse');
+      info.setAttribute('aria-label', `${editorT('action.viewUse')}: ${paletteLabels[value] ?? value}`);
       info.addEventListener('click', () => card.classList.toggle('is-flipped'));
 
       const back = document.createElement('section');
@@ -506,11 +527,11 @@ function createPalette() {
       const title = document.createElement('strong');
       title.textContent = paletteLabels[value] ?? value;
       const description = document.createElement('p');
-      description.textContent = getPaletteDescription(tool, value);
+      description.textContent = translateEditorText(getPaletteDescription(tool, value));
       const close = document.createElement('button');
       close.type = 'button';
       close.className = 'palette-back-close';
-      close.textContent = '返回';
+      close.textContent = editorT('action.back');
       close.addEventListener('click', () => card.classList.remove('is-flipped'));
       back.append(title, description, close);
       card.append(choice, info, back);
@@ -1990,10 +2011,12 @@ function updateSelectedEdge(values = {}, reset = false) {
 }
 
 function setInspector(signature, build) {
-  if (inspector.dataset.signature === signature) return;
-  inspector.dataset.signature = signature;
+  const localizedSignature = `${getEditorLanguage()}:${signature}`;
+  if (inspector.dataset.signature === localizedSignature) return;
+  inspector.dataset.signature = localizedSignature;
   inspector.replaceChildren();
   build();
+  translateEditorTree(inspector);
 }
 
 function appendInspectorHeader(title, note) {
@@ -2253,13 +2276,13 @@ function renderLists() {
   (state.validation.length ? state.validation : [{ level: 'info', message: '尚未執行。' }]).forEach((result) => {
     const item = document.createElement('li');
     item.className = `validation-${result.level}`;
-    item.textContent = result.message;
+    item.textContent = translateEditorText(result.message);
     validationList.append(item);
   });
   eventList.innerHTML = '';
   (state.events.length ? state.events : [{ message: '尚無事件。' }]).forEach((event) => {
     const item = document.createElement('li');
-    item.textContent = event.message;
+    item.textContent = translateEditorText(event.message);
     eventList.append(item);
   });
 }
@@ -2464,7 +2487,7 @@ function applyCellTool(key) {
     patchCell(state.map, key, { actors: exists ? editable.actors.filter((actor) => actor.kind !== value) : [...editable.actors, { kind: value }] }, state.chapter);
   }
   if (state.tool === 'erase') patchCell(state.map, key, { overlays: [], objects: [], freeObjects: [], actors: [] }, state.chapter);
-  markDirty(`${key} 已套用 ${toolDefinitions[state.tool].label}${value ? `：${value}` : ''}。`);
+  markDirty(`${key} 已套用 ${getToolLabel(state.tool)}${value ? `：${value}` : ''}。`);
 }
 
 function isCellPaintTool() {
@@ -2507,7 +2530,7 @@ function paintCellsAlongPath(point) {
   state.painting.lastPoint = point;
   if (changed && !state.painting.statusShown) {
     state.painting.statusShown = true;
-    markDirty(`拖曳塗色：已連續套用${toolDefinitions[state.tool].label}「${brushValue.value}」。`);
+    markDirty(`拖曳塗色：已連續套用${getToolLabel(state.tool)}「${brushValue.value}」。`);
   }
 }
 
@@ -2989,10 +3012,31 @@ brushValue.addEventListener('change', updatePaletteSelection);
 objectPlacementButtons.forEach((button) => button.addEventListener('click', () => setObjectPlacementMode(button.dataset.objectPlacement)));
 paletteTabs.forEach((button) => button.addEventListener('click', () => setPaletteTab(button.dataset.paletteTab)));
 eraserButton.addEventListener('click', () => setTool(state.tool === 'erase' ? 'select' : 'erase'));
+document.querySelectorAll('[data-editor-language]').forEach((button) => {
+  button.addEventListener('click', () => setEditorLanguage(button.dataset.editorLanguage));
+});
+
+onEditorLanguageChange(() => {
+  const selectedTool = state.tool;
+  const selectedValue = brushValue.value;
+  const selectedTab = state.paletteTab;
+  const previousStatus = currentStatusMessage;
+  applyEditorTranslations(document);
+  toolButtons.replaceChildren();
+  Object.values(paletteRoots).forEach((root) => root.replaceChildren());
+  createToolButtons();
+  createPalette();
+  inspector.dataset.signature = '';
+  setTool(selectedTool, selectedValue, selectedTab);
+  setStatus(previousStatus);
+  dirtyIndicator.textContent = editorT(dirtyMessageKey);
+  render();
+});
+
 createToolButtons();
 createPalette();
 setPaletteTab('gravity');
 setTool('select');
 state.validation = validateMap(state.map);
-dirtyIndicator.textContent = '編輯器已就緒；新地圖從空白 L0 水域開始，儲存後刷新會保留本機版本。';
+dirtyIndicator.textContent = editorT(dirtyMessageKey);
 requestAnimationFrame(animationFrame);

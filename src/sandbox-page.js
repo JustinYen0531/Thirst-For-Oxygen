@@ -37,6 +37,7 @@ import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnemySpriteScaleX } from './enemy-movement.js';
 import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
+import { installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
@@ -1118,7 +1119,7 @@ function renderAimPreview() {
   ctx.stroke();
   ctx.font = '12px system-ui';
   ctx.fillStyle = '#fff5b5';
-  ctx.fillText(`彈射距離 ${Math.round(distance)}`, state.aimPoint.x + 12, state.aimPoint.y - 10);
+  ctx.fillText(translateGameplayText(`彈射距離 ${Math.round(distance)}`), state.aimPoint.x + 12, state.aimPoint.y - 10);
   ctx.restore();
 }
 
@@ -1400,4 +1401,5 @@ window.advanceTime = (milliseconds) => {
 setupSandboxEmptyBuild();
 populateControls();
 render();
+installLiveLocalization(document);
 requestAnimationFrame(tick);

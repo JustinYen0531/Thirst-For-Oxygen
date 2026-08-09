@@ -1,13 +1,40 @@
-import {
-  ATTACK_VALUE_LABELS,
-  ENCYCLOPEDIA_SECTIONS,
-  ENEMY_ENCYCLOPEDIA,
-  MAP_ENCYCLOPEDIA,
-  PASSIVE_ENCYCLOPEDIA,
-  WEAPON_ENCYCLOPEDIA,
-  formatAttackValue,
-} from './enemy-encyclopedia.js';
 import { AFTERIMAGE_PROFILE } from './afterimage.js';
+import {
+  formatEncyclopediaValue,
+  getLocalizedEncyclopedia,
+  getStoredEncyclopediaLocale,
+} from './i18n-encyclopedia.js';
+
+const encyclopedia = getLocalizedEncyclopedia(getStoredEncyclopediaLocale());
+const {
+  enemies: ENEMY_ENCYCLOPEDIA,
+  locale,
+  mapEntries: MAP_ENCYCLOPEDIA,
+  passives: PASSIVE_ENCYCLOPEDIA,
+  sections: ENCYCLOPEDIA_SECTIONS,
+  ui,
+  weapons: WEAPON_ENCYCLOPEDIA,
+} = encyclopedia;
+
+document.documentElement.lang = locale;
+document.title = ui.pageTitle;
+document.querySelectorAll('[data-i18n]').forEach((element) => {
+  const value = ui[element.dataset.i18n];
+  if (typeof value === 'string') element.textContent = value;
+});
+document.querySelectorAll('[data-i18n-aria]').forEach((element) => {
+  const value = ui[element.dataset.i18nAria];
+  if (typeof value === 'string') element.setAttribute('aria-label', value);
+});
+[
+  ['/home.html', ui.navHome],
+  ['/play.html', ui.navPlay],
+  ['/', ui.navEditor],
+  ['/sandbox.html', ui.navSandbox],
+].forEach(([href, label]) => {
+  const link = document.querySelector(`.encyclopedia-header a[href="${href}"]`);
+  if (link) link.textContent = label;
+});
 
 const sectionFilters = document.querySelector('#section-filters');
 const tierFilters = document.querySelector('#tier-filters');
@@ -16,35 +43,10 @@ const enemyGrid = document.querySelector('#enemy-grid');
 const afterimageControls = document.querySelector('.afterimage-controls');
 const afterimageToggle = document.querySelector('#afterimage-toggle');
 const tierOrder = ['all', 1, 2, 3, 4, 'miniBoss', 'mutatedMiniBoss', 'finalBoss'];
-const tierLabels = { all: '全部', 1: '等級 1', 2: '等級 2', 3: '等級 3', 4: '等級 4', miniBoss: '小 Boss', mutatedMiniBoss: '變異小 Boss', finalBoss: 'Final Boss' };
-const tierDescriptions = { all: '所有敵人與 Boss', 1: '教學型生物', 2: '核心小怪', 3: '特殊小怪與精英', 4: '變異精英', miniBoss: '大型生物原型', mutatedMiniBoss: '變異大型生物原型', finalBoss: '最終戰場控制者' };
-const weaponTypeLabels = { melee: '近戰', projectile: '遠程投射' };
-const entryValueLabels = {
-  damage: '傷害',
-  range: '距離',
-  cooldown: '冷卻',
-  energyCost: '能量消耗',
-  projectileSpeed: '投射速度',
-  projectileCount: '投射物數量',
-  spreadDegrees: '散射角度',
-  hitArcDegrees: '命中弧度',
-  burstCount: '連射數量',
-  burstInterval: '連射間隔',
-  maxOxygenMultiplier: '最大氧氣倍率',
-  launchEnergyCostMultiplier: '噴射消耗倍率',
-  weaponEnergyCostMultiplier: '武器消耗倍率',
-  aimEnergyCostMultiplier: '瞄準消耗倍率',
-  rangedDamageTakenMultiplier: '遠程受傷倍率',
-  lowOxygenDamageTakenMultiplier: '低氧受傷倍率',
-  damageMultiplier: '武器傷害倍率',
-  highOxygenDamageMultiplier: '高氧傷害倍率',
-  killEnergyRecoveryRatio: '擊殺能量回復',
-  killOxygenRecoveryRatio: '擊殺氧氣回復',
-  resourceRecoveryHealthRatio: '資源轉生命',
-  shieldThresholdRatio: '護盾觸發比例',
-  shieldDuration: '護盾時間',
-  shieldCooldown: '護盾冷卻',
-};
+const tierLabels = ui.tierLabels;
+const tierDescriptions = ui.tierDescriptions;
+const weaponTypeLabels = ui.weaponTypeLabels;
+const entryValueLabels = ui.entryValueLabels;
 let activeSection = 'enemies';
 let activeTier = 'all';
 let afterimageEnabled = afterimageToggle?.checked ?? false;
@@ -59,7 +61,7 @@ const escapeHtml = (value) => String(value)
 function attackValues(attack) {
   return Object.entries(attack)
     .filter(([key, value]) => !['id', 'name', 'type', 'description'].includes(key) && value !== undefined)
-    .map(([key, value]) => `<span><b>${escapeHtml(ATTACK_VALUE_LABELS[key] ?? key)}</b>${escapeHtml(formatAttackValue(key, value))}</span>`)
+    .map(([key, value]) => `<span><b>${escapeHtml(ui.attackValueLabels[key] ?? key)}</b>${escapeHtml(formatEncyclopediaValue(key, value, locale))}</span>`)
     .join('');
 }
 
@@ -69,8 +71,8 @@ function formatEntryValue(key, value) {
     return `${percent > 0 ? '+' : ''}${percent}%`;
   }
   if (key.endsWith('Ratio')) return `${Math.round(value * 100)}%`;
-  if (typeof value === 'number' && (key.toLowerCase().includes('cooldown') || key.toLowerCase().includes('interval') || key.toLowerCase().includes('duration'))) return `${value} 秒`;
-  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number' && (key.toLowerCase().includes('cooldown') || key.toLowerCase().includes('interval') || key.toLowerCase().includes('duration'))) return `${value} ${ui.seconds}`;
+  if (typeof value === 'boolean') return value ? ui.yes : ui.no;
   return String(value);
 }
 
@@ -83,13 +85,13 @@ function entryValues(values) {
 
 function lorePanel(lore) {
   return `<section class="lore-panel" data-lore-panel hidden>
-    <div class="lore-panel-heading"><h3>LORE / 生物檔案</h3><span>視覺與原型參考</span></div>
+    <div class="lore-panel-heading"><h3>${escapeHtml(ui.loreHeading)}</h3><span>${escapeHtml(ui.loreSubheading)}</span></div>
     <dl class="lore-grid">
-      <div><dt>現實生物參考</dt><dd>${escapeHtml(lore.scientificReference)}</dd></div>
-      <div><dt>識別特徵</dt><dd>${escapeHtml(lore.identification)}</dd></div>
-      <div><dt>視覺設定</dt><dd>${escapeHtml(lore.visualSetting)}</dd></div>
+      <div><dt>${escapeHtml(ui.scientificReference)}</dt><dd>${escapeHtml(lore.scientificReference)}</dd></div>
+      <div><dt>${escapeHtml(ui.identification)}</dt><dd>${escapeHtml(lore.identification)}</dd></div>
+      <div><dt>${escapeHtml(ui.visualSetting)}</dt><dd>${escapeHtml(lore.visualSetting)}</dd></div>
     </dl>
-    <p class="lore-note">這些參考提供輪廓、部位與動作靈感，不代表現實生物的寫實複製。</p>
+    <p class="lore-note">${escapeHtml(ui.loreNote)}</p>
   </section>`;
 }
 
@@ -104,21 +106,21 @@ function enemyCard(enemy) {
   const hasIdle = Boolean(enemy.visuals?.idle);
   const { source: previewSource, showingAfterimage } = getPreviewSource(enemy);
   const preview = hasIdle
-    ? `<img class="enemy-preview-image" src="${previewSource}" alt="${escapeHtml(enemy.name)} 自然漂浮" data-preview-image />`
-    : '<div class="enemy-preview-placeholder"><span>GIF</span><small>動畫素材待補</small></div>';
+    ? `<img class="enemy-preview-image" src="${previewSource}" alt="${escapeHtml(enemy.name)} ${escapeHtml(ui.naturalDrift)}" data-preview-image />`
+    : `<div class="enemy-preview-placeholder"><span>GIF</span><small>${escapeHtml(ui.animationPending)}</small></div>`;
   const actions = enemy.attacks.map((attack) => {
     const hasAnimation = Boolean(enemy.visuals?.actions?.[attack.id]);
-    return `<button class="action-button${hasAnimation ? '' : ' is-unavailable'}" type="button" data-action-id="${escapeHtml(attack.id)}" ${hasAnimation ? '' : 'aria-disabled="true"'}>${escapeHtml(attack.name)}${hasAnimation ? '' : ' · 待素材'}</button>`;
+    return `<button class="action-button${hasAnimation ? '' : ' is-unavailable'}" type="button" data-action-id="${escapeHtml(attack.id)}" ${hasAnimation ? '' : 'aria-disabled="true"'}>${escapeHtml(attack.name)}${hasAnimation ? '' : ` · ${escapeHtml(ui.materialPending)}`}</button>`;
   }).join('');
   return `<article class="enemy-card" data-tier="${escapeHtml(enemy.tier)}" data-enemy-id="${escapeHtml(enemy.id)}" data-selected-action="idle">
     <div class="enemy-card-heading">
       <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
-      <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">Lore 檔案</button></div>
+      <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">${escapeHtml(ui.loreButton)}</button></div>
     </div>
-    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? `自然漂浮${showingAfterimage ? ' · 正式殘影' : ''}` : '目前沒有 GIF 預覽素材'}</p></div>
+    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? `${escapeHtml(ui.naturalDrift)}${showingAfterimage ? ` · ${escapeHtml(ui.authoredAfterimage)}` : ''}` : escapeHtml(ui.noPreview)}</p></div>
     <div class="preview-actions">${actions}</div>
-    <dl class="enemy-stats"><div><dt>生命</dt><dd>${enemy.maxHealth}</dd></div><div><dt>移速</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>技能</dt><dd>${enemy.attacks.length}</dd></div></dl>
-    <section class="enemy-description" data-enemy-description><h3>生態觀察</h3><p>${escapeHtml(enemy.description)}</p></section>
+    <dl class="enemy-stats"><div><dt>${escapeHtml(ui.health)}</dt><dd>${enemy.maxHealth}</dd></div><div><dt>${escapeHtml(ui.moveSpeed)}</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>${escapeHtml(ui.skills)}</dt><dd>${enemy.attacks.length}</dd></div></dl>
+    <section class="enemy-description" data-enemy-description><h3>${escapeHtml(ui.ecology)}</h3><p>${escapeHtml(enemy.description)}</p></section>
     <section class="selected-skill-panel" data-skill-panel hidden></section>
     ${lorePanel(enemy.lore)}
   </article>`;
@@ -133,23 +135,23 @@ function mapCard(entry) {
 }
 
 function levelList(entry) {
-  return `<ol class="level-list">${entry.levels.map((level) => `<li><img class="level-icon" src="${escapeHtml(level.icon)}" alt="${escapeHtml(entry.name)} Lv.${level.level} 圖示" /><div class="level-content"><div class="level-heading"><strong>Lv.${level.level}</strong><span>${escapeHtml(level.summary)}</span></div><div class="entry-values">${entryValues(level.values)}</div></div></li>`).join('')}</ol>`;
+  return `<ol class="level-list">${entry.levels.map((level) => `<li><img class="level-icon" src="${escapeHtml(level.icon)}" alt="${escapeHtml(entry.name)} Lv.${level.level} ${escapeHtml(ui.levelIcon)}" /><div class="level-content"><div class="level-heading"><strong>Lv.${level.level}</strong><span>${escapeHtml(level.summary)}</span></div><div class="entry-values">${entryValues(level.values)}</div></div></li>`).join('')}</ol>`;
 }
 
 function weaponCard(weapon) {
   return `<article class="entry-card build-card">
-    <div class="entry-card-heading"><div><span class="tier-chip">武器・${escapeHtml(weaponTypeLabels[weapon.type] ?? weapon.type)}</span><h2>${escapeHtml(weapon.name)}</h2></div><span class="role-label">最高 Lv.${weapon.maxLevel}</span></div>
-    <p class="entry-role"><b>定位</b>${escapeHtml(weapon.role)}</p>
+    <div class="entry-card-heading"><div><span class="tier-chip">${escapeHtml(ui.weapon)} · ${escapeHtml(weapon.typeLabel ?? weaponTypeLabels[weapon.type] ?? weapon.type)}</span><h2>${escapeHtml(weapon.name)}</h2></div><span class="role-label">${escapeHtml(ui.maximum)} Lv.${weapon.maxLevel}</span></div>
+    <p class="entry-role"><b>${escapeHtml(ui.role)}</b>${escapeHtml(weapon.role)}</p>
     <p class="entry-description">${escapeHtml(weapon.description)}</p>
     ${levelList(weapon)}
-    <a class="sandbox-entry-link" href="/sandbox.html">前往驗收沙盒</a>
+    <a class="sandbox-entry-link" href="/sandbox.html">${escapeHtml(ui.openSandbox)}</a>
   </article>`;
 }
 
 function passiveCard(passive) {
   return `<article class="entry-card build-card">
-    <div class="entry-card-heading"><div><span class="tier-chip">被動能力</span><h2>${escapeHtml(passive.name)}</h2></div><span class="role-label">最高 Lv.${passive.maxLevel}</span></div>
-    <p class="entry-role"><b>定位</b>${escapeHtml(passive.role)}</p>
+    <div class="entry-card-heading"><div><span class="tier-chip">${escapeHtml(ui.passive)}</span><h2>${escapeHtml(passive.name)}</h2></div><span class="role-label">${escapeHtml(ui.maximum)} Lv.${passive.maxLevel}</span></div>
+    <p class="entry-role"><b>${escapeHtml(ui.role)}</b>${escapeHtml(passive.role)}</p>
     <p class="entry-description">${escapeHtml(passive.description)}</p>
     ${levelList(passive)}
   </article>`;
@@ -218,20 +220,20 @@ function updatePreview(card, enemy, attackId) {
   if (source && image) {
     image.hidden = false;
     image.src = source;
-    image.alt = `${enemy.name} ${attack?.name ?? '自然漂浮'}`;
-    caption.textContent = `${attack?.name ?? '自然漂浮'}${showingAfterimage ? ' · 正式殘影' : ''}`;
+    image.alt = `${enemy.name} ${attack?.name ?? ui.naturalDrift}`;
+    caption.textContent = `${attack?.name ?? ui.naturalDrift}${showingAfterimage ? ` · ${ui.authoredAfterimage}` : ''}`;
   } else {
     if (image) {
       image.removeAttribute('src');
       image.hidden = true;
       image.alt = '';
     }
-    caption.textContent = attack ? `${attack.name}：動畫素材待補，數值已可查閱` : '目前沒有 GIF 預覽素材';
+    caption.textContent = attack ? `${attack.name}: ${ui.valuesAvailable}` : ui.noPreview;
   }
   if (attack) {
     enemyDescription.hidden = true;
     skillPanel.hidden = false;
-    skillPanel.innerHTML = `<h3>${escapeHtml(attack.name)}</h3><p class="skill-type">${escapeHtml(attack.type)}</p><p class="skill-description">${escapeHtml(attack.description)}</p><div class="skill-values">${attackValues(attack)}</div>`;
+    skillPanel.innerHTML = `<h3>${escapeHtml(attack.name)}</h3><p class="skill-type">${escapeHtml(attack.typeLabel ?? ui.skillTypeLabels[attack.type] ?? attack.type)}</p><p class="skill-description">${escapeHtml(attack.description)}</p><div class="skill-values">${attackValues(attack)}</div>`;
   } else {
     enemyDescription.hidden = false;
     skillPanel.hidden = true;
@@ -269,6 +271,6 @@ enemyGrid.addEventListener('click', (event) => {
   updatePreview(card, enemy, attackId);
 });
 
-document.querySelector('#afterimage-profile').textContent = `${AFTERIMAGE_PROFILE.sampleCount} 幀：${Math.round(AFTERIMAGE_PROFILE.nearestOpacity * 100)}% → ${Math.round(AFTERIMAGE_PROFILE.opacities.at(-1) * 100)}%，每幀偏移 ${AFTERIMAGE_PROFILE.driftX}px`;
+document.querySelector('#afterimage-profile').textContent = `${AFTERIMAGE_PROFILE.sampleCount} ${ui.afterimageFrames}: ${Math.round(AFTERIMAGE_PROFILE.nearestOpacity * 100)}% → ${Math.round(AFTERIMAGE_PROFILE.opacities.at(-1) * 100)}%, ${ui.afterimageOffset} ${AFTERIMAGE_PROFILE.driftX}px`;
 renderSection('enemies');
 setActiveTier('all');

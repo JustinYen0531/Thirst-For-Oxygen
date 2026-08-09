@@ -981,3 +981,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正面面罩內的 `THIRST FOR OXYGEN` Logo 下移 3%；頭盔轉到側面後 Logo 回到主選單原本的置中位置，避免影響選單排版。
 - 整個頭盔容器新增同步呼吸感，金屬、面罩地圖、反光與點擊區一起縮放與微幅上浮：正面每 5.6 秒循環、最大約 0.8%，側面每 6.2 秒循環、最大約 0.4%。四幀轉向期間仍由原本轉向動畫接管。
 - `prefers-reduced-motion` 會關閉正面與側面呼吸，保留可讀性與既有快速轉向。首頁專屬測試 9/9、完整 `npm run check` 237/237、Vite build 與 scoped `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 119 complete
+
+- 新增全遊戲共用語言設定，預設英文並以 `thirst-for-oxygen-language` 儲存在本機；首頁主選單加入第 05 項 Settings，可即時切換 English／繁體中文，且具備 Escape、背景關閉、鍵盤焦點循環與焦點回復。
+- 正式遊玩、敵人沙盒、世界圖鑑與地圖編輯器全部接上相同設定。正式遊玩 Settings 亦可切換語言；戰鬥狀態、物理事件、HUD／Canvas 標示、工具與 Inspector 等動態文字均跟隨語言，切換不會重置 Build、關卡或編輯器狀態。
+- 世界圖鑑英文版完整涵蓋 19 種敵人與技能／生態／Lore、29 個放置項、4 把武器各 3 級與 4 個被動各 3 級；繁中資料完整保留。英文資料 no-CJK gate、完整 `npm run check` 258/258、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。

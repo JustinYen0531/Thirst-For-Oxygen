@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thirst for Oxygen — 世界圖鑑</title>
+    <title>Thirst for Oxygen — World Field Guide</title>
     <link rel="stylesheet" href="/src/encyclopedia.css" />
   </head>
   <body>
@@ -11,28 +11,28 @@
       <header class="encyclopedia-header">
         <div>
           <p class="eyebrow">THIRST FOR OXYGEN / FIELD GUIDE</p>
-          <h1>世界圖鑑</h1>
-          <p class="lede">從敵人、地圖元素到武器與被動能力，一次讀懂這片深海的遊戲語言。</p>
+          <h1 data-i18n="heading">World Field Guide</h1>
+          <p class="lede" data-i18n="lede">Read the language of the abyss through enemies, map elements, weapons, and passive abilities.</p>
         </div>
-          <a class="back-link" href="/home.html">返回主控台</a>
-          <a class="back-link" href="/play.html">遊玩地圖</a>
-          <a class="back-link" href="/">返回地圖編輯器</a>
-          <a class="back-link" href="/sandbox.html">開啟敵人沙盒</a>
+          <a class="back-link" href="/home.html">Back to Console</a>
+          <a class="back-link" href="/play.html">Play Map</a>
+          <a class="back-link" href="/">Map Editor</a>
+          <a class="back-link" href="/sandbox.html">Enemy Sandbox</a>
       </header>
 
-      <section class="guide-note" aria-label="圖鑑使用說明">
-        <strong>完整資料入口已整合</strong>
-        <span>敵人分類保留自然漂浮、技能演示與 Lore 檔案；地圖元素、武器與被動能力則用同一套卡片列出正式定位、玩法作用與等級變化。數值資料仍以遊戲資料模組為準。</span>
+      <section class="guide-note" aria-label="Field guide instructions" data-i18n-aria="guideLabel">
+        <strong data-i18n="guideTitle">Complete reference integrated</strong>
+        <span data-i18n="guideBody">Enemy entries retain natural floating, skill demonstrations, and Lore files. Map elements, weapons, and passives use the same cards for roles, gameplay effects, and level changes. Numeric values remain sourced from game data.</span>
       </section>
 
-      <section class="afterimage-controls" aria-label="殘影演示控制">
-        <label class="afterimage-toggle"><input id="afterimage-toggle" type="checkbox" /> 啟用正式殘影</label>
-        <span>預設顯示單一乾淨動畫；勾選後才以歷史幀疊合。</span><strong id="afterimage-profile">4 幀：28% → 5%，每幀偏移 3px</strong>
+      <section class="afterimage-controls" aria-label="Afterimage demonstration controls" data-i18n-aria="afterimageLabel">
+        <label class="afterimage-toggle"><input id="afterimage-toggle" type="checkbox" /> <span data-i18n="afterimageToggle">Enable authored afterimages</span></label>
+        <span data-i18n="afterimageHint">A single clean animation is shown by default. Enable this to composite historical frames.</span><strong id="afterimage-profile">4 frames: 28% → 5%, 3px drift per frame</strong>
       </section>
 
-      <nav id="section-filters" class="section-filters" aria-label="圖鑑分類"></nav>
+      <nav id="section-filters" class="section-filters" aria-label="Field guide categories" data-i18n-aria="sectionNavLabel"></nav>
       <div id="section-summary" class="section-summary" aria-live="polite"></div>
-      <nav id="tier-filters" class="tier-filters" aria-label="敵人等級篩選"></nav>
+      <nav id="tier-filters" class="tier-filters" aria-label="Enemy tier filters" data-i18n-aria="tierNavLabel"></nav>
       <section id="enemy-grid" class="enemy-grid" aria-live="polite"></section>
     </main>
     <script type="module" src="/src/enemy-encyclopedia-page.js"></script>
