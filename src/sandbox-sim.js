@@ -1231,6 +1231,15 @@ function updateLightMachineGunBurst(state) {
   if (burst.nextShotIndex >= burst.shotCount && state.time >= burst.finishAt) state.weaponBurst = null;
 }
 
+function processLightMachineGunAutoAttack(state) {
+  const entry = getEquippedWeaponEntry(state, 'lightMachineGun');
+  if (!entry || state.aiming || state.actor.attached || state.actor.dead) return;
+  if (state.weaponBurst?.weaponId === 'lightMachineGun') return;
+  const cooldownKey = 'weapon:lightMachineGun';
+  if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;
+  playerAttack(state, { auto: true, weaponId: 'lightMachineGun', weaponLevel: entry.level });
+}
+
 function knifeSwipeSegment(state, weapon, target = null) {
   const direction = knifeDirection(state, target);
   const targetDistance = target ? Math.hypot(target.x - state.actor.x, target.y - state.actor.y) : 0;
@@ -1875,6 +1884,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   markKatanaMovement(state, previousPosition);
   processKatanaAutoAttack(state);
   processTridentAutoAttack(state, dt);
+  processLightMachineGunAutoAttack(state);
   processKnifeMovementEffect(state, previousPosition);
   processPlayerEnemyCollisions(state, previousPosition);
   processStationaryKnifeArea(state);
