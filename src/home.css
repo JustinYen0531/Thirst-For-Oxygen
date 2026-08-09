@@ -177,6 +177,10 @@ body::before {
   );
 }
 
+.home-intro:not(.is-turning):not(.is-side)::before {
+  opacity: 0;
+}
+
 .home-intro:focus-visible {
   box-shadow: inset 0 0 0 1px rgba(131, 239, 255, 0.58);
 }
@@ -196,6 +200,11 @@ body::before {
 
 .home-intro:not(.is-turning):not(.is-side) .home-helmet-stage {
   animation: home-helmet-breathe-front 5.6s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.92))
+    drop-shadow(0 0 14px rgba(248, 253, 255, 0.58))
+    drop-shadow(0 0 46px rgba(226, 241, 246, 0.3))
+    drop-shadow(0 34px 50px rgba(0, 0, 0, 0.86));
 }
 
 .home-helmet-frame {
@@ -463,7 +472,7 @@ body::before {
 .home-menu-panel {
   position: absolute;
   left: 50%;
-  top: 46.5%;
+  top: 55.5%;
   z-index: 4;
   width: min(27vw, 335px);
   pointer-events: none;
@@ -477,7 +486,9 @@ body::before {
   width: 100%;
   aspect-ratio: 1;
   clip-path: circle(49% at 50% 50%);
-  transition: clip-path 900ms ease;
+  background: radial-gradient(circle at 50% 45%, rgba(7, 17, 22, 0.78), rgba(0, 3, 6, 0.96) 76%);
+  box-shadow: inset 0 0 58px rgba(0, 2, 5, 0.88);
+  transition: clip-path 900ms ease, background-color 420ms ease, box-shadow 420ms ease;
 }
 
 .home-logo-viewport::before {
@@ -498,7 +509,7 @@ body::before {
 .home-logo-viewport img {
   position: absolute;
   left: 50%;
-  top: 53%;
+  top: 57%;
   width: 88%;
   height: 88%;
   object-fit: contain;
@@ -587,6 +598,8 @@ body::before {
 .home-intro.is-turning .home-logo-viewport,
 .home-intro.is-side .home-logo-viewport {
   clip-path: inset(0 round 0);
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-intro.is-turning .home-logo-viewport::before,
@@ -635,10 +648,9 @@ body::before {
 }
 
 .home-intro.is-starting-game .home-menu-panel {
-  opacity: 0;
-  filter: blur(2px);
+  z-index: 8;
   pointer-events: none;
-  transform: translateX(-48px);
+  animation: home-menu-start-exit 900ms cubic-bezier(0.42, 0, 0.24, 1) forwards;
 }
 
 .home-intro.is-starting-game .home-helmet-stage,
@@ -701,6 +713,19 @@ body::before {
 @keyframes home-menu-reveal {
   from { opacity: 0; visibility: hidden; transform: translateY(26px); }
   to { opacity: 1; visibility: visible; transform: translateY(0); }
+}
+
+@keyframes home-menu-start-exit {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateX(-48px);
+  }
 }
 
 @keyframes home-map-lens-reveal {

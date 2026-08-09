@@ -5,9 +5,14 @@ import test from 'node:test';
 
 import {
   HOME_BACKGROUND_VIDEO_VOLUME,
+  HOME_LOADING_VIDEO_START_SECONDS,
   HOME_LOADING_VIDEO_VOLUME,
+  HOME_LOADING_VISUAL_DURATION_MS,
+  HOME_MENU_EXIT_DURATION_MS,
   attachHomeBackgroundVideoAudio,
   attachHomeStartLoading,
+  getHomeLoadingDisplayRatio,
+  playHomeLoadingVideo,
   preloadHomeGameAssets,
 } from '../src/home-start-loading.js';
 import {
@@ -29,6 +34,7 @@ test('Start Game owns a cinematic loading layer with real progress semantics', (
   assert.match(html, /id="home-start-loading-video"[\s\S]*start-game-descent-loading\.mp4/);
   assert.match(html, /id="home-start-loading-progress" role="progressbar"[\s\S]*aria-valuenow="0"/);
   assert.match(css, /\.home-intro\.is-starting-game \.home-menu-panel[\s\S]*opacity: 0;[\s\S]*translateX\(-48px\)/);
+  assert.match(css, /\.home-intro\.is-starting-game \.home-menu-panel[\s\S]*z-index: 8;[\s\S]*home-menu-start-exit 900ms/);
   assert.match(css, /\.home-intro\.is-starting-game \.home-start-loading[\s\S]*opacity: 1/);
   assert.match(page, /attachHomeStartLoading\(homeRoot/);
 });
@@ -40,6 +46,38 @@ test('homepage ambient and loading movies both preserve authored audio files', (
   assert.equal(existsSync(`${ROOT}\\public\\assets\\home\\start-game-descent-loading.mp4`), true);
   assert.ok(HOME_BACKGROUND_VIDEO_VOLUME >= 0.8);
   assert.ok(HOME_LOADING_VIDEO_VOLUME >= 0.85);
+  assert.equal(HOME_LOADING_VIDEO_START_SECONDS, 3);
+  assert.equal(HOME_MENU_EXIT_DURATION_MS, 900);
+  assert.equal(HOME_LOADING_VISUAL_DURATION_MS, 12000);
+});
+
+test('visual loading progress reaches 100% only at the twelve-second mark', () => {
+  assert.equal(getHomeLoadingDisplayRatio(1, 0), 0);
+  assert.equal(getHomeLoadingDisplayRatio(1, 3000), 0.25);
+  assert.equal(getHomeLoadingDisplayRatio(1, 6000), 0.5);
+  assert.equal(getHomeLoadingDisplayRatio(1, 11900) < 1, true);
+  assert.equal(getHomeLoadingDisplayRatio(1, 12000), 1);
+  assert.equal(getHomeLoadingDisplayRatio(0.4, 12000), 0.4);
+});
+
+test('loading movie skips its slow opening and begins at the authored third second', async () => {
+  class FakeVideo extends EventTarget {
+    constructor() {
+      super();
+      this.currentTime = 0;
+      this.muted = true;
+      this.readyState = 1;
+      this.volume = 0;
+    }
+    play() {
+      queueMicrotask(() => this.dispatchEvent(new Event('ended')));
+      return Promise.resolve();
+    }
+  }
+  const video = new FakeVideo();
+  assert.equal(await playHomeLoadingVideo(video, { timeoutMs: 1000 }), 'ended');
+  assert.equal(video.currentTime, 3);
+  assert.equal(video.muted, false);
 });
 
 test('shared Play preload manifest covers every formal runtime image and first map', () => {
@@ -135,14 +173,25 @@ test('Start Game waits for both the movie and asset work before navigating', asy
   const root = new FakeElement();
   root.querySelector = (selector) => elements.get(selector) ?? null;
   const navigation = [];
+  let finishVideo;
+  const videoResult = new Promise((resolve) => { finishVideo = () => resolve('ended'); });
+  let loadedAssets = 0;
   const controller = attachHomeStartLoading(root, {
     assetPaths: ['/player.png', '/map.json'],
-    loadAsset: async () => true,
+    loadAsset: async () => { loadedAssets += 1; return true; },
     navigate: (href) => navigation.push(href),
-    playVideo: async () => 'ended',
+    playVideo: () => videoResult,
+    minimumExitMs: 0,
+    visualDurationMs: 0,
   });
 
-  await controller.start({ preventDefault() {} });
+  const startPromise = controller.start({ preventDefault() {} });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(loadedAssets, 2);
+  assert.deepEqual(navigation, []);
+  finishVideo();
+  await startPromise;
   assert.equal(loadingLayer.hidden, false);
   assert.equal(progress.getAttribute('aria-valuenow'), '100');
   assert.equal(progressFill.style.width, '100%');

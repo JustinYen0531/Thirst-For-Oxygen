@@ -70,7 +70,13 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 20vh, 0\) scale\(0\.72\)/);
   assert.match(css, /\.home-helmet-frame[\s\S]*brightness\(0\.5\)[\s\S]*saturate\(0\.55\)/);
   assert.match(css, /#home-map-preview[\s\S]*brightness\(0\.48\)[\s\S]*saturate\(0\.56\)/);
-  assert.match(css, /\.home-logo-viewport img[\s\S]*top: 53%/);
+  assert.match(css, /\.home-menu-panel[\s\S]*top: 55\.5%/);
+  assert.doesNotMatch(css, /\.home-logo-viewport\s*{[^}]*repeating-linear-gradient/);
+  assert.match(css, /\.home-logo-viewport[\s\S]*radial-gradient\(circle at 50% 45%/);
+  assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\)::before\s*{\s*opacity: 0/);
+  assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\) \.home-helmet-stage[\s\S]*drop-shadow\(0 0 3px rgba\(255, 255, 255, 0\.92\)\)[\s\S]*drop-shadow\(0 0 46px/);
+  assert.match(css, /\.home-logo-viewport img[\s\S]*top: 57%/);
+  assert.match(css, /\.home-intro\.is-side \.home-logo-viewport[\s\S]*background: transparent/);
   assert.match(css, /@keyframes home-helmet-breathe-front[\s\S]*scale\(0\.887\)/);
   assert.match(css, /@keyframes home-helmet-breathe-side[\s\S]*scale\(0\.723\)/);
 });

@@ -3,6 +3,17 @@ import { getLanguage, translateText } from './i18n.js';
 export const HOME_BACKGROUND_VIDEO_VOLUME = 0.82;
 export const HOME_LOADING_VIDEO_VOLUME = 0.9;
 export const HOME_LOADING_CONCURRENCY = 8;
+export const HOME_LOADING_VIDEO_START_SECONDS = 3;
+export const HOME_MENU_EXIT_DURATION_MS = 900;
+export const HOME_LOADING_VISUAL_DURATION_MS = 12000;
+
+export function getHomeLoadingDisplayRatio(assetRatio, elapsedMs, durationMs = HOME_LOADING_VISUAL_DURATION_MS) {
+  const actualRatio = Math.max(0, Math.min(1, Number(assetRatio) || 0));
+  const safeDuration = Math.max(0, Number(durationMs) || 0);
+  if (safeDuration === 0) return actualRatio;
+  const timeRatio = Math.max(0, Math.min(1, (Number(elapsedMs) || 0) / safeDuration));
+  return Math.min(actualRatio, timeRatio);
+}
 
 function isImagePath(path) {
   return /\.(?:avif|gif|jpe?g|png|webp)(?:[?#].*)?$/i.test(path);
@@ -116,10 +127,10 @@ export function attachHomeBackgroundVideoAudio(video, eventTarget = globalThis.d
   };
 }
 
-function playLoadingVideo(video, options = {}) {
+export function playHomeLoadingVideo(video, options = {}) {
   if (!video) return Promise.resolve('missing');
   const timeoutMs = Math.max(1000, Number(options.timeoutMs) || 20000);
-  video.currentTime = 0;
+  const startAtSeconds = Math.max(0, Number(options.startAtSeconds) || HOME_LOADING_VIDEO_START_SECONDS);
   video.volume = Math.max(0, Math.min(1, Number(options.volume) || HOME_LOADING_VIDEO_VOLUME));
   video.muted = false;
   return new Promise((resolve) => {
@@ -134,14 +145,22 @@ function playLoadingVideo(video, options = {}) {
     };
     const onEnded = () => finish('ended');
     const onError = () => finish('error');
+    const beginPlayback = () => {
+      try {
+        video.currentTime = startAtSeconds;
+        const request = video.play?.();
+        if (request?.catch) request.catch(onError);
+      } catch {
+        onError();
+      }
+    };
     const timeoutId = globalThis.setTimeout?.(() => finish('timeout'), timeoutMs);
     video.addEventListener?.('ended', onEnded, { once: true });
     video.addEventListener?.('error', onError, { once: true });
-    try {
-      const request = video.play?.();
-      if (request?.catch) request.catch(onError);
-    } catch {
-      onError();
+    if (Number(video.readyState) >= 1) beginPlayback();
+    else {
+      video.addEventListener?.('loadedmetadata', beginPlayback, { once: true });
+      video.load?.();
     }
   });
 }
@@ -175,23 +194,58 @@ export function attachHomeStartLoading(root, options = {}) {
     event?.preventDefault?.();
     if (active) return false;
     active = true;
-    root.classList.add('is-starting-game');
-    root.setAttribute('aria-busy', 'true');
     loadingLayer.hidden = false;
     loadingLayer.setAttribute('aria-hidden', 'false');
+    loadingLayer.getBoundingClientRect?.();
+    root.classList.add('is-starting-game');
+    root.setAttribute('aria-busy', 'true');
     mainMenu?.setAttribute('inert', '');
     startLink.setAttribute('aria-disabled', 'true');
     options.beforeStart?.();
     renderProgress({ active: true, ratio: 0, video: 'playing' });
 
-    const videoPromise = (options.playVideo ?? playLoadingVideo)(loadingVideo, options.videoOptions);
-    const assetPaths = options.assetPaths ?? (await import('./play-preload.js')).PLAY_STARTUP_ASSET_PATHS;
-    const assetsPromise = preloadHomeGameAssets(assetPaths, {
-      concurrency: options.concurrency,
-      loadAsset: options.loadAsset,
-      onProgress: renderProgress,
-    });
-    const [videoResult, assetResult] = await Promise.all([videoPromise, assetsPromise]);
+    const assetPathsPromise = options.assetPaths
+      ? Promise.resolve(options.assetPaths)
+      : import('./play-preload.js').then(({ PLAY_STARTUP_ASSET_PATHS }) => PLAY_STARTUP_ASSET_PATHS);
+    const minimumExitMs = Math.max(0, Number(options.minimumExitMs ?? HOME_MENU_EXIT_DURATION_MS));
+    const menuExitPromise = minimumExitMs > 0
+      ? new Promise((resolve) => globalThis.setTimeout?.(resolve, minimumExitMs))
+      : Promise.resolve();
+    const visualDurationMs = Math.max(0, Number(options.visualDurationMs ?? HOME_LOADING_VISUAL_DURATION_MS));
+    const progressStartedAt = globalThis.performance?.now?.() ?? Date.now();
+    let latestAssetProgress = { completed: 0, failed: 0, ratio: 0, total: 0 };
+    const renderTimedProgress = (nextState = latestAssetProgress) => {
+      latestAssetProgress = { ...latestAssetProgress, ...nextState };
+      const now = globalThis.performance?.now?.() ?? Date.now();
+      renderProgress({
+        ...latestAssetProgress,
+        ratio: getHomeLoadingDisplayRatio(latestAssetProgress.ratio, now - progressStartedAt, visualDurationMs),
+      });
+    };
+    let progressTimer = null;
+    const visualProgressPromise = visualDurationMs > 0
+      ? new Promise((resolve) => {
+          progressTimer = globalThis.setInterval?.(renderTimedProgress, 80) ?? null;
+          globalThis.setTimeout?.(() => {
+            renderTimedProgress();
+            resolve();
+          }, visualDurationMs);
+        })
+      : Promise.resolve();
+    const videoPromise = (options.playVideo ?? playHomeLoadingVideo)(loadingVideo, options.videoOptions);
+    const assetsPromise = assetPathsPromise.then((assetPaths) => preloadHomeGameAssets(assetPaths, {
+        concurrency: options.concurrency,
+        loadAsset: options.loadAsset,
+        onProgress: renderTimedProgress,
+      }));
+    const [videoResult, assetResult] = await Promise.all([
+      videoPromise,
+      assetsPromise,
+      menuExitPromise,
+      visualProgressPromise,
+    ]);
+    if (progressTimer !== null) globalThis.clearInterval?.(progressTimer);
+    renderProgress({ ...assetResult, ratio: 1 });
     const language = getLanguage();
     status.textContent = translateText(
       assetResult.failed > 0 ? 'home.loading.readyWithFallbacks' : 'home.loading.ready',
