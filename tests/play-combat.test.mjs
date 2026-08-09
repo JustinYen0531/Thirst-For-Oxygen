@@ -46,6 +46,10 @@ test('neutral Resonance partners cannot be targeted or damaged by player weapons
   stepPlayCombat(state, { actor, enemies: [partner], previousPosition: { x: -40, y: 0 }, dt: 1 / 60 });
   assert.equal(partner.health, 200);
   assert.equal(state.effects.some((effect) => effect.type === 'weaponHit'), false);
+  partner.health = 0;
+  partner.defeated = true;
+  assert.deepEqual(recordPlayEnemyDefeats(state, [partner], actor), []);
+  assert.equal(state.experienceOrbs.length, 0, 'a resonated enemy never pays EXP even if another system later marks it defeated');
 });
 
 test('a defeated enemy drops one stationary orb and pickup opens the existing upgrade flow', () => {

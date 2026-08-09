@@ -180,6 +180,7 @@ export function choosePlayUpgrade(state, choice, actor = null) {
 export function recordPlayEnemyDefeats(state, enemies, actor = null) {
   const dropped = [];
   (enemies ?? []).forEach((enemy, index) => {
+    if (enemy.resonanceNeutral) return;
     if (!enemy.defeated && Number(enemy.health) > 0) return;
     enemy.defeated = true;
     const key = enemyKey(enemy, index);

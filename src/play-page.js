@@ -137,6 +137,11 @@ const depthReadout = document.querySelector('#play-depth-value');
 const levelReadout = document.querySelector('#play-level-value');
 const experienceReadout = document.querySelector('#play-experience-value');
 const experienceFill = document.querySelector('#play-experience-fill');
+const levelInspect = document.querySelector('#play-level-inspect');
+const resonancePanel = document.querySelector('#play-resonance-panel');
+const resonanceClose = document.querySelector('#play-resonance-close');
+const resonanceCount = document.querySelector('#play-resonance-count');
+const resonanceBuffs = document.querySelector('#play-resonance-buffs');
 const mapTitle = document.querySelector('#play-map-title');
 const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
@@ -1384,6 +1389,7 @@ function updateHud() {
     ? `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / MAX`
     : `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / ${progress.required}`;
   experienceFill.style.width = `${progress.ratio * 100}%`;
+  updateResonancePanel(combatRenderState.resonance);
   const attempt = getPlayAttemptState(actor);
   attemptsReadout.textContent = attempt.label;
   attemptsReadout.setAttribute('aria-label', `剩餘嘗試次數 ${attempt.remaining}，共 ${attempt.maximum} 次`);
@@ -1413,6 +1419,30 @@ function updateHud() {
   healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
   eventsList.innerHTML = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
+}
+
+let resonanceUiSignature = '';
+function setResonancePanelOpen(open) {
+  resonancePanel.hidden = !open;
+  levelInspect.setAttribute('aria-expanded', String(open));
+  if (open) {
+    resonanceUiSignature = '';
+    updateResonancePanel(getPlayCombatRenderState(combatState).resonance);
+  }
+}
+
+function updateResonancePanel(resonance) {
+  const buffs = resonance?.buffs ?? [];
+  resonanceCount.textContent = `RESONANCE ${resonance?.totalStacks ?? 0}`;
+  const signature = JSON.stringify(buffs.map(({ enemyId, stacks, maxStacks }) => [enemyId, stacks, maxStacks]));
+  if (signature === resonanceUiSignature) return;
+  resonanceUiSignature = signature;
+  resonanceBuffs.innerHTML = buffs.length ? buffs.map((entry) => `
+    <article class="resonance-buff${entry.atCap ? ' is-capped' : ''}">
+      <strong>${entry.name}<small>${entry.combatStyle === 'melee' ? '近戰快速共鳴' : '遠程擦彈共鳴'}</small></strong>
+      <b>×${entry.stacks}/${entry.maxStacks}</b>
+      <p>${entry.description}</p>
+    </article>`).join('') : '<p class="resonance-empty">尚未取得 Resonance Buff。</p>';
 }
 
 function updateHudIconSlots() {
@@ -1600,6 +1630,8 @@ damageReductionSelect.addEventListener('change', () => {
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
+levelInspect.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel.hidden); });
+resonanceClose.addEventListener('click', () => { sfxController.play('button'); setResonancePanelOpen(false); levelInspect.focus(); });
 exitButton.addEventListener('click', () => { sfxController.play('button'); window.location.href = '/home.html'; });
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
@@ -1680,6 +1712,7 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
   if (event.key === 'Escape') {
     if (!settingsPanel.hidden) setSettingsOpen(false);
+    if (!resonancePanel.hidden) setResonancePanelOpen(false);
   }
 });
 
@@ -1713,9 +1746,9 @@ function simulate(elapsed, now = performance.now()) {
       if (enemyResult?.resonanceEvents?.length) {
         syncPlayCombatBuild(combatState, actor);
         enemyResult.resonanceEvents.forEach((entry) => {
-          eventLog.push(entry.firstUnlock && entry.buff
-            ? `RESONANCE 完成：${entry.enemyName}成為中立夥伴，永久獲得「${entry.buff.name}」— ${entry.buff.description}`
-            : `RESONANCE 完成：${entry.enemyName}成為中立夥伴；此物種 Buff 已經持有。`);
+          eventLog.push(entry.stackGained && entry.buff
+            ? `RESONANCE 完成：${entry.enemyName}成為中立夥伴；「${entry.buff.name}」提升至 ${entry.stackCount}/${entry.maxStacks} 層，不提供 EXP。`
+            : `RESONANCE 完成：${entry.enemyName}成為中立夥伴；Buff 已達 ${entry.stackCount}/${entry.maxStacks} 層上限，不提供 EXP。`);
         });
       }
       stepPlayerStatusEffects(FIXED_STEP);

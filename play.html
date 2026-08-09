@@ -43,7 +43,8 @@
               </select>
             </label>
             <div class="depth-readout" aria-label="目前下沉深度"><span class="depth-label">DEPTH</span><output id="play-depth-value" class="depth-value">000 m</output></div>
-            <div class="level-readout" aria-label="目前等級與經驗進度"><div class="level-heading"><span class="level-label">LEVEL</span><output id="play-level-value" class="level-value">01</output><output id="play-experience-value" class="experience-value">EXP 000 / 100</output></div><div class="experience-track" aria-hidden="true"><b id="play-experience-fill"></b></div></div>
+            <button type="button" class="level-readout" id="play-level-inspect" aria-label="檢視等級、經驗與 Resonance Buff" aria-expanded="false" aria-controls="play-resonance-panel"><span class="level-heading"><span class="level-label">LEVEL</span><output id="play-level-value" class="level-value">01</output><output id="play-experience-value" class="experience-value">EXP 000 / 100</output></span><span class="experience-track" aria-hidden="true"><b id="play-experience-fill"></b></span><span class="resonance-count" id="play-resonance-count">RESONANCE 0</span></button>
+            <section class="resonance-panel" id="play-resonance-panel" aria-labelledby="play-resonance-title" hidden><header><div><p class="eyebrow">LEVEL / RESONANCE</p><h2 id="play-resonance-title">永久共鳴 Buff</h2></div><button type="button" id="play-resonance-close" aria-label="關閉 Resonance Buff">×</button></header><p class="resonance-panel-note">共鳴敵人不會提供 EXP；同物種 Buff 只疊加到標示上限。</p><div class="resonance-buff-list" id="play-resonance-buffs"><p class="resonance-empty">尚未取得 Resonance Buff。</p></div></section>
             <p class="play-attempts" id="play-attempts" aria-label="剩餘嘗試次數 3，共 3 次">ATTEMPT 3/3</p>
             <div class="play-resource-hud visor-hud" aria-label="主角狀態">
               <img class="visor-surround" src="/assets/editor/hud/visor-surround-balanced.png" alt="" aria-hidden="true" />

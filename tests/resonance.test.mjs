@@ -6,6 +6,7 @@ import {
   RESONANCE_RULES,
   applyResonanceBuffsToStats,
   createResonanceState,
+  getResonanceRequirement,
   getResonanceRenderState,
   stepEnemyResonance,
 } from '../src/resonance.js';
@@ -49,7 +50,7 @@ test('a projectile graze belongs to its firing enemy and fills faster than body 
   const owner = enemy({ x: 400, y: 400 });
   const other = enemy({ instanceId: 'enemy-2', enemyId: 'crabGuard', name: '螃蟹守衛', x: 400, y: 400, tier: 2 });
   stepEnemyResonance({ enemies: [owner, other], projectiles: [{ ownerId: owner.instanceId, x: 12, y: 0, radius: 3 }], actor, state, dt: 1 });
-  assert.equal(owner.resonanceProgress, RESONANCE_RULES.projectileGainPerSecond);
+  assert.equal(owner.resonanceProgress, RESONANCE_RULES.rangedProjectileGainPerSecond);
   assert.equal(owner.resonanceSource, 'projectile');
   assert.equal(other.resonanceProgress, 0);
 });
@@ -76,6 +77,42 @@ test('a species buff unlocks only once while later individuals can still become 
   assert.equal(secondEvent.firstUnlock, false);
   assert.equal(state.unlockedEnemyIds.size, 1);
   assert.equal(state.completedInstanceIds.size, 2);
+  assert.equal(state.stacksByEnemyId.get('explodingLanternfish'), 2);
+});
+
+test('dangerous melee Resonance is dramatically faster than safe ranged grazing', () => {
+  const melee = enemy({ enemyId: 'crabGuard', tier: 2 });
+  const ranged = enemy({ enemyId: 'lionfishGunner', tier: 2 });
+  assert.equal(getResonanceRequirement(melee), 45);
+  assert.equal(getResonanceRequirement(ranged), 100);
+  assert.ok(RESONANCE_RULES.meleeBodyGainPerSecond > RESONANCE_RULES.rangedBodyGainPerSecond);
+  assert.ok(getResonanceRequirement(melee) / RESONANCE_RULES.meleeBodyGainPerSecond < 5);
+  assert.ok(getResonanceRequirement(ranged) / RESONANCE_RULES.rangedProjectileGainPerSecond > 8);
+});
+
+test('lanternfish stacks exactly three times for nine-percent damage reduction and then caps', () => {
+  const state = createResonanceState();
+  const events = [];
+  for (let index = 0; index < 4; index += 1) {
+    const target = enemy({ instanceId: `lantern-${index}`, resonanceProgress: 39 });
+    events.push(stepEnemyResonance({ enemies: [target], actor, state, dt: 1 })[0]);
+  }
+  assert.equal(state.stacksByEnemyId.get('explodingLanternfish'), 3);
+  assert.deepEqual(events.map((entry) => entry.stackGained), [true, true, true, false]);
+  assert.equal(events[3].stackCount, 3);
+  const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
+  assert.equal(stats.resonanceDamageTakenMultiplier, 0.91);
+});
+
+test('powerful Boss Resonance buffs cap at one stack', () => {
+  const state = createResonanceState();
+  state.stacksByEnemyId.set('abyssalSpermWhale', 4);
+  const render = getResonanceRenderState(state);
+  assert.equal(render.buffs[0].stacks, 1);
+  assert.equal(render.buffs[0].maxStacks, 1);
+  const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
+  assert.equal(stats.currentDamageMultiplier, 1.1);
+  assert.equal(stats.resonanceDamageTakenMultiplier, 0.96);
 });
 
 test('unlocked buffs are applied from a fresh base without compounding each frame', () => {

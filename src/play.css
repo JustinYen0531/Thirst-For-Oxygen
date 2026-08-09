@@ -138,13 +138,29 @@ body { min-width: 0; }
 .depth-readout { position: absolute; top: clamp(76px, 11%, 118px); left: clamp(20px, 9%, 144px); z-index: 4; display: inline-flex; align-items: baseline; gap: 9px; padding: 6px 13px 7px; border: 1px solid rgba(84, 202, 255, .32); border-left: 3px solid rgba(87, 216, 255, .82); border-radius: 4px; color: #89dbff; background: linear-gradient(90deg, rgba(4, 22, 43, .76), rgba(4, 22, 43, .32), transparent); box-shadow: inset 0 0 12px rgba(47, 172, 231, .14), 0 0 16px rgba(35, 145, 211, .12); pointer-events: none; }
 .depth-label { color: #6aaed5; font-size: .57rem; font-weight: 800; letter-spacing: .18em; }
 .depth-value { color: #79dcff; font-family: "Orbitron", "Segoe UI", sans-serif; font-size: clamp(.85rem, 1.35vw, 1.2rem); font-weight: 800; letter-spacing: .12em; text-shadow: 0 0 10px rgba(69, 210, 255, .84); }
-.level-readout { position: absolute; top: clamp(128px, 18%, 190px); left: 50%; z-index: 4; width: clamp(156px, 15vw, 220px); padding: 7px 12px 8px; border: 1px solid rgba(84, 202, 255, .25); border-left: 3px solid rgba(87, 216, 255, .62); border-radius: 4px; color: #7dd9ff; background: linear-gradient(90deg, rgba(4, 22, 43, .7), rgba(4, 22, 43, .24), transparent); box-shadow: inset 0 0 12px rgba(47, 172, 231, .1); transform: translateX(-50%); pointer-events: none; }
+.level-readout { position: absolute; top: clamp(128px, 18%, 190px); left: 50%; z-index: 5; width: clamp(156px, 15vw, 220px); padding: 7px 12px 8px; border: 1px solid rgba(84, 202, 255, .25); border-left: 3px solid rgba(87, 216, 255, .62); border-radius: 4px; color: #7dd9ff; background: linear-gradient(90deg, rgba(4, 22, 43, .88), rgba(4, 22, 43, .52)); box-shadow: inset 0 0 12px rgba(47, 172, 231, .1); transform: translateX(-50%); cursor: pointer; text-align: left; }
+.level-readout:hover, .level-readout[aria-expanded="true"] { border-color: rgba(109, 255, 166, .72); border-left-color: #6dffa6; box-shadow: inset 0 0 14px rgba(75, 255, 145, .12), 0 0 14px rgba(75, 255, 145, .14); }
 .level-heading { display: flex; align-items: baseline; gap: 7px; }
 .level-label { color: #6aaed5; font-size: .54rem; font-weight: 800; letter-spacing: .14em; }
 .level-value { color: #a5edff; font-family: "Orbitron", "Segoe UI", sans-serif; font-size: .95rem; font-weight: 800; letter-spacing: .1em; text-shadow: 0 0 8px rgba(69, 210, 255, .75); }
 .experience-value { margin-left: auto; color: #70c7ef; font-family: "Orbitron", "Segoe UI", sans-serif; font-size: .55rem; letter-spacing: .08em; }
 .experience-track { height: 4px; margin-top: 6px; overflow: hidden; border: 1px solid rgba(84, 202, 255, .36); border-radius: 999px; background: rgba(5, 18, 40, .72); }
 .experience-track b { display: block; width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3a9fe0, #9cf3ff); box-shadow: 0 0 8px rgba(69, 210, 255, .8); transition: width .18s linear; }
+.resonance-count { display: block; margin-top: 5px; color: #79ffa9; font: 700 .48rem/1.2 "Orbitron", "Segoe UI", sans-serif; letter-spacing: .12em; }
+.resonance-panel { position: absolute; top: clamp(198px, 28%, 270px); left: 50%; z-index: 12; width: min(360px, calc(100vw - 36px)); max-height: min(48vh, 430px); overflow-y: auto; padding: 14px; border: 1px solid rgba(109, 255, 166, .55); border-radius: 9px; color: #dfffee; background: linear-gradient(180deg, rgba(4, 30, 35, .97), rgba(3, 18, 30, .98)); box-shadow: 0 20px 54px rgba(0, 0, 0, .55), inset 0 0 24px rgba(71, 255, 142, .06); transform: translateX(-50%); }
+.resonance-panel[hidden] { display: none; }
+.resonance-panel header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.resonance-panel h2 { margin: 2px 0 0; color: #8dffb5; font-size: .96rem; }
+.resonance-panel header button { width: 28px; min-height: 28px; padding: 0; border: 1px solid rgba(141, 255, 181, .44); border-radius: 5px; color: #dfffee; background: rgba(7, 49, 51, .8); cursor: pointer; }
+.resonance-panel-note, .resonance-empty { margin: 8px 0; color: #92bca8; font-size: .67rem; line-height: 1.5; }
+.resonance-buff-list { display: grid; gap: 7px; margin-top: 10px; }
+.resonance-buff { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 9px 10px; border: 1px solid rgba(109, 255, 166, .2); border-radius: 6px; background: rgba(8, 53, 54, .46); }
+.resonance-buff strong { color: #d8ffe6; font-size: .72rem; }
+.resonance-buff strong small { display: block; margin-top: 2px; color: #65c9a0; font-size: .52rem; font-weight: 600; }
+.resonance-buff > b { color: #78ffa8; font: 800 .67rem/1.2 "Orbitron", "Segoe UI", sans-serif; }
+.resonance-buff p { grid-column: 1 / -1; margin: 3px 0 0; color: #a9cdbb; font-size: .61rem; line-height: 1.42; }
+.resonance-buff.is-capped { border-color: rgba(255, 220, 105, .42); }
+.resonance-buff.is-capped > b { color: #ffe47c; }
 .play-stage-frame { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: inset 0 0 70px rgba(29, 135, 190, .2); }
 #play-canvas { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; }
 /* Keep the rendered game inside the broad lens opening. Reserve only the

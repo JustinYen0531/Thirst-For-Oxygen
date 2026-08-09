@@ -23,6 +23,10 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(page, /beginArcTransition\('ascent', 1\)/);
   assert.match(page, /Resonance 永久 Buff 全數保留/);
   assert.match(page, /neutral: Boolean\(enemy\.resonanceNeutral\)/);
+  assert.match(html, /id="play-level-inspect"/);
+  assert.match(html, /id="play-resonance-panel"/);
+  assert.match(page, /\$\{entry\.stacks\}\/\$\{entry\.maxStacks\}/);
+  assert.match(page, /不提供 EXP/);
 });
 
 test('play settings expose a persistent player damage-reduction mode', () => {
