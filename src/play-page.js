@@ -330,10 +330,10 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
     `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
   ];
   mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
-  loadingMask.classList.add('is-hidden');
   updateAwakeningPresentation();
   updateCamera();
   updateHud();
+  loadingMask.classList.add('is-hidden');
 }
 
 function refillUnlimitedResources() {
@@ -359,9 +359,13 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     if (!response.ok) throw new Error(`map ${response.status}`);
     setupWorld(await response.json(), { previousActor });
   } catch (error) {
+    awakeningState.active = false;
+    updateAwakeningPresentation();
     eventLog = [`地圖載入失敗：${error.message}`];
     eventsList.innerHTML = `<li>${eventLog[0]}</li>`;
+    loadingMask.classList.remove('is-hidden');
     loadingMask.textContent = '地圖載入失敗';
+    console.error('Play map setup failed.', error);
   }
 }
 
@@ -1415,6 +1419,7 @@ function updateHud() {
 
 let resonanceUiSignature = '';
 function setResonancePanelOpen(open) {
+  if (!resonancePanel || !levelInspect) return;
   resonancePanel.hidden = !open;
   levelInspect.setAttribute('aria-expanded', String(open));
   if (open) {
@@ -1424,6 +1429,7 @@ function setResonancePanelOpen(open) {
 }
 
 function updateResonancePanel(resonance) {
+  if (!resonanceCount || !resonanceBuffs) return;
   const buffs = resonance?.buffs ?? [];
   resonanceCount.textContent = `RESONANCE ${resonance?.totalStacks ?? 0}`;
   const signature = JSON.stringify(buffs.map(({ enemyId, stacks, maxStacks }) => [enemyId, stacks, maxStacks]));
@@ -1622,8 +1628,8 @@ damageReductionSelect.addEventListener('change', () => {
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
-levelInspect.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel.hidden); });
-resonanceClose.addEventListener('click', () => { sfxController.play('button'); setResonancePanelOpen(false); levelInspect.focus(); });
+levelInspect?.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel?.hidden ?? true); });
+resonanceClose?.addEventListener('click', () => { sfxController.play('button'); setResonancePanelOpen(false); levelInspect?.focus(); });
 exitButton.addEventListener('click', () => { sfxController.play('button'); window.location.href = '/home.html'; });
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
@@ -1704,7 +1710,7 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
   if (event.key === 'Escape') {
     if (!settingsPanel.hidden) setSettingsOpen(false);
-    if (!resonancePanel.hidden) setResonancePanelOpen(false);
+    if (resonancePanel && !resonancePanel.hidden) setResonancePanelOpen(false);
   }
 });
 

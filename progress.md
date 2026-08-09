@@ -1022,3 +1022,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式 Play 與首頁共用 `play-preload.js` 清單，涵蓋玩家動畫、敵人自然漂浮與技能幀、地圖物件、地形、武器、HUD 圖示與下沉篇第一部分地圖；六張正式地圖也改用 Vite production-safe URL。
 - 首頁往返影片重新封裝為保留 AAC 立體聲的 14.93 秒版本；玩家第一次互動後以 0.82 音量解除靜音，載入影片保留原始環境聲並以 0.9 音量播放，主選單音樂不被強制停止。
 - 新增 6 項載入／音訊契約測試；完整 `npm run check` 278/278、Vite production build、兩支影片 AAC 雙聲道檢查與 `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Step 124 complete
+
+- 修正正式 Play 進場後只剩地圖、HUD 與玩家消失且無法操作的啟動回歸：Resonance／Level 檢視現在是可選附加介面，節點不同步時不再中斷 `setupWorld` 與每幀模擬。
+- Play HTML 改為預設顯示 HUD，成功建立地圖、玩家、攝影機並完成首次 HUD 更新後才隱藏載入遮罩；初始化失敗時則解除喚醒透明狀態並明確顯示載入失敗，不再留下看似已載入的死畫面。
+- 新增正式 Play 啟動保護回歸；完整 `npm run check` 280/280、Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。

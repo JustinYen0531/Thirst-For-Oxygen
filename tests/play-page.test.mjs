@@ -30,6 +30,15 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(page, /不提供 EXP/);
 });
 
+test('optional Resonance inspection cannot prevent the player and HUD from booting', () => {
+  assert.doesNotMatch(html, /play-stage-frame is-awakening/);
+  assert.match(page, /if \(!resonancePanel \|\| !levelInspect\) return/);
+  assert.match(page, /if \(!resonanceCount \|\| !resonanceBuffs\) return/);
+  assert.match(page, /levelInspect\?\.addEventListener/);
+  assert.match(page, /loadingMask\.classList\.add\('is-hidden'\);/);
+  assert.match(page, /loadingMask\.classList\.remove\('is-hidden'\);/);
+});
+
 test('play settings expose a persistent player damage-reduction mode', () => {
   assert.match(html, /id="play-damage-reduction"/);
   ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
