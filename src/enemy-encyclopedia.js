@@ -35,12 +35,49 @@ const VISUALS = {
   mutantMantisShrimp: { idle: gif('base-float-move'), actions: { mutantPunch: gif('attack-tracking-punch'), mutantGroundSmash: gif('skill-pressure-arena'), mutantBeaconAssault: gif('skill-beacon-afterimage') } },
   mutantNautilusOracle: { idle: gif('base-float-move-v3'), actions: { mutantCoralMortar: gif('attack-overloaded-relic-bodycast-v5'), mutantDualCoreMagic: gif('skill-360-core-scatter-bodycast-v5'), persistentCoreVolley: gif('skill-everlasting-core-bodycast-v5') } },
   mutantArcTideRay: { idle: gif('base-float-move-v3'), actions: { mutantWingRam: gif('attack-pressure-blade-aftershock-bodycast-v5'), mutantArcTideBombardment: gif('skill-secondary-pressure-burst-bodycast-v5') } },
-  // Mini Boss idle loops already exist in public/. Their authored skill animations
-  // do not, so actions intentionally stay empty and remain marked as pending.
-  prismCrabGuardian: { idle: gif('base-float-move'), actions: {} },
-  tideLawNautilus: { idle: gif('base-float-move'), actions: {} },
-  mutantPrismCrabGuardian: { idle: gif('base-float-move'), actions: {} },
-  mutantTideLawNautilus: { idle: gif('base-float-move'), actions: {} },
+  prismCrabGuardian: {
+    idle: gif('base-float-move'),
+    actions: {
+      tidalGathering: gif('skill-tidal-gathering'),
+      refractedLaser: gif('skill-refracted-laser'),
+      deepSeaGravityField: gif('skill-deep-sea-gravity-field'),
+    },
+  },
+  tideLawNautilus: {
+    idle: gif('base-float-move'),
+    actions: {
+      deepSeaSummoning: gif('skill-deep-sea-summoning'),
+      returningBuckshot: gif('skill-returning-buckshot'),
+      tidalLaw: gif('skill-tidal-law'),
+    },
+  },
+  mutantPrismCrabGuardian: {
+    idle: gif('base-float-move'),
+    actions: {
+      mutantTidalGathering: gif('skill-mutant-tidal-gathering'),
+      mutantRefractedLaser: gif('skill-mutant-refracted-laser'),
+      mutantGravityField: gif('skill-mutant-gravity-field'),
+    },
+  },
+  mutantTideLawNautilus: {
+    idle: gif('base-float-move'),
+    actions: {
+      mutantDeepSeaSummoning: gif('skill-mutant-deep-sea-summoning'),
+      mutantReturningBuckshot: gif('skill-mutant-returning-buckshot'),
+      lawOverlap: gif('skill-law-overlap'),
+    },
+  },
+  abyssalSpermWhale: {
+    idle: gif('base-float-move'),
+    actions: {
+      abyssalSummoning: gif('skill-abyssal-summoning'),
+      ancientReconstruction: gif('skill-ancient-reconstruction'),
+      abyssEcho: gif('skill-abyss-echo'),
+      miniatureForm: gif('skill-miniature-form'),
+      gravityDominion: gif('skill-gravity-dominion'),
+      corruptedOxygen: gif('skill-corrupted-oxygen'),
+    },
+  },
 };
 
 const TIER_LABELS = Object.freeze({

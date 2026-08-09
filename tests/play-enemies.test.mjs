@@ -234,7 +234,11 @@ test('special map markers instantiate the documented Mini Bosses and Boss withou
       }
     });
   });
-  assert.equal(PLAY_ENEMY_VISUALS.abyssalSpermWhale, null, 'Boss art is honestly absent instead of borrowing another enemy asset');
+  assert.equal(
+    PLAY_ENEMY_VISUALS.abyssalSpermWhale,
+    '/assets/enemies-afterimage/abyssalSpermWhale/reconstructed-preview__base-float-move.webp',
+    'the Final Boss should use its own authored idle art instead of borrowing another enemy asset',
+  );
 });
 
 test('play enemies chase the actor and expose a real damage callback', () => {

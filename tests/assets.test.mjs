@@ -30,7 +30,7 @@ function allVisualUrls(enemy) {
 test('world encyclopedia exposes 19 honest enemy entries and every declared visual exists', () => {
   assert.equal(ENEMY_ENCYCLOPEDIA.length, 19);
   const pendingVisuals = ENEMY_ENCYCLOPEDIA.filter(({ visuals }) => !visuals).map(({ id }) => id);
-  assert.deepEqual(pendingVisuals, ['abyssalSpermWhale']);
+  assert.deepEqual(pendingVisuals, []);
 
   ENEMY_ENCYCLOPEDIA.forEach((enemy) => {
     allVisualUrls(enemy).forEach((url) => {
@@ -43,18 +43,22 @@ test('world encyclopedia exposes 19 honest enemy entries and every declared visu
   });
 });
 
-test('four Mini Bosses reuse their existing idle loops without inventing skill animations', () => {
-  const miniBossIds = [
+test('all Mini Boss and Final Boss attacks have authored skill animations', () => {
+  const bossIds = [
     'prismCrabGuardian',
     'tideLawNautilus',
     'mutantPrismCrabGuardian',
     'mutantTideLawNautilus',
+    'abyssalSpermWhale',
   ];
-  miniBossIds.forEach((id) => {
+  bossIds.forEach((id) => {
     const enemy = ENEMY_ENCYCLOPEDIA.find((entry) => entry.id === id);
     assert.ok(enemy?.visuals?.idle);
-    assert.deepEqual(Object.keys(enemy.visuals.actions), []);
-    assert.equal(enemy.attacks.length > 0, true);
+    assert.deepEqual(
+      Object.keys(enemy.visuals.actions).sort(),
+      enemy.attacks.map(({ id: attackId }) => attackId).sort(),
+      `${id} should expose one animation for every authored attack`,
+    );
   });
 });
 
