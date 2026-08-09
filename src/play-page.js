@@ -2059,7 +2059,8 @@ canvas.addEventListener('pointerdown', (event) => {
   if (paused || storyIntroState.active || awakeningState.awaitingTrigger || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
-  if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
+  const dragHitRadius = Math.max(96, (actor.radius ?? 12) * SCALE * 1.4);
+  if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > dragHitRadius) return;
   dragging = true;
   canvas.setPointerCapture(event.pointerId);
   aimPoint = worldPoint;

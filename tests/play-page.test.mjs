@@ -178,6 +178,8 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(page, /storyIntroCoverMode/);
   assert.match(page, /route-lock/);
   assert.match(page, /'complete'\]\.includes\(awakening\.phase\)/);
+  assert.match(page, /const dragHitRadius = Math\.max\(96/);
+  assert.match(page, /> dragHitRadius\) return/);
   assert.match(page, /canvas\.setPointerCapture\(event\.pointerId\)/);
   assert.match(page, /storyIntroVideo\.playbackRate = 0\.5/);
   assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
