@@ -177,6 +177,8 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(page, /createStoryTypingSound/);
   assert.match(page, /storyIntroCoverMode/);
   assert.match(page, /route-lock/);
+  assert.match(page, /'complete'\]\.includes\(awakening\.phase\)/);
+  assert.match(page, /canvas\.setPointerCapture\(event\.pointerId\)/);
   assert.match(page, /storyIntroVideo\.playbackRate = 0\.5/);
   assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
   assert.match(page, /story\.slideIndex >= story\.totalSlides - 1/);

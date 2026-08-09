@@ -911,7 +911,7 @@ function advanceStoryIntroInput() {
 
 function updateAwakeningPresentation() {
   const awakening = getPlayAwakeningRenderState(awakeningState);
-  if (storyIntroCoverMode !== 'none' && ['route-lock', 'shutter-open', 'final-open'].includes(awakening.phase)) {
+  if (storyIntroCoverMode !== 'none' && ['route-lock', 'shutter-open', 'final-open', 'complete'].includes(awakening.phase)) {
     storyIntroCoverMode = 'none';
     updateStoryIntroPresentation();
   }
