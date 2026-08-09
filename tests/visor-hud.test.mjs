@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudIconPath, getPlayerHudSlotLabel, getPlayerHudSlots } from '../src/visor-hud.js';
 
 test('player HUD maps the starter knife to the first weapon slot', () => {
@@ -27,6 +28,16 @@ test('player HUD maps equipped sandbox weapons and passives to their own sides',
   assert.equal(slots[3].path, '/assets/editor/icons/passives/abyssalAmplifier/lv3.png');
   assert.equal(slots[4].path, null);
   assert.equal(slots[5].path, null);
+});
+
+test('player HUD aligns six slots to the source frame and covers empty slots with the lock plate', () => {
+  const css = readFileSync(new URL('../src/visor-hud.css', import.meta.url), 'utf8');
+  assert.match(css, /weapon-0"\] \{ left: 33\.2%; \}/);
+  assert.match(css, /weapon-2"\] \{ left: 20\.2%; \}/);
+  assert.match(css, /passive-0"\] \{ left: 66\.8%; \}/);
+  assert.match(css, /passive-2"\] \{ left: 79\.8%; \}/);
+  assert.match(css, /slot-locked-octagon\.png/);
+  assert.ok(existsSync(new URL('../public/assets/editor/hud/slot-locked-octagon.png', import.meta.url)));
 });
 
 test('oxygen HUD exposes a percentage and normalized fill', () => {

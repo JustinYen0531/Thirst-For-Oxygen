@@ -1280,14 +1280,14 @@ function updateHudIconSlots() {
       const label = document.createElement('span');
       label.className = 'visor-group-label visor-group-label-weapon';
       label.dataset.visorGroupLabel = 'weapon';
-      label.textContent = '武器槽位';
+      label.textContent = '武器\n槽位';
       slotRoot.append(label);
     }
     if (!slotRoot.querySelector('[data-visor-group-label="passive"]')) {
       const label = document.createElement('span');
       label.className = 'visor-group-label visor-group-label-passive';
       label.dataset.visorGroupLabel = 'passive';
-      label.textContent = '被動能力';
+      label.textContent = '被動\n能力';
       slotRoot.append(label);
     }
   }
