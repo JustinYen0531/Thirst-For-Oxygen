@@ -1,5 +1,6 @@
 import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import { applyDamage } from './physics.js';
+import { isResonanceCombatant } from './resonance.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
@@ -40,7 +41,7 @@ function isWithinArc(actor, enemy, weapon) {
 }
 
 function activeEnemies(enemies) {
-  return enemies.filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+  return enemies.filter(isResonanceCombatant);
 }
 
 function nearestEnemy(actor, enemies) {

@@ -16,6 +16,15 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
   assert.doesNotMatch(page, /const PLAYER_LEVEL|const PLAYER_EXPERIENCE|PLAYER_HUD_LOADOUT/);
 });
 
+test('formal play exposes Resonance bars, neutral partners, permanent buffs, and descent-to-ascent carryover', () => {
+  assert.match(page, /drawEnemyResonanceBar\(enemy/);
+  assert.match(page, /resonanceState: combatState\.resonance/);
+  assert.match(page, /enemyResult\?\.resonanceEvents\?\.length/);
+  assert.match(page, /beginArcTransition\('ascent', 1\)/);
+  assert.match(page, /Resonance 永久 Buff 全數保留/);
+  assert.match(page, /neutral: Boolean\(enemy\.resonanceNeutral\)/);
+});
+
 test('play settings expose a persistent player damage-reduction mode', () => {
   assert.match(html, /id="play-damage-reduction"/);
   ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));

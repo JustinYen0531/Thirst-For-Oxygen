@@ -119,10 +119,10 @@ export function getResourceHealthRecoveryPerSecond(actor) {
     : 0;
   const sharedRatio = Math.min(oxygenRatio, energyRatio);
   if (sharedRatio >= RESOURCE_HEALTH_RECOVERY.fastThresholdRatio) {
-    return RESOURCE_HEALTH_RECOVERY.fastHealthPerSecond;
+    return RESOURCE_HEALTH_RECOVERY.fastHealthPerSecond * (actor.derivedStats?.healthRecoveryMultiplier ?? 1);
   }
   if (sharedRatio >= RESOURCE_HEALTH_RECOVERY.moderateThresholdRatio) {
-    return RESOURCE_HEALTH_RECOVERY.moderateHealthPerSecond;
+    return RESOURCE_HEALTH_RECOVERY.moderateHealthPerSecond * (actor.derivedStats?.healthRecoveryMultiplier ?? 1);
   }
   return 0;
 }
@@ -402,6 +402,7 @@ export function applyDamage(actor, amount, source = 'unknown', damageType = 'gen
   let multiplier = 1;
   if (damageType === 'ranged') multiplier *= actor.derivedStats?.rangedDamageTakenMultiplier ?? 1;
   if (actor.oxygen < maxOxygenFor(actor) * 0.5) multiplier *= actor.derivedStats?.lowOxygenDamageTakenMultiplier ?? 1;
+  multiplier *= actor.derivedStats?.resonanceDamageTakenMultiplier ?? 1;
   multiplier *= 1 - Math.min(MAX_PLAYER_DAMAGE_REDUCTION, Math.max(0, Number(actor.damageReduction) || 0));
   const damage = Math.max(0, amount * multiplier);
   actor.health = Math.max(0, actor.health - damage);
@@ -475,7 +476,7 @@ export function launchActor(actor, pointer) {
   const costs = getLaunchCosts(distance, actor);
   if (actor.energy < costs.energy) return { launched: false, reason: 'energy', costs };
   const direction = unitVector(pointer, actor);
-  const speed = getLaunchSpeed(distance);
+  const speed = getLaunchSpeed(distance) * (actor.derivedStats?.launchSpeedMultiplier ?? 1);
   actor.vx = direction.x * speed;
   actor.vy = direction.y * speed;
   updateFacingFromVelocity(actor);

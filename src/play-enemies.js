@@ -1,4 +1,5 @@
 import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getEnemyProjectileSpeed } from './game-data.js';
+import { isResonanceCombatant, stepEnemyResonance } from './resonance.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
 import { easeEnemyVelocity, getEnemyLoiterPlan, syncEnemyFacing } from './enemy-movement.js';
 import {
@@ -442,6 +443,11 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       outgoingDamageMultiplier: 1,
       projectileSpeedMultiplier: 1,
       damageStack: 0,
+      resonanceProgress: 0,
+      resonanceRequired: null,
+      resonanceGraceRemaining: 0,
+      resonanceSource: null,
+      resonanceNeutral: false,
       defeated: false,
     };
     initializePlayEnemyPassive(instance, definition);
@@ -532,7 +538,26 @@ function tickPlayEnemyEffects(runtime, dt) {
 }
 
 function activePlayEnemies(enemies) {
-  return enemies.filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+  return enemies.filter(isResonanceCombatant);
+}
+
+function clearNeutralizedEnemyRuntime(runtime, events) {
+  const ownerIds = new Set(events.map((event) => event.instanceId));
+  if (!ownerIds.size) return;
+  runtime.projectiles = runtime.projectiles.filter((entry) => !ownerIds.has(entry.ownerId));
+  runtime.zones = runtime.zones.filter((entry) => !ownerIds.has(entry.ownerId));
+  runtime.rules = runtime.rules.filter((entry) => !ownerIds.has(entry.ownerId));
+  runtime.summons = runtime.summons.filter((entry) => !ownerIds.has(entry.ownerId));
+  events.forEach((event) => {
+    addPlayEnemyEffect(runtime, {
+      type: 'resonanceComplete',
+      ownerId: event.instanceId,
+      enemyId: event.enemyId,
+      x: event.x,
+      y: event.y,
+      duration: 1.4,
+    });
+  });
 }
 
 function playEnemyDamageAmount(enemy, amount) {
@@ -1551,6 +1576,14 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   const elapsed = Math.max(0, Number(dt) || 0);
   const runtime = getPlayEnemyRuntime(enemies);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
+  const resonanceEvents = stepEnemyResonance({
+    enemies,
+    projectiles: runtime.projectiles,
+    actor,
+    state: world?.resonanceState,
+    dt: elapsed,
+  });
+  clearNeutralizedEnemyRuntime(runtime, resonanceEvents);
   tickPlayEnemyEffects(runtime, elapsed);
   updatePlayEnemyProjectiles(runtime, enemies, actor, elapsed, onDamage);
   updatePlayEnemyZones(runtime, actor, elapsed, onDamage);
@@ -1563,6 +1596,15 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   });
   [...enemies].forEach((enemy) => {
     if (enemy.defeated) return;
+    if (enemy.resonanceNeutral) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.alerted = false;
+      enemy.pendingSkill = null;
+      enemy.suicideCharge = null;
+      enemy.state = 'resonantNeutral';
+      return;
+    }
     const definition = ENEMY_DEFINITIONS[enemy.enemyId];
     if (!definition) return;
     enemy.cooldowns ??= {};
@@ -1688,7 +1730,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     energy: actor.energy ?? null,
     stunnedUntil: actor.stunnedUntil ?? 0,
   };
-  return getPlayEnemyRenderState(enemies, runtime.time);
+  return { ...getPlayEnemyRenderState(enemies, runtime.time), resonanceEvents };
 }
 
 export function getPlayEnemyRenderState(enemies, time = null) {
@@ -1720,6 +1762,11 @@ export function getPlayEnemyRenderState(enemies, time = null) {
       outgoingDamageMultiplier: enemy.outgoingDamageMultiplier ?? 1,
       projectileSpeedMultiplier: enemy.projectileSpeedMultiplier ?? 1,
       damageStack: enemy.damageStack ?? 0,
+      resonanceProgress: enemy.resonanceProgress ?? 0,
+      resonanceRequired: enemy.resonanceRequired ?? 0,
+      resonanceRatio: enemy.resonanceRequired > 0 ? clampValue((enemy.resonanceProgress ?? 0) / enemy.resonanceRequired, 0, 1) : 0,
+      resonanceSource: enemy.resonanceSource ?? null,
+      resonanceNeutral: Boolean(enemy.resonanceNeutral),
       movementGoal: enemy.movementGoal ? { ...enemy.movementGoal } : null,
       visual: getPlayEnemyFrameState(enemy, now),
       lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,

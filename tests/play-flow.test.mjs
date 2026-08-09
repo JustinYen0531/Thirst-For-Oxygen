@@ -83,6 +83,20 @@ test('defeating the final boss does not complete Part 3 before reaching its exit
   assert.equal(result.nextPart, null);
 });
 
+test('a Resonance-neutral final boss unlocks the exit without requiring a kill', () => {
+  const exit = getPlayExitPosition(map, origin);
+  const result = getPlayStageExitState({
+    map,
+    mapPart: 3,
+    actor: { ...exit, radius: 6 },
+    enemies: [{ enemyId: FINAL_BOSS_ID, health: 1000, defeated: false, resonanceNeutral: true }],
+    origin,
+  });
+  assert.equal(result.bossDefeated, true);
+  assert.equal(result.unlocked, true);
+  assert.equal(result.completed, true);
+});
+
 test('stage-exit state is JSON-safe even when map or actor data is unavailable', () => {
   const missing = getPlayStageExitState({ map: null, mapPart: 99, actor: null });
   assert.equal(missing.part, 1);

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import './resonance.test.mjs';
 import { getEnemyDamageToPlayer } from '../src/game-data.js';
 import { createTestActor } from '../src/physics.js';
 import {
@@ -34,6 +35,17 @@ test('formal combat starts with only the permanent level-one knife', () => {
   assert.deepEqual(state.experienceOrbs, []);
   assert.equal(state.weaponBurst, null);
   assert.deepEqual(getPlayCombatRenderState(state).build.weapons, [{ id: 'knife', level: 1 }]);
+});
+
+test('neutral Resonance partners cannot be targeted or damaged by player weapons', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 0, y: 0 });
+  const partner = enemy('partner-1', 'crabGuard', 5, 0, 200);
+  partner.resonanceNeutral = true;
+  actor.x = 40;
+  stepPlayCombat(state, { actor, enemies: [partner], previousPosition: { x: -40, y: 0 }, dt: 1 / 60 });
+  assert.equal(partner.health, 200);
+  assert.equal(state.effects.some((effect) => effect.type === 'weaponHit'), false);
 });
 
 test('a defeated enemy drops one stationary orb and pickup opens the existing upgrade flow', () => {

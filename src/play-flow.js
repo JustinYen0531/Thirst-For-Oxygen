@@ -12,7 +12,7 @@ function normalizeDescentPart(mapPart) {
 }
 
 function isEnemyDefeated(enemy) {
-  return enemy?.defeated === true || (Number.isFinite(enemy?.health) && enemy.health <= 0);
+  return enemy?.resonanceNeutral === true || enemy?.defeated === true || (Number.isFinite(enemy?.health) && enemy.health <= 0);
 }
 
 export function getPlayExitPosition(map, origin = { x: 0, y: 0 }, chapter = 'chapter1') {

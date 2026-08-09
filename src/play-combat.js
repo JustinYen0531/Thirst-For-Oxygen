@@ -22,6 +22,12 @@ import {
   getExperienceProgress,
   getUpgradeChoices,
 } from './progression.js';
+import {
+  applyResonanceBuffsToStats,
+  createResonanceState,
+  getResonanceRenderState,
+  isResonanceCombatant,
+} from './resonance.js';
 
 export const PLAY_COMBAT_FIXED_STEP = 1 / 60;
 
@@ -40,7 +46,7 @@ function distanceToSegment(point, start, end) {
 }
 
 function activeEnemies(enemies) {
-  return (enemies ?? []).filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+  return (enemies ?? []).filter(isResonanceCombatant);
 }
 
 function enemyKey(enemy, index = 0) {
@@ -112,6 +118,7 @@ export function createPlayCombatState() {
     nextEffectId: 1,
     nextOrbId: 1,
     nextBurstId: 1,
+    resonance: createResonanceState(),
     rewardedEnemyIds: new Set(),
     awaitingUpgrade: false,
     upgradeCategory: null,
@@ -128,6 +135,7 @@ export function syncPlayCombatBuild(state, actor = null) {
   if (actor) {
     const activeWeapon = state.build.weapons[0] ?? { id: 'knife', level: 1 };
     setPlayerLoadout(actor, state.build.passives, activeWeapon);
+    actor.derivedStats = applyResonanceBuffsToStats(actor.derivedStats, state.resonance);
   }
   return state.build;
 }
@@ -196,7 +204,7 @@ export function collectPlayCombatExperience(state, actor) {
 }
 
 function damageEnemy(state, actor, enemy, rawDamage, source) {
-  if (!enemy || enemy.defeated || Number(enemy.health) <= 0) return 0;
+  if (!isResonanceCombatant(enemy)) return 0;
   if (enemy.linkedProtection) {
     addEffect(state, { type: 'weaponBlocked', weaponId: source, protectorId: enemy.linkedProtection, x: enemy.x, y: enemy.y, duration: 0.24 });
     return 0;
@@ -480,7 +488,10 @@ export function stepPlayCombat(state, {
   if (state.awaitingUpgrade) return { ok: false, reason: 'upgrade', state };
   const elapsed = Math.max(0, Number(dt) || 0);
   state.time += elapsed;
-  actor.derivedStats = getPlayerDerivedStats(state.build.passives, actor.oxygen);
+  actor.derivedStats = applyResonanceBuffsToStats(
+    getPlayerDerivedStats(state.build.passives, actor.oxygen),
+    state.resonance,
+  );
   Object.keys(state.weaponCooldowns).forEach((key) => {
     state.weaponCooldowns[key] = Math.max(0, state.weaponCooldowns[key] - elapsed);
   });
@@ -503,6 +514,7 @@ export function getPlayCombatRenderState(state) {
   const progress = getExperienceProgress(state.progression);
   return {
     time: state.time,
+    resonance: getResonanceRenderState(state.resonance),
     build: {
       weapons: state.build.weapons.map((entry) => ({ ...entry })),
       passives: state.build.passives.map((entry) => ({ ...entry })),

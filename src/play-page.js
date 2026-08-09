@@ -1029,6 +1029,26 @@ function drawEnemyHealthBar(enemy, x, y, width, height) {
   context.restore();
 }
 
+function drawEnemyResonanceBar(enemy, x, y, width, height) {
+  const required = Math.max(1, Number(enemy.resonanceRequired) || 1);
+  const ratio = enemy.resonanceNeutral ? 1 : clamp((Number(enemy.resonanceProgress) || 0) / required, 0, 1);
+  context.save();
+  context.globalAlpha = enemy.resonanceNeutral ? 1 : .92;
+  context.fillStyle = 'rgba(2, 18, 15, .92)';
+  context.fillRect(x - width * .5, y - height * .5, width, height);
+  if (ratio > 0) {
+    context.fillStyle = enemy.resonanceNeutral ? '#a4ffbb' : '#49e783';
+    context.shadowColor = '#52ff96';
+    context.shadowBlur = enemy.resonanceNeutral ? 5 : 2;
+    context.fillRect(x - width * .5 + .6, y - height * .5 + .6, Math.max(0, (width - 1.2) * ratio), height - 1.2);
+  }
+  context.shadowBlur = 0;
+  context.strokeStyle = enemy.resonanceSource || enemy.resonanceNeutral ? '#a4ffbb' : 'rgba(128, 255, 173, .5)';
+  context.lineWidth = .65;
+  context.strokeRect(x - width * .5, y - height * .5, width, height);
+  context.restore();
+}
+
 function drawEnemies() {
   const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
   enemies.forEach((enemy) => {
@@ -1041,19 +1061,22 @@ function drawEnemies() {
     const height = enemy.renderSize;
     const rawRatio = imageReady ? image.naturalWidth / image.naturalHeight : 1;
     const width = height * clamp(rawRatio, 0.72, 1.65);
-    drawEnemyHealthBar(enemy, pose.x, pose.y - height * .62, Math.max(18, width * .72), 3.1);
+    const barWidth = Math.max(18, width * .72);
+    const healthBarY = pose.y - height * .62;
+    drawEnemyHealthBar(enemy, pose.x, healthBarY, barWidth, 3.1);
+    drawEnemyResonanceBar(enemy, pose.x, healthBarY + 4.2, barWidth, 2.4);
 
     context.save();
     context.globalCompositeOperation = 'screen';
     context.globalAlpha = .2;
-    context.fillStyle = enemy.tier >= 3 ? '#a785ff' : '#4edcff';
+    context.fillStyle = enemy.resonanceNeutral ? '#62ff9f' : enemy.tier >= 3 ? '#a785ff' : '#4edcff';
     context.beginPath();
     context.ellipse(pose.x, pose.y + height * .25, width * .42, height * .24, 0, 0, Math.PI * 2);
     context.fill();
     context.restore();
 
     if (imageReady) {
-      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .75, guide?.colour, enemySpriteScaleX(enemy.facing));
+      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .75, enemy.resonanceNeutral ? '#8dffb5' : guide?.colour, enemySpriteScaleX(enemy.facing));
       return;
     }
 
@@ -1164,11 +1187,11 @@ function drawEnemyCombatRuntime() {
       context.restore();
       return;
     }
-    if (['detonation', 'areaImpact', 'areaStun', 'gravityField', 'supportPulse', 'summon'].includes(effect.type)) {
+    if (['detonation', 'areaImpact', 'areaStun', 'gravityField', 'supportPulse', 'summon', 'resonanceComplete'].includes(effect.type)) {
       context.save();
       context.globalCompositeOperation = 'lighter';
       context.globalAlpha = alpha * .72;
-      context.strokeStyle = effect.type === 'supportPulse' ? '#7fffc4' : effect.type === 'summon' ? '#8fe8ff' : '#ff9d78';
+      context.strokeStyle = effect.type === 'resonanceComplete' ? '#76ffa8' : effect.type === 'supportPulse' ? '#7fffc4' : effect.type === 'summon' ? '#8fe8ff' : '#ff9d78';
       context.shadowColor = context.strokeStyle;
       context.shadowBlur = 10;
       context.lineWidth = 2;
@@ -1595,6 +1618,22 @@ function beginStageTransition(nextPart) {
     .then(() => { eventLog.push('跨段完成：生命、氧氣、能量、經驗與 Build 已保留。'); })
     .finally(() => { transitioning = false; });
 }
+
+function beginArcTransition(nextArc, nextPart = 1) {
+  if (transitioning || !getMapDefinition(nextArc, nextPart)) return;
+  transitioning = true;
+  accumulator = 0;
+  mapArc = nextArc;
+  mapPart = nextPart;
+  mapSelect.value = mapSelectionValue(mapArc, mapPart);
+  musicArcSelect.value = mapArc === 'ascent' ? 'ascent20' : 'descent';
+  syncMusicTrack();
+  loadingMask.classList.remove('is-hidden');
+  loadingMask.textContent = `共鳴能力保留，前往${getMapDefinition().label}…`;
+  loadMap(mapPart, { preserveRun: true, arc: mapArc })
+    .then(() => { eventLog.push('下沉→上升：生命、資源、Build 與 Resonance 永久 Buff 全數保留。'); })
+    .finally(() => { transitioning = false; });
+}
 mapSelect.addEventListener('change', () => {
   sfxController.play('menuSelection');
   const selection = parseMapSelection(mapSelect.value);
@@ -1665,7 +1704,20 @@ function simulate(elapsed, now = performance.now()) {
       addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
       const katanaEntry = syncKatanaState();
       if (katanaEntry) markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
-      updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
+      const enemyResult = updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, {
+        map,
+        chapter: 'chapter1',
+        origin,
+        resonanceState: combatState.resonance,
+      });
+      if (enemyResult?.resonanceEvents?.length) {
+        syncPlayCombatBuild(combatState, actor);
+        enemyResult.resonanceEvents.forEach((entry) => {
+          eventLog.push(entry.firstUnlock && entry.buff
+            ? `RESONANCE 完成：${entry.enemyName}成為中立夥伴，永久獲得「${entry.buff.name}」— ${entry.buff.description}`
+            : `RESONANCE 完成：${entry.enemyName}成為中立夥伴；此物種 Buff 已經持有。`);
+        });
+      }
       stepPlayerStatusEffects(FIXED_STEP);
       if (katanaEntry) {
         stepPlayKatana(katanaState, FIXED_STEP);
@@ -1708,6 +1760,7 @@ function simulate(elapsed, now = performance.now()) {
         } else {
           sfxController.play('impactWet');
           respawnActor(actor, actor.spawn ?? spawn);
+          syncPlayCombatBuild(combatState, actor);
           eventLog.push(`${cause}：${getPlayAttemptState(actor).label}，已回到最近啟用的 Checkpoint。`);
         }
       }
@@ -1719,6 +1772,12 @@ function simulate(elapsed, now = performance.now()) {
           break;
         }
         if (stageExit.completed) {
+          if (mapArc === 'descent') {
+            eventLog.push('下沉篇完成：正在把 Resonance 永久能力帶入上升篇。');
+            beginArcTransition('ascent', 1);
+            accumulator = 0;
+            break;
+          }
           runCompleted = true;
           completionOverlay.querySelector('.eyebrow').textContent = `${mapArc.toUpperCase()} COMPLETE`;
           completionOverlay.querySelector('#play-completion-title').textContent = `${ARC_LABELS[mapArc]}航線完成`;
@@ -1755,7 +1814,7 @@ window.render_game_to_text = () => {
     combat,
     enemyCombat: getPlayEnemyRenderState(enemies, worldTime),
     katana: equippedWeapon('katana') ? { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) } : null,
-    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, visual: getPlayEnemyFrameState(enemy, worldTime), pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), resonance: { progress: Math.round((enemy.resonanceProgress ?? 0) * 10) / 10, required: enemy.resonanceRequired ?? 0, source: enemy.resonanceSource ?? null, neutral: Boolean(enemy.resonanceNeutral) }, hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, visual: getPlayEnemyFrameState(enemy, worldTime), pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
     totalEnemySpawns: enemies.length,
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
