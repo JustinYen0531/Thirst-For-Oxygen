@@ -146,6 +146,7 @@ const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoi
 const canvas = document.querySelector('#play-canvas');
 const context = canvas.getContext('2d');
 const stageFrame = document.querySelector('.play-stage-frame');
+const stageWrap = stageFrame?.parentElement;
 const mapSelect = document.querySelector('#play-map-select');
 const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
@@ -828,15 +829,19 @@ function updateStoryIntroPresentation() {
   if (!storyIntroOverlay) return story;
   storyIntroOverlay.hidden = !story.active;
   stageFrame.classList.toggle('is-story-intro', story.active);
+  stageWrap?.classList.toggle('is-story-intro', story.active);
   if (!story.active) return story;
   if (storyIntroImage && storyIntroImage.getAttribute('src') !== story.imagePath) storyIntroImage.src = story.imagePath;
   if (storyIntroEyebrow) storyIntroEyebrow.textContent = story.eyebrow;
   if (storyIntroProgress) storyIntroProgress.textContent = `${String(story.slideNumber).padStart(2, '0')} / ${String(story.totalSlides).padStart(2, '0')}`;
-  if (storyIntroTitle) storyIntroTitle.textContent = story.title;
-  if (storyIntroNarrator) storyIntroNarrator.textContent = story.typedText;
-  if (storyIntroHint) storyIntroHint.textContent = story.textComplete
+  if (storyIntroTitle) storyIntroTitle.textContent = translateGameplayText(story.title);
+  if (storyIntroNarrator) {
+    const translatedNarrator = translateGameplayText(story.typedText);
+    storyIntroNarrator.textContent = translatedNarrator === 'English copy pending review' ? story.typedText : translatedNarrator;
+  }
+  if (storyIntroHint) storyIntroHint.textContent = translateGameplayText(story.textComplete
     ? (story.slideNumber === story.totalSlides ? '點擊或按 Space 開始遊戲' : '點擊或按 Space 下一頁')
-    : '點擊或按 Space 顯示完整旁白';
+    : '點擊或按 Space 顯示完整旁白');
   return story;
 }
 

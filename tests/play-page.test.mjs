@@ -172,8 +172,12 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(page, /storyIntroState\.active/);
   assert.match(page, /finishStoryIntro/);
   assert.match(page, /storyIntro: getPlayStoryIntroRenderState/);
+  assert.match(page, /stageWrap\?\.classList\.toggle\('is-story-intro', story\.active\)/);
   assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
   assert.match(css, /\.play-story-intro-overlay/);
   assert.match(css, /z-index: 1/);
+  assert.match(css, /\.play-stage-wrap\.is-story-intro \.stage-meta/);
+  assert.match(css, /\.play-story-narrator \{[^}]*padding:/);
+  assert.match(css, /\.play-story-footer button \{[^}]*border: 0/);
   assert.match(css, /play-story-breathe/);
 });
