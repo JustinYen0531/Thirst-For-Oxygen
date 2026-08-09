@@ -157,6 +157,17 @@ export function restorePlayCombatBuild(state, { weapons = [], passives = [] } = 
 
 export function choosePlayUpgradeCategory(state, category) {
   if (!state.awaitingUpgrade) return { ok: false, reason: 'noLevelUp' };
+  if (state.upgradeCategory && state.upgradeCategory !== category) {
+    return {
+      ok: false,
+      reason: 'categoryLocked',
+      category: state.upgradeCategory,
+      choices: state.upgradeChoices,
+    };
+  }
+  if (state.upgradeCategory === category && state.upgradeChoices.length) {
+    return { ok: true, category, choices: state.upgradeChoices, locked: true };
+  }
   const choices = getUpgradeChoices(state.progression, category, 2);
   if (!choices.length) return { ok: false, reason: 'category' };
   state.upgradeCategory = category;

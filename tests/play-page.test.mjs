@@ -8,6 +8,7 @@ const page = read('../src/play-page.js');
 const preload = read('../src/play-preload.js');
 const html = read('../play.html');
 const home = read('../home.html');
+const css = read('../src/play.css');
 
 test('formal Play runtime owns both gameplay styles in addition to HTML early-paint links', () => {
   assert.match(html, /href="\/src\/play\.css"/);
@@ -70,6 +71,20 @@ test('formal play renders and reports stationary experience orbs, projectiles, a
   assert.match(html, /id="play-upgrade-overlay"/);
   assert.match(html, /id="play-upgrade-categories"/);
   assert.match(html, /id="play-upgrade-choices"/);
+});
+
+test('level-up uses sealed decks and two illustrated flip cards instead of flat AI-style slots', () => {
+  assert.match(html, /LEVEL UP \/ ABYSSAL DRAW/);
+  assert.match(html, /牌組一旦選定，本次抽取不可更換/);
+  assert.match(page, /createUpgradeDeckButton/);
+  assert.match(page, /createLockedUpgradeDeck/);
+  assert.match(page, /createUpgradeCard/);
+  assert.match(page, /combatState\.upgradeChoices\.map\(createUpgradeCard\)/);
+  assert.match(page, /icon\.src = choice\.icon/);
+  assert.match(page, /LEVEL \$\{String\(choice\.level\)\.padStart\(2, '0'\)\}/);
+  assert.match(css, /@keyframes upgrade-card-reveal/);
+  assert.match(css, /rotateY\(180deg\)/);
+  assert.match(css, /backface-visibility: hidden/);
 });
 
 test('the public play entry starts at Part 1 and stage exits preserve the run', () => {

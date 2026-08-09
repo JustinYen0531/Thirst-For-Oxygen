@@ -1561,6 +1561,108 @@ function updateHudIconSlots() {
 }
 
 let upgradeUiSignature = '';
+
+function createUpgradeDeckButton(category) {
+  const isWeapon = category === 'weapon';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `upgrade-deck upgrade-deck-${category}`;
+  button.dataset.upgradeCategory = category;
+  button.setAttribute('aria-label', isWeapon ? '選定武器牌組並抽取兩張卡' : '選定被動牌組並抽取兩張卡');
+
+  const cardFan = document.createElement('span');
+  cardFan.className = 'upgrade-deck-fan';
+  cardFan.setAttribute('aria-hidden', 'true');
+  cardFan.append(document.createElement('i'), document.createElement('i'), document.createElement('i'));
+
+  const copy = document.createElement('span');
+  copy.className = 'upgrade-deck-copy';
+  const overline = document.createElement('small');
+  overline.textContent = isWeapon ? 'ARSENAL FATE' : 'BIOLOGICAL FATE';
+  const title = document.createElement('strong');
+  title.textContent = isWeapon ? '武器牌組' : '被動牌組';
+  const detail = document.createElement('span');
+  detail.textContent = isWeapon ? '抽取兩張武器進化卡' : '抽取兩張被動進化卡';
+  copy.append(overline, title, detail);
+
+  const commit = document.createElement('span');
+  commit.className = 'upgrade-deck-commit';
+  commit.textContent = '選定牌組';
+  button.append(cardFan, copy, commit);
+  return button;
+}
+
+function createLockedUpgradeDeck(category) {
+  const isWeapon = category === 'weapon';
+  const locked = document.createElement('div');
+  locked.className = `upgrade-deck-lock upgrade-deck-lock-${category}`;
+  locked.dataset.upgradeLockedCategory = category;
+  const seal = document.createElement('span');
+  seal.className = 'upgrade-deck-seal';
+  seal.setAttribute('aria-hidden', 'true');
+  seal.textContent = '✦';
+  const copy = document.createElement('span');
+  const label = document.createElement('small');
+  label.textContent = 'FATE SEALED';
+  const title = document.createElement('strong');
+  title.textContent = isWeapon ? '武器牌組已鎖定' : '被動牌組已鎖定';
+  copy.append(label, title);
+  const rule = document.createElement('span');
+  rule.textContent = '本次抽取不可切換牌組';
+  locked.append(seal, copy, rule);
+  return locked;
+}
+
+function createUpgradeCard(choice, index) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `upgrade-card upgrade-card-${choice.category}`;
+  button.style.setProperty('--deal-index', String(index));
+  button.dataset.upgradeChoice = 'true';
+  button.dataset.upgradeCategory = choice.category;
+  button.dataset.upgradeAction = choice.action;
+  button.dataset.upgradeId = choice.id;
+  button.dataset.upgradeLevel = String(choice.level);
+  button.setAttribute('aria-label', `${choice.label}：${choice.detail}`);
+
+  const inner = document.createElement('span');
+  inner.className = 'upgrade-card-inner';
+  const back = document.createElement('span');
+  back.className = 'upgrade-card-face upgrade-card-back';
+  const backMark = document.createElement('b');
+  backMark.textContent = 'O₂';
+  const backTitle = document.createElement('small');
+  backTitle.textContent = 'ABYSSAL EVOLUTION';
+  back.append(backMark, backTitle);
+
+  const front = document.createElement('span');
+  front.className = 'upgrade-card-face upgrade-card-front';
+  const level = document.createElement('span');
+  level.className = 'upgrade-card-level';
+  level.textContent = `LEVEL ${String(choice.level).padStart(2, '0')}`;
+  const iconFrame = document.createElement('span');
+  iconFrame.className = 'upgrade-card-icon';
+  const icon = document.createElement('img');
+  icon.src = choice.icon;
+  icon.alt = choice.label;
+  iconFrame.append(icon);
+  const kind = document.createElement('small');
+  kind.className = 'upgrade-card-kind';
+  kind.textContent = choice.action === 'acquire' ? 'NEW EVOLUTION' : 'EVOLUTION';
+  const title = document.createElement('strong');
+  title.textContent = choice.name ?? choice.label;
+  const detail = document.createElement('span');
+  detail.className = 'upgrade-card-detail';
+  detail.textContent = choice.detail;
+  const choose = document.createElement('span');
+  choose.className = 'upgrade-card-select';
+  choose.textContent = '選擇此卡';
+  front.append(level, iconFrame, kind, title, detail, choose);
+  inner.append(back, front);
+  button.append(inner);
+  return button;
+}
+
 function updateUpgradeOverlay() {
   if (!combatState.awaitingUpgrade) {
     upgradeOverlay.hidden = true;
@@ -1577,35 +1679,21 @@ function updateUpgradeOverlay() {
   if (signature === upgradeUiSignature) return;
   upgradeUiSignature = signature;
   upgradeNote.textContent = combatState.upgradeCategory
-    ? `還有 ${combatState.progression.pendingLevelUps} 次升級待選；選擇一個合法項目。`
-    : `還有 ${combatState.progression.pendingLevelUps} 次升級待選；先決定武器或被動能力。`;
-  upgradeCategories.replaceChildren(...combatState.upgradeCategories.map((category) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.upgradeCategory = category;
-    button.classList.toggle('is-active', category === combatState.upgradeCategory);
-    button.textContent = category === 'weapon' ? '武器' : '被動能力';
-    return button;
-  }));
+    ? `${combatState.upgradeCategory === 'weapon' ? '武器' : '被動'}牌組已封印。從翻開的兩張卡中選擇一張。`
+    : `還有 ${combatState.progression.pendingLevelUps} 次升級待選；選定一個牌組，選定後本次不可更換。`;
+  upgradeCategories.classList.toggle('is-locked', Boolean(combatState.upgradeCategory));
+  upgradeCategories.replaceChildren(...(
+    combatState.upgradeCategory
+      ? [createLockedUpgradeDeck(combatState.upgradeCategory)]
+      : combatState.upgradeCategories.map(createUpgradeDeckButton)
+  ));
   if (!combatState.upgradeCategory) {
     upgradeChoices.replaceChildren();
+    upgradeChoices.classList.remove('is-dealt');
     return;
   }
-  upgradeChoices.replaceChildren(...combatState.upgradeChoices.map((choice) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.upgradeChoice = 'true';
-    button.dataset.upgradeCategory = choice.category;
-    button.dataset.upgradeAction = choice.action;
-    button.dataset.upgradeId = choice.id;
-    button.dataset.upgradeLevel = String(choice.level);
-    const title = document.createElement('strong');
-    title.textContent = choice.label;
-    const detail = document.createElement('small');
-    detail.textContent = choice.detail;
-    button.append(title, detail);
-    return button;
-  }));
+  upgradeChoices.classList.add('is-dealt');
+  upgradeChoices.replaceChildren(...combatState.upgradeChoices.map(createUpgradeCard));
 }
 
 function setSettingsOpen(open) {
