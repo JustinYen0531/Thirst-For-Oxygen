@@ -523,7 +523,7 @@ test('formal enemy projectiles exist in flight and use swept collision instead o
   assert.equal(render.projectiles.length, 0);
 });
 
-test('lionfish poison needle is twice as fast as its five-shot non-poison scatter', () => {
+test('lionfish poison needle is larger and twice as fast as its five-shot non-poison scatter', () => {
   const poison = resolveAuthoredSkill('lionfishGunner', 'venomStraightShot');
   const scatter = resolveAuthoredSkill('lionfishGunner', 'spineScatter');
   const poisonProjectiles = poison.render().projectiles;
@@ -535,9 +535,65 @@ test('lionfish poison needle is twice as fast as its five-shot non-poison scatte
   assert.equal(scatterProjectiles.length, 5);
   assert.equal(poisonSkill.projectileSpeed, scatterSkill.projectileSpeed * 2);
   assert.equal(poisonProjectiles[0].speed, scatterProjectiles[0].speed * 2);
+  assert.equal(poisonProjectiles[0].radius, 7);
+  assert.ok(scatterProjectiles.every((projectile) => projectile.radius === 3));
+  assert.ok(poisonProjectiles[0].radius > scatterProjectiles[0].radius * 2);
   assert.equal(poisonProjectiles[0].applies, 'venom');
   assert.ok(poisonProjectiles[0].damage > scatterProjectiles[0].damage);
   assert.ok(scatterProjectiles.every((projectile) => projectile.applies == null));
+});
+
+test('lionfish strictly alternates its two skills and waits after each resolved volley', () => {
+  const enemy = authoredEnemy('lionfishGunner', { alerted: true, moveSpeed: 0 });
+  const enemies = [enemy];
+  const actor = { x: 100, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  const resolved = [];
+  let previousResolvedAt = null;
+  let now = 0;
+  for (let index = 0; index < 380; index += 1) {
+    now += 1 / 60;
+    updatePlayEnemies(enemies, actor, 1 / 60, now);
+    if (enemy.lastResolvedSkill?.resolvedAt === previousResolvedAt) continue;
+    previousResolvedAt = enemy.lastResolvedSkill?.resolvedAt ?? null;
+    if (previousResolvedAt != null) resolved.push({ id: enemy.lastResolvedSkill.skillId, at: previousResolvedAt });
+  }
+
+  assert.deepEqual(resolved.slice(0, 3).map((entry) => entry.id), ['venomStraightShot', 'spineScatter', 'venomStraightShot']);
+  assert.ok(resolved[1].at - resolved[0].at >= 1.3, 'scatter waits through the single-shot cooldown');
+  assert.ok(resolved[2].at - resolved[1].at >= 3.35, 'the next single shot waits through the scatter cooldown');
+});
+
+test('lionfish projectiles stop at blocked map cells instead of crossing walls', () => {
+  const map = createEmptyMap({ width: 7, height: 7 });
+  const origin = { x: 0, y: 0 };
+  Object.values(map.cells).forEach((cell) => {
+    const column = cell.q + Math.floor(cell.r / 2);
+    if (column === 3) cell.terrain = 'blocked';
+  });
+  const left = Object.values(map.cells).find((cell) => cell.r === 3 && cell.q + Math.floor(cell.r / 2) === 2);
+  const right = Object.values(map.cells).find((cell) => cell.r === 3 && cell.q + Math.floor(cell.r / 2) === 4);
+  const start = getHexCenter(left, origin);
+  const target = getHexCenter(right, origin);
+  const enemy = authoredEnemy('lionfishGunner', {
+    alerted: true,
+    moveSpeed: 0,
+    x: start.x,
+    y: start.y,
+    homeX: start.x,
+    homeY: start.y,
+  });
+  const actor = { ...target, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  const enemies = [enemy];
+  let damage = 0;
+  let wallImpactSeen = false;
+  for (let index = 0; index < 150; index += 1) {
+    updatePlayEnemies(enemies, actor, 1 / 60, (index + 1) / 60, (amount) => { damage += amount; }, null, { map, chapter: 'chapter1', origin });
+    wallImpactSeen ||= getPlayEnemyRenderState(enemies, (index + 1) / 60).effects.some((effect) => effect.wallBlocked);
+  }
+
+  assert.equal(damage, 0);
+  assert.equal(actor.health, 100);
+  assert.equal(wallImpactSeen, true);
 });
 
 test('lobbed enemy ordnance uses the same projectile damage reduction', () => {

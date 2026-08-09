@@ -168,7 +168,8 @@ function getNextReadySkill(enemy, distance) {
   const attacks = enemyDefinition(enemy)?.attacks ?? [];
   if (!attacks.length) return null;
   const start = Math.max(0, enemy.nextAutoSkillIndex ?? 0) % attacks.length;
-  for (let offset = 0; offset < attacks.length; offset += 1) {
+  const offsets = enemy.enemyId === 'lionfishGunner' ? [0] : attacks.map((_, index) => index);
+  for (const offset of offsets) {
     const index = (start + offset) % attacks.length;
     const skill = attacks[index];
     if ((enemy.cooldowns[skill.id] ?? 0) > 0) continue;
@@ -460,6 +461,7 @@ function spawnSkillProjectiles(state, enemy, skill, type = skill.type) {
       range: skill.range ?? 360,
       damage: skill.damage ?? 0,
       source: 'enemy',
+      radius: skill.projectileRadius,
       colour: type === 'shieldBoomerang' ? '#f6e66d' : '#a5e8ff',
       returnDelay: skill.returnDelay,
       applies: skill.applies,

@@ -10,6 +10,7 @@ import {
   HEX_SIZE,
 } from './map-model.js';
 import { getEdgeSetting, getFreeObjectSetting } from './map-object-settings.js';
+import { RESONANCE_RULES } from './resonance.js';
 import {
   FIXED_STEP,
   MAX_ENERGY,
@@ -1055,6 +1056,21 @@ function drawEnemyResonanceBar(enemy, x, y, width, height) {
   context.restore();
 }
 
+function drawEnemyResonanceRange(enemy, x, y) {
+  if (enemy.resonanceNeutral) return;
+  const radius = (enemy.radius ?? 0) + (actor?.radius ?? 0) + RESONANCE_RULES.bodyGrazePadding;
+  context.save();
+  context.globalCompositeOperation = 'source-over';
+  context.fillStyle = 'rgba(73, 231, 131, .09)';
+  context.strokeStyle = 'rgba(164, 255, 187, .52)';
+  context.lineWidth = .85;
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
 function drawEnemies() {
   const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
   enemies.forEach((enemy) => {
@@ -1069,6 +1085,7 @@ function drawEnemies() {
     const width = height * clamp(rawRatio, 0.72, 1.65);
     const barWidth = Math.max(18, width * .72);
     const healthBarY = pose.y - height * .62;
+    drawEnemyResonanceRange(enemy, pose.x, pose.y);
     drawEnemyHealthBar(enemy, pose.x, healthBarY, barWidth, 3.1);
     drawEnemyResonanceBar(enemy, pose.x, healthBarY + 4.2, barWidth, 2.4);
 

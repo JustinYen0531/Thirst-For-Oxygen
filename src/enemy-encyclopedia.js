@@ -219,8 +219,8 @@ const ATTACK_DESCRIPTIONS = Object.freeze({
   dashClamp: '先鎖定方向再衝刺夾擊，命中距離遠於普通揮擊，看到前搖時應立即改變高度。',
   longClawStab: '伸出長螯直刺前方，射程比一般近戰更長，但攻擊方向固定。',
   spearThrow: '投出珊瑚長矛，沿直線飛行並在遠距離維持壓力。',
-  venomStraightShot: '射出單發毒棘，命中後施加毒性效果，讓短暫擦傷變成持續風險。',
-  spineScatter: '向扇形區域散射五枚棘刺，用來封鎖多個閃避方向。',
+  venomStraightShot: '射出一枚較大的高速毒棘，命中後施加毒性效果；彈體碰到牆面便會消失。',
+  spineScatter: '輪到此招時向扇形區域散射五枚明顯較小的棘刺；與毒刺直射嚴格輪流施放，彈體也不會穿牆。',
   inkShadowSlash: '在墨影中瞬移到目標附近並斬擊，命中前會有短暫蓄勢，適合從視野盲區出現。',
   inkGunSnipe: '以墨槍進行高速狙擊，先出現瞄準前搖，之後射出難以靠反應閃避的直線彈。',
   splitRush: '以高速直線衝撞目標，靠接觸造成爆裂傷害。',
@@ -587,6 +587,7 @@ export const ATTACK_VALUE_LABELS = Object.freeze({
   duration: '持續時間',
   projectileCount: '投射物數量',
   projectileSpeed: '投射速度',
+  projectileRadius: '彈體半徑',
   summonCount: '召喚數量',
   moveSpeed: '移動速度',
 });

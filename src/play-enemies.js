@@ -676,6 +676,23 @@ function canOccupyPlayEnemyPoint(world, fromPoint, nextPoint, radius = 0) {
   return true;
 }
 
+function canTraversePlayEnemyProjectile(world, fromPoint, nextPoint, radius = 0) {
+  if (!world?.map) return true;
+  const distance = distanceBetween(fromPoint, nextPoint);
+  const steps = Math.max(1, Math.ceil(distance / (HEX_SIZE * .2)));
+  let previous = fromPoint;
+  for (let index = 1; index <= steps; index += 1) {
+    const ratio = index / steps;
+    const sample = {
+      x: fromPoint.x + (nextPoint.x - fromPoint.x) * ratio,
+      y: fromPoint.y + (nextPoint.y - fromPoint.y) * ratio,
+    };
+    if (!canOccupyPlayEnemyPoint(world, previous, sample, radius)) return false;
+    previous = sample;
+  }
+  return true;
+}
+
 export function getPlayEnemySteeringAngle(enemy, target, speed, elapsed, world = null) {
   const directAngle = angleBetween(enemy, target);
   if (!world?.map) return directAngle;
@@ -913,7 +930,7 @@ function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
   });
 }
 
-function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage) {
+function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage, world = null) {
   runtime.projectiles = runtime.projectiles.filter((projectile) => {
     projectile.age += dt;
     const owner = enemies.find((enemy) => enemy.instanceId === projectile.ownerId && !enemy.defeated);
@@ -932,6 +949,19 @@ function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage) {
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
     if (!projectile.returning) projectile.remainingDistance -= travel;
+    if (projectile.enemyId === 'lionfishGunner'
+      && !canTraversePlayEnemyProjectile(world, previous, projectile, projectile.radius)) {
+      addPlayEnemyEffect(runtime, {
+        type: 'projectileImpact',
+        ownerId: projectile.ownerId,
+        skillId: projectile.skillId,
+        x: projectile.x,
+        y: projectile.y,
+        wallBlocked: true,
+        duration: 0.3,
+      });
+      return false;
+    }
     if (distanceToSegment(actor, previous, projectile) <= (actor.radius ?? 0) + projectile.radius) {
       playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'projectile');
       if (projectile.applies) {
@@ -1595,7 +1625,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   });
   clearNeutralizedEnemyRuntime(runtime, resonanceEvents);
   tickPlayEnemyEffects(runtime, elapsed);
-  updatePlayEnemyProjectiles(runtime, enemies, actor, elapsed, onDamage);
+  updatePlayEnemyProjectiles(runtime, enemies, actor, elapsed, onDamage, world);
   updatePlayEnemyZones(runtime, actor, elapsed, onDamage);
   updatePlayEnemyRules(runtime, enemies, elapsed);
   updatePlayEnemySummons(runtime, enemies);
@@ -1698,12 +1728,19 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     const attacks = definition.attacks ?? [];
     if (!attacks.length) return;
     const start = enemy.nextSkillIndex % attacks.length;
-    const selected = attacks.map((skill, index) => ({ skill, index: (start + index) % attacks.length }))
+    if (enemy.enemyId === 'lionfishGunner' && runtime.time < (enemy.nextSkillReadyAt ?? 0)) return;
+    const offsets = enemy.enemyId === 'lionfishGunner' ? [0] : attacks.map((_, index) => index);
+    const selected = offsets.map((offset) => {
+      const index = (start + offset) % attacks.length;
+      return { skill: attacks[index], index };
+    })
       .find(({ skill }) => canUsePlaySkill(enemy, skill, distance, actor.radius));
     if (!selected) return;
     const { skill, index } = selected;
     enemy.nextSkillIndex = (index + 1) % attacks.length;
-    enemy.cooldowns[skill.id] = Math.max(0.2, Number(skill.cooldown ?? 0.6) * playEnemyCooldownMultiplier(enemy));
+    const skillCooldown = Math.max(0.2, Number(skill.cooldown ?? 0.6) * playEnemyCooldownMultiplier(enemy));
+    enemy.cooldowns[skill.id] = skillCooldown;
+    if (enemy.enemyId === 'lionfishGunner') enemy.nextSkillReadyAt = runtime.time + skillCooldown;
     if (skill.type === 'suicideCharge') {
       beginSuicideCharge(runtime, enemy, skill, actor);
       return;

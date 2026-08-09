@@ -505,6 +505,23 @@ test('lobster spear and lionfish scatter each create their authored projectile c
   stepSandbox(lionfishState, 0.32);
   assert.equal(lionfishState.projectiles.length, 5);
   assert.ok(new Set(lionfishState.projectiles.map((projectile) => projectile.vy)).size > 1);
+  assert.ok(lionfishState.projectiles.every((projectile) => projectile.radius === 3));
+});
+
+test('sandbox auto-cycle keeps lionfish attacks in one alternating cooldown sequence', () => {
+  const state = createSandboxState();
+  state.autoCycle = true;
+  state.invincible = true;
+  const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 100, y: state.actor.y }, { moveSpeed: 0 });
+  for (let index = 0; index < 380; index += 1) stepSandbox(state);
+
+  const sequence = state.logs
+    .filter((entry) => entry.message.includes('獅子魚砲手・') && entry.message.includes('已啟動'))
+    .sort((left, right) => left.time - right.time)
+    .map((entry) => entry.message);
+  assert.match(sequence[0], /毒刺直射/);
+  assert.match(sequence[1], /棘刺散射/);
+  assert.match(sequence[2], /毒刺直射/);
 });
 
 test('trident can be preview-fired without a target and carries its authored visual contract', () => {

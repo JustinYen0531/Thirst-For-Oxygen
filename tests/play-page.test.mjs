@@ -26,6 +26,10 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
 
 test('formal play exposes Resonance bars, neutral partners, permanent buffs, and descent-to-ascent carryover', () => {
   assert.match(page, /drawEnemyResonanceBar\(enemy/);
+  assert.match(page, /drawEnemyResonanceRange\(enemy/);
+  assert.match(page, /RESONANCE_RULES\.bodyGrazePadding/);
+  assert.match(page, /context\.fillStyle = 'rgba\(73, 231, 131, \.09\)'/);
+  assert.match(page, /context\.fill\(\);/);
   assert.match(page, /resonanceState: combatState\.resonance/);
   assert.match(page, /enemyResult\?\.resonanceEvents\?\.length/);
   assert.match(page, /beginArcTransition\('ascent', 1\)/);
