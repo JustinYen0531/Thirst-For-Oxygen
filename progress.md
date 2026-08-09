@@ -833,3 +833,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式敵技補上暈眩、鎖點後一秒自爆、具有飛行時間與 swept collision 的敵彈、迫擊鎖點區域、幼年海馬六秒召喚與珊瑚背海馬連結／治療；尚未完整模擬的 Boss 技能只顯示安全 telegraph，不再無條件隔空扣血。
 - 建立全部地圖物件與 Edge 的正式視覺契約；Button 使用程式 glyph、潮流使用青藍箭頭、Barrier 使用橘色雙欄，不再引用不存在的 `button.png` 或拿紅色 Spike 冒充潮流；墨水區素材與限縮視野效果也接入。
 - 完整 `npm run check` 188/188、Vite build、`git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 105 complete
+
+- 正式遊玩補齊稜鏡巨蟹、潮律鸚鵡螺與深淵抹香鯨的 authored 技能 runtime：召喚、資源抽取、折射主光束、局部重力場、回程散彈、潮汐法則、獻祭回血／傷害疊層、重建回血、深淵化身、幼體型態、重力支配與腐化氧氣。
+- Mini Boss／Boss 被動實際進入傷害管線：深海甲殼 0.75 承傷、五階段七秒潮汐護盾、半血深淵覺醒的移速／彈速／冷卻與 18 點荊棘反擊；不再只有資料定義。
+- 普通敵人出生候選改用 portal／gate-aware 可達集合；三張圖的普通敵人不再生於永遠到不了的水域。Part 3 另將 2 個死物件與 8 條死 Edge 移回可玩路徑，並同步回地圖生成器。
+- 正式地圖補上水草 E 鍵附著、Checkpoint 觸碰入口去重、永久死亡不可 R 鍵復活，並完整消費旋轉剃刀軸／數量、按鈕 pressed 狀態、潮流方向、Boss rules／summons／zones 視覺契約。
+- 兩個遊玩入口改從 Part 1 進入，首頁與沙盒文案不再誤稱範本地圖或要求重新套用 Build；圖鑑只對已有素材承諾演示。
+- 重跑 `npm run generate:maps` 成功，完整 `npm run check` 203/203、Vite build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。

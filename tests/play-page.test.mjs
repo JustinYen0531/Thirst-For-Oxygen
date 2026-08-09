@@ -41,3 +41,24 @@ test('formal play uses honest programmatic fallbacks instead of broken or wrong 
   assert.match(page, /getPlayWorldAssetPaths\(\)/);
   assert.match(page, /drawProgrammaticEdge/);
 });
+
+test('formal play preserves permanent game over and exposes the authored seaweed interaction', () => {
+  assert.match(page, /if \(!actor \|\| actor\.gameOver\) return/);
+  assert.match(page, /toggleSeaweedAttachment\(actor, map, 'chapter1', origin\)/);
+});
+
+test('formal play consumes rotating razor, button state, and authored current direction visuals', () => {
+  assert.match(page, /function drawRazorObject/);
+  assert.match(page, /visual\.componentAssetPaths\[0\]/);
+  assert.match(page, /getFreeObjectSetting\(object, 'rotationSpeed'\)/);
+  assert.match(page, /Boolean\(object\.pressed\)/);
+  assert.match(page, /getDirectionVector\(edge\.currentDirection \?\? 0\)/);
+});
+
+test('formal play renders serialized Boss rules, summons, beams, and oxygen corruption', () => {
+  assert.match(page, /runtime\.rules\.forEach/);
+  assert.match(page, /runtime\.summons\.filter/);
+  assert.match(page, /zone\.type === 'reflectedBeam'/);
+  assert.match(page, /zone\.type === 'corruptOxygen'/);
+  assert.match(page, /'abyssAwakening'/);
+});

@@ -14,6 +14,7 @@ import {
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
+  getReachablePlayCellKeys,
   getPlayEnemyRenderState,
   getPlayEnemyPose,
   isPlayEnemyVisible,
@@ -79,6 +80,34 @@ function advanceCombat(enemies, actor, seconds, { start = 0, step = 1 / 60, onDa
   return now;
 }
 
+function resolveAuthoredSkill(enemyId, skillId, actorOverrides = {}) {
+  const enemy = authoredEnemy(enemyId, { alerted: true });
+  const definition = ENEMY_DEFINITIONS[enemyId];
+  const skillIndex = definition.attacks.findIndex((skill) => skill.id === skillId);
+  assert.ok(skillIndex >= 0, `${enemyId} must author ${skillId}`);
+  enemy.nextSkillIndex = skillIndex;
+  definition.attacks.forEach((skill) => { enemy.cooldowns[skill.id] = skill.id === skillId ? 0 : 999; });
+  const actor = {
+    x: 100,
+    y: 0,
+    radius: 6,
+    health: 100,
+    oxygen: 100,
+    energy: 100,
+    dead: false,
+    invulnerability: 0,
+    vx: 0,
+    vy: 0,
+    ...actorOverrides,
+  };
+  const enemies = [enemy];
+  let damage = 0;
+  const onDamage = (amount) => { damage += amount; };
+  let now = advanceCombat(enemies, actor, 1 / 60, { onDamage });
+  if (enemy.pendingSkill) now = advanceCombat(enemies, actor, enemy.pendingSkill.remaining + 1 / 60, { start: now, onDamage });
+  return { actor, damage: () => damage, enemies, enemy, now, onDamage, render: () => getPlayEnemyRenderState(enemies, now) };
+}
+
 test('all descent map parts distribute the required population with sparse authored clusters', () => {
   const allEnemyIds = new Set();
   PART_MAP_PATHS.forEach((relativePath, index) => {
@@ -104,6 +133,15 @@ test('enemy instance IDs remain unique when combat state survives a map-part tra
   assert.equal(new Set(allIds).size, allIds.length);
   idsByPart.forEach((ids, index) => {
     assert.ok([...ids].every((id) => id.startsWith(`map-part-${index + 1}-`)));
+  });
+});
+
+test('every regular runtime spawn is reachable through gates, layer transitions, or paired portals', () => {
+  PART_MAP_PATHS.forEach((relativePath, index) => {
+    const map = readMap(relativePath);
+    const reachable = getReachablePlayCellKeys(map, 'chapter1');
+    const enemies = regularEnemies(createPlayEnemies(map, index + 1, 'chapter1', { x: 36, y: 36 }));
+    assert.ok(enemies.every((enemy) => reachable.has(enemy.spawnCellKey)), `Part ${index + 1} must not silently spawn enemies in unreachable water`);
   });
 });
 
@@ -351,17 +389,185 @@ test('coral-back seahorse exposes life links, continuous healing, and its suppor
   assert.ok(ally.health > 106, 'the authored pulse adds a visible nearby heal');
 });
 
-test('unsupported Mini Boss and Boss skills expose safe render cues without unavoidable remote damage', () => {
-  const miniBoss = authoredEnemy('prismCrabGuardian', { instanceId: 'mini-boss' });
-  const boss = authoredEnemy('abyssalSpermWhale', { instanceId: 'boss', x: 20 });
-  const enemies = [miniBoss, boss];
-  const actor = { x: 100, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
-  let damage = 0;
-  const now = advanceCombat(enemies, actor, 0.4, { onDamage: (amount) => { damage += amount; } });
-  const render = getPlayEnemyRenderState(enemies, now);
+test('prism guardian models its Lv.1 summons, exact resource drain, beam, and local gravity field', () => {
+  const gathering = resolveAuthoredSkill('prismCrabGuardian', 'tidalGathering');
+  let render = getPlayEnemyRenderState(gathering.enemies, gathering.now);
+  assert.equal(gathering.damage(), 0, 'summoning never falls back to remote direct damage');
+  assert.equal(gathering.actor.energy, 82);
+  assert.equal(gathering.actor.oxygen, 88);
+  assert.equal(gathering.enemies.length, 4);
+  assert.ok(gathering.enemies.slice(1).every((enemy) => DESCENT_LV1_ENEMIES.includes(enemy.enemyId)));
+  assert.equal(render.summons[0].count, 3);
+  assert.ok(render.effects.some((effect) => effect.type === 'resourceDrain' && effect.energyDrain === 18 && effect.oxygenDrain === 12));
 
-  assert.equal(damage, 0);
-  assert.equal(actor.health, 100);
-  assert.ok(render.effects.filter((effect) => effect.type === 'unsupportedSkill' && effect.damageSuppressed).length >= 2);
-  assert.ok(render.enemies.every((enemy) => enemy.lastResolvedSkill?.supported === false));
+  const laser = resolveAuthoredSkill('prismCrabGuardian', 'refractedLaser');
+  render = getPlayEnemyRenderState(laser.enemies, laser.now);
+  assert.equal(laser.damage(), 0, 'creating the beam does not remotely hit before simulation advances');
+  assert.deepEqual(
+    { damagePerSecond: render.zones[0].damagePerSecond, remaining: render.zones[0].remaining, maxReflections: render.zones[0].maxReflections },
+    { damagePerSecond: 24, remaining: 3, maxReflections: 4 },
+  );
+  updatePlayEnemies(laser.enemies, laser.actor, 0.5, laser.now + 0.5, laser.onDamage);
+  assert.equal(laser.damage(), 12, 'the primary beam applies authored damage over time only while crossed');
+
+  const gravity = resolveAuthoredSkill('prismCrabGuardian', 'deepSeaGravityField');
+  render = getPlayEnemyRenderState(gravity.enemies, gravity.now);
+  assert.equal(gravity.damage(), 20);
+  assert.ok(gravity.actor.stunnedUntil > gravity.now + 0.75);
+  assert.ok(render.rules.some((rule) => rule.type === 'gravityField'
+    && rule.radius === 150
+    && rule.duration === 2.5
+    && rule.gravityMultiplier === 2.5));
+  assert.ok(!render.effects.some((effect) => effect.type === 'unsupportedSkill'));
+});
+
+test('tide-law nautilus models four Lv.2 summons, seven returning rounds, and an authored gravity rule', () => {
+  const summoning = resolveAuthoredSkill('tideLawNautilus', 'deepSeaSummoning');
+  let render = getPlayEnemyRenderState(summoning.enemies, summoning.now);
+  assert.equal(summoning.damage(), 0);
+  assert.equal(summoning.enemies.length, 5);
+  assert.ok(summoning.enemies.slice(1).every((enemy) => DESCENT_CORE_ENEMIES.includes(enemy.enemyId)));
+  assert.equal(render.summons[0].count, 4);
+
+  const buckshot = resolveAuthoredSkill('tideLawNautilus', 'returningBuckshot');
+  render = getPlayEnemyRenderState(buckshot.enemies, buckshot.now);
+  assert.equal(render.projectiles.length, 7);
+  assert.ok(render.projectiles.every((projectile) => projectile.speed === 260 && projectile.returnDelay === 1.4 && projectile.damage === 16));
+  buckshot.actor.y = 220;
+  const returnTime = advanceCombat(buckshot.enemies, buckshot.actor, 1.42, { start: buckshot.now, onDamage: buckshot.onDamage });
+  render = getPlayEnemyRenderState(buckshot.enemies, returnTime);
+  assert.ok(render.projectiles.some((projectile) => projectile.returning), 'rounds reverse toward their owner after exactly 1.4 seconds');
+
+  const law = resolveAuthoredSkill('tideLawNautilus', 'tidalLaw');
+  render = getPlayEnemyRenderState(law.enemies, law.now);
+  const rule = render.rules.find((candidate) => candidate.type === 'tidalLaw');
+  assert.equal(rule.duration, 4);
+  assert.deepEqual(rule.modes, ['reverse', 'low', 'horizontal', 'currentShift']);
+  assert.ok(rule.modes.includes(rule.mode));
+  assert.ok(!render.effects.some((effect) => effect.type === 'unsupportedSkill'));
+});
+
+test('abyssal whale sacrifice summons resolve after thirty seconds using authored heal and damage stacks', () => {
+  const result = resolveAuthoredSkill('abyssalSpermWhale', 'abyssalSummoning');
+  result.enemy.health = 3000;
+  let render = getPlayEnemyRenderState(result.enemies, result.now);
+  assert.equal(result.damage(), 0);
+  assert.equal(result.enemies.length, 7);
+  assert.equal(render.summons[0].count, 6);
+  assert.ok(result.enemies.slice(1).every((enemy) => DESCENT_ENEMY_ROSTER.includes(enemy.enemyId)));
+  result.actor.x = 1000;
+  updatePlayEnemies(result.enemies, result.actor, 30.1, result.now + 30.1, result.onDamage);
+  render = getPlayEnemyRenderState(result.enemies, result.now + 30.1);
+  assert.equal(render.summons[0].status, 'sacrificed');
+  assert.equal(render.summons[0].sacrificedCount, 6);
+  assert.equal(result.enemy.health, 3750);
+  assert.ok(Math.abs(result.enemy.damageStack - 0.18) < 1e-9);
+});
+
+test('abyssal whale reconstruction, echo barrage, and miniature form expose their complete authored state', () => {
+  const reconstruction = resolveAuthoredSkill('abyssalSpermWhale', 'ancientReconstruction');
+  reconstruction.enemy.health = 3000;
+  updatePlayEnemies(reconstruction.enemies, reconstruction.actor, 1, reconstruction.now + 1, reconstruction.onDamage);
+  let render = getPlayEnemyRenderState(reconstruction.enemies, reconstruction.now + 1);
+  assert.equal(reconstruction.enemy.health, 3100);
+  assert.ok(render.rules.some((rule) => rule.type === 'rebuildArena'
+    && rule.healPerSecondRatio === 0.02
+    && Math.abs(rule.remaining - 7) < 1e-9));
+
+  const echo = resolveAuthoredSkill('abyssalSpermWhale', 'abyssEcho');
+  render = getPlayEnemyRenderState(echo.enemies, echo.now);
+  assert.equal(echo.damage(), 0);
+  assert.equal(render.projectiles.length, 3);
+  assert.ok(render.projectiles.every((projectile) => projectile.speed === 170 && projectile.damage === 18 && projectile.cloneHealthRatio === 0.18));
+  assert.ok(render.summons.some((summon) => summon.kind === 'abyssEcho' && summon.count === 3 && summon.healthEach === 900));
+
+  const miniature = resolveAuthoredSkill('abyssalSpermWhale', 'miniatureForm', { x: 160 });
+  render = getPlayEnemyRenderState(miniature.enemies, miniature.now);
+  assert.equal(miniature.enemy.damageTakenMultiplier, 1.2);
+  assert.ok(render.rules.some((rule) => rule.type === 'speedForm'
+    && rule.moveSpeedMultiplier === 1.7
+    && rule.cooldownMultiplier === 0.5
+    && rule.remaining === 7
+    && rule.sludgeDuration === 8));
+  updatePlayEnemies(miniature.enemies, miniature.actor, 0.1, miniature.now + 0.1, miniature.onDamage);
+  assert.ok(Math.abs(Math.hypot(miniature.enemy.vx, miniature.enemy.vy) - 46 * 1.7) < 1e-9);
+  miniature.enemy.nextSkillIndex = ENEMY_DEFINITIONS.abyssalSpermWhale.attacks.findIndex((skill) => skill.id === 'gravityDominion');
+  miniature.enemy.cooldowns.gravityDominion = 0;
+  updatePlayEnemies(miniature.enemies, miniature.actor, 1 / 60, miniature.now + 0.1 + 1 / 60, miniature.onDamage);
+  assert.equal(miniature.enemy.cooldowns.gravityDominion, 7);
+});
+
+test('abyssal whale gravity dominion and corrupted oxygen are rule and delayed-zone mechanics, never remote instant hits', () => {
+  const gravity = resolveAuthoredSkill('abyssalSpermWhale', 'gravityDominion');
+  let render = getPlayEnemyRenderState(gravity.enemies, gravity.now);
+  assert.equal(gravity.damage(), 0);
+  assert.ok(render.rules.some((rule) => rule.type === 'gravityDominion'
+    && rule.duration === 5
+    && rule.gravityLevelShift === 1
+    && rule.directionToggle
+    && rule.damage === 16
+    && rule.damageSuppressed));
+
+  const oxygen = resolveAuthoredSkill('abyssalSpermWhale', 'corruptedOxygen');
+  render = getPlayEnemyRenderState(oxygen.enemies, oxygen.now);
+  assert.equal(oxygen.damage(), 0);
+  assert.equal(oxygen.actor.oxygen, 100);
+  assert.ok(render.zones.some((zone) => zone.type === 'corruptOxygen'
+    && zone.phase === 'bubble'
+    && zone.bubbleLifetime === 4
+    && zone.radius === 96
+    && zone.oxygenDrain === 35
+    && zone.oxygenZoneDuration === 10));
+  let now = advanceCombat(oxygen.enemies, oxygen.actor, 3.9, { start: oxygen.now, onDamage: oxygen.onDamage });
+  assert.equal(oxygen.damage(), 0);
+  assert.equal(oxygen.actor.oxygen, 100);
+  now = advanceCombat(oxygen.enemies, oxygen.actor, 0.12, { start: now, onDamage: oxygen.onDamage });
+  render = getPlayEnemyRenderState(oxygen.enemies, now);
+  assert.equal(oxygen.damage(), 26);
+  assert.equal(oxygen.actor.oxygen, 65);
+  assert.ok(render.zones.some((zone) => zone.type === 'corruptOxygen' && zone.phase === 'oxygenZone' && zone.remaining > 9.8));
+  assert.deepEqual(render.playerResources, { health: 100, oxygen: 65, energy: 100, stunnedUntil: 0 });
+  assert.ok(!render.effects.some((effect) => effect.type === 'unsupportedSkill'));
+});
+
+test('special-enemy passive state exposes carapace, shield phases, and abyss awakening multipliers', () => {
+  const prism = authoredEnemy('prismCrabGuardian');
+  const prismActor = { x: 500, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  updatePlayEnemies([prism], prismActor, 1 / 60, 1 / 60);
+  assert.equal(prism.passiveState.id, 'deepSeaCarapace');
+  assert.equal(prism.damageTakenMultiplier, 0.75);
+
+  const tide = authoredEnemy('tideLawNautilus', { health: 1350 * 0.79 });
+  const tideEnemies = [tide];
+  updatePlayEnemies(tideEnemies, prismActor, 1 / 60, 1 / 60);
+  let render = getPlayEnemyRenderState(tideEnemies, 1 / 60);
+  assert.equal(tide.passiveState.triggeredPhases, 1);
+  assert.equal(tide.damageTakenMultiplier, 0);
+  assert.equal(tide.outgoingDamageMultiplier, 1.3);
+  assert.ok(tide.invulnerableUntil >= 7);
+  assert.ok(render.effects.some((effect) => effect.type === 'tidalShield' && effect.phase === 1 && effect.phaseCount === 5));
+  updatePlayEnemies(tideEnemies, prismActor, 0.1, 7.2);
+  assert.equal(tide.damageTakenMultiplier, 1);
+
+  const whale = authoredEnemy('abyssalSpermWhale', { health: 2400, alerted: true });
+  const whaleEnemies = [whale];
+  const whaleActor = { x: 160, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  ENEMY_DEFINITIONS.abyssalSpermWhale.attacks.forEach((skill) => { whale.cooldowns[skill.id] = 999; });
+  updatePlayEnemies(whaleEnemies, whaleActor, 0.1, 0.1);
+  render = getPlayEnemyRenderState(whaleEnemies, 0.1);
+  assert.equal(whale.passiveState.enraged, true);
+  assert.equal(whale.passiveState.moveSpeedMultiplier, 1.2);
+  assert.equal(whale.projectileSpeedMultiplier, 1.2);
+  assert.equal(whale.passiveState.cooldownMultiplier, 0.8);
+  assert.equal(whale.passiveState.thornsDamage, 18);
+  assert.ok(Math.abs(Math.hypot(whale.vx, whale.vy) - 46 * 1.2) < 1e-9);
+  assert.ok(render.effects.some((effect) => effect.type === 'abyssAwakening'));
+  const echoIndex = ENEMY_DEFINITIONS.abyssalSpermWhale.attacks.findIndex((skill) => skill.id === 'abyssEcho');
+  whale.nextSkillIndex = echoIndex;
+  whale.cooldowns.abyssEcho = 0;
+  updatePlayEnemies(whaleEnemies, whaleActor, 1 / 60, 0.1 + 1 / 60);
+  assert.equal(whale.cooldowns.abyssEcho, 8 * 0.8);
+  const projectileTime = advanceCombat(whaleEnemies, whaleActor, 0.34, { start: 0.1 + 1 / 60 });
+  render = getPlayEnemyRenderState(whaleEnemies, projectileTime);
+  assert.ok(render.projectiles.every((projectile) => projectile.speed === 170 * 1.2));
 });

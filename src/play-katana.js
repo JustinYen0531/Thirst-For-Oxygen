@@ -1,4 +1,5 @@
-import { getWeaponStats } from './game-data.js';
+import { ENEMY_DEFINITIONS, getWeaponStats } from './game-data.js';
+import { applyDamage } from './physics.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
@@ -125,11 +126,19 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   const multiplier = empowered ? (weapon.effect.empoweredDamageMultiplier ?? 2) : 1;
   const damage = weapon.damage * multiplier * Math.max(0, Number(damageMultiplier) || 1);
   let damagedHitCount = 0;
+  let totalDamage = 0;
   hitEnemies.forEach((enemy) => {
     if (enemy.linkedProtection) return;
-    enemy.health = Math.max(0, enemy.health - damage);
+    const passive = ENEMY_DEFINITIONS[enemy.enemyId]?.passive;
+    const enemyMultiplier = Math.max(0, Number(enemy.damageTakenMultiplier ?? passive?.damageTakenMultiplier ?? 1));
+    const appliedDamage = damage * enemyMultiplier;
+    enemy.health = Math.max(0, enemy.health - appliedDamage);
+    if (appliedDamage > 0 && enemy.passiveState?.enraged && Number(passive?.thornsDamage) > 0 && Number.isFinite(actor.health)) {
+      applyDamage(actor, passive.thornsDamage, `${enemy.name ?? enemy.enemyId}・${passive.name}`, 'contact');
+    }
     enemy.hitFlash = 0.22;
     damagedHitCount += 1;
+    totalDamage += appliedDamage;
     if (enemy.health <= 0) {
       enemy.defeated = true;
       enemy.state = 'defeated';
@@ -139,14 +148,14 @@ export function resolvePlayKatanaSlash({ state, actor, enemies, force = false, p
   state.cooldown = weapon.cooldown ?? 0.7;
   state.slashCount += 1;
   state.lastHitCount = hitEnemies.length;
-  state.lastDamage = damagedHitCount * damage;
+  state.lastDamage = totalDamage;
   addSlashEffect(state, actor, weapon, angle, empowered, hitEnemies.length, damage, persistent);
   return {
     ok: true,
     hit: hitEnemies.length > 0,
     hitCount: hitEnemies.length,
     damage,
-    totalDamage: damagedHitCount * damage,
+    totalDamage,
     protectedHitCount: hitEnemies.length - damagedHitCount,
     empowered,
     targetId: target?.instanceId ?? null,

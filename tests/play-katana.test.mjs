@@ -122,3 +122,23 @@ test('formal katana reports but does not damage a life-linked protected enemy', 
   assert.equal(result.totalDamage, 0);
   assert.equal(scenario.enemy.health, 100);
 });
+
+test('formal katana respects authored Boss damage reduction', () => {
+  const scenario = createScenario(1);
+  scenario.enemy.enemyId = 'prismCrabGuardian';
+  const result = resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies });
+  assert.equal(result.totalDamage, 21);
+  assert.equal(scenario.enemy.health, 79);
+});
+
+test('formal katana receives authored thorns retaliation from an awakened whale', () => {
+  const scenario = createScenario(1);
+  Object.assign(scenario.actor, { health: 100, oxygen: 100, invulnerability: 0, shieldTimer: 0, dead: false, gameOver: false });
+  Object.assign(scenario.enemy, {
+    enemyId: 'abyssalSpermWhale',
+    name: '深淵抹香鯨',
+    passiveState: { enraged: true },
+  });
+  resolvePlayKatanaSlash({ state: scenario.state, actor: scenario.actor, enemies: scenario.enemies });
+  assert.equal(scenario.actor.health, 82);
+});

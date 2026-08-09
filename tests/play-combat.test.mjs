@@ -188,3 +188,35 @@ test('formal weapons respect the coral seahorse life-link protection field', () 
   assert.equal(protectedEnemy.health, 100);
   assert.ok(state.effects.some((effect) => effect.type === 'weaponBlocked' && effect.protectorId === 'coral-protector'));
 });
+
+test('formal projectile weapons respect authored Boss damage reduction', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 100, y: 100 });
+  const guardian = enemy('guardian', 'prismCrabGuardian', 140, 100, 200);
+  actor.x = 180;
+  stepPlayCombat(state, {
+    actor,
+    enemies: [guardian],
+    previousPosition: { x: 100, y: 100 },
+    dt: 1 / 60,
+  });
+  assert.equal(guardian.health, 186.5, '18 knife damage is reduced to 13.5 by deep-sea carapace');
+});
+
+test('abyss-awakened whale thorns retaliate against a successful formal weapon hit', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 100, y: 100 });
+  const whale = enemy('whale', 'abyssalSpermWhale', 140, 100, 2400);
+  whale.maxHealth = 5000;
+  whale.name = '深淵抹香鯨';
+  whale.passiveState = { enraged: true };
+  actor.x = 180;
+  stepPlayCombat(state, {
+    actor,
+    enemies: [whale],
+    previousPosition: { x: 100, y: 100 },
+    dt: 1 / 60,
+  });
+  assert.equal(actor.health, 82);
+  assert.ok(state.effects.some((effect) => effect.type === 'thornsHit' && effect.damage === 18));
+});

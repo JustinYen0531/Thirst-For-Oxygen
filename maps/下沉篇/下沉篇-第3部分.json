@@ -11787,7 +11787,22 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "razor",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 48,
+          "params": {
+            "count": 1,
+            "damage": 20,
+            "knockbackSpeed": 58,
+            "rotationSpeed": 180
+          }
+        }
+      ],
       "actors": [],
       "region": "default"
     },
@@ -12125,22 +12140,7 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [
-        {
-          "kind": "razor",
-          "offset": {
-            "x": 0,
-            "y": 0
-          },
-          "size": 48,
-          "params": {
-            "count": 1,
-            "damage": 20,
-            "knockbackSpeed": 58,
-            "rotationSpeed": 180
-          }
-        }
-      ],
+      "freeObjects": [],
       "actors": [],
       "region": "default"
     },
@@ -12907,7 +12907,17 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "checkpoint",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 17,
+          "params": {}
+        }
+      ],
       "actors": [],
       "region": "default"
     },
@@ -13843,17 +13853,7 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [
-        {
-          "kind": "checkpoint",
-          "offset": {
-            "x": 0,
-            "y": 0
-          },
-          "size": 17,
-          "params": {}
-        }
-      ],
+      "freeObjects": [],
       "actors": [],
       "region": "default"
     },
@@ -37660,10 +37660,10 @@
         "bounceMultiplier": 1.08
       }
     },
-    "-16,78|-16,79": {
+    "-18,78|-19,78": {
       "cells": [
-        "-16,78",
-        "-16,79"
+        "-19,78",
+        "-18,78"
       ],
       "type": "springJelly",
       "blocksPassage": true,
@@ -37716,10 +37716,10 @@
         "damage": 20
       }
     },
-    "-22,91|-23,91": {
+    "-23,91|-24,92": {
       "cells": [
         "-23,91",
-        "-22,91"
+        "-24,92"
       ],
       "type": "spike",
       "blocksPassage": true,
@@ -37756,10 +37756,10 @@
       "size": 1,
       "params": {}
     },
-    "-13,73|-14,73": {
+    "-15,72|-16,72": {
       "cells": [
-        "-14,73",
-        "-13,73"
+        "-16,72",
+        "-15,72"
       ],
       "type": "barrier",
       "blocksPassage": true,
@@ -37768,10 +37768,10 @@
       "size": 1,
       "params": {}
     },
-    "-26,99|-27,100": {
+    "-27,98|-27,99": {
       "cells": [
-        "-26,99",
-        "-27,100"
+        "-27,98",
+        "-27,99"
       ],
       "type": "barrier",
       "blocksPassage": true,
@@ -37840,10 +37840,10 @@
       "size": 1,
       "params": {}
     },
-    "-11,68|-11,69": {
+    "-13,66|-13,67": {
       "cells": [
-        "-11,68",
-        "-11,69"
+        "-13,66",
+        "-13,67"
       ],
       "type": "seaweed",
       "blocksPassage": false,
@@ -37852,10 +37852,10 @@
       "size": 1,
       "params": {}
     },
-    "-25,96|-25,97": {
+    "-25,96|-26,96": {
       "cells": [
-        "-25,96",
-        "-25,97"
+        "-26,96",
+        "-25,96"
       ],
       "type": "seaweed",
       "blocksPassage": false,
@@ -37876,10 +37876,10 @@
       "size": 1,
       "params": {}
     },
-    "-15,76|-15,77": {
+    "-17,76|-18,76": {
       "cells": [
-        "-15,76",
-        "-15,77"
+        "-18,76",
+        "-17,76"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -37888,10 +37888,10 @@
       "size": 1,
       "params": {}
     },
-    "-30,106|-30,107": {
+    "-32,104|-32,105": {
       "cells": [
-        "-30,106",
-        "-30,107"
+        "-32,104",
+        "-32,105"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -37931,7 +37931,7 @@
       "墨水遮蔽層間門與多邊傳送線索，考驗前兩部分建立的路線記憶。",
       "最後一個檢查點補滿資源，之後才進入 Boss 出生區。"
     ],
-    "endGoal": "完成玩家原始遺跡路線並抵達深淵 Boss。",
+    "endGoal": "完成玩家原始遺跡路線、擊敗深淵抹香鯨，並抵達末段出口。",
     "source": "範本map.json（玩家原始第三部分）",
     "spawnPoints": "已配置",
     "exitCellKey": "-46,116"

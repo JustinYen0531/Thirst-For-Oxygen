@@ -319,7 +319,7 @@ function previewWeaponSlot(slot) {
   applyBuild();
   const weapon = state.build.weapons[slot];
   if (!weapon) {
-    status.textContent = '這個槽位目前無法試射，請重新套用 Build。';
+    status.textContent = 'Build 已即時同步，但這個槽位目前沒有可試射的武器，請檢查槽位選擇。';
     render();
     return;
   }

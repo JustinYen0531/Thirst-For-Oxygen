@@ -294,6 +294,28 @@ function clearInvalidPortalEdge(map, key) {
   delete edge.portalTargetKey;
 }
 
+function moveFreeObject(map, fromKey, toKey, kind) {
+  const from = map.cells[fromKey];
+  const to = map.cells[toKey];
+  if (!from || !to || to.terrain !== 'water') throw new Error(`無法移動 ${kind}：${fromKey} → ${toKey}`);
+  const index = (from.freeObjects ?? []).findIndex((object) => object.kind === kind);
+  if (index < 0) throw new Error(`${fromKey} 找不到 ${kind}`);
+  const [object] = from.freeObjects.splice(index, 1);
+  to.freeObjects.push(object);
+}
+
+function moveExistingEdge(map, fromKey, toKey) {
+  const edge = requireExistingEdge(map, fromKey).edge;
+  const target = allMapEdges(map).find((candidate) => candidate.key === toKey);
+  if (!target) throw new Error(`找不到 Edge 移動目標：${toKey}`);
+  if (map.edges[toKey]?.type && map.edges[toKey].type !== 'none') throw new Error(`Edge 移動目標已使用：${toKey}`);
+  map.edges = Object.fromEntries(Object.entries(map.edges).flatMap(([key, value]) => {
+    if (key === toKey) return [];
+    if (key === fromKey) return [[toKey, { ...edge, cells: [target.a, target.b] }]];
+    return [[key, value]];
+  }));
+}
+
 function repairPart3PortalRoute(map) {
   // The player-authored ruin uses three visible portal rings. The template
   // preserved their geometry, but most individual Edge targets were null.
@@ -636,7 +658,7 @@ function buildPart2() {
         '氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。',
         '多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。',
       ],
-      endGoal: '開啟壓力閘門後抵達遺跡入口。',
+      endGoal: '開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。',
     },
   });
   paintPart2Terrain(map);
@@ -685,7 +707,7 @@ function buildPart3(source) {
       '墨水遮蔽層間門與多邊傳送線索，考驗前兩部分建立的路線記憶。',
       '最後一個檢查點補滿資源，之後才進入 Boss 出生區。',
     ],
-    endGoal: '完成玩家原始遺跡路線並抵達深淵 Boss。',
+    endGoal: '完成玩家原始遺跡路線、擊敗深淵抹香鯨，並抵達末段出口。',
   });
   removeInvalidButtons(map);
   repairPart3PortalRoute(map);
@@ -708,6 +730,21 @@ function buildPart3(source) {
   addEdgeSet(map, 'current', [12, 52, 82, 112]);
   addEdgeSet(map, 'seaweed', [27, 68, 96]);
   addEdgeSet(map, 'coralCluster', [42, 76, 106]);
+  // Keep every authored object on the portal/gate-aware playable route. These
+  // relocations preserve the original object mix without leaving dead content
+  // inside sealed water pockets copied from the player's Part 3 template.
+  moveFreeObject(map, '-7,38', '-8,37', 'razor');
+  moveFreeObject(map, '2,43', '3,40', 'checkpoint');
+  [
+    ['-16,78|-16,79', '-18,78|-19,78'],
+    ['-22,91|-23,91', '-23,91|-24,92'],
+    ['-13,73|-14,73', '-15,72|-16,72'],
+    ['-26,99|-27,100', '-27,98|-27,99'],
+    ['-11,68|-11,69', '-13,66|-13,67'],
+    ['-25,96|-25,97', '-25,96|-26,96'],
+    ['-15,76|-15,77', '-17,76|-18,76'],
+    ['-30,106|-30,107', '-32,104|-32,105'],
+  ].forEach(([fromKey, toKey]) => moveExistingEdge(map, fromKey, toKey));
   setRuntimeExit(map, 116, 12);
   return map;
 }

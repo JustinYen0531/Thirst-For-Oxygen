@@ -1,6 +1,15 @@
 import { ENEMY_DEFINITIONS } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
-import { HEX_SIZE, findCellContainingPoint, getActiveCell, getHexCenter } from './map-model.js';
+import {
+  DIRECTIONS,
+  HEX_SIZE,
+  edgeKey,
+  findCellContainingPoint,
+  getActiveCell,
+  getActiveEdge,
+  getHexCenter,
+  neighborKey,
+} from './map-model.js';
 
 export const DESCENT_LV1_ENEMIES = Object.freeze(['explodingLanternfish', 'juvenileSeahorseCaller']);
 export const DESCENT_CORE_ENEMIES = Object.freeze(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin']);
@@ -72,10 +81,86 @@ function encounterEnemyId(mapPart, encounterIndex, encounterCount, localIndex, g
   return DESCENT_CORE_ENEMIES[(globalIndex + encounterIndex) % DESCENT_CORE_ENEMIES.length];
 }
 
+function isReachableWaterCell(map, key, chapter, openedGates) {
+  const cell = getActiveCell(map, key, chapter);
+  return cell?.terrain === 'water' || Boolean(cell?.conditionalGate && openedGates.has(key));
+}
+
+function canTraversePlayCells(map, fromKey, toKey, chapter, openedGates) {
+  const from = getActiveCell(map, fromKey, chapter);
+  const to = getActiveCell(map, toKey, chapter);
+  if (!from || !to || !isReachableWaterCell(map, toKey, chapter, openedGates)) return false;
+  const edge = getActiveEdge(map, edgeKey(fromKey, toKey), chapter);
+  if (edge?.blocksPassage && edge.type !== 'layerPortal') return false;
+  if (from.waterLayer !== to.waterLayer && edge?.type !== 'layerPortal') return false;
+  return true;
+}
+
+function getPlayPortalDestinations(map, chapter, openedGates) {
+  const destinations = new Map();
+  Object.keys(map.edges).forEach((key) => {
+    const edge = getActiveEdge(map, key, chapter);
+    if (edge?.type !== 'multiPortal' || !edge.portalTargetKey) return;
+    const sourceCellKey = edge.cells?.find((cellKey) => isReachableWaterCell(map, cellKey, chapter, openedGates));
+    const target = getActiveEdge(map, edge.portalTargetKey, chapter);
+    const targetCellKey = target?.cells?.find((cellKey) => isReachableWaterCell(map, cellKey, chapter, openedGates));
+    if (sourceCellKey && targetCellKey) destinations.set(sourceCellKey, targetCellKey);
+  });
+  return destinations;
+}
+
+function getReachablePlayCellsForOpenedGates(map, chapter, openedGates) {
+  const start = Object.keys(map.cells).find((key) => (
+    getActiveCell(map, key, chapter)?.actors?.some((actor) => actor.kind === 'playerStart')
+  ));
+  if (!start) return new Set();
+  const portals = getPlayPortalDestinations(map, chapter, openedGates);
+  const reachable = new Set([start]);
+  const queue = [start];
+  while (queue.length) {
+    const key = queue.shift();
+    DIRECTIONS.forEach((_, direction) => {
+      const next = neighborKey(key, direction);
+      if (reachable.has(next) || !canTraversePlayCells(map, key, next, chapter, openedGates)) return;
+      reachable.add(next);
+      queue.push(next);
+    });
+    const portalDestination = portals.get(key);
+    if (portalDestination && !reachable.has(portalDestination)) {
+      reachable.add(portalDestination);
+      queue.push(portalDestination);
+    }
+  }
+  return reachable;
+}
+
+export function getReachablePlayCellKeys(map, chapter = 'chapter1') {
+  const openedGates = new Set();
+  let reachable = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    reachable = getReachablePlayCellsForOpenedGates(map, chapter, openedGates);
+    reachable.forEach((key) => {
+      const cell = getActiveCell(map, key, chapter);
+      [...(cell?.objects ?? []), ...(cell?.freeObjects ?? [])].forEach((object) => {
+        if (object.kind !== 'button') return;
+        (object.targetGates ?? []).forEach((gateKey) => {
+          if (openedGates.has(gateKey)) return;
+          openedGates.add(gateKey);
+          changed = true;
+        });
+      });
+    });
+  }
+  return reachable;
+}
+
 function getWaterCandidates(map, chapter) {
+  const reachable = getReachablePlayCellKeys(map, chapter);
   return Object.keys(map.cells).flatMap((cellKey) => {
     const cell = getActiveCell(map, cellKey, chapter);
-    if (!cell || cell.terrain !== 'water' || cell.actors?.some((actor) => actor.kind === 'playerStart')) return [];
+    if (!cell || cell.terrain !== 'water' || !reachable.has(cellKey) || cell.actors?.some((actor) => actor.kind === 'playerStart')) return [];
     return [{ cellKey, cell }];
   });
 }
@@ -195,7 +280,7 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
     const definition = ENEMY_DEFINITIONS[enemyId];
     const position = getHexCenter(spawn.cell, origin);
     const tierWeight = enemyTierWeight(definition.tier);
-    return {
+    const instance = {
       instanceId,
       enemyId,
       name: definition.name,
@@ -229,8 +314,17 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       linkedTargets: [],
       linkedProtection: null,
       rescueCompleted: false,
+      activeEffects: {},
+      passiveState: null,
+      baseDamageTakenMultiplier: definition.passive?.damageTakenMultiplier ?? 1,
+      damageTakenMultiplier: definition.passive?.damageTakenMultiplier ?? 1,
+      outgoingDamageMultiplier: 1,
+      projectileSpeedMultiplier: 1,
+      damageStack: 0,
       defeated: false,
     };
+    initializePlayEnemyPassive(instance, definition);
+    return instance;
   };
 
   const regularEnemies = spawnCells.map((spawn, globalIndex) => {
@@ -282,11 +376,16 @@ function getPlayEnemyRuntime(enemies) {
       time: 0,
       projectiles: [],
       zones: [],
+      rules: [],
+      summons: [],
       effects: [],
       nextProjectileId: 1,
       nextZoneId: 1,
       nextEffectId: 1,
       nextSummonId: 1,
+      nextSummonEventId: 1,
+      nextRuleId: 1,
+      playerResources: null,
     };
     playEnemyRuntimes.set(enemies, runtime);
   }
@@ -313,6 +412,83 @@ function tickPlayEnemyEffects(runtime, dt) {
 
 function activePlayEnemies(enemies) {
   return enemies.filter((enemy) => !enemy.defeated && Number(enemy.health) > 0);
+}
+
+function playEnemyDamageAmount(enemy, amount) {
+  return Math.max(0, Number(amount ?? 0))
+    * (1 + Math.max(0, Number(enemy.damageStack ?? 0)))
+    * (enemy.outgoingDamageMultiplier ?? 1);
+}
+
+function playEnemyCooldownMultiplier(enemy) {
+  return (enemy.activeEffects?.speedForm?.cooldownMultiplier ?? 1)
+    * (enemy.passiveState?.cooldownMultiplier ?? 1);
+}
+
+function initializePlayEnemyPassive(enemy, definition) {
+  if (enemy.passiveState) return enemy.passiveState;
+  const passive = definition.passive ?? {};
+  enemy.baseDamageTakenMultiplier = passive.damageTakenMultiplier ?? 1;
+  enemy.damageTakenMultiplier ??= enemy.baseDamageTakenMultiplier;
+  enemy.outgoingDamageMultiplier ??= 1;
+  enemy.projectileSpeedMultiplier ??= 1;
+  enemy.passiveState = {
+    id: passive.id ?? null,
+    phaseCount: passive.phaseCount ?? 0,
+    triggeredPhases: 0,
+    shieldUntil: 0,
+    invulnerableDuration: passive.invulnerableDuration ?? 0,
+    damageMultiplier: passive.damageMultiplier ?? 1,
+    moveSpeedMultiplier: 1,
+    projectileSpeedMultiplier: 1,
+    cooldownMultiplier: 1,
+    thornsDamage: passive.thornsDamage ?? 0,
+    enraged: false,
+  };
+  return enemy.passiveState;
+}
+
+function updatePlayEnemyPassive(runtime, enemy, definition) {
+  const passive = definition.passive ?? {};
+  const state = initializePlayEnemyPassive(enemy, definition);
+  if (passive.id === 'tidalShield') {
+    const healthRatio = enemy.maxHealth > 0 ? enemy.health / enemy.maxHealth : 0;
+    const crossed = Math.min(state.phaseCount, Math.floor((1 - healthRatio) * state.phaseCount + 1e-9));
+    if (crossed > state.triggeredPhases) {
+      state.triggeredPhases = crossed;
+      state.shieldUntil = runtime.time + state.invulnerableDuration;
+      addPlayEnemyEffect(runtime, {
+        type: 'tidalShield',
+        ownerId: enemy.instanceId,
+        phase: crossed,
+        phaseCount: state.phaseCount,
+        x: enemy.x,
+        y: enemy.y,
+        duration: state.invulnerableDuration,
+      });
+    }
+    const shielded = runtime.time < state.shieldUntil;
+    enemy.invulnerableUntil = shielded ? state.shieldUntil : 0;
+    enemy.damageTakenMultiplier = shielded ? 0 : enemy.baseDamageTakenMultiplier;
+    enemy.outgoingDamageMultiplier = state.damageMultiplier ** state.triggeredPhases;
+  }
+  if (passive.id === 'abyssAwakening') {
+    const enraged = enemy.health > 0 && enemy.health < enemy.maxHealth * 0.5;
+    if (enraged && !state.enraged) {
+      addPlayEnemyEffect(runtime, {
+        type: 'abyssAwakening',
+        ownerId: enemy.instanceId,
+        x: enemy.x,
+        y: enemy.y,
+        duration: 1,
+      });
+    }
+    state.enraged = enraged;
+    state.moveSpeedMultiplier = enraged ? (passive.moveSpeedMultiplier ?? 1) : 1;
+    state.projectileSpeedMultiplier = enraged ? (passive.projectileSpeedMultiplier ?? 1) : 1;
+    state.cooldownMultiplier = enraged ? (passive.cooldownMultiplier ?? 1) : 1;
+    enemy.projectileSpeedMultiplier = state.projectileSpeedMultiplier;
+  }
 }
 
 function attackReach(enemy, skill) {
@@ -354,7 +530,9 @@ function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
   for (let index = 0; index < count; index += 1) {
     const ratio = count === 1 ? 0 : index / (count - 1) - 0.5;
     const angle = centre + ratio * spread;
-    const speed = Math.max(1, Number(skill.projectileSpeed ?? 280));
+    const speed = Math.max(1, Number(skill.projectileSpeed ?? 280) * (enemy.projectileSpeedMultiplier ?? 1));
+    const outboundDistance = skill.range
+      ?? (skill.returnDelay ? speed * skill.returnDelay : distanceBetween(enemy, target));
     runtime.projectiles.push({
       id: `play-enemy-projectile-${runtime.nextProjectileId++}`,
       ownerId: enemy.instanceId,
@@ -367,12 +545,19 @@ function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
       previousY: enemy.y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
+      speed,
       angle,
+      age: 0,
       radius: skill.projectileRadius ?? 6,
-      remainingDistance: skill.range ?? 360,
-      damage: skill.damage ?? 0,
+      remainingDistance: outboundDistance,
+      outboundDistance,
+      returnDelay: skill.returnDelay ?? null,
+      returning: false,
+      damage: playEnemyDamageAmount(enemy, skill.damage),
       applies: skill.applies ?? null,
       effectDuration: skill.duration ?? 0,
+      cloneHealthRatio: skill.cloneHealthRatio ?? null,
+      maxReflections: skill.maxReflections ?? null,
       colour: skill.type === 'spread' ? '#d6b6ff' : '#a5e8ff',
     });
   }
@@ -389,15 +574,25 @@ function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
   });
 }
 
-function updatePlayEnemyProjectiles(runtime, actor, dt, onDamage) {
+function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage) {
   runtime.projectiles = runtime.projectiles.filter((projectile) => {
+    projectile.age += dt;
+    const owner = enemies.find((enemy) => enemy.instanceId === projectile.ownerId && !enemy.defeated);
+    if (projectile.returnDelay != null && projectile.age >= projectile.returnDelay) projectile.returning = true;
+    if (projectile.returning) {
+      if (!owner) return false;
+      const returnAngle = angleBetween(projectile, owner);
+      projectile.angle = returnAngle;
+      projectile.vx = Math.cos(returnAngle) * projectile.speed;
+      projectile.vy = Math.sin(returnAngle) * projectile.speed;
+    }
     const previous = { x: projectile.x, y: projectile.y };
     const travel = Math.hypot(projectile.vx, projectile.vy) * dt;
     projectile.previousX = projectile.x;
     projectile.previousY = projectile.y;
     projectile.x += projectile.vx * dt;
     projectile.y += projectile.vy * dt;
-    projectile.remainingDistance -= travel;
+    if (!projectile.returning) projectile.remainingDistance -= travel;
     if (distanceToSegment(actor, previous, projectile) <= (actor.radius ?? 0) + projectile.radius) {
       playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'ranged');
       if (projectile.applies) {
@@ -417,12 +612,50 @@ function updatePlayEnemyProjectiles(runtime, actor, dt, onDamage) {
       });
       return false;
     }
-    return projectile.remainingDistance > 0;
+    if (projectile.returning) {
+      return !owner || distanceToSegment(owner, previous, projectile) > (owner.radius ?? 0) + projectile.radius;
+    }
+    return projectile.returnDelay != null || projectile.remainingDistance > 0;
   });
 }
 
 function updatePlayEnemyZones(runtime, actor, dt, onDamage) {
   runtime.zones = runtime.zones.filter((zone) => {
+    if (zone.type === 'reflectedBeam') {
+      zone.remaining -= dt;
+      if (distanceToSegment(actor, zone, { x: zone.targetX, y: zone.targetY }) <= (actor.radius ?? 0)) {
+        playEnemyDamage(actor, zone.damagePerSecond * dt, zone.source, onDamage, 'ranged');
+      }
+      return zone.remaining > 1e-6;
+    }
+    if (zone.type === 'corruptOxygen') {
+      zone.remaining -= dt;
+      if (zone.remaining > 1e-6) return true;
+      if (zone.phase === 'bubble') {
+        if (distanceBetween(zone, actor) <= zone.radius + (actor.radius ?? 0)) {
+          playEnemyDamage(actor, zone.damage, zone.source, onDamage, 'ranged');
+          actor.oxygen = Math.max(0, (actor.oxygen ?? 0) - zone.oxygenDrain);
+        }
+        zone.phase = 'oxygenZone';
+        zone.remaining = zone.oxygenZoneDuration;
+        addPlayEnemyEffect(runtime, {
+          type: 'corruptedOxygenExplosion',
+          ownerId: zone.ownerId,
+          skillId: zone.skillId,
+          x: zone.x,
+          y: zone.y,
+          radius: zone.radius,
+          oxygenDrain: zone.oxygenDrain,
+          duration: 0.8,
+        });
+        return zone.remaining > 0;
+      }
+      return false;
+    }
+    if (zone.type === 'sludge') {
+      zone.remaining -= dt;
+      return zone.remaining > 1e-6;
+    }
     zone.remaining -= dt;
     if (zone.remaining > 1e-6) return true;
     if (distanceBetween(zone, actor) <= zone.radius + (actor.radius ?? 0)) {
@@ -441,10 +674,47 @@ function updatePlayEnemyZones(runtime, actor, dt, onDamage) {
   });
 }
 
+function updatePlayEnemyRules(runtime, enemies, dt) {
+  runtime.rules = runtime.rules.filter((rule) => {
+    rule.remaining -= dt;
+    const owner = enemies.find((enemy) => enemy.instanceId === rule.ownerId && !enemy.defeated);
+    if (rule.type === 'rebuildArena' && owner) {
+      owner.health = Math.min(owner.maxHealth, owner.health + owner.maxHealth * rule.healPerSecondRatio * dt);
+    }
+    if (rule.type === 'speedForm' && owner?.activeEffects?.speedForm) {
+      owner.activeEffects.speedForm.remaining = Math.max(0, rule.remaining);
+    }
+    if (rule.remaining <= 1e-6 && rule.type === 'speedForm' && owner?.activeEffects?.speedForm) {
+      delete owner.activeEffects.speedForm;
+      owner.damageTakenMultiplier = owner.baseDamageTakenMultiplier ?? 1;
+    }
+    return rule.remaining > 1e-6;
+  });
+}
+
+function addPlayEnemyRule(runtime, rule) {
+  const next = {
+    id: `play-enemy-rule-${runtime.nextRuleId++}`,
+    ...rule,
+  };
+  runtime.rules.push(next);
+  return next;
+}
+
+function addPlayEnemySummonEvent(runtime, event) {
+  const next = {
+    id: `play-enemy-summon-${runtime.nextSummonEventId++}`,
+    createdAt: runtime.time,
+    ...event,
+  };
+  runtime.summons.push(next);
+  return next;
+}
+
 function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
   const definition = ENEMY_DEFINITIONS[enemyId];
   const tierWeight = enemyTierWeight(definition.tier);
-  return {
+  const summoned = {
     instanceId: `play-summon-${summoner.instanceId}-${runtime.nextSummonId++}-${index}`,
     enemyId,
     name: definition.name,
@@ -479,12 +749,22 @@ function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
     linkedTargets: [],
     linkedProtection: null,
     rescueCompleted: false,
+    activeEffects: {},
+    passiveState: null,
+    baseDamageTakenMultiplier: definition.passive?.damageTakenMultiplier ?? 1,
+    damageTakenMultiplier: definition.passive?.damageTakenMultiplier ?? 1,
+    outgoingDamageMultiplier: 1,
+    projectileSpeedMultiplier: 1,
+    damageStack: 0,
     defeated: false,
   };
+  initializePlayEnemyPassive(summoned, definition);
+  return summoned;
 }
 
 function summonJuvenileHelp(runtime, enemies, enemy, skill, bounds) {
   const count = clampValue(Math.round(skill.summonCount ?? 2), 1, 8);
+  const spawnedIds = [];
   for (let index = 0; index < count; index += 1) {
     const angle = Math.PI * 2 * index / count;
     const enemyId = DESCENT_CORE_ENEMIES[(runtime.nextSummonId + index - 1) % DESCENT_CORE_ENEMIES.length];
@@ -494,9 +774,19 @@ function summonJuvenileHelp(runtime, enemies, enemy, skill, bounds) {
       x = clampValue(x, bounds.minX, bounds.maxX);
       y = clampValue(y, bounds.minY, bounds.maxY);
     }
-    enemies.push(createSummonedPlayEnemy(runtime, enemyId, enemy, x, y, index));
+    const summoned = createSummonedPlayEnemy(runtime, enemyId, enemy, x, y, index);
+    enemies.push(summoned);
+    spawnedIds.push(summoned.instanceId);
   }
   enemy.rescueCompleted = true;
+  addPlayEnemySummonEvent(runtime, {
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    count,
+    enemyTier: 2,
+    spawnedIds,
+    status: 'active',
+  });
   addPlayEnemyEffect(runtime, {
     type: 'summon',
     ownerId: enemy.instanceId,
@@ -505,6 +795,77 @@ function summonJuvenileHelp(runtime, enemies, enemy, skill, bounds) {
     y: enemy.y,
     count,
     duration: 0.9,
+  });
+}
+
+function summonSpecialWave(runtime, enemies, enemy, skill, pool, bounds, sacrificeDelay = null) {
+  const count = clampValue(Math.round(skill.summonCount ?? 1), 1, 8);
+  const spawnedIds = [];
+  for (let index = 0; index < count; index += 1) {
+    const angle = Math.PI * 2 * index / count;
+    const enemyId = pool[index % pool.length];
+    let x = enemy.x + Math.cos(angle) * 34;
+    let y = enemy.y + Math.sin(angle) * 34;
+    if (bounds) {
+      x = clampValue(x, bounds.minX, bounds.maxX);
+      y = clampValue(y, bounds.minY, bounds.maxY);
+    }
+    const summoned = createSummonedPlayEnemy(runtime, enemyId, enemy, x, y, index);
+    enemies.push(summoned);
+    spawnedIds.push(summoned.instanceId);
+  }
+  const event = addPlayEnemySummonEvent(runtime, {
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    count,
+    enemyTier: pool === DESCENT_LV1_ENEMIES ? 1 : pool === DESCENT_CORE_ENEMIES ? 2 : 'chapter1',
+    spawnedIds,
+    status: 'active',
+    sacrificeAt: sacrificeDelay == null ? null : runtime.time + sacrificeDelay,
+    healRatioPerSacrifice: skill.healRatioPerSacrifice ?? 0,
+    damageStackPerSacrifice: skill.damageStackPerSacrifice ?? 0,
+  });
+  addPlayEnemyEffect(runtime, {
+    type: 'summon',
+    ownerId: enemy.instanceId,
+    skillId: skill.id,
+    x: enemy.x,
+    y: enemy.y,
+    count,
+    summonEventId: event.id,
+    duration: 0.9,
+  });
+  return event;
+}
+
+function updatePlayEnemySummons(runtime, enemies) {
+  runtime.summons.forEach((summon) => {
+    if (summon.status !== 'active' || summon.sacrificeAt == null || runtime.time < summon.sacrificeAt) return;
+    const owner = enemies.find((enemy) => enemy.instanceId === summon.ownerId && !enemy.defeated);
+    const survivors = summon.spawnedIds
+      .map((id) => enemies.find((enemy) => enemy.instanceId === id))
+      .filter((enemy) => enemy && !enemy.defeated && enemy.health > 0);
+    survivors.forEach((enemy) => {
+      enemy.health = 0;
+      enemy.defeated = true;
+      enemy.state = 'sacrificed';
+    });
+    summon.status = 'sacrificed';
+    summon.sacrificedCount = survivors.length;
+    summon.resolvedAt = runtime.time;
+    if (!owner) return;
+    owner.health = Math.min(owner.maxHealth, owner.health + owner.maxHealth * summon.healRatioPerSacrifice * survivors.length);
+    owner.damageStack = (owner.damageStack ?? 0) + summon.damageStackPerSacrifice * survivors.length;
+    addPlayEnemyEffect(runtime, {
+      type: 'sacrifice',
+      ownerId: owner.instanceId,
+      skillId: summon.skillId,
+      summonEventId: summon.id,
+      x: owner.x,
+      y: owner.y,
+      sacrificedCount: survivors.length,
+      duration: 1,
+    });
   });
 }
 
@@ -647,7 +1008,7 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
     const angle = angleBetween(enemy, actor);
     enemy.x = actor.x - Math.cos(angle) * 28;
     enemy.y = actor.y - Math.sin(angle) * 28;
-    if (distanceBetween(enemy, actor) <= attackReach(enemy, { ...skill, range: skill.range ?? 56 })) playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+    if (distanceBetween(enemy, actor) <= attackReach(enemy, { ...skill, range: skill.range ?? 56 })) playEnemyDamage(actor, playEnemyDamageAmount(enemy, skill.damage), source, onDamage, damageType);
     return;
   }
   if (skill.type === 'contact' || skill.type === 'melee') {
@@ -657,11 +1018,22 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
         actor.vx = (actor.vx ?? 0) + Math.cos(angle) * 96;
         actor.vy = (actor.vy ?? 0) + Math.sin(angle) * 96;
       }
-      if (skill.id !== 'shortThrust') playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+      if (skill.id !== 'shortThrust') playEnemyDamage(actor, playEnemyDamageAmount(enemy, skill.damage), source, onDamage, damageType);
     }
     return;
   }
   if (['projectile', 'spread', 'boomerangSpread', 'shieldBoomerang', 'cloneBarrage'].includes(skill.type)) {
+    if (skill.type === 'cloneBarrage') {
+      addPlayEnemySummonEvent(runtime, {
+        ownerId: enemy.instanceId,
+        skillId: skill.id,
+        count: skill.projectileCount ?? 1,
+        kind: 'abyssEcho',
+        healthEach: enemy.maxHealth * (skill.cloneHealthRatio ?? 0),
+        spawnedIds: [],
+        status: 'echoBarrage',
+      });
+    }
     spawnPlayEnemyProjectiles(runtime, enemy, skill, lockedTarget ?? actor);
     return;
   }
@@ -675,14 +1047,14 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
       y: target.y,
       radius: skill.radius ?? 56,
       remaining: 0.28,
-      damage: skill.damage ?? 0,
+      damage: playEnemyDamageAmount(enemy, skill.damage),
       source,
     });
     return;
   }
   if (skill.type === 'areaStun' || skill.type === 'gravityField') {
     if (distance <= (skill.radius ?? 96) + (actor.radius ?? 0)) {
-      playEnemyDamage(actor, skill.damage, source, onDamage, damageType);
+      playEnemyDamage(actor, playEnemyDamageAmount(enemy, skill.damage), source, onDamage, damageType);
       if (skill.stun) {
         actor.stunnedUntil = Math.max(actor.stunnedUntil ?? 0, runtime.time + skill.stun);
         actor.vx = 0;
@@ -690,10 +1062,174 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
       }
     }
     addPlayEnemyEffect(runtime, { type: skill.type, ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, radius: skill.radius ?? 96, duration: skill.duration ?? 0.75 });
+    if (skill.type === 'gravityField') {
+      addPlayEnemyRule(runtime, {
+        type: 'gravityField',
+        ownerId: enemy.instanceId,
+        skillId: skill.id,
+        x: enemy.x,
+        y: enemy.y,
+        radius: skill.radius,
+        duration: skill.duration,
+        remaining: skill.duration,
+        gravityMultiplier: skill.gravityMultiplier,
+        stun: skill.stun,
+      });
+    }
+    return;
+  }
+  if (skill.type === 'summonResourceDrain') {
+    summonSpecialWave(runtime, enemies, enemy, skill, DESCENT_LV1_ENEMIES, bounds);
+    const inEncounterRange = distance <= PLAY_ENEMY_ACTIVATION_RADIUS;
+    if (inEncounterRange) {
+      actor.energy = Math.max(0, (actor.energy ?? 0) - (skill.energyDrain ?? 0));
+      actor.oxygen = Math.max(0, (actor.oxygen ?? 0) - (skill.oxygenDrain ?? 0));
+    }
+    addPlayEnemyEffect(runtime, {
+      type: 'resourceDrain',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      x: enemy.x,
+      y: enemy.y,
+      energyDrain: skill.energyDrain ?? 0,
+      oxygenDrain: skill.oxygenDrain ?? 0,
+      applied: inEncounterRange,
+      duration: 0.8,
+    });
+    return;
+  }
+  if (skill.type === 'reflectedBeam') {
+    const target = lockedTarget ?? actor;
+    runtime.zones.push({
+      id: `play-enemy-zone-${runtime.nextZoneId++}`,
+      type: 'reflectedBeam',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      source,
+      x: enemy.x,
+      y: enemy.y,
+      targetX: target.x,
+      targetY: target.y,
+      duration: skill.duration,
+      remaining: skill.duration,
+      damagePerSecond: playEnemyDamageAmount(enemy, skill.damagePerSecond),
+      maxReflections: skill.maxReflections,
+      reflectionPath: null,
+      reflectionGeometryAuthored: false,
+    });
+    addPlayEnemyEffect(runtime, {
+      type: 'reflectedBeam',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      x: enemy.x,
+      y: enemy.y,
+      targetX: target.x,
+      targetY: target.y,
+      damagePerSecond: skill.damagePerSecond,
+      maxReflections: skill.maxReflections,
+      duration: skill.duration,
+    });
     return;
   }
   if (skill.type === 'summon' && enemy.enemyId === 'juvenileSeahorseCaller') {
     summonJuvenileHelp(runtime, enemies, enemy, skill, bounds);
+    return;
+  }
+  if (skill.type === 'summon' && enemy.enemyId === 'tideLawNautilus') {
+    summonSpecialWave(runtime, enemies, enemy, skill, DESCENT_CORE_ENEMIES, bounds);
+    return;
+  }
+  if (skill.type === 'ruleChange') {
+    const modes = skill.gravityModes ?? [];
+    const mode = modes.length ? modes[runtime.nextRuleId % modes.length] : null;
+    addPlayEnemyRule(runtime, {
+      type: 'tidalLaw',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      mode,
+      modes: [...modes],
+      duration: skill.duration,
+      remaining: skill.duration,
+    });
+    addPlayEnemyEffect(runtime, { type: 'tidalLaw', ownerId: enemy.instanceId, skillId: skill.id, mode, x: enemy.x, y: enemy.y, duration: skill.duration });
+    return;
+  }
+  if (skill.type === 'sacrificeSummon') {
+    summonSpecialWave(runtime, enemies, enemy, skill, DESCENT_ENEMY_ROSTER, bounds, 30);
+    return;
+  }
+  if (skill.type === 'rebuildArena') {
+    addPlayEnemyRule(runtime, {
+      type: 'rebuildArena',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      duration: skill.duration,
+      remaining: skill.duration,
+      healPerSecondRatio: skill.healPerSecondRatio,
+      arenaGeometryAuthored: false,
+    });
+    addPlayEnemyEffect(runtime, { type: 'rebuildArena', ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, duration: skill.duration });
+    return;
+  }
+  if (skill.type === 'speedForm') {
+    enemy.activeEffects ??= {};
+    enemy.activeEffects.speedForm = {
+      remaining: skill.duration,
+      damageTakenMultiplier: skill.damageTakenMultiplier,
+      moveSpeedMultiplier: skill.moveSpeedMultiplier,
+      cooldownMultiplier: skill.cooldownMultiplier,
+      sludgeDuration: skill.sludgeDuration,
+    };
+    enemy.damageTakenMultiplier = skill.damageTakenMultiplier;
+    addPlayEnemyRule(runtime, {
+      type: 'speedForm',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      duration: skill.duration,
+      remaining: skill.duration,
+      damageTakenMultiplier: skill.damageTakenMultiplier,
+      moveSpeedMultiplier: skill.moveSpeedMultiplier,
+      cooldownMultiplier: skill.cooldownMultiplier,
+      sludgeDuration: skill.sludgeDuration,
+      sludgeSlowMultiplier: null,
+    });
+    addPlayEnemyEffect(runtime, { type: 'speedForm', ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, duration: skill.duration });
+    return;
+  }
+  if (skill.type === 'gravityRule') {
+    addPlayEnemyRule(runtime, {
+      type: 'gravityDominion',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      duration: skill.duration,
+      remaining: skill.duration,
+      gravityLevelShift: skill.gravityLevelShift,
+      directionToggle: true,
+      damage: skill.damage,
+      damageSuppressed: true,
+    });
+    addPlayEnemyEffect(runtime, { type: 'gravityDominion', ownerId: enemy.instanceId, skillId: skill.id, x: enemy.x, y: enemy.y, gravityLevelShift: skill.gravityLevelShift, damageSuppressed: true, duration: skill.duration });
+    return;
+  }
+  if (skill.type === 'corruptOxygen') {
+    const target = lockedTarget ?? actor;
+    runtime.zones.push({
+      id: `play-enemy-zone-${runtime.nextZoneId++}`,
+      type: 'corruptOxygen',
+      phase: 'bubble',
+      ownerId: enemy.instanceId,
+      skillId: skill.id,
+      source,
+      x: target.x,
+      y: target.y,
+      radius: skill.explosionRadius,
+      remaining: skill.bubbleLifetime,
+      bubbleLifetime: skill.bubbleLifetime,
+      oxygenZoneDuration: skill.oxygenZoneDuration,
+      oxygenDrain: skill.oxygenDrain,
+      damage: playEnemyDamageAmount(enemy, skill.damage),
+    });
+    addPlayEnemyEffect(runtime, { type: 'corruptedOxygenBubble', ownerId: enemy.instanceId, skillId: skill.id, x: target.x, y: target.y, radius: skill.explosionRadius, duration: skill.bubbleLifetime });
     return;
   }
   if (skill.type === 'supportPulse') {
@@ -731,8 +1267,10 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   const runtime = getPlayEnemyRuntime(enemies);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
   tickPlayEnemyEffects(runtime, elapsed);
-  updatePlayEnemyProjectiles(runtime, actor, elapsed, onDamage);
+  updatePlayEnemyProjectiles(runtime, enemies, actor, elapsed, onDamage);
   updatePlayEnemyZones(runtime, actor, elapsed, onDamage);
+  updatePlayEnemyRules(runtime, enemies, elapsed);
+  updatePlayEnemySummons(runtime, enemies);
   enemies.forEach((candidate) => {
     if (!candidate.linkedProtection) return;
     const protector = enemies.find((enemy) => enemy.instanceId === candidate.linkedProtection);
@@ -743,7 +1281,9 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     const definition = ENEMY_DEFINITIONS[enemy.enemyId];
     if (!definition) return;
     enemy.cooldowns ??= {};
+    enemy.activeEffects ??= {};
     enemy.linkedTargets ??= [];
+    updatePlayEnemyPassive(runtime, enemy, definition);
     if ((enemy.stunnedUntil ?? 0) > runtime.time) {
       enemy.vx = 0;
       enemy.vy = 0;
@@ -781,8 +1321,10 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     const preferred = preferredDistance(enemy, definition);
     if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
       const angle = angleBetween(enemy, actor);
-      enemy.vx = Math.cos(angle) * enemy.moveSpeed;
-      enemy.vy = Math.sin(angle) * enemy.moveSpeed;
+      const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
+        * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
+      enemy.vx = Math.cos(angle) * enemy.moveSpeed * moveSpeedMultiplier;
+      enemy.vy = Math.sin(angle) * enemy.moveSpeed * moveSpeedMultiplier;
       const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
       const nextCell = world?.map
         ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
@@ -814,7 +1356,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     if (!selected) return;
     const { skill, index } = selected;
     enemy.nextSkillIndex = (index + 1) % attacks.length;
-    enemy.cooldowns[skill.id] = Math.max(0.2, Number(skill.cooldown ?? 0.6));
+    enemy.cooldowns[skill.id] = Math.max(0.2, Number(skill.cooldown ?? 0.6) * playEnemyCooldownMultiplier(enemy));
     if (skill.type === 'suicideCharge') {
       beginSuicideCharge(runtime, enemy, skill, actor);
       return;
@@ -842,6 +1384,12 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     }
     resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, { x: actor.x, y: actor.y }, bounds);
   });
+  runtime.playerResources = {
+    health: actor.health ?? null,
+    oxygen: actor.oxygen ?? null,
+    energy: actor.energy ?? null,
+    stunnedUntil: actor.stunnedUntil ?? 0,
+  };
   return getPlayEnemyRenderState(enemies, runtime.time);
 }
 
@@ -852,7 +1400,10 @@ export function getPlayEnemyRenderState(enemies, time = null) {
     time: now,
     projectiles: runtime.projectiles.map((projectile) => ({ ...projectile })),
     zones: runtime.zones.map((zone) => ({ ...zone })),
+    rules: runtime.rules.map((rule) => ({ ...rule, modes: rule.modes ? [...rule.modes] : undefined })),
+    summons: runtime.summons.map((summon) => ({ ...summon, spawnedIds: [...(summon.spawnedIds ?? [])] })),
     effects: runtime.effects.map((effect) => ({ ...effect })),
+    playerResources: runtime.playerResources ? { ...runtime.playerResources } : null,
     enemies: enemies.map((enemy) => ({
       instanceId: enemy.instanceId,
       enemyId: enemy.enemyId,
@@ -864,6 +1415,13 @@ export function getPlayEnemyRenderState(enemies, time = null) {
       linkedTargets: [...(enemy.linkedTargets ?? [])],
       linkedProtection: enemy.linkedProtection ?? null,
       summonedBy: enemy.summonedBy ?? null,
+      activeEffects: Object.fromEntries(Object.entries(enemy.activeEffects ?? {}).map(([key, value]) => [key, value && typeof value === 'object' ? { ...value } : value])),
+      passiveState: enemy.passiveState ? { ...enemy.passiveState } : null,
+      invulnerableUntil: enemy.invulnerableUntil ?? 0,
+      damageTakenMultiplier: enemy.damageTakenMultiplier ?? 1,
+      outgoingDamageMultiplier: enemy.outgoingDamageMultiplier ?? 1,
+      projectileSpeedMultiplier: enemy.projectileSpeedMultiplier ?? 1,
+      damageStack: enemy.damageStack ?? 0,
       lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,
     })),
   };

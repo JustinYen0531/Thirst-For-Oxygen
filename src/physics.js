@@ -425,6 +425,8 @@ export function respawnActor(actor, spawn) {
   actor.invulnerability = 1;
   actor.shieldTimer = 0;
   actor.shieldCooldown = 0;
+  actor.activeEffects = {};
+  actor.stunnedUntil = 0;
   actor.energyRecoveryDelay = ENERGY_RECOVERY_DELAY_SECONDS;
   return true;
 }
@@ -770,6 +772,7 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   const contactObjects = getContactObjects(map, chapter, origin);
 
   const activeToggleButtons = new Set();
+  let activeCheckpointKey = null;
   contactObjects.forEach(({ key, ownerKey, objectCell, object, position, hitRadius, free, index }) => {
       const liveCell = getActiveCell(map, ownerKey, chapter);
       const liveObjects = free ? (liveCell?.freeObjects ?? []) : (liveCell?.objects ?? []);
@@ -866,13 +869,17 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
         addEvent(events, 'bubble', `光合作用氣泡：+${Math.round(oxygen.recovered)} O₂，${duration} 秒免疫水域重力。`);
       }
       if (object.kind === 'checkpoint') {
-        actor.spawn = { x: position.x, y: position.y };
-        actor.health = MAX_HEALTH;
-        actor.oxygen = maxOxygenFor(actor);
-        actor.energy = MAX_ENERGY;
-        addEvent(events, 'checkpoint', 'Checkpoint：已更新重生點並回滿資源。');
+        activeCheckpointKey = key;
+        if (actor.activeCheckpointKey !== key) {
+          actor.spawn = { x: position.x, y: position.y };
+          actor.health = MAX_HEALTH;
+          actor.oxygen = maxOxygenFor(actor);
+          actor.energy = MAX_ENERGY;
+          addEvent(events, 'checkpoint', 'Checkpoint：已更新重生點並回滿資源。');
+        }
       }
   });
+  actor.activeCheckpointKey = activeCheckpointKey;
   if (mutateMap) {
     Object.entries(map.cells).forEach(([cellKey]) => {
       const editable = getEditableCell(map, cellKey, chapter);

@@ -6,8 +6,10 @@ import {
   getHexVertices,
   getOddRRectangularBounds,
   getEdgeBetween,
+  getDirectionVector,
   HEX_SIZE,
 } from './map-model.js';
+import { getFreeObjectSetting } from './map-object-settings.js';
 import {
   FIXED_STEP,
   MAX_ENERGY,
@@ -21,6 +23,7 @@ import {
   registerPlayerDeath,
   respawnActor,
   stepPhysics,
+  toggleSeaweedAttachment,
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import { getEdgeAttachmentGeometry } from './edge-attachment.js';
@@ -431,18 +434,71 @@ function drawTerrainBoundaries() {
   });
 }
 
+function drawRazorObject(object, x, y, size, outlineColour) {
+  const visual = getPlayObjectVisual('razor');
+  const blade = images.get(visual.assetPath);
+  const axis = images.get(visual.componentAssetPaths[0]);
+  if (!blade?.complete || !blade.naturalWidth || !axis?.complete || !axis.naturalWidth) return false;
+  const rotationSpeed = getFreeObjectSetting(object, 'rotationSpeed') ?? 180;
+  const count = clamp(Math.round(getFreeObjectSetting(object, 'count') ?? 1), 1, 4);
+  const rotation = worldTime * rotationSpeed * Math.PI / 180;
+  const bladeSize = size * 2;
+  const axisSize = size * .52;
+  context.save();
+  context.translate(x, y);
+  context.globalAlpha = .96;
+  if (outlineColour) context.filter = silhouetteFilter(outlineColour, .75);
+  for (let index = 0; index < count; index += 1) {
+    context.save();
+    context.rotate(rotation + index * Math.PI * 2 / count);
+    context.drawImage(blade, -bladeSize * .08, -bladeSize / 2, bladeSize, bladeSize);
+    context.restore();
+  }
+  context.filter = 'none';
+  context.drawImage(axis, -axisSize / 2, -axisSize / 2, axisSize, axisSize);
+  context.restore();
+  return true;
+}
+
+function drawButtonObject(object, x, y, size) {
+  const pressed = Boolean(object.pressed);
+  const radius = size * .42;
+  context.save();
+  context.globalAlpha = .96;
+  context.fillStyle = 'rgba(11, 23, 38, .9)';
+  context.strokeStyle = '#c7efff';
+  context.lineWidth = 1.2;
+  context.beginPath();
+  context.roundRect(x - size * .5, y - size * .23, size, size * .46, size * .12);
+  context.fill();
+  context.stroke();
+  context.fillStyle = pressed ? '#6fd1c0' : '#f3b95f';
+  context.beginPath();
+  context.arc(x, y + (pressed ? size * .06 : -size * .01), radius, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = pressed ? '#d9fff6' : '#fff0b2';
+  context.stroke();
+  context.restore();
+}
+
 function drawObject(object, x, y) {
-  const size = Math.min(21, Math.max(10, Number(object.size) || 16));
+  const size = clamp(Number(object.size) || 16, 10, 72);
   const guide = getObjectDiscoveryGuide(object.kind);
   const visual = object.kind === 'ink' ? getPlayOverlayVisual('ink') : getPlayObjectVisual(object.kind);
+  if (object.kind === 'razor' && drawRazorObject(object, x, y, size, guide?.colour)) return;
+  if (object.kind === 'button') {
+    drawButtonObject(object, x, y, size);
+    return;
+  }
   if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(visual.label ?? objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
 }
 
-function drawProgrammaticEdge(visual, geometry) {
+function drawProgrammaticEdge(visual, geometry, edge) {
   if (visual.shape === 'current-chevrons') {
+    const direction = getDirectionVector(edge.currentDirection ?? 0);
     context.save();
     context.translate(geometry.midpoint.x, geometry.midpoint.y);
-    context.rotate(geometry.pointsIntoOpenAngle);
+    context.rotate(Math.atan2(direction.y, direction.x));
     context.strokeStyle = visual.color;
     context.shadowColor = visual.color;
     context.shadowBlur = 4;
@@ -496,7 +552,7 @@ function drawEdges() {
     context.beginPath(); context.moveTo(geometry.edgeStart.x, geometry.edgeStart.y); context.lineTo(geometry.edgeEnd.x, geometry.edgeEnd.y); context.stroke(); context.restore();
     const asset = visual.assetPath;
     if (!asset) {
-      drawProgrammaticEdge(visual, geometry);
+      drawProgrammaticEdge(visual, geometry, edge);
       return;
     }
     const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
@@ -534,6 +590,24 @@ function applyPlayEnemyDamage(amount, source, damageType = 'generic') {
   if (!actor || unlimitedResources) return;
   const result = applyDamage(actor, amount, source, damageType);
   if (result.applied > 0) eventLog.push(`受到 ${Math.round(result.applied)} 傷害 · ${source}`);
+}
+
+function stepPlayerStatusEffects(dt) {
+  if (!actor?.activeEffects) return;
+  Object.entries(actor.activeEffects).forEach(([effectId, effectState]) => {
+    const remaining = typeof effectState === 'number' ? effectState : Number(effectState?.remaining ?? 0);
+    if (effectId === 'venom' && remaining > 0 && !unlimitedResources) {
+      applyDamage(actor, 4 * dt, '毒刺持續傷害', 'ranged');
+    }
+    const nextRemaining = Math.max(0, remaining - dt);
+    if (nextRemaining <= 0) {
+      delete actor.activeEffects[effectId];
+    } else if (typeof effectState === 'number') {
+      actor.activeEffects[effectId] = nextRemaining;
+    } else {
+      effectState.remaining = nextRemaining;
+    }
+  });
 }
 
 function drawTrajectory() {
@@ -892,17 +966,75 @@ function drawEnemies() {
 function drawEnemyCombatRuntime() {
   const runtime = getPlayEnemyRenderState(enemies, worldTime);
   runtime.zones.forEach((zone) => {
-    const progress = 1 - clamp(zone.remaining / .28, 0, 1);
+    const duration = zone.phase === 'bubble'
+      ? zone.bubbleLifetime
+      : zone.phase === 'oxygenZone'
+        ? zone.oxygenZoneDuration
+        : zone.duration ?? .28;
+    const progress = 1 - clamp(zone.remaining / Math.max(duration ?? .28, .001), 0, 1);
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.globalAlpha = .28 + progress * .35;
-    context.fillStyle = '#9d78ff';
-    context.strokeStyle = '#e0cfff';
+    context.fillStyle = zone.type === 'corruptOxygen' ? (zone.phase === 'bubble' ? '#8c63d6' : '#55218a') : '#9d78ff';
+    context.strokeStyle = zone.type === 'corruptOxygen' ? '#d9a8ff' : '#e0cfff';
     context.lineWidth = 1.2;
+    if (zone.type === 'reflectedBeam') {
+      context.setLineDash([5, 2]);
+      context.shadowColor = '#bfefff';
+      context.shadowBlur = 8;
+      context.lineWidth = 2.4;
+      context.beginPath();
+      context.moveTo(zone.x, zone.y);
+      context.lineTo(zone.targetX, zone.targetY);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (zone.phase === 'oxygenZone') context.setLineDash([3, 2]);
     context.beginPath();
     context.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
     context.fill();
     context.stroke();
+    context.restore();
+  });
+  runtime.rules.forEach((rule) => {
+    const owner = enemies.find((enemy) => enemy.instanceId === rule.ownerId && !enemy.defeated);
+    if (!owner) return;
+    const duration = Math.max(rule.duration ?? rule.remaining ?? 1, .001);
+    const progress = 1 - clamp(rule.remaining / duration, 0, 1);
+    const colour = rule.type === 'speedForm' ? '#ff90d8'
+      : rule.type === 'rebuildArena' ? '#7fffc4'
+        : rule.type === 'tidalLaw' ? '#6de5ff'
+          : '#c59cff';
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.globalAlpha = .28 + (1 - progress) * .38;
+    context.strokeStyle = colour;
+    context.shadowColor = colour;
+    context.shadowBlur = 8;
+    context.lineWidth = 1.4;
+    context.setLineDash([3, 2]);
+    context.beginPath();
+    context.arc(rule.x ?? owner.x, rule.y ?? owner.y, rule.radius ?? owner.radius + 8 + Math.sin(worldTime * 4) * 2, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  });
+  runtime.summons.filter((summon) => summon.status === 'active').forEach((summon) => {
+    const owner = enemies.find((enemy) => enemy.instanceId === summon.ownerId && !enemy.defeated);
+    if (!owner) return;
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.globalAlpha = .32;
+    context.strokeStyle = '#72e8ff';
+    context.lineWidth = .8;
+    (summon.spawnedIds ?? []).forEach((targetId) => {
+      const target = enemies.find((enemy) => enemy.instanceId === targetId && !enemy.defeated);
+      if (!target) return;
+      context.beginPath();
+      context.moveTo(owner.x, owner.y);
+      context.lineTo(target.x, target.y);
+      context.stroke();
+    });
     context.restore();
   });
   runtime.effects.forEach((effect) => {
@@ -931,6 +1063,25 @@ function drawEnemyCombatRuntime() {
       context.lineWidth = 2;
       context.beginPath();
       context.arc(effect.x, effect.y, (effect.radius ?? 20) * (.35 + progress * .8), 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+      return;
+    }
+    if (['resourceDrain', 'tidalLaw', 'sacrifice', 'rebuildArena', 'speedForm', 'gravityDominion', 'corruptedOxygenBubble', 'corruptedOxygenExplosion', 'tidalShield', 'abyssAwakening'].includes(effect.type)) {
+      const colour = ['resourceDrain', 'corruptedOxygenBubble', 'corruptedOxygenExplosion'].includes(effect.type) ? '#d08cff'
+        : ['sacrifice', 'speedForm', 'abyssAwakening'].includes(effect.type) ? '#ff8acb'
+          : ['rebuildArena', 'tidalShield'].includes(effect.type) ? '#78ffc2'
+            : '#7ee8ff';
+      context.save();
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = alpha * .76;
+      context.strokeStyle = colour;
+      context.shadowColor = colour;
+      context.shadowBlur = 9;
+      context.lineWidth = 1.8;
+      context.setLineDash(effect.type === 'gravityDominion' || effect.type === 'tidalLaw' ? [3, 2] : []);
+      context.beginPath();
+      context.arc(effect.x, effect.y, (effect.radius ?? 18) * (.5 + progress * .9), 0, Math.PI * 2);
       context.stroke();
       context.restore();
       return;
@@ -1291,7 +1442,7 @@ canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPo
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; Object.assign(actor, resetActor); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build 與篇章進度保留。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build 與篇章進度保留。'); updateCamera(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
@@ -1350,6 +1501,11 @@ musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelect
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'r') resetButton.click();
+  if (event.key.toLowerCase() === 'e' && map && actor && !actor.gameOver) {
+    const result = toggleSeaweedAttachment(actor, map, 'chapter1', origin);
+    eventLog.push(result.message);
+    updateHud();
+  }
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
   if (event.key === 'Escape') {
     if (!settingsPanel.hidden) setSettingsOpen(false);
@@ -1372,6 +1528,7 @@ function simulate(elapsed, now = performance.now()) {
       const katanaEntry = syncKatanaState();
       if (katanaEntry) markPlayKatanaMovement(katanaState, Math.hypot(actor.x - previousPosition.x, actor.y - previousPosition.y));
       updatePlayEnemies(enemies, actor, FIXED_STEP, worldTime, applyPlayEnemyDamage, physicsBounds, { map, chapter: 'chapter1', origin });
+      stepPlayerStatusEffects(FIXED_STEP);
       if (katanaEntry) {
         stepPlayKatana(katanaState, FIXED_STEP);
         const katanaWeapon = getWeaponStats('katana', katanaEntry.level);
@@ -1447,7 +1604,7 @@ window.render_game_to_text = () => {
     map: MAPS[mapPart]?.label ?? 'loading',
     mapPart,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon } : null,
+    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), activeEffects: actor.activeEffects ?? {} } : null,
     hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
     combat,
     enemyCombat: getPlayEnemyRenderState(enemies, worldTime),

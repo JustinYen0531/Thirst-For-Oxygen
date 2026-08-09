@@ -553,6 +553,13 @@ test('high-speed impact breaks a weight stone and checkpoint restores resources'
   visitor.energy = 5;
   const checkpointEvents = stepPhysics({ map, actor: visitor, origin: ORIGIN });
   assert.ok(checkpointEvents.some((event) => event.type === 'checkpoint'));
+  assert.equal(stepPhysics({ map, actor: visitor, origin: ORIGIN }).some((event) => event.type === 'checkpoint'), false);
+  visitor.x = ORIGIN.x;
+  visitor.y = ORIGIN.y;
+  stepPhysics({ map, actor: visitor, origin: ORIGIN });
+  visitor.x = getHexCenter(getActiveCell(map, '1,0', 'chapter1'), ORIGIN).x;
+  visitor.y = getHexCenter(getActiveCell(map, '1,0', 'chapter1'), ORIGIN).y;
+  assert.equal(stepPhysics({ map, actor: visitor, origin: ORIGIN }).some((event) => event.type === 'checkpoint'), true);
   assert.equal(visitor.health, MAX_HEALTH);
   assert.equal(visitor.oxygen, 100);
   assert.equal(visitor.energy, 100);
@@ -709,9 +716,13 @@ test('health is 0-100 and losing all health permanently consumes one life', () =
   const death = registerPlayerDeath(actor, 'damage');
   assert.equal(death.livesRemaining, MAX_LIVES - 1);
   assert.equal(actor.health, 0);
+  actor.activeEffects = { venom: { remaining: 2.5 } };
+  actor.stunnedUntil = 99;
   assert.equal(respawnActor(actor, { x: 240, y: 240 }), true);
   assert.equal(actor.health, MAX_HEALTH);
   assert.equal(actor.lives, MAX_LIVES - 1);
+  assert.deepEqual(actor.activeEffects, {});
+  assert.equal(actor.stunnedUntil, 0);
 });
 
 test('the last life enters permanent game over and cannot respawn', () => {

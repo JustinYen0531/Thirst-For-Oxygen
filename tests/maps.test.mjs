@@ -32,17 +32,18 @@ function freeObjectsOf(map) {
   ));
 }
 
-function canTraverse(map, fromKey, toKey) {
+function canTraverse(map, fromKey, toKey, openedGates = new Set()) {
   const from = map.cells[fromKey];
   const to = map.cells[toKey];
-  if (!from || !to || (!to.conditionalGate && to.terrain !== 'water')) return false;
+  const destinationOpen = to?.terrain === 'water' || (to?.conditionalGate && openedGates.has(toKey));
+  if (!from || !to || !destinationOpen) return false;
   const edge = map.edges[edgeKey(fromKey, toKey)];
   if (edge?.blocksPassage && edge.type !== 'layerPortal') return false;
   if (from.waterLayer !== to.waterLayer && edge?.type !== 'layerPortal') return false;
   return true;
 }
 
-function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY, portals = false } = {}) {
+function reachableKeys(map, { maxRow = Number.POSITIVE_INFINITY, portals = false, openedGates = new Set() } = {}) {
   const start = actorsOf(map, 'playerStart')[0]?.key;
   if (!start) return new Set();
   const portalDestinations = new Map();
@@ -61,7 +62,7 @@ function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY, 
     const key = queue.shift();
     DIRECTIONS.forEach((_, direction) => {
       const next = neighborKey(key, direction);
-      if (map.cells[next]?.r > maxRow || visited.has(next) || !canTraverse(map, key, next)) return;
+      if (map.cells[next]?.r > maxRow || visited.has(next) || !canTraverse(map, key, next, openedGates)) return;
       visited.add(next);
       queue.push(next);
     });
@@ -72,6 +73,28 @@ function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY, 
     }
   }
   return visited;
+}
+
+function reachableKeysAfterAvailableButtons(map, { maxRow = Number.POSITIVE_INFINITY, portals = true } = {}) {
+  const openedGates = new Set();
+  let reachable = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    reachable = reachableKeys(map, { maxRow, portals, openedGates });
+    reachable.forEach((key) => {
+      const cell = map.cells[key];
+      [...(cell.objects ?? []), ...(cell.freeObjects ?? [])].forEach((object) => {
+        if (object.kind !== 'button') return;
+        (object.targetGates ?? []).forEach((gateKey) => {
+          if (openedGates.has(gateKey)) return;
+          openedGates.add(gateKey);
+          changed = true;
+        });
+      });
+    });
+  }
+  return { reachable, openedGates };
 }
 
 function shortestDistanceToRow(map, targetRow) {
@@ -114,23 +137,42 @@ test('generated descent maps are valid and have one authored player start', () =
 test('all three maps expose a reachable late runtime exit', () => {
   mapNames.forEach((name) => {
     const map = loadMap(name);
-    const reachable = reachableKeysWithOpenedGates(map, { portals: true });
+    const { reachable, openedGates } = reachableKeysAfterAvailableButtons(map);
     assert.ok(map.metadata.exitCellKey, `${name} should declare a runtime exit cell`);
     assert.equal(map.cells[map.metadata.exitCellKey]?.terrain, 'water', `${name} exit should be a water cell`);
     assert.ok(map.cells[map.metadata.exitCellKey].r >= map.layout.height - 4, `${name} exit should sit in the closing section`);
     assert.equal(reachable.has(map.metadata.exitCellKey), true, `${name} exit should be reachable from playerStart`);
+    Object.entries(map.cells).filter(([, cell]) => cell.conditionalGate).forEach(([gateKey]) => {
+      assert.equal(openedGates.has(gateKey), true, `${name} gate ${gateKey} should only open from a reachable button`);
+    });
   });
 });
 
 test('part 3 portal network reaches every authored special encounter and is reciprocal', () => {
   const part3 = loadMap('下沉篇-第3部分.json');
-  const reachable = reachableKeysWithOpenedGates(part3, { portals: true });
+  const { reachable } = reachableKeysAfterAvailableButtons(part3);
   [...actorsOf(part3, 'miniBossSpawn'), ...actorsOf(part3, 'bossSpawn')].forEach(({ key, actor }) => {
     assert.equal(reachable.has(key), true, `${actor.enemyId} at ${key} should be reachable through the portal route`);
   });
   Object.entries(part3.edges).filter(([, edge]) => edge.type === 'multiPortal').forEach(([key, edge]) => {
     assert.ok(edge.portalTargetKey, `${key} should not advertise a portal without a destination`);
     assert.equal(part3.edges[edge.portalTargetKey]?.portalTargetKey, key, `${key} portal link should be reciprocal`);
+  });
+});
+
+test('all authored objects and active Edges have a reachable gameplay side', () => {
+  mapNames.forEach((name) => {
+    const map = loadMap(name);
+    const { reachable } = reachableKeysAfterAvailableButtons(map);
+    freeObjectsOf(map).forEach(({ key, object }) => {
+      assert.equal(reachable.has(key), true, `${name}: ${object.kind} at ${key} should be reachable`);
+    });
+    Object.entries(map.edges).filter(([, edge]) => edge.type !== 'none').forEach(([key, edge]) => {
+      const hasReachableWaterSide = edge.cells.some((cellKey) => (
+        map.cells[cellKey]?.terrain === 'water' && reachable.has(cellKey)
+      ));
+      assert.equal(hasReachableWaterSide, true, `${name}: ${edge.type} at ${key} should touch reachable water`);
+    });
   });
 });
 
@@ -221,9 +263,9 @@ test('part 1 Torricelli spaces require an off-axis upward backtrack', () => {
       DIRECTIONS.filter((_, direction) => part1.cells[neighborKey(key, direction)]?.terrain === 'blocked').length >= 3,
       `${key} should visibly sit against a sealed cap and side wall`,
     );
-    assert.equal(reachableKeysWithOpenedGates(part1).has(key), true, `${key} should be reachable through its lower junction`);
+    assert.equal(reachableKeys(part1).has(key), true, `${key} should be reachable through its lower junction`);
     assert.equal(
-      reachableKeysWithOpenedGates(part1, { maxRow: detour.junctionRow - 1 }).has(key),
+      reachableKeys(part1, { maxRow: detour.junctionRow - 1 }).has(key),
       false,
       `${key} must not be reachable before descending to the lower junction`,
     );
