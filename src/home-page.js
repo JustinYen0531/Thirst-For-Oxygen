@@ -1,5 +1,9 @@
 import { attachHomeMapPreview } from './home-map-preview.js';
 import {
+  attachHomeBackgroundVideoAudio,
+  attachHomeStartLoading,
+} from './home-start-loading.js';
+import {
   applyDocumentLanguage,
   getLanguage,
   setLanguage,
@@ -507,6 +511,13 @@ if (typeof document !== 'undefined') {
     const enemyShowcase = attachHomeEnemyShowcase(homeRoot, { language: initialLanguage });
     const signalEasterEgg = attachHomeHelmetSignalEasterEgg(homeRoot);
     const settings = attachHomeSettings(homeRoot, { language: initialLanguage });
+    const backgroundVideoAudio = attachHomeBackgroundVideoAudio(
+      document.querySelector('#home-abyss-video'),
+      document,
+    );
+    const startLoading = attachHomeStartLoading(homeRoot, {
+      beforeStart: () => backgroundVideoAudio?.stop(),
+    });
     attachHomeFlashlight(homeRoot);
     const previewLoading = homeRoot.querySelector('#home-preview-loading');
     attachHomeMapPreview(homeRoot).then(() => {
@@ -541,6 +552,7 @@ if (typeof document !== 'undefined') {
       language: getLanguage(),
       noSignal: signalEasterEgg?.getState() ?? { active: false },
       menuVisible: intro.getState().state === 'side',
+      loading: startLoading?.getState() ?? { active: false, ratio: 0 },
       settings: settings?.getState() ?? { language: getLanguage(), open: false },
       interaction: 'pointerdown anywhere turns the helmet; pointer position reveals enemies; clicking an enemy plays its skill',
     });

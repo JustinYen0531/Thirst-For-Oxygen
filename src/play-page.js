@@ -69,10 +69,8 @@ import {
   getPlayEdgeVisual,
   getPlayObjectVisual,
   getPlayOverlayVisual,
-  getPlayWorldAssetPaths,
 } from './play-world-visuals.js';
 import {
-  PLAY_ENEMY_ASSET_PATHS,
   createPlayEnemies,
   getPlayEnemyFrameState,
   getPlayEnemyRenderState,
@@ -90,17 +88,18 @@ import {
   updateDiscoverySession,
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
+import { PLAY_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
 
 const MAP_ROUTES = Object.freeze({
   descent: Object.freeze({
-    1: Object.freeze({ path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分' }),
-    2: Object.freeze({ path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分' }),
-    3: Object.freeze({ path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分' }),
+    1: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[1], label: '下沉篇・第一部分' }),
+    2: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[2], label: '下沉篇・第二部分' }),
+    3: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[3], label: '下沉篇・第三部分' }),
   }),
   ascent: Object.freeze({
-    1: Object.freeze({ path: '/maps/上升篇/上升篇-第1部分.json', label: '上升篇・第一部分' }),
-    2: Object.freeze({ path: '/maps/上升篇/上升篇-第2部分.json', label: '上升篇・第二部分' }),
-    3: Object.freeze({ path: '/maps/上升篇/上升篇-第3部分.json', label: '上升篇・第三部分' }),
+    1: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[1], label: '上升篇・第一部分' }),
+    2: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[2], label: '上升篇・第二部分' }),
+    3: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[3], label: '上升篇・第三部分' }),
   }),
 });
 const ARC_LABELS = Object.freeze({ descent: '下沉篇', ascent: '上升篇' });
@@ -109,14 +108,7 @@ const ARC_LABELS = Object.freeze({ descent: '下沉篇', ascent: '上升篇' });
 const SCALE = 4;
 const TILE_SIZE = 24;
 const PLAYER_ASSET = PLAYER_ANIMATION_ASSETS.swim[0];
-const TILE_ASSETS = {
-  'L-1': '/assets/editor/water/L-1.png', L0: '/assets/editor/water/L0.png', L1: '/assets/editor/water/L1.png', L2: '/assets/editor/water/L2.png', L3: '/assets/editor/water/L3.png',
-  blocked: '/assets/editor/terrain/blocked-dark-stone.png',
-};
-const PLAYER_ASSETS = { ...PLAYER_ANIMATION_ASSETS };
-const WEAPON_ASSETS = [...new Set(Object.values(WEAPONS).flatMap((weapon) => (
-  Object.values(weapon.levels).map((level) => level.effect?.sprite).filter(Boolean)
-)))];
+const TILE_ASSETS = PLAY_TILE_ASSETS;
 const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱' };
 
 const canvas = document.querySelector('#play-canvas');
@@ -166,7 +158,7 @@ const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-se
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const visorSlots = [...document.querySelectorAll('[data-visor-slot]')];
 const images = new Map();
-[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...getPlayWorldAssetPaths(), ...PLAY_ENEMY_ASSET_PATHS, ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+PLAY_IMAGE_ASSET_PATHS.forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
 let mapArc = 'descent';

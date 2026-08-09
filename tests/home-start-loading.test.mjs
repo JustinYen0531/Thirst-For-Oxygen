@@ -1,0 +1,160 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import test from 'node:test';
+
+import {
+  HOME_BACKGROUND_VIDEO_VOLUME,
+  HOME_LOADING_VIDEO_VOLUME,
+  attachHomeBackgroundVideoAudio,
+  attachHomeStartLoading,
+  preloadHomeGameAssets,
+} from '../src/home-start-loading.js';
+import {
+  PLAY_IMAGE_ASSET_PATHS,
+  PLAY_MAP_ASSET_URLS,
+  PLAY_STARTUP_ASSET_PATHS,
+  PLAY_TILE_ASSETS,
+} from '../src/play-preload.js';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
+
+test('Start Game owns a cinematic loading layer with real progress semantics', () => {
+  const html = read('../home.html');
+  const css = read('../src/home.css');
+  const page = read('../src/home-page.js');
+
+  assert.match(html, /id="home-start-game" href="\/play\.html"/);
+  assert.match(html, /id="home-start-loading-video"[\s\S]*start-game-descent-loading\.mp4/);
+  assert.match(html, /id="home-start-loading-progress" role="progressbar"[\s\S]*aria-valuenow="0"/);
+  assert.match(css, /\.home-intro\.is-starting-game \.home-menu-panel[\s\S]*opacity: 0;[\s\S]*translateX\(-48px\)/);
+  assert.match(css, /\.home-intro\.is-starting-game \.home-start-loading[\s\S]*opacity: 1/);
+  assert.match(page, /attachHomeStartLoading\(homeRoot/);
+});
+
+test('homepage ambient and loading movies both preserve authored audio files', () => {
+  const html = read('../home.html');
+  assert.match(html, /abyss-seafloor-ping-pong-v3-audio-067\.mp4/);
+  assert.equal(existsSync(`${ROOT}\\public\\assets\\home\\abyss-seafloor-ping-pong-v3-audio-067.mp4`), true);
+  assert.equal(existsSync(`${ROOT}\\public\\assets\\home\\start-game-descent-loading.mp4`), true);
+  assert.ok(HOME_BACKGROUND_VIDEO_VOLUME >= 0.8);
+  assert.ok(HOME_LOADING_VIDEO_VOLUME >= 0.85);
+});
+
+test('shared Play preload manifest covers every formal runtime image and first map', () => {
+  assert.ok(PLAY_IMAGE_ASSET_PATHS.length > 300);
+  assert.equal(new Set(PLAY_STARTUP_ASSET_PATHS).size, PLAY_STARTUP_ASSET_PATHS.length);
+  assert.ok(PLAY_STARTUP_ASSET_PATHS.includes(PLAY_MAP_ASSET_URLS.descent[1]));
+  Object.values(PLAY_TILE_ASSETS).forEach((path) => assert.ok(PLAY_IMAGE_ASSET_PATHS.includes(path), path));
+  PLAY_IMAGE_ASSET_PATHS.forEach((path) => {
+    assert.equal(existsSync(`${ROOT}\\public${decodeURIComponent(path).replaceAll('/', '\\')}`), true, path);
+  });
+  assert.equal(existsSync(fileURLToPath(PLAY_MAP_ASSET_URLS.descent[1])), true);
+});
+
+test('asset progress advances only when real load attempts settle and records fallbacks', async () => {
+  const snapshots = [];
+  const result = await preloadHomeGameAssets(['/a.png', '/b.png', '/a.png', '/c.json'], {
+    concurrency: 2,
+    loadAsset: async (path) => {
+      if (path === '/b.png') throw new Error('missing');
+      return path;
+    },
+    onProgress: (state) => snapshots.push(state),
+  });
+
+  assert.equal(result.total, 3);
+  assert.equal(result.completed, 3);
+  assert.equal(result.failed, 1);
+  assert.deepEqual(result.failures, ['/b.png']);
+  assert.equal(result.ratio, 1);
+  assert.equal(snapshots[0].completed, 0);
+  assert.equal(snapshots.at(-1).completed, 3);
+});
+
+test('main-menu movie unlocks strong audio on the first player gesture', async () => {
+  class FakeVideo {
+    constructor() {
+      this.muted = true;
+      this.volume = 0;
+      this.playCount = 0;
+      this.pauseCount = 0;
+    }
+    play() { this.playCount += 1; return Promise.resolve(); }
+    pause() { this.pauseCount += 1; }
+  }
+  const target = new EventTarget();
+  const video = new FakeVideo();
+  const audio = attachHomeBackgroundVideoAudio(video, target);
+  target.dispatchEvent(new Event('pointerdown'));
+  await Promise.resolve();
+
+  assert.equal(video.muted, false);
+  assert.equal(video.volume, HOME_BACKGROUND_VIDEO_VOLUME);
+  assert.equal(video.playCount, 1);
+  audio.stop();
+  assert.equal(video.muted, true);
+  assert.equal(video.pauseCount, 1);
+});
+
+test('Start Game waits for both the movie and asset work before navigating', async () => {
+  class FakeElement extends EventTarget {
+    constructor(attributes = {}) {
+      super();
+      this.attributes = new Map(Object.entries(attributes));
+      this.classNames = new Set();
+      this.classList = { add: (...names) => names.forEach((name) => this.classNames.add(name)) };
+      this.hidden = true;
+      this.style = {};
+      this.textContent = '';
+    }
+    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    removeAttribute(name) { this.attributes.delete(name); }
+    setAttribute(name, value) { this.attributes.set(name, String(value)); }
+  }
+
+  const startLink = new FakeElement({ href: '/play.html' });
+  const loadingLayer = new FakeElement();
+  const loadingVideo = new FakeElement();
+  const progress = new FakeElement();
+  const progressFill = new FakeElement();
+  const percentage = new FakeElement();
+  const status = new FakeElement();
+  const mainMenu = new FakeElement();
+  const elements = new Map([
+    ['#home-start-game', startLink],
+    ['#home-start-loading', loadingLayer],
+    ['#home-start-loading-video', loadingVideo],
+    ['#home-start-loading-progress', progress],
+    ['[data-home-loading-fill]', progressFill],
+    ['#home-start-loading-percentage', percentage],
+    ['#home-start-loading-status', status],
+    ['#home-main-menu', mainMenu],
+  ]);
+  const root = new FakeElement();
+  root.querySelector = (selector) => elements.get(selector) ?? null;
+  const navigation = [];
+  const controller = attachHomeStartLoading(root, {
+    assetPaths: ['/player.png', '/map.json'],
+    loadAsset: async () => true,
+    navigate: (href) => navigation.push(href),
+    playVideo: async () => 'ended',
+  });
+
+  await controller.start({ preventDefault() {} });
+  assert.equal(loadingLayer.hidden, false);
+  assert.equal(progress.getAttribute('aria-valuenow'), '100');
+  assert.equal(progressFill.style.width, '100%');
+  assert.equal(percentage.textContent, '100%');
+  assert.deepEqual(navigation, ['/play.html']);
+  assert.deepEqual(controller.getState(), {
+    active: true,
+    completed: 2,
+    failed: 0,
+    failures: [],
+    ratio: 1,
+    total: 2,
+    video: 'ended',
+  });
+});

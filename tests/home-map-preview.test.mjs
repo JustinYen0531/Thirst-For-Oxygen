@@ -22,8 +22,8 @@ const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, 
 test('home contains the dark video, helmet turn, movable logo and final menu', () => {
   const html = read('../home.html');
 
-  assert.match(html, /class="home-abyss-video" autoplay muted loop playsinline/);
-  assert.match(html, /abyss-seafloor-ping-pong-v2-067\.mp4/);
+  assert.match(html, /class="home-abyss-video" id="home-abyss-video" autoplay muted loop playsinline/);
+  assert.match(html, /abyss-seafloor-ping-pong-v3-audio-067\.mp4/);
   assert.match(html, /id="home-intro"/);
   assert.match(html, /helmet-turn-00-front\.png/);
   assert.match(html, /helmet-turn-01\.png/);

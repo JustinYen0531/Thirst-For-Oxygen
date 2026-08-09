@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="/src/settings.css" />
   </head>
   <body>
-    <video class="home-abyss-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
-      <source src="/assets/home/abyss-seafloor-ping-pong-v2-067.mp4" type="video/mp4" />
+    <video class="home-abyss-video" id="home-abyss-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+      <source src="/assets/home/abyss-seafloor-ping-pong-v3-audio-067.mp4" type="video/mp4" />
     </video>
 
     <main
@@ -21,6 +21,22 @@
       aria-label="Click anywhere to turn the deep-sea helmet sideways"
       data-i18n-aria-label="home.intro.frontAria"
     >
+      <section class="home-start-loading" id="home-start-loading" aria-live="polite" aria-hidden="true" hidden>
+        <video class="home-start-loading-video" id="home-start-loading-video" playsinline preload="auto" aria-hidden="true">
+          <source src="/assets/home/start-game-descent-loading.mp4" type="video/mp4" />
+        </video>
+        <div class="home-start-loading-readout">
+          <span class="home-start-loading-eyebrow" data-i18n="home.loading.eyebrow">PREPARING DESCENT</span>
+          <div class="home-start-loading-copy">
+            <span id="home-start-loading-status" data-i18n="home.loading.assets">Loading game assets</span>
+            <strong id="home-start-loading-percentage">0%</strong>
+          </div>
+          <div class="home-start-loading-progress" id="home-start-loading-progress" role="progressbar" aria-label="Game asset loading progress" data-i18n-aria-label="home.loading.progressAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span data-home-loading-fill></span>
+          </div>
+        </div>
+      </section>
+
       <div class="home-enemy-field" id="home-enemy-field" aria-label="Enemies hidden in the deep sea" data-i18n-aria-label="home.enemyFieldAria"></div>
 
       <div class="home-helmet-stage" aria-live="polite">
@@ -77,7 +93,7 @@
           <img src="/assets/home/thirst-for-oxygen-logo-v2.png" alt="" />
         </div>
         <nav class="home-main-menu" id="home-main-menu" aria-label="Main menu" data-i18n-aria-label="home.mainMenuAria" aria-hidden="true" inert>
-          <a class="home-menu-link home-menu-link--primary" href="/play.html"><span>01</span><strong data-i18n="home.menu.play">Start Game</strong></a>
+          <a class="home-menu-link home-menu-link--primary" id="home-start-game" href="/play.html"><span>01</span><strong data-i18n="home.menu.play">Start Game</strong></a>
           <a class="home-menu-link" href="/enemy-encyclopedia.html"><span>02</span><strong data-i18n="home.menu.encyclopedia">World Encyclopedia</strong></a>
           <a class="home-menu-link" href="/sandbox.html"><span>03</span><strong data-i18n="home.menu.sandbox">Enemy Sandbox</strong></a>
           <a class="home-menu-link" href="/"><span>04</span><strong data-i18n="home.menu.editor">Map Editor</strong></a>

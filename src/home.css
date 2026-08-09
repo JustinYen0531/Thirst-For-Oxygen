@@ -60,6 +60,91 @@ body::before {
   isolation: isolate;
 }
 
+.home-start-loading[hidden] {
+  display: none;
+}
+
+.home-start-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: #000;
+  transition: opacity 720ms ease, visibility 720ms ease;
+}
+
+.home-start-loading-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.78) saturate(0.92) contrast(1.08);
+}
+
+.home-start-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 4, 9, 0.08) 54%, rgba(0, 5, 12, 0.76) 100%);
+}
+
+.home-start-loading-readout {
+  position: absolute;
+  left: clamp(24px, 6vw, 100px);
+  right: clamp(24px, 6vw, 100px);
+  bottom: clamp(28px, 7vh, 76px);
+  z-index: 2;
+  color: #eafcff;
+  text-shadow: 0 0 16px rgba(94, 226, 255, 0.36);
+}
+
+.home-start-loading-eyebrow {
+  display: block;
+  margin-bottom: 10px;
+  color: rgba(112, 225, 251, 0.82);
+  font-size: clamp(0.62rem, 0.9vw, 0.76rem);
+  letter-spacing: 0.28em;
+}
+
+.home-start-loading-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 12px;
+  font-size: clamp(0.76rem, 1.2vw, 1rem);
+  letter-spacing: 0.12em;
+}
+
+.home-start-loading-copy strong {
+  color: #fff;
+  font-size: clamp(0.86rem, 1.35vw, 1.12rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-start-loading-progress {
+  height: 5px;
+  overflow: hidden;
+  background: rgba(175, 229, 240, 0.18);
+  box-shadow: 0 0 0 1px rgba(115, 219, 244, 0.2);
+}
+
+.home-start-loading-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #28a9d1, #a9f5ff);
+  box-shadow: 0 0 18px rgba(111, 231, 255, 0.88);
+  transition: width 160ms ease-out;
+}
+
 .home-intro::before {
   content: "";
   position: absolute;
@@ -105,6 +190,7 @@ body::before {
   transform: translate3d(0, 1.5vh, 0) scale(0.88);
   transform-origin: 50% 52%;
   filter: drop-shadow(0 34px 50px rgba(0, 0, 0, 0.86));
+  transition: opacity 620ms ease, filter 620ms ease;
   will-change: transform;
 }
 
@@ -283,6 +369,7 @@ body::before {
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
+  transition: opacity 520ms ease;
   -webkit-mask-image: radial-gradient(circle 250px at var(--flashlight-x) var(--flashlight-y), #000 0 42%, rgba(0, 0, 0, 0.82) 62%, rgba(0, 0, 0, 0.24) 82%, transparent 100%);
   mask-image: radial-gradient(circle 250px at var(--flashlight-x) var(--flashlight-y), #000 0 42%, rgba(0, 0, 0, 0.82) 62%, rgba(0, 0, 0, 0.24) 82%, transparent 100%);
 }
@@ -381,7 +468,7 @@ body::before {
   width: min(27vw, 335px);
   pointer-events: none;
   transform: translate(-50%, -50%);
-  transition: left 1250ms cubic-bezier(0.4, 0, 0.18, 1), top 1250ms cubic-bezier(0.4, 0, 0.18, 1), width 1250ms cubic-bezier(0.4, 0, 0.18, 1), transform 1250ms cubic-bezier(0.4, 0, 0.18, 1);
+  transition: left 1250ms cubic-bezier(0.4, 0, 0.18, 1), top 1250ms cubic-bezier(0.4, 0, 0.18, 1), width 1250ms cubic-bezier(0.4, 0, 0.18, 1), transform 1250ms cubic-bezier(0.4, 0, 0.18, 1), opacity 720ms ease, filter 720ms ease;
   will-change: left, top, width, transform;
 }
 
@@ -536,6 +623,32 @@ body::before {
 .home-intro.is-side .home-helmet-stage {
   transform: translate3d(27vw, 20vh, 0) scale(0.72);
   animation: home-helmet-breathe-side 6.2s ease-in-out infinite;
+}
+
+.home-intro.is-starting-game {
+  cursor: wait;
+}
+
+.home-intro.is-starting-game .home-start-loading {
+  visibility: visible;
+  opacity: 1;
+}
+
+.home-intro.is-starting-game .home-menu-panel {
+  opacity: 0;
+  filter: blur(2px);
+  pointer-events: none;
+  transform: translateX(-48px);
+}
+
+.home-intro.is-starting-game .home-helmet-stage,
+.home-intro.is-starting-game .home-enemy-field {
+  opacity: 0;
+}
+
+.home-intro.is-starting-game::before,
+.home-intro.is-starting-game::after {
+  opacity: 0;
 }
 
 .home-intro.is-side .home-helmet-frame--front,

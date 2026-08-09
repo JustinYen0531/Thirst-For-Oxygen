@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 const page = read('../src/play-page.js');
+const preload = read('../src/play-preload.js');
 const html = read('../play.html');
 const home = read('../home.html');
 
@@ -63,7 +64,8 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
 test('formal play uses honest programmatic fallbacks instead of broken or wrong assets', () => {
   assert.doesNotMatch(page, /button\.png/);
   assert.doesNotMatch(page, /current:\s*['"]\/assets\/editor\/edges\/edge-spike-barrier\.png/);
-  assert.match(page, /getPlayWorldAssetPaths\(\)/);
+  assert.match(page, /PLAY_IMAGE_ASSET_PATHS/);
+  assert.match(preload, /getPlayWorldAssetPaths\(\)/);
   assert.match(page, /drawProgrammaticEdge/);
 });
 
@@ -89,7 +91,8 @@ test('formal play renders serialized Boss rules, summons, beams, and oxygen corr
 });
 
 test('formal play draws deterministic static frames selected by runtime skill state', () => {
-  assert.match(page, /PLAY_ENEMY_ASSET_PATHS/);
+  assert.match(page, /PLAY_IMAGE_ASSET_PATHS/);
+  assert.match(preload, /PLAY_ENEMY_ASSET_PATHS/);
   assert.match(page, /getPlayEnemyFrameState\(enemy, worldTime\)/);
   assert.match(page, /images\.get\(visualState\.path\)/);
   assert.doesNotMatch(page, /enemyAnimationImages/);
