@@ -1038,6 +1038,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 音樂啟動器集中在 `src/music.js`，保留原本 Play 頁的曲目切換與音樂控制，不重複建立各頁自己的音訊邏輯。
 - 音樂入口 focused tests 2/2、完整 `npm run check`、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。
 
+## 2026-08-10 — Step 126 complete
+
+- LEVEL／EXP HUD 移除整張外框卡片，改成單一扁平資訊列；經驗條加寬並保留實際 EXP 收集時的填充更新。
+- Resonance Buff 檢視入口移到 EXP 進度條本身：點擊或鍵盤聚焦進度條即可開啟 Buff 面板，取消額外的外層可點擊框。
+- focused Play HUD tests 13/13、Vite production build 與本次檔案 `git diff --check` 通過；完整 `npm run check` 另有兩個既有非本次範圍失敗：動態英文翻譯混入中文，以及沙盒燈籠魚技能執行契約；依專案規則未執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Step 124 complete
 
 - 修正正式 Play 進場後只剩地圖、HUD 與玩家消失且無法操作的啟動回歸：Resonance／Level 檢視現在是可選附加介面，節點不同步時不再中斷 `setupWorld` 與每幀模擬。

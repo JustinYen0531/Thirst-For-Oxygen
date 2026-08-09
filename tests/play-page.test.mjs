@@ -32,6 +32,7 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(page, /Resonance 永久 Buff 全數保留/);
   assert.match(page, /neutral: Boolean\(enemy\.resonanceNeutral\)/);
   assert.match(html, /id="play-level-inspect"/);
+  assert.match(html, /class="experience-track" id="play-experience-track"/);
   assert.match(html, /id="play-resonance-panel"/);
   assert.match(page, /\$\{entry\.stacks\}\/\$\{entry\.maxStacks\}/);
   assert.match(page, /不提供 EXP/);
@@ -42,6 +43,9 @@ test('optional Resonance inspection cannot prevent the player and HUD from booti
   assert.match(page, /if \(!resonancePanel \|\| !levelInspect\) return/);
   assert.match(page, /if \(!resonanceCount \|\| !resonanceBuffs\) return/);
   assert.match(page, /levelInspect\?\.addEventListener/);
+  assert.match(page, /querySelector\('#play-experience-track'\)/);
+  assert.match(read('../src/play.css'), /\.level-readout[\s\S]*pointer-events: none/);
+  assert.match(read('../src/play.css'), /\.experience-track[\s\S]*height: 9px[\s\S]*cursor: pointer/);
   assert.match(page, /loadingMask\.classList\.add\('is-hidden'\);/);
   assert.match(page, /loadingMask\.classList\.remove\('is-hidden'\);/);
 });
