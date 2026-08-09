@@ -78,3 +78,16 @@ test('home helmet asset is the isolated transparent cutout', () => {
   assert.equal(png.readUInt32BE(20), 1003);
   assert.equal(png[25], 6, 'PNG must preserve RGBA transparency');
 });
+
+test('home uses the prepared slow ping-pong abyss video behind a lower 1.2x helmet', () => {
+  const html = read('../home.html');
+  const css = read('../src/home.css');
+  const videoPath = fileURLToPath(new URL('../public/assets/home/abyss-seafloor-ping-pong-067.mp4', import.meta.url));
+
+  assert.match(html, /<video class="home-abyss-video" autoplay muted loop playsinline/);
+  assert.match(html, /abyss-seafloor-ping-pong-067\.mp4/);
+  assert.equal(existsSync(videoPath), true);
+  assert.equal(readFileSync(videoPath).byteLength > 1_000_000, true);
+  assert.match(css, /\.home-abyss-video/);
+  assert.match(css, /transform: translate\(-5%, 7%\) scale\(1\.2\)/);
+});
