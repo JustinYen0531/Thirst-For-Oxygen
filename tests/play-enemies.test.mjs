@@ -31,7 +31,7 @@ import {
   updatePlayEnemies,
 } from '../src/play-enemies.js';
 import { ENEMY_DAMAGE_BALANCE, ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from '../src/game-data.js';
-import { getHexCenter } from '../src/map-model.js';
+import { createEmptyMap, getHexCenter } from '../src/map-model.js';
 
 const PART_MAP_PATHS = [
   '../maps/下沉篇/下沉篇-第1部分.json',
@@ -354,7 +354,7 @@ test('physical overlap is harmless until an enemy skill finishes its cast', () =
   assert.ok(damage > 0, 'damage should occur only after the skill cast resolves');
 });
 
-test('distant enemies remain dormant instead of converging on the player spawn', () => {
+test('worldless diagnostics keep distant enemies dormant instead of inventing a route', () => {
   const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
   const enemy = enemies.find((candidate) => candidate.enemyId === 'crabGuard');
   const actor = { x: enemy.x + PLAY_ENEMY_ACTIVATION_RADIUS + 80, y: enemy.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
@@ -365,6 +365,51 @@ test('distant enemies remain dormant instead of converging on the player spawn',
   assert.deepEqual({ x: enemy.x, y: enemy.y }, start);
   assert.equal(enemy.state, 'idle');
   assert.equal(damage, 0);
+});
+
+test('mobile wildlife roams near home without converging when the diver is far away', () => {
+  const map = createEmptyMap({ width: 9, height: 9 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['4,4'], origin);
+  const enemy = authoredEnemy('lionfishGunner', {
+    x: start.x,
+    y: start.y,
+    homeX: start.x,
+    homeY: start.y,
+    alerted: false,
+  });
+  const actor = { x: start.x + PLAY_ENEMY_ACTIVATION_RADIUS * 2, y: start.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
+  for (let index = 0; index < 180; index += 1) {
+    updatePlayEnemies([enemy], actor, 1 / 60, (index + 1) / 60, null, null, { map, chapter: 'chapter1', origin });
+  }
+
+  assert.ok(Math.hypot(enemy.x - start.x, enemy.y - start.y) > 12, 'wildlife should visibly roam instead of freezing at its spawn point');
+  assert.ok(Math.hypot(enemy.x - start.x, enemy.y - start.y) < 180, 'home roaming must remain local instead of tracking a distant diver');
+  assert.equal(enemy.movementGoal?.mode, 'home');
+  assert.ok(['roaming', 'loitering'].includes(enemy.state));
+});
+
+test('seahorse-summoned ranged wildlife leaves a cramped bottom edge for open water', () => {
+  const map = createEmptyMap({ width: 9, height: 9 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['4,8'], origin);
+  const enemy = authoredEnemy('lionfishGunner', {
+    instanceId: 'play-summon-seahorse-lionfish',
+    summonedBy: 'juvenile-seahorse',
+    x: start.x,
+    y: start.y,
+    homeX: start.x,
+    homeY: start.y,
+    alerted: true,
+  });
+  ENEMY_DEFINITIONS.lionfishGunner.attacks.forEach((skill) => { enemy.cooldowns[skill.id] = 999; });
+  const actor = { x: start.x - 100, y: start.y, radius: 6, health: 100, dead: false, invulnerability: 0 };
+  for (let index = 0; index < 300; index += 1) {
+    updatePlayEnemies([enemy], actor, 1 / 60, (index + 1) / 60, null, null, { map, chapter: 'chapter1', origin });
+  }
+
+  assert.ok(enemy.y < start.y - 24, 'the summoned gunner should leave the bottom boundary instead of camping there');
+  assert.equal(enemy.movementGoal?.mode, 'combat');
 });
 
 test('stunnedUntil pauses movement, cooldowns, and an active cast until the stun expires', () => {
@@ -434,6 +479,23 @@ test('formal enemy projectiles exist in flight and use swept collision instead o
   assert.equal(ENEMY_DAMAGE_BALANCE.playerDamageMultiplier, 0.4);
   assert.equal(damage, getEnemyDamageToPlayer(24, 'projectile'), 'a swept hit applies the projectile-specific ten percent final damage');
   assert.equal(render.projectiles.length, 0);
+});
+
+test('lionfish poison needle is twice as fast as its five-shot non-poison scatter', () => {
+  const poison = resolveAuthoredSkill('lionfishGunner', 'venomStraightShot');
+  const scatter = resolveAuthoredSkill('lionfishGunner', 'spineScatter');
+  const poisonProjectiles = poison.render().projectiles;
+  const scatterProjectiles = scatter.render().projectiles;
+  const poisonSkill = ENEMY_DEFINITIONS.lionfishGunner.attacks.find((skill) => skill.id === 'venomStraightShot');
+  const scatterSkill = ENEMY_DEFINITIONS.lionfishGunner.attacks.find((skill) => skill.id === 'spineScatter');
+
+  assert.equal(poisonProjectiles.length, 1);
+  assert.equal(scatterProjectiles.length, 5);
+  assert.equal(poisonSkill.projectileSpeed, scatterSkill.projectileSpeed * 2);
+  assert.equal(poisonProjectiles[0].speed, scatterProjectiles[0].speed * 2);
+  assert.equal(poisonProjectiles[0].applies, 'venom');
+  assert.ok(poisonProjectiles[0].damage > scatterProjectiles[0].damage);
+  assert.ok(scatterProjectiles.every((projectile) => projectile.applies == null));
 });
 
 test('lobbed enemy ordnance uses the same projectile damage reduction', () => {

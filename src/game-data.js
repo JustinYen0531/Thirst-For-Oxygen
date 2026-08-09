@@ -414,7 +414,7 @@ export const ENEMY_DEFINITIONS = Object.freeze({
   },
   lionfishGunner: {
     id: 'lionfishGunner', name: '獅子魚砲手', tier: 2, role: 'ranged', maxHealth: 95, moveSpeed: 28,
-    attacks: [attack('venomStraightShot', '毒刺直射', 'projectile', { damage: 14, projectileSpeed: 380, range: 440, cooldown: 1.35, applies: 'venom', duration: 3 }), attack('spineScatter', '棘刺散射', 'spread', { damage: 10, projectileSpeed: 250, range: 270, projectileCount: 5, spreadDegrees: 42, cooldown: 3.4 })],
+    attacks: [attack('venomStraightShot', '毒刺直射', 'projectile', { damage: 14, projectileSpeed: 380, range: 440, cooldown: 1.35, applies: 'venom', duration: 3 }), attack('spineScatter', '棘刺散射', 'spread', { damage: 10, projectileSpeed: 190, range: 270, projectileCount: 5, spreadDegrees: 42, cooldown: 3.4 })],
   },
   squidAssassin: {
     id: 'squidAssassin', name: '魷魚刺客', tier: 2, role: 'ambush', maxHealth: 115, moveSpeed: 74,

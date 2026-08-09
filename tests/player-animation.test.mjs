@@ -9,7 +9,7 @@ import {
 } from '../src/player-animation.js';
 import { createTestActor, launchActor } from '../src/physics.js';
 import { ENEMY_DEFINITIONS } from '../src/game-data.js';
-import { getEnemySpriteScaleX, syncEnemyFacing } from '../src/enemy-movement.js';
+import { easeEnemyVelocity, getEnemySpriteScaleX, syncEnemyFacing } from '../src/enemy-movement.js';
 import { getPlayEnemySteeringAngle } from '../src/play-enemies.js';
 import { createEmptyMap, getHexCenter } from '../src/map-model.js';
 
@@ -22,6 +22,13 @@ test('enemy facing follows horizontal movement and mirrors left-facing source ar
   assert.equal(getEnemySpriteScaleX(enemy.facing), 1);
   enemy.vx = 0;
   assert.equal(syncEnemyFacing(enemy), 'left', 'stopping keeps the last readable direction');
+});
+
+test('enemy steering keeps authored speed while bending through a natural turn', () => {
+  const enemy = { vx: 40, vy: 0 };
+  easeEnemyVelocity(enemy, Math.PI / 2, 40, 1 / 60);
+  assert.ok(enemy.vx > 0 && enemy.vy > 0, 'a turn should curve instead of snapping to the new axis');
+  assert.ok(Math.abs(Math.hypot(enemy.vx, enemy.vy) - 40) < 1e-9, 'turning must preserve the authored swim speed');
 });
 
 test('mobile enemies steer around a blocked direct cell while authored stationary supports stay fixed', () => {

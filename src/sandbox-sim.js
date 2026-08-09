@@ -8,7 +8,7 @@ import {
   getEnemyProjectileSpeed,
   getWeaponStats,
 } from './game-data.js';
-import { syncEnemyFacing } from './enemy-movement.js';
+import { easeEnemyVelocity, getEnemyLoiterPlan, syncEnemyFacing } from './enemy-movement.js';
 import {
   createEmptyMap,
 } from './map-model.js';
@@ -612,6 +612,8 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
     enemyId,
     x: clamp(position.x, 32, SANDBOX_WIDTH - 32),
     y: clamp(position.y, 32, SANDBOX_HEIGHT - 32),
+    homeX: clamp(position.x, 32, SANDBOX_WIDTH - 32),
+    homeY: clamp(position.y, 32, SANDBOX_HEIGHT - 32),
     tier: definition.tier,
     vx: 0,
     vy: 0,
@@ -622,6 +624,9 @@ export function spawnSandboxEnemy(state, enemyId, position = { x: 620, y: SANDBO
     animationUntil: 0,
     state: 'idle',
     facing: 'left',
+    phase: ((state.nextEnemyId * 47) % 360) * Math.PI / 180,
+    loiterTarget: null,
+    movementGoal: null,
     nextAutoAt: 0,
     nextAutoSkillIndex: 0,
     linkedTarget: null,
@@ -1784,19 +1789,45 @@ function updateEnemyMovement(state, enemy, dt) {
   const distance = distanceBetween(enemy, state.actor);
   const preferredDistance = getPreferredEnemyDistance(enemy);
   const speedMultiplier = enemy.activeEffects.speedForm ? 1.7 : 1;
+  const speed = (enemy.moveSpeed ?? definition.moveSpeed) * speedMultiplier;
+  const rangedMover = definition.attacks.some((skill) => RANGED_ATTACK_TYPES.has(skill.type));
   if (distance > preferredDistance) {
     const angle = angleBetween(enemy, state.actor);
-    const speed = (enemy.moveSpeed ?? definition.moveSpeed) * speedMultiplier;
-    enemy.vx = Math.cos(angle) * speed;
-    enemy.vy = Math.sin(angle) * speed;
+    easeEnemyVelocity(enemy, angle, speed, dt);
     enemy.x = clamp(enemy.x + enemy.vx * dt, 30, SANDBOX_WIDTH - 30);
     enemy.y = clamp(enemy.y + enemy.vy * dt, 30, SANDBOX_HEIGHT - 30);
     enemy.state = 'chasing';
+    enemy.movementGoal = { x: state.actor.x, y: state.actor.y, mode: 'engage', phase: 'travel' };
     syncEnemyFacing(enemy);
+  } else if (rangedMover) {
+    const plan = getEnemyLoiterPlan(enemy, state.time, {
+      center: state.actor,
+      radius: Math.max(84, preferredDistance),
+      bounds: SANDBOX_PHYSICS_BOUNDS,
+      margin: enemy.radius ?? 18,
+    });
+    const cacheKey = `combat:${plan.cycle}`;
+    if (enemy.loiterTarget?.key !== cacheKey) {
+      enemy.loiterTarget = { key: cacheKey, x: plan.x, y: plan.y, cycle: plan.cycle };
+    }
+    const target = enemy.loiterTarget;
+    enemy.movementGoal = { x: target.x, y: target.y, mode: 'combat', phase: plan.phase };
+    if (plan.phase === 'pause' || distanceBetween(enemy, target) <= Math.max(8, speed * dt)) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'loitering';
+    } else {
+      easeEnemyVelocity(enemy, angleBetween(enemy, target), speed * 0.72, dt);
+      enemy.x = clamp(enemy.x + enemy.vx * dt, 30, SANDBOX_WIDTH - 30);
+      enemy.y = clamp(enemy.y + enemy.vy * dt, 30, SANDBOX_HEIGHT - 30);
+      enemy.state = 'repositioning';
+      syncEnemyFacing(enemy);
+    }
   } else {
     enemy.vx = 0;
     enemy.vy = 0;
     enemy.state = 'attacking';
+    enemy.movementGoal = null;
   }
 }
 

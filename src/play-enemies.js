@@ -1,6 +1,6 @@
 import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getEnemyProjectileSpeed } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
-import { syncEnemyFacing } from './enemy-movement.js';
+import { easeEnemyVelocity, getEnemyLoiterPlan, syncEnemyFacing } from './enemy-movement.js';
 import {
   DIRECTIONS,
   HEX_SIZE,
@@ -654,6 +654,104 @@ export function getPlayEnemySteeringAngle(enemy, target, speed, elapsed, world =
     };
   }).filter(Boolean).sort((left, right) => left.score - right.score);
   return candidates[0]?.angle ?? null;
+}
+
+function getLocalReachablePlayEnemyCells(enemy, world, maxSteps = 8) {
+  if (!world?.map) return [];
+  const chapter = world.chapter ?? 'chapter1';
+  const origin = world.origin ?? { x: 0, y: 0 };
+  const start = findCellContainingPoint(world.map, enemy, chapter, origin);
+  if (!start || start.cell.terrain === 'blocked') return [];
+  const visited = new Set([start.key]);
+  const queue = [{ key: start.key, depth: 0 }];
+  const reachable = [];
+  while (queue.length) {
+    const current = queue.shift();
+    const cell = getActiveCell(world.map, current.key, chapter);
+    if (!cell || cell.terrain === 'blocked') continue;
+    reachable.push({ key: current.key, cell, point: getHexCenter(cell, origin) });
+    if (current.depth >= maxSteps) continue;
+    const fromPoint = getHexCenter(cell, origin);
+    DIRECTIONS.forEach((_, direction) => {
+      const nextKey = neighborKey(current.key, direction);
+      if (visited.has(nextKey)) return;
+      const nextCell = getActiveCell(world.map, nextKey, chapter);
+      if (!nextCell || nextCell.terrain === 'blocked') return;
+      const nextPoint = getHexCenter(nextCell, origin);
+      if (!canOccupyPlayEnemyPoint(world, fromPoint, nextPoint)) return;
+      visited.add(nextKey);
+      queue.push({ key: nextKey, depth: current.depth + 1 });
+    });
+  }
+  return reachable;
+}
+
+function playEnemyCellOpenness(candidate, world) {
+  if (!world?.map) return 6;
+  const chapter = world.chapter ?? 'chapter1';
+  const origin = world.origin ?? { x: 0, y: 0 };
+  return DIRECTIONS.reduce((count, _, direction) => {
+    const nextCell = getActiveCell(world.map, neighborKey(candidate.key, direction), chapter);
+    if (!nextCell || nextCell.terrain === 'blocked') return count;
+    const nextPoint = getHexCenter(nextCell, origin);
+    return count + (canOccupyPlayEnemyPoint(world, candidate.point, nextPoint) ? 1 : 0);
+  }, 0);
+}
+
+export function getPlayEnemyLoiterTarget(enemy, center, radius, time, world = null, bounds = null, mode = 'home') {
+  const plan = getEnemyLoiterPlan(enemy, time, { center, radius, bounds, margin: enemy.radius ?? 18 });
+  const cacheKey = `${mode}:${plan.cycle}`;
+  if (enemy.loiterTarget?.key === cacheKey) return { ...enemy.loiterTarget, phase: plan.phase };
+  let target = { x: plan.x, y: plan.y };
+  const candidates = getLocalReachablePlayEnemyCells(enemy, world);
+  if (candidates.length) {
+    const ranked = candidates.map((candidate) => {
+      const openness = playEnemyCellOpenness(candidate, world);
+      const desiredDistance = Math.hypot(candidate.point.x - plan.x, candidate.point.y - plan.y);
+      const ringError = Math.abs(Math.hypot(candidate.point.x - center.x, candidate.point.y - center.y) - plan.distance);
+      return {
+        ...candidate,
+        openness,
+        score: desiredDistance + ringError * 0.35 + (6 - openness) * HEX_SIZE * 3,
+      };
+    }).sort((left, right) => left.score - right.score || right.openness - left.openness || left.key.localeCompare(right.key));
+    target = ranked[0]?.point ?? target;
+  }
+  enemy.loiterTarget = { key: cacheKey, mode, cycle: plan.cycle, x: target.x, y: target.y };
+  return { ...enemy.loiterTarget, phase: plan.phase };
+}
+
+function stopPlayEnemyMovement(enemy, state) {
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.state = state;
+}
+
+function movePlayEnemyToward(enemy, target, speed, elapsed, world, bounds, state) {
+  if (distanceBetween(enemy, target) <= Math.max(8, speed * elapsed)) {
+    stopPlayEnemyMovement(enemy, state === 'chasing' ? 'attacking' : 'loitering');
+    return false;
+  }
+  const angle = getPlayEnemySteeringAngle(enemy, target, speed, elapsed, world);
+  if (angle == null) {
+    stopPlayEnemyMovement(enemy, 'blocked');
+    return false;
+  }
+  easeEnemyVelocity(enemy, angle, speed, elapsed);
+  const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
+  if (!canOccupyPlayEnemyPoint(world, enemy, nextPosition)) {
+    stopPlayEnemyMovement(enemy, 'blocked');
+    return false;
+  }
+  enemy.x = nextPosition.x;
+  enemy.y = nextPosition.y;
+  enemy.state = state;
+  syncEnemyFacing(enemy);
+  if (bounds) {
+    enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+    enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+  }
+  return true;
 }
 
 function hasPlayerDamage(skill) {
@@ -1483,9 +1581,22 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       if (distance <= PLAY_ENEMY_ACTIVATION_RADIUS) enemy.alerted = true;
       else if (distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35) enemy.alerted = false;
       if (!enemy.alerted) {
-        enemy.vx = 0;
-        enemy.vy = 0;
-        enemy.state = 'idle';
+        if ((enemy.moveSpeed ?? 0) > 0 && world?.map) {
+          const target = getPlayEnemyLoiterTarget(
+            enemy,
+            { x: enemy.homeX ?? enemy.x, y: enemy.homeY ?? enemy.y },
+            HEX_SIZE * 6,
+            runtime.time,
+            world,
+            bounds,
+            'home',
+          );
+          enemy.movementGoal = { x: target.x, y: target.y, mode: 'home', phase: target.phase };
+          if (target.phase === 'travel') movePlayEnemyToward(enemy, target, enemy.moveSpeed * 0.58, elapsed, world, bounds, 'roaming');
+          else stopPlayEnemyMovement(enemy, 'loitering');
+        } else {
+          stopPlayEnemyMovement(enemy, 'idle');
+        }
         return;
       }
     }
@@ -1503,41 +1614,31 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       return;
     }
     const preferred = preferredDistance(enemy, definition);
+    const rangedMover = definition.attacks.some((skill) => ['projectile', 'spread', 'lobbed', 'boomerangSpread', 'shieldBoomerang', 'cloneBarrage'].includes(skill.type));
     if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
       const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
         * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
       const speed = enemy.moveSpeed * moveSpeedMultiplier;
-      const angle = getPlayEnemySteeringAngle(enemy, actor, speed, elapsed, world);
-      if (angle == null) {
-        enemy.vx = 0;
-        enemy.vy = 0;
-        enemy.state = 'blocked';
-      } else {
-        enemy.vx = Math.cos(angle) * speed;
-        enemy.vy = Math.sin(angle) * speed;
-        const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
-        const nextCell = world?.map
-          ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
-          : null;
-        if (nextCell?.cell?.terrain === 'blocked') {
-          enemy.vx = 0;
-          enemy.vy = 0;
-          enemy.state = 'blocked';
-        } else {
-          enemy.x = nextPosition.x;
-          enemy.y = nextPosition.y;
-          enemy.state = 'chasing';
-        }
-        syncEnemyFacing(enemy);
-        if (bounds) {
-          enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
-          enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
-        }
-      }
+      enemy.movementGoal = { x: actor.x, y: actor.y, mode: 'engage', phase: 'travel' };
+      movePlayEnemyToward(enemy, actor, speed, elapsed, world, bounds, 'chasing');
+    } else if ((enemy.moveSpeed ?? 0) > 0 && rangedMover) {
+      const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
+        * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
+      const target = getPlayEnemyLoiterTarget(
+        enemy,
+        actor,
+        Math.max(84, preferred),
+        runtime.time,
+        world,
+        bounds,
+        'combat',
+      );
+      enemy.movementGoal = { x: target.x, y: target.y, mode: 'combat', phase: target.phase };
+      if (target.phase === 'travel') movePlayEnemyToward(enemy, target, enemy.moveSpeed * moveSpeedMultiplier, elapsed, world, bounds, 'repositioning');
+      else stopPlayEnemyMovement(enemy, 'loitering');
     } else {
-      enemy.vx = 0;
-      enemy.vy = 0;
-      enemy.state = 'attacking';
+      enemy.movementGoal = null;
+      stopPlayEnemyMovement(enemy, 'attacking');
     }
     const attacks = definition.attacks ?? [];
     if (!attacks.length) return;
@@ -1616,6 +1717,7 @@ export function getPlayEnemyRenderState(enemies, time = null) {
       outgoingDamageMultiplier: enemy.outgoingDamageMultiplier ?? 1,
       projectileSpeedMultiplier: enemy.projectileSpeedMultiplier ?? 1,
       damageStack: enemy.damageStack ?? 0,
+      movementGoal: enemy.movementGoal ? { ...enemy.movementGoal } : null,
       visual: getPlayEnemyFrameState(enemy, now),
       lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,
     })),
