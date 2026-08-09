@@ -1,83 +1,107 @@
 const freezeFields = (fields) => Object.freeze(fields.map((field) => Object.freeze(field)));
+export const MAP_OBJECT_SIZE = 30;
+const FREE_OBJECT_COLLISION_DIAMETERS = Object.freeze({
+  ink: 22,
+  mine: 17,
+  razor: 48,
+  button: 24,
+  weightStone: 17,
+  oxygen: 17,
+  bubble: 17,
+  torricelli: 17,
+  checkpoint: 17,
+  seaweed: 17,
+  coralCluster: 17,
+});
+
+const fixedSizeField = (label = '大小') => ({
+  key: 'size',
+  label,
+  unit: 'px',
+  min: MAP_OBJECT_SIZE,
+  max: MAP_OBJECT_SIZE,
+  step: 1,
+  defaultValue: MAP_OBJECT_SIZE,
+});
 
 // These are the editor's official starting values. They are written onto new
 // instances, displayed in the Inspector, and available again through Reset.
 // A saved map may override them per object without changing later placements.
 export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
   ink: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 96, step: 1, defaultValue: 22 },
+    fixedSizeField(),
     { key: 'visibilityRadius', label: '可見範圍', unit: 'px', min: 24, max: 360, step: 1, defaultValue: 110 },
   ]),
   mine: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 96, step: 1, defaultValue: 17 },
+    fixedSizeField(),
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 24 },
   ]),
   razor: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 20, max: 180, step: 1, defaultValue: 48 },
+    fixedSizeField(),
     { key: 'count', label: '剃刀數量', unit: '個', min: 1, max: 4, step: 1, defaultValue: 1 },
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 20 },
     { key: 'knockbackSpeed', label: '強制位移', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 58 },
     { key: 'rotationSpeed', label: '旋轉速度', unit: '度/s', min: 0, max: 720, step: 1, defaultValue: 180 },
   ]),
   button: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 12, max: 72, step: 1, defaultValue: 24 },
+    fixedSizeField(),
   ]),
   weightStone: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 },
+    fixedSizeField(),
     { key: 'breakSpeed', label: '破壞所需速度', unit: 'px/s', min: 1, max: 140, step: 1, defaultValue: 31 },
     { key: 'weight', label: '重量下壓', unit: 'px/s', min: 0, max: 30, step: 1, defaultValue: 4 },
   ]),
   oxygen: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 96, step: 1, defaultValue: 17 },
+    fixedSizeField(),
     { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 100 },
     { key: 'activationSpeed', label: '釋放所需速度', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 31 },
   ]),
   bubble: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 96, step: 1, defaultValue: 17 },
+    fixedSizeField(),
     { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 20 },
     { key: 'gravityImmunitySeconds', label: '免疫重力時間', unit: '秒', min: 0, max: 12, step: 0.1, defaultValue: 2.5 },
   ]),
   torricelli: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 },
+    fixedSizeField(),
     { key: 'oxygenRecoveryPerSecond', label: '氧氣恢復速度', unit: 'O₂/s', min: 0, max: 100, step: 1, defaultValue: 20 },
   ]),
   checkpoint: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 96, step: 1, defaultValue: 17 },
+    fixedSizeField(),
   ]),
   seaweed: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 },
+    fixedSizeField(),
   ]),
   coralCluster: freezeFields([
-    { key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 },
+    fixedSizeField(),
   ]),
 });
 
 export const EDGE_SETTING_FIELDS = Object.freeze({
   springJelly: freezeFields([
-    { key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField(),
     { key: 'bounceMultiplier', label: '彈力倍率', unit: '倍', min: 0.1, max: 3, step: 0.01, defaultValue: 1.08 },
   ]),
   spike: freezeFields([
-    { key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField(),
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 20 },
   ]),
   barrier: freezeFields([
-    { key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField(),
   ]),
   current: freezeFields([
-    { key: 'size', label: '箭頭大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField('箭頭大小'),
   ]),
   seaweed: freezeFields([
-    { key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField(),
   ]),
   coralCluster: freezeFields([
-    { key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField(),
   ]),
   layerPortal: freezeFields([
-    { key: 'size', label: '階梯大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField('階梯大小'),
   ]),
   multiPortal: freezeFields([
-    { key: 'size', label: '傳送門大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 },
+    fixedSizeField('傳送門大小'),
   ]),
 });
 
@@ -105,11 +129,11 @@ function officialState(fields) {
 }
 
 export function getFreeObjectFields(kind) {
-  return FREE_OBJECT_SETTING_FIELDS[kind] ?? freezeFields([{ key: 'size', label: '大小', unit: 'px', min: 8, max: 120, step: 1, defaultValue: 17 }]);
+  return FREE_OBJECT_SETTING_FIELDS[kind] ?? freezeFields([fixedSizeField()]);
 }
 
 export function getEdgeFields(type) {
-  return EDGE_SETTING_FIELDS[type] ?? freezeFields([{ key: 'size', label: '大小', unit: '倍率', min: 0.5, max: 2.5, step: 0.1, defaultValue: 1 }]);
+  return EDGE_SETTING_FIELDS[type] ?? freezeFields([fixedSizeField()]);
 }
 
 export function getOfficialFreeObjectState(kind) {
@@ -129,5 +153,29 @@ export function getEdgeSetting(edge, key) {
 }
 
 export function getFreeObjectHitRadius(object) {
-  return getFreeObjectSetting(object, 'size') / 2;
+  // Rendering is uniformly 30 px, while authored contact footprints stay
+  // independent so adjacent 24 px hexes do not activate each other's objects.
+  return (FREE_OBJECT_COLLISION_DIAMETERS[object?.kind] ?? 17) / 2;
+}
+
+export function normalizeMapObjectSizes(map) {
+  if (!map || typeof map !== 'object') return map;
+  const normalizeCells = (cells = {}) => {
+    Object.values(cells).forEach((cell) => {
+      if (Array.isArray(cell?.objects)) cell.objects.forEach((object) => { object.size = MAP_OBJECT_SIZE; });
+      if (Array.isArray(cell?.freeObjects)) cell.freeObjects.forEach((object) => { object.size = MAP_OBJECT_SIZE; });
+    });
+  };
+  const normalizeEdges = (edges = {}) => {
+    Object.values(edges).forEach((edge) => {
+      if (edge && edge.type !== 'none') edge.size = MAP_OBJECT_SIZE;
+    });
+  };
+  normalizeCells(map.cells);
+  normalizeEdges(map.edges);
+  Object.values(map.chapterStates ?? {}).forEach((chapter) => {
+    normalizeCells(chapter?.cells);
+    normalizeEdges(chapter?.edges);
+  });
+  return map;
 }

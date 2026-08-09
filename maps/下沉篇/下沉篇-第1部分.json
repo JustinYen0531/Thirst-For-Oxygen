@@ -1549,7 +1549,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -4071,7 +4071,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -6094,7 +6094,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -8382,7 +8382,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -9419,7 +9419,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenRecoveryPerSecond": 20
           }
@@ -11840,7 +11840,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -14271,7 +14271,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -17096,7 +17096,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -19914,7 +19914,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -20529,7 +20529,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenRecoveryPerSecond": 20
           }
@@ -21412,7 +21412,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -22768,7 +22768,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -24419,7 +24419,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -28004,7 +28004,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -29763,7 +29763,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -32185,7 +32185,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -34591,7 +34591,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -37126,7 +37126,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -37716,7 +37716,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -37730,7 +37730,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -37744,7 +37744,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -37758,7 +37758,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -37772,7 +37772,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -37786,7 +37786,7 @@
       "blocksPassage": false,
       "currentDirection": 5,
       "currentStrength": 1.08,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-49,109|-50,109": {
@@ -37798,7 +37798,7 @@
       "blocksPassage": false,
       "currentDirection": 4,
       "currentStrength": 1.18,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-21,65|-22,65": {
@@ -37810,7 +37810,7 @@
       "blocksPassage": false,
       "currentDirection": 5,
       "currentStrength": 0.92,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-48,128|-49,128": {
@@ -37822,7 +37822,7 @@
       "blocksPassage": false,
       "currentDirection": 4,
       "currentStrength": 0.98,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-47,105|-48,105": {
@@ -37834,7 +37834,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "damage": 20
       }
@@ -37848,7 +37848,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-10,55|-11,55": {
@@ -37860,7 +37860,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-28,90|-29,90": {
@@ -37872,7 +37872,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-46,126|-47,126": {
@@ -37884,7 +37884,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-59,150|-60,150": {
@@ -37896,7 +37896,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-5,12|-6,12": {
@@ -37908,7 +37908,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-12,34|-13,35": {
@@ -37920,7 +37920,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-18,68|-19,68": {
@@ -37932,7 +37932,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-34,98|-35,98": {
@@ -37944,7 +37944,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-52,134|-53,134": {
@@ -37956,7 +37956,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-63,156|-64,156": {
@@ -37968,7 +37968,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     }
   },

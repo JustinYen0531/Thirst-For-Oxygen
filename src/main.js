@@ -48,6 +48,7 @@ import {
   toggleSeaweedAttachment,
 } from './physics.js';
 import {
+  MAP_OBJECT_SIZE,
   getEdgeFields,
   getEdgeSetting,
   getFreeObjectFields,
@@ -55,6 +56,7 @@ import {
   getFreeObjectSetting,
   getOfficialEdgeState,
   getOfficialFreeObjectState,
+  normalizeMapObjectSizes,
 } from './map-object-settings.js';
 import {
   MULTI_PORTAL_EDGE_TYPE,
@@ -301,8 +303,8 @@ function loadMap() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed?.cells && parsed?.edges && parsed?.chapterStates) {
-        const migrated = migrateMapToOddR(parsed);
-        if (migrated !== parsed) localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        const migrated = normalizeMapObjectSizes(migrateMapToOddR(parsed));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
         return migrated;
       }
     }
@@ -659,8 +661,8 @@ function drawRazor(position, size, object = null, alpha = 0.96) {
   const rotationSpeed = getFreeObjectSetting(object ?? { kind: 'razor' }, 'rotationSpeed') ?? 180;
   const count = Math.max(1, Math.min(4, Math.round(getFreeObjectSetting(object ?? { kind: 'razor' }, 'count') ?? 1)));
   const rotation = (state.animationTime * rotationSpeed * Math.PI) / 180;
-  const bladeSize = size * 2;
-  const axisSize = size * 0.52;
+  const bladeSize = size;
+  const axisSize = size * 0.26;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(position.x, position.y);
@@ -676,7 +678,7 @@ function drawRazor(position, size, object = null, alpha = 0.96) {
 }
 
 function drawFreeObject(object, position) {
-  const size = object.size ?? getFreeObjectSetting(object, 'size');
+  const size = getFreeObjectSetting(object, 'size');
   if (object.kind === 'razor') {
     drawRazor(position, size, object);
     return;
@@ -1413,7 +1415,7 @@ function drawEdges() {
     const cellB = getActiveCell(state.map, b, state.chapter);
     const attachment = getEdgeAttachmentGeometry(centerA, centerB, cellA.terrain, cellB.terrain, {
       edgeLength: HEX_SIZE,
-      blockedInset: 1.25 * size,
+      blockedInset: 1.25,
     });
     if (!attachment) return;
     const shared = getSharedEdgePoints({ a, b });
@@ -1434,9 +1436,9 @@ function drawEdges() {
       || (edge.type === 'seaweed' && state.actor.attached && Math.hypot(state.actor.x - midpoint.x, state.actor.y - midpoint.y) <= state.actor.radius + EDGE_ATTACHMENT_HELP_RADIUS)
     );
     if (edgeImage?.complete && edgeImage.naturalWidth > 0) {
-      const fitsOneWallSegment = ['springJelly', 'spike', 'barrier'].includes(edge.type);
-      const width = (fitsOneWallSegment ? HEX_SIZE * 1.04 : edgeLength * (isAnchoredPlant ? 1.18 : 1.04)) * size;
-      const height = width * (edgeImage.naturalHeight / edgeImage.naturalWidth);
+      const aspect = edgeImage.naturalWidth / edgeImage.naturalHeight;
+      const width = aspect >= 1 ? size : size * aspect;
+      const height = aspect >= 1 ? size / aspect : size;
       drawOutlinedEdgeImage(edgeImage, attachmentPoint, attachmentAngle, width, height, edge.type, receivesHelp);
     }
     if (edge.type === 'springJelly' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('J', attachmentPoint.x, attachmentPoint.y, { font: 'bold 7px system-ui' });
@@ -1445,7 +1447,7 @@ function drawEdges() {
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === MULTI_PORTAL_EDGE_TYPE && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('⟷', midpoint.x, midpoint.y, { font: 'bold 9px system-ui', fill: '#d4a8ff' });
-    if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size);
+    if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size / MAP_OBJECT_SIZE);
   });
 }
 
@@ -1462,7 +1464,7 @@ function drawLayerPortalTriangle(point, direction, radius, colour) {
   ctx.fill();
 }
 
-function drawLayerPortal(shared, centerA, centerB, cellA, cellB, size = 1) {
+function drawLayerPortal(shared, centerA, centerB, cellA, cellB, size = MAP_OBJECT_SIZE) {
   const [first, second] = shared;
   const edgeVector = { x: second.x - first.x, y: second.y - first.y };
   const edgeLength = Math.hypot(edgeVector.x, edgeVector.y);
@@ -1474,7 +1476,7 @@ function drawLayerPortal(shared, centerA, centerB, cellA, cellB, size = 1) {
   const layerVector = { x: t2Center.x - t1Center.x, y: t2Center.y - t1Center.y };
   const layerLength = Math.hypot(layerVector.x, layerVector.y) || 1;
   const layerDirection = { x: layerVector.x / layerLength, y: layerVector.y / layerLength };
-  const safeSize = Math.max(0.5, Number(size) || 1);
+  const safeSize = Math.max(0.5, (Number(size) || MAP_OBJECT_SIZE) / MAP_OBJECT_SIZE);
   const halfRail = Math.max(3, Math.min(edgeLength * 0.34, edgeLength / 2 - 1));
   const railStart = { x: midpoint.x - tangent.x * halfRail, y: midpoint.y - tangent.y * halfRail };
   const railEnd = { x: midpoint.x + tangent.x * halfRail, y: midpoint.y + tangent.y * halfRail };
@@ -2882,7 +2884,7 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
   try {
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
-    state.map = migrateMapToOddR(parsed);
+    state.map = normalizeMapObjectSizes(migrateMapToOddR(parsed));
     state.pan = { x: 0, y: 0 };
     syncCanvasGeometry(state.map, state.zoom);
     state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);

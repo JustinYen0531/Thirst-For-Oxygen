@@ -8,6 +8,7 @@ import {
   neighborKey,
   validateMap,
 } from '../src/map-model.js';
+import { MAP_OBJECT_SIZE } from '../src/map-object-settings.js';
 
 const mapsDirectory = join(process.cwd(), 'maps', '下沉篇');
 const mapNames = [
@@ -31,6 +32,19 @@ function freeObjectsOf(map) {
     (cell.freeObjects ?? []).map((object) => ({ key, row: cell.r, object }))
   ));
 }
+
+test('all center and Edge objects serialize the shared thirty-pixel size', () => {
+  mapNames.map(loadMap).forEach((map) => {
+    Object.values(map.cells).forEach((cell) => {
+      [...(cell.objects ?? []), ...(cell.freeObjects ?? [])].forEach((object) => {
+        assert.equal(object.size, MAP_OBJECT_SIZE, `${object.kind} should be ${MAP_OBJECT_SIZE}px`);
+      });
+    });
+    Object.values(map.edges).filter((edge) => edge?.type && edge.type !== 'none').forEach((edge) => {
+      assert.equal(edge.size, MAP_OBJECT_SIZE, `${edge.type} Edge should be ${MAP_OBJECT_SIZE}px`);
+    });
+  });
+});
 
 function canTraverse(map, fromKey, toKey, openedGates = new Set()) {
   const from = map.cells[fromKey];

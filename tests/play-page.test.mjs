@@ -40,7 +40,8 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(page, /getPlayStageExitState\(\{ map, mapPart, actor, enemies, origin \}\)/);
   assert.match(html, /<option value="1" selected>/);
   assert.doesNotMatch(home, /play\.html\?part=3/);
-  assert.match(home, /下沉篇三部分已串接/);
+  assert.match(home, /data-turn-state="front"/);
+  assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
 test('formal play uses honest programmatic fallbacks instead of broken or wrong assets', () => {
@@ -77,4 +78,17 @@ test('formal play draws deterministic static frames selected by runtime skill st
   assert.match(page, /images\.get\(visualState\.path\)/);
   assert.doesNotMatch(page, /enemyAnimationImages/);
   assert.doesNotMatch(page, /images\.get\(enemy\.visual\)/);
+});
+
+test('Part 1 presents Attempt separately from HP and blocks play during the awakening mask', () => {
+  assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3-3</);
+  assert.doesNotMatch(html, /Attempts 3\/3/);
+  assert.match(page, /enabled: mapPart === 1 && !previousActor/);
+  assert.match(page, /stepPlayAwakening\(awakeningState, elapsed\)/);
+  assert.match(page, /if \(paused \|\| awakeningState\.active \|\| actor\.dead/);
+  assert.match(page, /context\.ellipse\(/);
+  assert.match(page, /mapPart === 1 && !preserveRun \? '' : '正在潛入水域…'/);
+  assert.match(page, /attemptsReadout\.textContent = attempt\.label/);
+  assert.match(page, /getPlayAttemptState\(actor\)\.label}，已回到最近啟用的 Checkpoint/);
+  assert.doesNotMatch(page, /失去 1 條命/);
 });

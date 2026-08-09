@@ -1679,7 +1679,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -3057,7 +3057,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -4526,7 +4526,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenRecoveryPerSecond": 20
           }
@@ -5933,7 +5933,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -7321,7 +7321,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "damage": 24
           }
@@ -8217,7 +8217,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 24,
+          "size": 30,
           "params": {},
           "targetGates": [
             "-13,44",
@@ -9402,7 +9402,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "damage": 24
           }
@@ -10614,7 +10614,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -11225,7 +11225,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "breakSpeed": 31,
             "weight": 4
@@ -12698,7 +12698,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -13865,7 +13865,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 22,
+          "size": 30,
           "params": {
             "visibilityRadius": 110
           }
@@ -15359,7 +15359,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 20,
             "gravityImmunitySeconds": 2.5
@@ -16741,7 +16741,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 48,
+          "size": 30,
           "params": {
             "count": 1,
             "damage": 20,
@@ -17952,7 +17952,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenAmount": 100,
             "activationSpeed": 31
@@ -18862,7 +18862,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "breakSpeed": 31,
             "weight": 4
@@ -19538,7 +19538,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 22,
+          "size": 30,
           "params": {
             "visibilityRadius": 110
           }
@@ -20724,7 +20724,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 48,
+          "size": 30,
           "params": {
             "count": 1,
             "damage": 20,
@@ -21688,7 +21688,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {}
         }
       ],
@@ -22535,7 +22535,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 17,
+          "size": 30,
           "params": {
             "oxygenRecoveryPerSecond": 20
           }
@@ -23166,7 +23166,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0.78,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-1,28|0,28": {
@@ -23178,7 +23178,7 @@
       "blocksPassage": false,
       "currentDirection": 1,
       "currentStrength": 0.9400000000000001,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-11,52|-12,52": {
@@ -23190,7 +23190,7 @@
       "blocksPassage": false,
       "currentDirection": 2,
       "currentStrength": 1.1,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-18,73|-19,73": {
@@ -23202,7 +23202,7 @@
       "blocksPassage": false,
       "currentDirection": 3,
       "currentStrength": 0.78,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-2,14|-3,14": {
@@ -23214,7 +23214,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -23228,7 +23228,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -23242,7 +23242,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -23256,7 +23256,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "bounceMultiplier": 1.08
       }
@@ -23270,7 +23270,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "damage": 20
       }
@@ -23284,7 +23284,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {
         "damage": 20
       }
@@ -23298,7 +23298,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-20,76|-21,76": {
@@ -23310,7 +23310,7 @@
       "blocksPassage": true,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-8,20|-9,20": {
@@ -23322,7 +23322,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-13,56|-14,56": {
@@ -23334,7 +23334,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-8,27|-9,27": {
@@ -23346,7 +23346,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-16,63|-17,63": {
@@ -23358,7 +23358,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-23,83|-24,83": {
@@ -23370,7 +23370,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-1,21|-1,22": {
@@ -23382,7 +23382,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {}
     },
     "-3,16|-4,16": {
@@ -23394,7 +23394,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-a",
       "portalSlot": 0,
@@ -23409,7 +23409,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-b",
       "portalSlot": 0,
@@ -23424,7 +23424,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-a",
       "portalSlot": 1,
@@ -23439,7 +23439,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-b",
       "portalSlot": 1,
@@ -23454,7 +23454,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-a",
       "portalSlot": 2,
@@ -23469,7 +23469,7 @@
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
-      "size": 1,
+      "size": 30,
       "params": {},
       "portalGroupId": "part2-thermal-shortcut-b",
       "portalSlot": 2,

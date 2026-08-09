@@ -8,6 +8,7 @@ import {
   getOddRRectangularBounds,
 } from './map-model.js';
 import { getEdgeAttachmentGeometry } from './edge-attachment.js';
+import { getEdgeSetting, getFreeObjectSetting } from './map-object-settings.js';
 import {
   getPlayEdgeVisual,
   getPlayObjectVisual,
@@ -178,7 +179,7 @@ function drawMapObject(context, images, object, x, y) {
   const visual = object.kind === 'ink'
     ? getPlayOverlayVisual('ink')
     : getPlayObjectVisual(object.kind);
-  const size = clamp(Number(object.size) || 16, 10, 72);
+  const size = getFreeObjectSetting(object, 'size');
   if (object.kind === 'button') {
     context.save();
     context.fillStyle = object.pressed ? '#70ead0' : '#f1b85b';
@@ -196,18 +197,18 @@ function drawMapObject(context, images, object, x, y) {
   }
 }
 
-function drawCurrent(context, edge, geometry, colour) {
+function drawCurrent(context, edge, geometry, colour, size) {
   const direction = getDirectionVector(edge.currentDirection ?? 0);
   context.save();
   context.translate(geometry.midpoint.x, geometry.midpoint.y);
   context.rotate(Math.atan2(direction.y, direction.x));
   context.strokeStyle = colour;
-  context.lineWidth = 0.8;
-  [-3, 2].forEach((offset) => {
+  context.lineWidth = Math.max(0.8, size * .04);
+  [-size * .2, size * .14].forEach((offset) => {
     context.beginPath();
-    context.moveTo(offset - 2, -2.6);
+    context.moveTo(offset - size * .12, -size * .16);
     context.lineTo(offset + 1, 0);
-    context.lineTo(offset - 2, 2.6);
+    context.lineTo(offset - size * .12, size * .16);
     context.stroke();
   });
   context.restore();
@@ -228,6 +229,7 @@ function drawMapEdge(context, images, map, edge, origin, cameraTop, viewWorldHei
   if (!geometry || geometry.midpoint.y < cameraTop - 45 || geometry.midpoint.y > cameraTop + viewWorldHeight + 45) return;
 
   const visual = getPlayEdgeVisual(edge.type);
+  const size = getEdgeSetting(edge, 'size');
   const colour = visual.color ?? '#bcecff';
   context.save();
   context.globalAlpha = 0.82;
@@ -240,7 +242,7 @@ function drawMapEdge(context, images, map, edge, origin, cameraTop, viewWorldHei
   context.restore();
 
   if (!visual.assetPath) {
-    if (edge.type === 'current') drawCurrent(context, edge, geometry, colour);
+    if (edge.type === 'current') drawCurrent(context, edge, geometry, colour, size);
     return;
   }
 
@@ -255,8 +257,12 @@ function drawMapEdge(context, images, map, edge, origin, cameraTop, viewWorldHei
     : isPlant
       ? geometry.growsIntoOpenAngle
       : geometry.tangentAngle;
-  const width = isPortal ? 22 : isPlant ? 16 : HEX_SIZE * 1.04;
-  const height = edge.type === 'multiPortal' ? 9 : isPortal ? 18 : isPlant ? 16 : width * 0.625;
+  const image = images.get(visual.assetPath);
+  const aspect = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+    ? image.naturalWidth / image.naturalHeight
+    : 1;
+  const width = aspect >= 1 ? size : size * aspect;
+  const height = aspect >= 1 ? size / aspect : size;
   drawImage(context, images, visual.assetPath, renderPoint.x, renderPoint.y, width, height, 0.9, rotation);
 }
 

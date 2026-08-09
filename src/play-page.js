@@ -9,7 +9,7 @@ import {
   getDirectionVector,
   HEX_SIZE,
 } from './map-model.js';
-import { getFreeObjectSetting } from './map-object-settings.js';
+import { getEdgeSetting, getFreeObjectSetting } from './map-object-settings.js';
 import {
   FIXED_STEP,
   MAX_ENERGY,
@@ -28,6 +28,12 @@ import {
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import { getEdgeAttachmentGeometry } from './edge-attachment.js';
+import {
+  createPlayAwakeningState,
+  getPlayAttemptState,
+  getPlayAwakeningRenderState,
+  stepPlayAwakening,
+} from './play-awakening.js';
 import {
   PLAYER_ANIMATION_ASSETS,
   getPlayerAnimationFrameIndex,
@@ -106,6 +112,7 @@ const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoi
 
 const canvas = document.querySelector('#play-canvas');
 const context = canvas.getContext('2d');
+const stageFrame = document.querySelector('.play-stage-frame');
 const mapSelect = document.querySelector('#play-map-select');
 const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
@@ -190,6 +197,7 @@ let combatState = createPlayCombatState();
 let katanaState = createPlayKatanaState(1);
 let transitioning = false;
 let runCompleted = false;
+let awakeningState = createPlayAwakeningState({ enabled: false });
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function enemySpriteScaleX(facing) { return facing === 'left' ? 1 : -1; }
@@ -280,6 +288,10 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
   syncKatanaState();
   if (!previousActor) worldTime = 0;
+  awakeningState = createPlayAwakeningState({
+    enabled: mapPart === 1 && !previousActor,
+    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+  });
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
   trajectory = [];
@@ -296,6 +308,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   ];
   mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
+  updateAwakeningPresentation();
   updateCamera();
   updateHud();
 }
@@ -315,7 +328,7 @@ async function loadMap(part, { preserveRun = false } = {}) {
   }
   mapPart = Number(part) || 1;
   loadingMask.classList.remove('is-hidden');
-  loadingMask.textContent = '正在潛入水域…';
+  loadingMask.textContent = mapPart === 1 && !preserveRun ? '' : '正在潛入水域…';
   try {
     const response = await fetch(MAPS[mapPart].path);
     if (!response.ok) throw new Error(`map ${response.status}`);
@@ -465,8 +478,8 @@ function drawRazorObject(object, x, y, size, outlineColour) {
   const rotationSpeed = getFreeObjectSetting(object, 'rotationSpeed') ?? 180;
   const count = clamp(Math.round(getFreeObjectSetting(object, 'count') ?? 1), 1, 4);
   const rotation = worldTime * rotationSpeed * Math.PI / 180;
-  const bladeSize = size * 2;
-  const axisSize = size * .52;
+  const bladeSize = size;
+  const axisSize = size * .26;
   context.save();
   context.translate(x, y);
   context.globalAlpha = .96;
@@ -505,7 +518,7 @@ function drawButtonObject(object, x, y, size) {
 }
 
 function drawObject(object, x, y) {
-  const size = clamp(Number(object.size) || 16, 10, 72);
+  const size = getFreeObjectSetting(object, 'size');
   const guide = getObjectDiscoveryGuide(object.kind);
   const visual = object.kind === 'ink' ? getPlayOverlayVisual('ink') : getPlayObjectVisual(object.kind);
   if (object.kind === 'razor' && drawRazorObject(object, x, y, size, guide?.colour)) return;
@@ -516,7 +529,7 @@ function drawObject(object, x, y) {
   if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(visual.label ?? objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
 }
 
-function drawProgrammaticEdge(visual, geometry, edge) {
+function drawProgrammaticEdge(visual, geometry, edge, size) {
   if (visual.shape === 'current-chevrons') {
     const direction = getDirectionVector(edge.currentDirection ?? 0);
     context.save();
@@ -525,12 +538,12 @@ function drawProgrammaticEdge(visual, geometry, edge) {
     context.strokeStyle = visual.color;
     context.shadowColor = visual.color;
     context.shadowBlur = 4;
-    context.lineWidth = 1.1;
-    [-4, 0, 4].forEach((offset) => {
+    context.lineWidth = Math.max(1.1, size * .045);
+    [-size * .26, 0, size * .26].forEach((offset) => {
       context.beginPath();
-      context.moveTo(offset - 2.5, -3);
+      context.moveTo(offset - size * .12, -size * .16);
       context.lineTo(offset + 1, 0);
-      context.lineTo(offset - 2.5, 3);
+      context.lineTo(offset - size * .12, size * .16);
       context.stroke();
     });
     context.restore();
@@ -540,14 +553,17 @@ function drawProgrammaticEdge(visual, geometry, edge) {
     const dx = geometry.edgeEnd.x - geometry.edgeStart.x;
     const dy = geometry.edgeEnd.y - geometry.edgeStart.y;
     const length = Math.hypot(dx, dy) || 1;
+    const tangent = { x: dx / length, y: dy / length };
     const normal = { x: -dy / length, y: dx / length };
+    const start = { x: geometry.midpoint.x - tangent.x * size * .5, y: geometry.midpoint.y - tangent.y * size * .5 };
+    const end = { x: geometry.midpoint.x + tangent.x * size * .5, y: geometry.midpoint.y + tangent.y * size * .5 };
     context.save();
     context.strokeStyle = visual.color;
-    context.lineWidth = 1.15;
-    [-1.8, 1.8].forEach((offset) => {
+    context.lineWidth = Math.max(1.15, size * .045);
+    [-size * .07, size * .07].forEach((offset) => {
       context.beginPath();
-      context.moveTo(geometry.edgeStart.x + normal.x * offset, geometry.edgeStart.y + normal.y * offset);
-      context.lineTo(geometry.edgeEnd.x + normal.x * offset, geometry.edgeEnd.y + normal.y * offset);
+      context.moveTo(start.x + normal.x * offset, start.y + normal.y * offset);
+      context.lineTo(end.x + normal.x * offset, end.y + normal.y * offset);
       context.stroke();
     });
     context.restore();
@@ -570,12 +586,13 @@ function drawEdges() {
     const mid = geometry.midpoint;
     if (mid.y < camera.y - 45 || mid.y > camera.y + canvas.height / SCALE + 45) return;
     const visual = getPlayEdgeVisual(edge.type);
+    const size = getEdgeSetting(edge, 'size');
     const color = visual.color ?? '#bcecff';
     context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
     context.beginPath(); context.moveTo(geometry.edgeStart.x, geometry.edgeStart.y); context.lineTo(geometry.edgeEnd.x, geometry.edgeEnd.y); context.stroke(); context.restore();
     const asset = visual.assetPath;
     if (!asset) {
-      drawProgrammaticEdge(visual, geometry, edge);
+      drawProgrammaticEdge(visual, geometry, edge, size);
       return;
     }
     const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
@@ -603,10 +620,52 @@ function drawEdges() {
         renderY += ((waterCenter.y - blockedCenter.y) / distance) * 2;
       }
     }
-    const width = isPortal ? 22 : isAnchoredPlant ? 16 : HEX_SIZE * 1.04;
-    const height = edge.type === 'multiPortal' ? 9 : isPortal ? 18 : isAnchoredPlant ? 16 : width * .625;
+    const edgeImage = images.get(asset);
+    const aspect = edgeImage?.complete && edgeImage.naturalWidth > 0 && edgeImage.naturalHeight > 0
+      ? edgeImage.naturalWidth / edgeImage.naturalHeight
+      : 1;
+    const width = aspect >= 1 ? size : size * aspect;
+    const height = aspect >= 1 ? size / aspect : size;
     drawImage(asset, renderX, renderY, width, height, .92, rotation, getEdgeDiscoveryGuide(edge.type)?.colour);
   });
+}
+
+function updateAwakeningPresentation() {
+  const awakening = getPlayAwakeningRenderState(awakeningState);
+  stageFrame.classList.toggle('is-awakening', awakening.active);
+  stageFrame.style.setProperty('--awakening-attempt-opacity', String(awakening.attemptOpacity));
+  stageFrame.style.setProperty('--awakening-hud-opacity', String(awakening.hudOpacity));
+  return awakening;
+}
+
+function drawAwakeningMask() {
+  const awakening = updateAwakeningPresentation();
+  if (!awakening.maskVisible) return;
+  const openness = clamp(awakening.eyeOpenRatio, 0, 1);
+  context.save();
+  context.fillStyle = '#000000';
+  if (openness <= .001) {
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    context.beginPath();
+    context.rect(0, 0, canvas.width, canvas.height);
+    context.ellipse(
+      canvas.width * .5,
+      canvas.height * .5,
+      canvas.width * .59,
+      Math.max(1, canvas.height * .46 * openness),
+      0,
+      0,
+      Math.PI * 2,
+    );
+    context.fill('evenodd');
+    context.beginPath();
+    context.ellipse(canvas.width * .5, canvas.height * .5, canvas.width * .59, Math.max(1, canvas.height * .46 * openness), 0, 0, Math.PI * 2);
+    context.strokeStyle = `rgba(0, 0, 0, ${.45 + (1 - openness) * .45})`;
+    context.lineWidth = 18;
+    context.stroke();
+  }
+  context.restore();
 }
 
 function applyPlayEnemyDamage(amount, source, damageType = 'generic') {
@@ -1181,7 +1240,7 @@ function collectVisibleDiscoverables() {
       if (!guide) return;
       const x = center.x + Math.cos(index * 2.5) * 2;
       const y = center.y + Math.sin(index * 2.5) * 2;
-      const size = Math.min(21, Math.max(10, Number(object.size) || 16));
+      const size = getFreeObjectSetting(object, 'size');
       if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `cell-object:${cellKey}:${index}`, guideKey: `object:${object.kind}`, guide, x, y, size });
     });
     (cell.freeObjects ?? []).forEach((object, index) => {
@@ -1190,7 +1249,7 @@ function collectVisibleDiscoverables() {
       const offset = object.offset ?? { x: 0, y: 0 };
       const x = center.x + offset.x;
       const y = center.y + offset.y;
-      const size = Math.min(21, Math.max(10, Number(object.size) || 16));
+      const size = getFreeObjectSetting(object, 'size');
       if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `free-object:${cellKey}:${index}`, guideKey: `object:${object.kind}`, guide, x, y, size });
     });
   });
@@ -1203,7 +1262,8 @@ function collectVisibleDiscoverables() {
     const to = cellCenter(b);
     const x = (from.x + to.x) * .5;
     const y = (from.y + to.y) * .5;
-    if (isWorldTargetVisible(x, y, 18)) targets.push({ instanceId: `edge:${key}`, guideKey: `edge:${edge.type}`, guide, x, y, size: 18 });
+    const size = getEdgeSetting(edge, 'size');
+    if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `edge:${key}`, guideKey: `edge:${edge.type}`, guide, x, y, size });
   });
 
   const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
@@ -1251,6 +1311,7 @@ function render() {
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
   drawInkVisibilityMask();
+  drawAwakeningMask();
 }
 
 function updateHud() {
@@ -1268,7 +1329,9 @@ function updateHud() {
     ? `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / MAX`
     : `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / ${progress.required}`;
   experienceFill.style.width = `${progress.ratio * 100}%`;
-  attemptsReadout.textContent = `Attempts ${actor.lives}/${actor.maxLives}`;
+  const attempt = getPlayAttemptState(actor);
+  attemptsReadout.textContent = attempt.label;
+  attemptsReadout.setAttribute('aria-label', `剩餘嘗試次數 ${attempt.remaining}，共 ${attempt.maximum} 次`);
   const oxygenMaximum = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
   const oxygenHud = getOxygenHud(actor.oxygen, oxygenMaximum);
   resourceValues.oxygen.textContent = oxygenHud.label;
@@ -1452,7 +1515,7 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
-  if (paused || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade) return;
+  if (paused || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
   if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
@@ -1547,6 +1610,12 @@ window.addEventListener('keydown', (event) => {
 });
 
 function simulate(elapsed, now = performance.now()) {
+  if (awakeningState.active) {
+    stepPlayAwakening(awakeningState, elapsed);
+    updateAwakeningPresentation();
+    updateHud();
+    return;
+  }
   if (!paused && !transitioning && !runCompleted && map && actor && !actor.gameOver) {
     if (combatState.awaitingUpgrade) {
       accumulator = 0;
@@ -1600,11 +1669,11 @@ function simulate(elapsed, now = performance.now()) {
         const death = registerPlayerDeath(actor, cause);
         if (death.gameOver) {
           sfxController.play('gameOver');
-          eventLog.push(`${cause}：永久死亡。`);
+          eventLog.push(`${cause}：${getPlayAttemptState(actor).label}，本次航線結束。`);
         } else {
           sfxController.play('impactWet');
           respawnActor(actor, actor.spawn ?? spawn);
-          eventLog.push(`${cause}：失去 1 條命，已回到最近啟用的 Checkpoint。`);
+          eventLog.push(`${cause}：${getPlayAttemptState(actor).label}，已回到最近啟用的 Checkpoint。`);
         }
       }
       const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
@@ -1639,6 +1708,8 @@ window.render_game_to_text = () => {
     mapPart,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
     player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), activeEffects: actor.activeEffects ?? {} } : null,
+    attempt: actor ? getPlayAttemptState(actor) : null,
+    awakening: getPlayAwakeningRenderState(awakeningState),
     hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
     combat,
     enemyCombat: getPlayEnemyRenderState(enemies, worldTime),

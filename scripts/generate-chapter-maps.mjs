@@ -11,6 +11,7 @@ import {
 import {
   getOfficialEdgeState,
   getOfficialFreeObjectState,
+  normalizeMapObjectSizes,
 } from '../src/map-object-settings.js';
 
 const root = resolve('.');
@@ -753,6 +754,6 @@ const outputs = [
   ['下沉篇-第1部分.json', buildPart1()],
   ['下沉篇-第2部分.json', buildPart2()],
   ['下沉篇-第3部分.json', buildPart3(JSON.parse(readFileSync(sourcePath, 'utf8')))],
-];
+].map(([name, map]) => [name, normalizeMapObjectSizes(map)]);
 outputs.forEach(([name, map]) => writeFileSync(join(outputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));
 console.log(`generated ${outputs.length} descent maps; part 3 preserves the player's original template`);
