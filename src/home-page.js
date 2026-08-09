@@ -8,11 +8,18 @@ import {
 export const HOME_HELMET_TURN_DURATION_MS = 1250;
 export const HOME_HELMET_TURN_FRAME_COUNT = 4;
 export const HOME_ENEMY_FRAME_DURATION_MS = PLAY_ENEMY_FRAME_DURATION * 1000;
+export const HOME_ENEMY_SWIM_DURATION_MS = 32000;
+export const HOME_NO_SIGNAL_DURATION_MS = 950;
 
 export const HOME_ENEMY_SHOWCASE = Object.freeze([
-  Object.freeze({ enemyId: 'crabGuard', label: '螃蟹守衛', actionId: 'clawSwipe', actionLabel: '螯擊' }),
-  Object.freeze({ enemyId: 'lionfishGunner', label: '獅子魚砲手', actionId: 'spineScatter', actionLabel: '棘刺散射' }),
-  Object.freeze({ enemyId: 'arcTideRay', label: '弧潮獵鰩', actionId: 'arcTideBombardment', actionLabel: '弧潮轟炸' }),
+  Object.freeze({ instanceId: 'lanternfish-1', enemyId: 'explodingLanternfish', label: '爆炸燈籠魚', actionId: 'contactExplosion', actionLabel: '接觸爆炸', laneY: 8, scale: 0.82 }),
+  Object.freeze({ instanceId: 'seahorse-1', enemyId: 'juvenileSeahorseCaller', label: '幼年海馬', actionId: 'callForHelp', actionLabel: '呼喚援軍', laneY: 21, scale: 0.74 }),
+  Object.freeze({ instanceId: 'crab-1', enemyId: 'crabGuard', label: '螃蟹守衛', actionId: 'clawSwipe', actionLabel: '螯擊', laneY: 35, scale: 0.88 }),
+  Object.freeze({ instanceId: 'lobster-1', enemyId: 'lobsterSoldier', label: '龍蝦士兵', actionId: 'spearThrow', actionLabel: '長槍投擲', laneY: 49, scale: 0.86 }),
+  Object.freeze({ instanceId: 'lionfish-1', enemyId: 'lionfishGunner', label: '獅子魚砲手', actionId: 'spineScatter', actionLabel: '棘刺散射', laneY: 63, scale: 0.8 }),
+  Object.freeze({ instanceId: 'squid-1', enemyId: 'squidAssassin', label: '烏賊刺客', actionId: 'inkShadowSlash', actionLabel: '墨影斬', laneY: 76, scale: 0.78 }),
+  Object.freeze({ instanceId: 'mantis-1', enemyId: 'mantisShrimpBrute', label: '螳螂蝦猛將', actionId: 'punch', actionLabel: '重拳', laneY: 28, scale: 0.9 }),
+  Object.freeze({ instanceId: 'ray-1', enemyId: 'arcTideRay', label: '弧潮獵鰩', actionId: 'arcTideBombardment', actionLabel: '弧潮轟炸', laneY: 69, scale: 1.08 }),
 ]);
 
 export function getHomeHelmetTurnFrame(elapsedMs, durationMs = HOME_HELMET_TURN_DURATION_MS) {
@@ -33,6 +40,18 @@ export function getHomeEnemyAnimationFrames(enemyId, actionId = null) {
   return getPlayEnemyFramePaths(animatedPath);
 }
 
+export function getHomeEnemySwimPosition(elapsedMs, index, count = HOME_ENEMY_SHOWCASE.length) {
+  const safeCount = Math.max(1, Math.floor(Number(count) || 1));
+  const safeIndex = ((Math.floor(Number(index) || 0) % safeCount) + safeCount) % safeCount;
+  const elapsedProgress = Math.max(0, Number(elapsedMs) || 0) / HOME_ENEMY_SWIM_DURATION_MS;
+  const progress = (elapsedProgress + safeIndex / safeCount) % 1;
+  return {
+    bobVh: Math.sin(progress * Math.PI * 2 + safeIndex * 0.73) * 1.55,
+    progress,
+    xVw: -14 + progress * 128,
+  };
+}
+
 export function attachHomeEnemyShowcase(root, options = {}) {
   const field = root?.querySelector('#home-enemy-field');
   if (!field) return null;
@@ -51,7 +70,10 @@ export function attachHomeEnemyShowcase(root, options = {}) {
     button.type = 'button';
     button.className = `home-enemy home-enemy--${config.enemyId}`;
     button.dataset.enemyId = config.enemyId;
+    button.dataset.instanceId = config.instanceId;
     button.style.setProperty('--enemy-index', String(index));
+    button.style.setProperty('--enemy-lane-y', `${config.laneY}vh`);
+    button.style.setProperty('--enemy-scale', String(config.scale));
     button.setAttribute('aria-label', `${config.label}：播放${config.actionLabel}`);
     image.alt = '';
     image.draggable = false;
@@ -71,8 +93,11 @@ export function attachHomeEnemyShowcase(root, options = {}) {
       idleFrames,
       image,
       mode: 'idle',
+      progress: 0,
       sequence: 0,
       startedAt: 0,
+      xVw: 0,
+      yVh: config.laneY,
     };
 
     button.addEventListener('click', (event) => {
@@ -88,6 +113,12 @@ export function attachHomeEnemyShowcase(root, options = {}) {
 
   function render() {
     enemies.forEach((enemy, index) => {
+      const swim = getHomeEnemySwimPosition(clockMs, index, enemies.length);
+      enemy.progress = swim.progress;
+      enemy.xVw = swim.xVw;
+      enemy.yVh = enemy.laneY + swim.bobVh;
+      enemy.button.style.setProperty('--enemy-x', `${enemy.xVw.toFixed(3)}vw`);
+      enemy.button.style.setProperty('--enemy-y', `${enemy.yVh.toFixed(3)}vh`);
       if (enemy.mode === 'action' && clockMs - enemy.startedAt >= enemy.actionFrames.length * HOME_ENEMY_FRAME_DURATION_MS) {
         enemy.mode = 'idle';
         enemy.startedAt = clockMs;
@@ -115,7 +146,7 @@ export function attachHomeEnemyShowcase(root, options = {}) {
   }
 
   function trigger(enemyId) {
-    const enemy = enemies.find((entry) => entry.enemyId === enemyId);
+    const enemy = enemies.find((entry) => entry.instanceId === enemyId || entry.enemyId === enemyId);
     if (!enemy) return false;
     enemy.button.click();
     render();
@@ -135,9 +166,65 @@ export function attachHomeEnemyShowcase(root, options = {}) {
     getState: () => enemies.map((enemy) => ({
       actionId: enemy.mode === 'action' ? enemy.actionId : null,
       enemyId: enemy.enemyId,
+      instanceId: enemy.instanceId,
       mode: enemy.mode,
+      progress: Number(enemy.progress.toFixed(3)),
       sequence: enemy.sequence,
+      xVw: Number(enemy.xVw.toFixed(2)),
+      yVh: Number(enemy.yVh.toFixed(2)),
     })),
+    trigger,
+  };
+}
+
+export function attachHomeHelmetSignalEasterEgg(root, options = {}) {
+  const triggerButton = root?.querySelector('#home-helmet-signal-trigger');
+  const noSignal = root?.querySelector('#home-no-signal');
+  if (!triggerButton || !noSignal) return null;
+
+  const durationMs = Math.max(1, Number(options.durationMs) || HOME_NO_SIGNAL_DURATION_MS);
+  let active = false;
+  let elapsedMs = durationMs;
+  let resetTimer = null;
+
+  function render() {
+    root.classList.toggle('is-no-signal', active);
+    noSignal.setAttribute('aria-hidden', String(!active));
+  }
+
+  function reset() {
+    active = false;
+    elapsedMs = durationMs;
+    if (resetTimer !== null) clearTimeout(resetTimer);
+    resetTimer = null;
+    render();
+    return true;
+  }
+
+  function trigger(event) {
+    event?.stopPropagation();
+    if (root.dataset.turnState !== 'side') return false;
+    active = true;
+    elapsedMs = 0;
+    if (resetTimer !== null) clearTimeout(resetTimer);
+    resetTimer = setTimeout(reset, durationMs);
+    render();
+    return true;
+  }
+
+  triggerButton.addEventListener('pointerdown', (event) => event.stopPropagation());
+  triggerButton.addEventListener('click', trigger);
+  render();
+
+  return {
+    advance(ms) {
+      if (!active) return false;
+      elapsedMs += Math.max(0, Number(ms) || 0);
+      if (elapsedMs >= durationMs) reset();
+      return active;
+    },
+    getState: () => ({ active, elapsedMs }),
+    reset,
     trigger,
   };
 }
@@ -188,6 +275,7 @@ export function attachHomeHelmetIntro(root, options = {}) {
   const eventTarget = options.eventTarget ?? document;
   const status = root.querySelector('#home-intro-status');
   const mainMenu = root.querySelector('#home-main-menu');
+  const signalTrigger = root.querySelector('#home-helmet-signal-trigger');
   const reducedMotion = options.reducedMotion
     ?? window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     ?? false;
@@ -210,6 +298,7 @@ export function attachHomeHelmetIntro(root, options = {}) {
       mainMenu.toggleAttribute('inert', !menuVisible);
       mainMenu.setAttribute('aria-hidden', String(!menuVisible));
     }
+    if (signalTrigger) signalTrigger.disabled = turnState !== 'side';
     if (status) {
       status.textContent = turnState === 'front'
         ? '頭盔目前面向正前方。'
@@ -276,23 +365,27 @@ if (typeof document !== 'undefined') {
   const intro = attachHomeHelmetIntro(homeRoot);
   if (intro) {
     const enemyShowcase = attachHomeEnemyShowcase(homeRoot);
+    const signalEasterEgg = attachHomeHelmetSignalEasterEgg(homeRoot);
     attachHomeFlashlight(homeRoot);
     attachHomeMapPreview(homeRoot);
     attachHomeMusic(document);
     window.advanceTime = (ms) => {
       intro.advance(ms);
       enemyShowcase?.advance(ms);
+      signalEasterEgg?.advance(ms);
       window.advanceHomePreview?.(ms);
     };
     window.render_game_to_text = () => JSON.stringify({
       coordinateSystem: 'DOM title screen; no gameplay coordinates',
       enemies: enemyShowcase?.getState() ?? [],
       helmet: intro.getState(),
+      noSignal: signalEasterEgg?.getState() ?? { active: false },
       menuVisible: intro.getState().state === 'side',
       interaction: 'pointerdown anywhere turns the helmet; pointer position reveals enemies; clicking an enemy plays its skill',
     });
     window.render_home_enemies_to_text = () => JSON.stringify(enemyShowcase?.getState() ?? []);
     window.triggerHomeEnemySkill = (enemyId) => enemyShowcase?.trigger(enemyId) ?? false;
+    window.triggerHomeNoSignal = () => signalEasterEgg?.trigger() ?? false;
     window.turnHomeHelmet = () => intro.turn();
   }
 }

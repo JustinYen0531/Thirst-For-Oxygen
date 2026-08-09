@@ -5,10 +5,13 @@ import test from 'node:test';
 
 import {
   HOME_ENEMY_SHOWCASE,
+  HOME_ENEMY_SWIM_DURATION_MS,
   HOME_HELMET_TURN_DURATION_MS,
   HOME_HELMET_TURN_FRAME_COUNT,
+  HOME_NO_SIGNAL_DURATION_MS,
   getHomeEnemyAnimationFrames,
   getHomeEnemyFrameIndex,
+  getHomeEnemySwimPosition,
   getHomeHelmetTurnFrame,
 } from '../src/home-page.js';
 import { HOME_PREVIEW_ROUTES } from '../src/home-map-preview.js';
@@ -20,7 +23,7 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   const html = read('../home.html');
 
   assert.match(html, /class="home-abyss-video" autoplay muted loop playsinline/);
-  assert.match(html, /abyss-seafloor-ping-pong-067\.mp4/);
+  assert.match(html, /abyss-seafloor-ping-pong-v2-067\.mp4/);
   assert.match(html, /id="home-intro"/);
   assert.match(html, /helmet-turn-00-front\.png/);
   assert.match(html, /helmet-turn-01\.png/);
@@ -30,6 +33,9 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   assert.match(html, /id="home-main-menu"/);
   assert.match(html, /id="home-enemy-field"/);
   assert.match(html, /id="home-map-preview"/);
+  assert.match(html, /id="home-no-signal"/);
+  assert.match(html, /id="home-helmet-signal-trigger"/);
+  assert.match(html, /Tap anywhere to begin/);
   assert.match(html, /href="\/play\.html"/);
   assert.match(html, /href="\/enemy-encyclopedia\.html"/);
   assert.match(html, /href="\/sandbox\.html"/);
@@ -61,7 +67,7 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.76/);
   assert.match(css, /brightness\(0\.68\)/);
   assert.match(css, /\.home-helmet-stage[\s\S]*scale\(0\.88\)/);
-  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 2vh, 0\) scale\(0\.72\)/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 28vh, 0\) scale\(0\.72\)/);
 });
 
 test('helmet map preview uses all three authored descent maps', () => {
@@ -72,7 +78,8 @@ test('helmet map preview uses all three authored descent maps', () => {
 });
 
 test('background enemies use real six-frame idle and skill animations', () => {
-  assert.equal(HOME_ENEMY_SHOWCASE.length, 3);
+  assert.equal(HOME_ENEMY_SHOWCASE.length, 8);
+  assert.equal(new Set(HOME_ENEMY_SHOWCASE.map((enemy) => enemy.enemyId)).size, 8);
   HOME_ENEMY_SHOWCASE.forEach((enemy) => {
     const idleFrames = getHomeEnemyAnimationFrames(enemy.enemyId);
     const actionFrames = getHomeEnemyAnimationFrames(enemy.enemyId, enemy.actionId);
@@ -85,6 +92,32 @@ test('background enemies use real six-frame idle and skill animations', () => {
   assert.equal(getHomeEnemyFrameIndex(0), 0);
   assert.equal(getHomeEnemyFrameIndex(180), 1);
   assert.equal(getHomeEnemyFrameIndex(1080), 0);
+});
+
+test('eight swimmers remain evenly staggered across the viewport', () => {
+  assert.equal(HOME_ENEMY_SWIM_DURATION_MS, 32000);
+  [0, 4000, 12000, 24000, 31999].forEach((elapsedMs) => {
+    const positions = HOME_ENEMY_SHOWCASE.map((_, index) => (
+      getHomeEnemySwimPosition(elapsedMs, index, HOME_ENEMY_SHOWCASE.length)
+    ));
+    const visibleCount = positions.filter(({ xVw }) => xVw >= -12 && xVw <= 100).length;
+    assert.ok(visibleCount >= 6, `${elapsedMs}ms should retain at least six swimmers, got ${visibleCount}`);
+    const sorted = positions.map(({ progress }) => progress).sort((a, b) => a - b);
+    const gaps = sorted.map((progress, index) => {
+      const next = sorted[(index + 1) % sorted.length] + (index === sorted.length - 1 ? 1 : 0);
+      return Number((next - progress).toFixed(3));
+    });
+    assert.deepEqual(gaps, Array(8).fill(0.125));
+  });
+});
+
+test('helmet no-signal easter egg stays brief and leaves the map underneath', () => {
+  const html = read('../home.html');
+  const css = read('../src/home.css');
+  assert.equal(HOME_NO_SIGNAL_DURATION_MS, 950);
+  assert.match(html, /<canvas id="home-map-preview"[\s\S]*id="home-no-signal"/);
+  assert.match(css, /\.home-helmet-stage[\s\S]*pointer-events: none/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-signal-trigger:not\(:disabled\)[\s\S]*pointer-events: auto/);
 });
 
 test('helmet turn advances through four frames and ends on the side frame', () => {
@@ -110,6 +143,7 @@ test('homepage supports click-anywhere, keyboard input and deterministic text st
   assert.match(page, /attachHomeMusic\(document\)/);
   assert.match(page, /eventTarget\.addEventListener\('pointermove'/);
   assert.match(page, /window\.triggerHomeEnemySkill/);
+  assert.match(page, /window\.triggerHomeNoSignal/);
   assert.match(css, /mask-image: radial-gradient\(circle 250px at var\(--flashlight-x\) var\(--flashlight-y\)/);
   assert.match(css, /@keyframes helmet-frame-front/);
   assert.match(css, /@keyframes helmet-frame-one/);
@@ -117,5 +151,6 @@ test('homepage supports click-anywhere, keyboard input and deterministic text st
   assert.match(css, /@keyframes helmet-frame-side/);
   assert.match(css, /@keyframes home-menu-reveal/);
   assert.match(css, /@keyframes home-map-lens-reveal/);
-  assert.match(css, /@keyframes home-enemy-drift/);
+  assert.match(css, /@keyframes home-no-signal-static/);
+  assert.match(css, /@keyframes home-tap-pulse/);
 });

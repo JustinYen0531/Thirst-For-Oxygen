@@ -8,7 +8,7 @@
   </head>
   <body>
     <video class="home-abyss-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
-      <source src="/assets/home/abyss-seafloor-ping-pong-067.mp4" type="video/mp4" />
+      <source src="/assets/home/abyss-seafloor-ping-pong-v2-067.mp4" type="video/mp4" />
     </video>
 
     <main
@@ -49,11 +49,22 @@
         <div class="home-helmet-map-lens" aria-label="頭盔面罩中的正式遊戲地圖巡覽">
           <canvas id="home-map-preview" width="720" height="760" aria-label="下沉篇第一至第三部分地圖巡覽"></canvas>
           <div class="home-map-reflection" aria-hidden="true"></div>
+          <div class="home-no-signal" id="home-no-signal" aria-hidden="true">
+            <span>NO SIGNAL</span>
+          </div>
           <p class="home-preview-loading" id="home-preview-loading">正在讀取遊戲地圖…</p>
           <span id="home-preview-part" hidden>第一部分｜深海森林入口</span>
           <span id="home-preview-direction" hidden>自動下潛</span>
           <button id="home-preview-toggle" type="button" hidden>Ⅱ 暫停巡覽</button>
         </div>
+
+        <button
+          class="home-helmet-signal-trigger"
+          id="home-helmet-signal-trigger"
+          type="button"
+          aria-label="敲一下頭盔面罩"
+          disabled
+        ></button>
 
       </div>
 
@@ -68,6 +79,7 @@
           <a class="home-menu-link" href="/"><span>04</span><strong>地圖編輯器</strong></a>
         </nav>
       </section>
+      <p class="home-tap-prompt" id="home-tap-prompt">Tap anywhere to begin</p>
       <span class="visually-hidden" id="home-intro-status">頭盔目前面向正前方。</span>
     </main>
 
