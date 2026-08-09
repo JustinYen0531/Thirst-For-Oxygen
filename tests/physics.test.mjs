@@ -37,6 +37,7 @@ import {
   drainAimEnergy,
   getLaunchCosts,
   getLaunchSpeed,
+  getOxygenDrainPerSecond,
   getOxygenSecondsRemaining,
   launchActor,
   getMicroflowAcceleration,
@@ -801,11 +802,19 @@ test('passive recovery and shield thresholds are numerical gameplay rules', () =
 test('all four passive abilities apply their authored gameplay effects', () => {
   const oxygenStats = getPlayerDerivedStats([{ id: 'oxygenCirculator', level: 3 }], 55);
   assert.equal(oxygenStats.maxOxygen, 120);
+  assert.equal(oxygenStats.oxygenDrainMultiplier, 0.9);
+  assert.equal(oxygenStats.launchEnergyCostMultiplier, 0.7);
+  assert.equal(oxygenStats.weaponEnergyCostMultiplier, 0.7);
   assert.equal(oxygenStats.lowOxygenDamageTakenMultiplier, 0.85);
   const oxygenActor = createTestActor();
   oxygenActor.derivedStats = oxygenStats;
   oxygenActor.oxygen = 55;
   assert.equal(applyDamage(oxygenActor, 20, 'low-oxygen test').applied, 17);
+  const oxygenHealthyStats = getPlayerDerivedStats([{ id: 'oxygenCirculator', level: 3 }], 80);
+  assert.equal(oxygenHealthyStats.launchEnergyCostMultiplier, 1, '氧氣高於一半時不應取得低氧體力減耗');
+  const oxygenDrainActor = createTestActor();
+  oxygenDrainActor.derivedStats = getPlayerDerivedStats([{ id: 'oxygenCirculator', level: 1 }], 100);
+  assert.equal(getOxygenDrainPerSecond(oxygenDrainActor), OXYGEN_DRAIN_PER_SECOND * 0.9);
 
   const pressureStats = getPlayerDerivedStats([{ id: 'pressureStabilizer', level: 3 }]);
   const pressureActor = createTestActor();

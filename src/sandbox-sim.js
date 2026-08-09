@@ -469,19 +469,20 @@ function spawnSkillProjectiles(state, enemy, skill, type = skill.type) {
   }
 }
 
-function shouldTelegraphSkill(skill) {
+function shouldTelegraphSkill(skill, minimumCast = false) {
   if (!skill) return false;
   if (skill.type === 'lobbed' || skill.type === 'suicideCharge' || skill.id === 'beaconAssault') return false;
-  return Number(skill.castTime ?? skill.telegraph ?? 0) > 0;
+  return Number(skill.castTime ?? skill.telegraph ?? 0) > 0 || (minimumCast && Number(skill.damage ?? 0) > 0);
 }
 
-function skillCastDuration(skill) {
-  return Math.max(0, Number(skill.castTime ?? skill.telegraph ?? 0));
+function skillCastDuration(skill, minimumCast = false) {
+  const authored = Math.max(0, Number(skill.castTime ?? skill.telegraph ?? 0));
+  return authored > 0 ? authored : minimumCast && Number(skill.damage ?? 0) > 0 ? 0.32 : 0;
 }
 
-function startEnemySkillCast(state, enemy, skill) {
-  const duration = skillCastDuration(skill);
-  if (!shouldTelegraphSkill(skill) || duration <= 0) return false;
+function startEnemySkillCast(state, enemy, skill, { minimumCast = false } = {}) {
+  const duration = skillCastDuration(skill, minimumCast);
+  if (!shouldTelegraphSkill(skill, minimumCast) || duration <= 0) return false;
   enemy.pendingSkill = {
     skillId: skill.id,
     remaining: duration,
@@ -782,7 +783,7 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   }
   if (!options.resolve) enemy.cooldowns[skill.id] = (skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy);
   setAnimation(enemy, skill.id, state.time);
-  if (!options.resolve && startEnemySkillCast(state, enemy, skill)) {
+  if (!options.resolve && startEnemySkillCast(state, enemy, skill, { minimumCast: options.minimumCast })) {
     return { ok: true, pending: true, enemy: enemy.instanceId, skill: skill.id };
   }
   const distance = distanceBetween(enemy, state.actor);
@@ -1554,6 +1555,12 @@ function updateProjectiles(state, dt) {
             logEvent(state, `${enemyDefinition(hit).name} 被三叉戟 Lv.${projectile.weaponLevel ?? 1} 暈眩 ${projectile.stunDuration.toFixed(1)} 秒。`, 'safe');
           }
           addTridentImpactEffect(state, projectile, hit);
+          const cooldownReduction = Math.max(0, Number(projectile.visual?.cooldownReductionOnHit ?? 0));
+          if (cooldownReduction > 0) {
+            const cooldownKey = 'weapon:trident';
+            state.actor.cooldowns[cooldownKey] = Math.max(0, (state.actor.cooldowns[cooldownKey] ?? 0) - cooldownReduction);
+            logEvent(state, `三叉戟 Lv.${projectile.weaponLevel ?? 1} 命中：下次發射提前 ${cooldownReduction.toFixed(2)} 秒。`, 'safe');
+          }
         }
         return false;
       }
@@ -1663,43 +1670,21 @@ function processKnifeMovementEffect(state, previousPosition) {
 function processPlayerEnemyCollisions(state, previousPosition = state.actor) {
   const actor = state.actor;
   const speed = Math.hypot(actor.vx, actor.vy);
-  if (speed < 18 || !state.build?.weaponId) return;
-  const weapon = getWeaponStats(state.build.weaponId, state.build.weaponLevel);
-  const isKnife = state.build.weaponId === 'knife';
-  const isKatana = state.build.weaponId === 'katana';
+  const knifeEntry = getEquippedWeaponEntry(state, 'knife');
+  if (speed < 18 || !knifeEntry) return;
+  const weapon = getWeaponStats('knife', knifeEntry.level);
   const pathStart = previousPosition ?? actor;
   const pathEnd = { x: actor.x, y: actor.y };
   activeEnemies(state).forEach((enemy) => {
     const contact = distanceBetween(actor, enemy) <= actor.radius + enemy.radius;
-    const pathHit = (isKnife || isKatana) && distanceToSegment(enemy, pathStart, pathEnd) <= actor.radius + enemy.radius + 8;
+    const pathHit = distanceToSegment(enemy, pathStart, pathEnd) <= actor.radius + enemy.radius + 8;
     if (!contact && !pathHit) return;
     if (state.time < (enemy.playerHitCooldownUntil ?? 0)) return;
-    if (isKatana) {
-      const cooldownKey = 'weapon:katana';
-      if ((actor.cooldowns[cooldownKey] ?? 0) > 0) return;
-      const result = performKatanaSlash(state, weapon, enemy);
-      actor.cooldowns[cooldownKey] = weapon.cooldown ?? 0;
-      if (result.hit) logEvent(state, `武士刀 Lv.${state.build.weaponLevel} 彈射接近後順時針揮刀命中。`, 'safe');
-      enemy.playerHitCooldownUntil = state.time + 0.28;
-      return;
-    }
-    damageEnemy(state, enemy, weapon.damage, `彈射撞擊・${WEAPONS[state.build.weaponId].name}`);
+    damageEnemy(state, enemy, weapon.damage, `移動路徑・${WEAPONS.knife.name}`);
     enemy.playerHitCooldownUntil = state.time + 0.28;
-    if (isKnife) {
-      const swipe = knifeSwipeSegment(state, weapon, enemy);
-      addKnifeMeteorEffects(state, weapon, swipe.start, swipe.end);
-      if (weapon.effect?.sideTrailDamageMultiplier) applyKnifeSideTrailDamage(state, weapon, swipe.start, swipe.end, enemy.instanceId);
-      addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
-      return;
-    }
-    const length = distanceBetween(actor, enemy) || 1;
-    const normalX = (actor.x - enemy.x) / length;
-    const normalY = (actor.y - enemy.y) / length;
-    const normalVelocity = actor.vx * normalX + actor.vy * normalY;
-    actor.vx = (actor.vx - 2 * normalVelocity * normalX) * 0.62;
-    actor.vy = (actor.vy - 2 * normalVelocity * normalY) * 0.62;
-    actor.x = enemy.x + normalX * (actor.radius + enemy.radius + 1);
-    actor.y = enemy.y + normalY * (actor.radius + enemy.radius + 1);
+    const swipe = knifeSwipeSegment(state, { ...weapon, level: knifeEntry.level }, enemy);
+    addKnifeMeteorEffects(state, weapon, swipe.start, swipe.end);
+    if (weapon.effect?.sideTrailDamageMultiplier) applyKnifeSideTrailDamage(state, weapon, swipe.start, swipe.end, enemy.instanceId);
     addEffect(state, { type: 'playerHit', x: enemy.x, y: enemy.y, radius: enemy.radius + 12, duration: 0.28, colour: '#f6e66d' });
   });
 }
@@ -1796,7 +1781,7 @@ function attemptContactAttack(state, enemy) {
   const distance = distanceBetween(enemy, state.actor);
   const reach = (skill.range ?? skill.radius ?? 44) + enemy.radius + state.actor.radius;
   if (distance > reach) return;
-  const result = executeEnemySkill(state, enemy.instanceId, skill.id);
+  const result = executeEnemySkill(state, enemy.instanceId, skill.id, { minimumCast: true });
   if (result.ok) enemy.contactAttackCooldownUntil = state.time + Math.max((skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy), 0.38);
 }
 

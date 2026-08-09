@@ -14,6 +14,8 @@ export const PLAYER_BASE_STATS = Object.freeze({
   weaponEnergyCostMultiplier: 1,
   aimEnergyCostMultiplier: 1,
   maxOxygenMultiplier: 1,
+  oxygenDrainMultiplier: 1,
+  lowOxygenEnergyCostMultiplier: 1,
   damageMultiplier: 1,
   rangedDamageTakenMultiplier: 1,
   lowOxygenDamageTakenMultiplier: 1,
@@ -32,9 +34,9 @@ export const PASSIVE_ABILITIES = Object.freeze({
     name: '氧循環器',
     maxLevel: 3,
     levels: {
-      1: { maxOxygenMultiplier: 1.1 },
+      1: { oxygenDrainMultiplier: 0.9 },
       2: { maxOxygenMultiplier: 1.2 },
-      3: { launchEnergyCostMultiplier: 0.7, weaponEnergyCostMultiplier: 0.7, lowOxygenDamageTakenMultiplier: 0.85 },
+      3: { lowOxygenEnergyCostMultiplier: 0.7, lowOxygenDamageTakenMultiplier: 0.85 },
     },
   },
   pressureStabilizer: {
@@ -305,8 +307,7 @@ export const WEAPONS = Object.freeze({
         range: 420,
         cooldown: 0.54,
         energyCost: 6,
-        projectileCount: 3,
-        spreadDegrees: 12,
+        projectileCount: 1,
         effect: {
           style: 'tridentProjectile',
           sprite: '/assets/editor/weapons/trident.png',
@@ -321,6 +322,7 @@ export const WEAPONS = Object.freeze({
           impactDuration: 0.82,
           impactRingCount: 3,
           stunDuration: 2.4,
+          cooldownReductionOnHit: 0.27,
           stationaryDelay: 1,
           stationarySpeedThreshold: 12,
         },
@@ -500,9 +502,13 @@ export function getWeaponUseCost(weaponId = 'knife', level = 1, loadout = []) {
 export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxygen) {
   const modifiers = getPassiveModifiers(loadout);
   const maxOxygen = RESOURCE_LIMITS.oxygen * modifiers.maxOxygenMultiplier;
+  const lowOxygen = oxygen < maxOxygen * 0.5;
+  const conditionalEnergyMultiplier = lowOxygen ? modifiers.lowOxygenEnergyCostMultiplier : 1;
   return {
     ...modifiers,
     maxOxygen,
+    launchEnergyCostMultiplier: modifiers.launchEnergyCostMultiplier * conditionalEnergyMultiplier,
+    weaponEnergyCostMultiplier: modifiers.weaponEnergyCostMultiplier * conditionalEnergyMultiplier,
     currentDamageMultiplier: modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
   };
 }

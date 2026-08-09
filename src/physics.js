@@ -97,13 +97,13 @@ function maxOxygenFor(actor) {
 }
 
 export function getOxygenDrainPerSecond(actor) {
-  return maxOxygenFor(actor) / OXYGEN_DURATION_SECONDS;
+  return (maxOxygenFor(actor) / OXYGEN_DURATION_SECONDS) * (actor?.derivedStats?.oxygenDrainMultiplier ?? 1);
 }
 
 export function getOxygenSecondsRemaining(actor) {
-  const maximum = maxOxygenFor(actor);
-  if (maximum <= 0) return 0;
-  return clamp((actor.oxygen / maximum) * OXYGEN_DURATION_SECONDS, 0, OXYGEN_DURATION_SECONDS);
+  const drainPerSecond = getOxygenDrainPerSecond(actor);
+  if (drainPerSecond <= 0) return 0;
+  return Math.max(0, actor.oxygen / drainPerSecond);
 }
 
 function clamp(value, min, max) {

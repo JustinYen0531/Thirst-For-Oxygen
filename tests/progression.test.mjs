@@ -316,6 +316,19 @@ test('sandbox enemies chase the diver and deal contact damage', () => {
   assert.ok(['chasing', 'attacking'].includes(enemy.state));
 });
 
+test('sandbox melee overlap starts a visible cast before dealing damage', () => {
+  const state = createSandboxState();
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x, y: state.actor.y }, { moveSpeed: 0 });
+
+  stepSandbox(state, 1 / 60);
+  assert.equal(state.actor.health, 100, '碰到敵人本體的第一幀不得直接受傷');
+  assert.equal(enemy.state, 'casting');
+  assert.ok(enemy.pendingSkill?.remaining > 0);
+
+  stepSandbox(state, 0.32);
+  assert.ok(state.actor.health < 100, '只有技能讀條完成後才能造成近戰傷害');
+});
+
 test('telegraphed enemy skills resolve after their authored cast window', () => {
   const state = createSandboxState();
   const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 60, y: state.actor.y }, { moveSpeed: 0 });
@@ -501,7 +514,7 @@ test('stationary trident waits one second before auto-firing and resets its char
   assert.equal(state.actor.tridentStationaryTime, 0);
 });
 
-test('trident level two stuns on hit and level three fires a three-projectile burst', () => {
+test('trident level two stuns and level three stays single-shot while shortening cooldown on hit', () => {
   const levelTwo = createSandboxState();
   setSandboxBuild(levelTwo, { weaponId: 'trident', weaponLevel: 2 });
   const stunnedEnemy = spawnSandboxEnemy(levelTwo, 'crabGuard', { x: levelTwo.actor.x + 90, y: levelTwo.actor.y }, { moveSpeed: 0 });
@@ -513,12 +526,14 @@ test('trident level two stuns on hit and level three fires a three-projectile bu
 
   const levelThree = createSandboxState();
   setSandboxBuild(levelThree, { weaponId: 'trident', weaponLevel: 3 });
+  spawnSandboxEnemy(levelThree, 'crabGuard', { x: levelThree.actor.x + 90, y: levelThree.actor.y }, { moveSpeed: 0, health: 1000, maxHealth: 1000 });
 
   assert.equal(playerAttack(levelThree).ok, true);
-  assert.equal(levelThree.projectiles.length, 3);
-  assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.weaponId)).size, 1);
-  assert.equal(new Set(levelThree.projectiles.map((projectile) => projectile.angle)).size, 3);
-  assert.ok(levelThree.projectiles.every((projectile) => projectile.weaponLevel === 3));
+  assert.equal(levelThree.projectiles.length, 1);
+  assert.equal(levelThree.projectiles[0].weaponLevel, 3);
+  const cooldownBeforeHit = levelThree.actor.cooldowns['weapon:trident'];
+  stepSandbox(levelThree, 0.3);
+  assert.ok(levelThree.actor.cooldowns['weapon:trident'] < Math.max(0, cooldownBeforeHit - 0.3), '命中應額外縮短下一次發射冷卻');
 });
 
 test('light machine gun fires six rounds on one locked aim direction and charges energy once', () => {
@@ -731,6 +746,25 @@ test('sandbox can activate each authored weapon slot instead of only the knife',
     assert.equal(state.build.weaponLevel, level);
     assert.deepEqual(state.actor.activeWeapon, { id, level });
   });
+});
+
+test('sandbox knife path damage follows the equipped build instead of the focused weapon slot', () => {
+  const state = createSandboxState();
+  setSandboxBuild(state, {
+    weapons: [
+      { id: 'knife', level: 1 },
+      { id: 'lightMachineGun', level: 2 },
+    ],
+    activeWeaponSlot: 1,
+  });
+  const enemy = spawnSandboxEnemy(state, 'crabGuard', { x: state.actor.x + 36, y: state.actor.y }, { moveSpeed: 0, health: 1000, maxHealth: 1000 });
+  state.actor.vx = 240;
+  const healthBefore = enemy.health;
+
+  stepSandbox(state, 0.2);
+
+  assert.ok(enemy.health < healthBefore, '焦點在機槍時，已裝備的小刀仍應造成移動路徑傷害');
+  assert.ok(state.actor.vx > 0, '小刀是穿透傷害，不能把玩家反彈回去');
 });
 
 test('sandbox direct weapon test fires every equipped slot together', () => {
