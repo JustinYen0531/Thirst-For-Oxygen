@@ -121,7 +121,7 @@ test('powerful Boss Resonance buffs use three micro-stacks while preserving thei
   assert.equal(render.buffs[0].stacks, 3);
   assert.equal(render.buffs[0].maxStacks, 3);
   const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
-  assert.ok(Math.abs(stats.currentDamageMultiplier - 1.1) < 1e-9);
+  assert.ok(Math.abs(stats.currentDamageMultiplier - 0.6 * 1.1) < 1e-9);
   assert.equal(stats.resonanceDamageTakenMultiplier, 0.96);
 });
 
@@ -134,7 +134,7 @@ test('unlocked buffs are applied from a fresh base without compounding each fram
   const first = applyResonanceBuffsToStats(base, state);
   const second = applyResonanceBuffsToStats(base, state);
   assert.ok(Math.abs(first.maxOxygen - 100 * Math.cbrt(1.08)) < 1e-9);
-  assert.ok(Math.abs(first.currentDamageMultiplier - Math.cbrt(1.06)) < 1e-9);
+  assert.ok(Math.abs(first.currentDamageMultiplier - 0.6 * Math.cbrt(1.06)) < 1e-9);
   assert.ok(Math.abs(first.oxygenDrainMultiplier - Math.cbrt(0.94)) < 1e-9);
   assert.deepEqual(second, first);
 });

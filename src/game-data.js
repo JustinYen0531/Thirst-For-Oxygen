@@ -38,6 +38,8 @@ export function getEnemyProjectileSpeed(speed) {
   return Math.max(0, Number(speed) || 0) * ENEMY_DAMAGE_BALANCE.projectileSpeedMultiplier;
 }
 
+export const PLAYER_OUTGOING_DAMAGE_MULTIPLIER = 0.6;
+
 export const PLAYER_BASE_STATS = Object.freeze({
   launchEnergyCostMultiplier: 1,
   weaponEnergyCostMultiplier: 1,
@@ -541,7 +543,7 @@ export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxy
     maxOxygen,
     launchEnergyCostMultiplier: modifiers.launchEnergyCostMultiplier * conditionalEnergyMultiplier,
     weaponEnergyCostMultiplier: modifiers.weaponEnergyCostMultiplier * conditionalEnergyMultiplier,
-    currentDamageMultiplier: modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
+    currentDamageMultiplier: PLAYER_OUTGOING_DAMAGE_MULTIPLIER * modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
   };
 }
 
