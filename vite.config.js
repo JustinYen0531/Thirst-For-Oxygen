@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
+import { createEditorMapApiPlugin } from './scripts/editor-map-api.mjs';
 
 export default defineConfig({
+  plugins: [createEditorMapApiPlugin()],
   build: {
     rollupOptions: {
       input: {

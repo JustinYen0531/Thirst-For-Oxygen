@@ -1061,3 +1061,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 更正 Step 126 的錯誤判斷並完整恢復既有 Part 1 進場演出：Attempt 顯示、HUD 慢慢淡入、三次眨眼、最後睜眼與演出結束後解除操作鎖定均保留，不再刪除先前完成的功能。
 - 真正的崩潰原因是 `drawActor()` 誤用未宣告的 `PLAYER_ASSETS`；地形畫完後執行到玩家便拋出 `ReferenceError`，因此玩家、後續眨眼遮罩與下一幀排程全部消失。現已改回實際匯入的 `PLAYER_ANIMATION_ASSETS`。
 - 新增玩家繪製資產名稱回歸，明確禁止 `PLAYER_ASSETS[animationState]` 再出現；相關測試 31/31、完整 `npm run check` 283/283、Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Step 128 complete
+
+- 地圖編輯器不再顯示 Play 專用的氧氣、能量、生命值與 Attempts HUD；HUD 的正式遊戲程式與素材保留，只有編輯器畫布強制隱藏，蓋圖時不再被面罩遮住。
+- 編輯器新增「目前遊玩地圖」清單，可直接載入下沉篇第一、二、三部分；載入後修改並按「儲存並套用到遊戲」，會覆寫 Play 實際讀取的同一份 JSON 地圖。
+- 本機 Vite 開發伺服器新增受限制的地圖儲存入口，只允許三個既定地圖代號，拒絕任意檔名與路徑；匯入一般 JSON 或重設空白地圖後，不可直接覆寫正式遊玩地圖。
+- 地圖編輯器專用測試 5/5、雙語測試 4/4、完整 `npm run check`、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。

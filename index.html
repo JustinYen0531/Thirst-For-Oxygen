@@ -37,6 +37,18 @@
           <p class="hint" data-i18n="tools.hint">Change water-object positioning below the eraser in the asset palette. Attach edge objects by clicking the shared hex edge.</p>
 
           <h2 data-i18n="map.heading">Map</h2>
+          <label for="official-map-select" data-i18n="map.official.heading">Playable Map</label>
+          <select id="official-map-select">
+            <option value="" data-i18n="map.official.choose">Choose a playable map…</option>
+            <option value="descent-1" data-i18n="map.official.part1">Descent · Part 1</option>
+            <option value="descent-2" data-i18n="map.official.part2">Descent · Part 2</option>
+            <option value="descent-3" data-i18n="map.official.part3">Descent · Part 3</option>
+          </select>
+          <div class="official-map-actions">
+            <button id="load-official-map" type="button" data-i18n="map.official.load" disabled>Load Playable Map</button>
+            <button id="save-official-map" type="button" data-i18n="map.official.save" disabled>Save &amp; Apply to Game</button>
+          </div>
+          <p class="hint official-map-help" data-i18n="map.official.help">Load the map currently used by Play. Saving overwrites that playable map when the editor is running locally.</p>
           <label for="chapter-select" data-i18n="map.chapter">Chapter State</label>
           <select id="chapter-select">
             <option value="chapter1" data-i18n="map.chapter1">Chapter 1: Descent</option>

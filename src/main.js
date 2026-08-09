@@ -89,6 +89,7 @@ import {
   translateEditorText,
   translateEditorTree,
 } from './i18n-editor.js';
+import { attachEditorPlayableMapControls } from './editor-map-library.js';
 import { attachMenuMusic } from './music.js';
 
 applyEditorTranslations(document);
@@ -465,6 +466,41 @@ function saveLocal() {
   dirtyMessageKey = 'dirty.saved';
   dirtyIndicator.textContent = editorT(dirtyMessageKey);
   setStatus('已儲存地圖到本機。');
+}
+
+function loadPlayableMapIntoEditor(nextMap) {
+  state.map = normalizeMapObjectSizes(migrateMapToOddR(nextMap));
+  state.mode = 'edit';
+  state.pan = { x: 0, y: 0 };
+  state.zoom = DEFAULT_ZOOM;
+  syncCanvasGeometry(state.map, state.zoom);
+  state.origin = calculateMapOrigin(state.map, state.zoom, state.pan);
+  zoomSlider.value = String(state.zoom);
+  zoomValue.textContent = `${Math.round(state.zoom * 100)}%`;
+  state.chapter = 'chapter1';
+  chapterSelect.value = state.chapter;
+  state.selectedCellKey = null;
+  state.selectedEdgeKey = null;
+  state.selectedMapObject = null;
+  state.connection = null;
+  state.portalConnection = null;
+  state.events = [];
+  state.validation = validateMap(state.map);
+  state.actor = createTestActor(findPlayerStart(state.map, state.chapter, state.origin));
+  state.dirty = false;
+  dirtyMessageKey = 'dirty.officialLoaded';
+  dirtyIndicator.textContent = editorT(dirtyMessageKey);
+  render();
+}
+
+function getValidatedPlayableMap() {
+  state.validation = validateMap(state.map);
+  const errors = state.validation.filter((result) => result.level === 'error');
+  if (errors.length) {
+    render();
+    throw new Error(editorT('map.official.invalid', { count: errors.length }));
+  }
+  return state.map;
 }
 
 function createToolButtons() {
@@ -2868,7 +2904,18 @@ document.querySelector('#fullscreen').addEventListener('click', async () => {
   if (document.fullscreenElement) await document.exitFullscreen();
   else await canvas.requestFullscreen();
 });
+const playableMapControls = attachEditorPlayableMapControls(document, {
+  applyMap: loadPlayableMapIntoEditor,
+  getMap: getValidatedPlayableMap,
+  onSaved() {
+    state.dirty = false;
+    dirtyMessageKey = 'dirty.officialSaved';
+    dirtyIndicator.textContent = editorT(dirtyMessageKey);
+  },
+  setStatus,
+});
 document.querySelector('#demo-map').addEventListener('click', () => {
+  playableMapControls?.clearCurrentMap();
   state.map = createBlankMap();
   state.pan = { x: 0, y: 0 };
   state.zoom = DEFAULT_ZOOM;
@@ -2909,6 +2956,7 @@ document.querySelector('#import-map').addEventListener('change', async (event) =
   try {
     const parsed = JSON.parse(await file.text());
     if (!parsed?.cells || !parsed?.edges || !parsed?.chapterStates) throw new Error('格式缺少 cells、edges 或 chapterStates');
+    playableMapControls?.clearCurrentMap();
     state.map = normalizeMapObjectSizes(migrateMapToOddR(parsed));
     state.pan = { x: 0, y: 0 };
     syncCanvasGeometry(state.map, state.zoom);

@@ -38,6 +38,8 @@ h2 { margin-bottom: 8px; font-size: 15px; }
 .map-viewport { height: min(70vh, 680px); min-height: 280px; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; border: 1px solid #385a81; border-radius: 6px; background: #091423; }
 .canvas-stage { position: relative; width: 100%; }
 canvas { display: block; width: 100%; height: auto; border: 0; border-radius: 0; cursor: crosshair; touch-action: none; background: #091423; }
+.canvas-stage > .visor-hud,
+.canvas-stage > .hud-attempts { display: none !important; }
 canvas.is-pan-ready { cursor: grab; }
 canvas.is-panning { cursor: grabbing; }
 canvas.is-connecting { cursor: crosshair; }
@@ -62,6 +64,10 @@ canvas.is-portal-connecting { cursor: alias; }
 .zoom-control output { min-width: 38px; color: #f6e66d; text-align: right; }
 .button-stack { display: grid; gap: 6px; }
 .button-stack.spaced { margin-top: 8px; }
+.official-map-actions { display: grid; gap: 6px; margin-top: 7px; }
+.official-map-actions button { font-size: 12px; }
+.official-map-actions button:disabled { cursor: not-allowed; opacity: 0.45; }
+.official-map-help { padding-bottom: 8px; border-bottom: 1px solid #223c5d; }
 .hint { margin-top: 9px; color: #8ea7c2; font-size: 12px; line-height: 1.45; }
 .placement-control { min-width: 0; margin: 0; padding: 7px; border: 1px solid #385a81; border-radius: 5px; }
 .placement-control:disabled { opacity: 0.48; }
