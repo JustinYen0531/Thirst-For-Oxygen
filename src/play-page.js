@@ -65,6 +65,7 @@ import {
   choosePlayUpgrade,
   choosePlayUpgradeCategory,
   createPlayCombatState,
+  getPlayCombatHudState,
   getPlayCombatRenderState,
   recordPlayEnemyDefeats,
   stepPlayCombat,
@@ -95,6 +96,12 @@ import {
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
 import { PLAY_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
+import {
+  createPlayRenderIndex,
+  createPlayUpdateGate,
+  getVisiblePlayCells,
+  getVisiblePlayEdges,
+} from './play-performance.js';
 
 const MAP_ROUTES = Object.freeze({
   descent: Object.freeze({
@@ -172,6 +179,10 @@ let mapPart = 1;
 let origin = { x: 40, y: 40 };
 let mapBounds = null;
 let physicsBounds = null;
+let renderIndex = null;
+let visibleRenderCells = [];
+let visibleRenderEdges = [];
+let visibleRenderKey = '';
 let actor = null;
 let spawn = null;
 let enemies = [];
@@ -212,6 +223,11 @@ let katanaState = createPlayKatanaState(1);
 let transitioning = false;
 let runCompleted = false;
 let awakeningState = createPlayAwakeningState({ enabled: false });
+let backgroundLayer = null;
+let renderClock = 0;
+let hudSlotSignature = '';
+let eventLogMarkup = '';
+const hudUpdateGate = createPlayUpdateGate(50);
 
 function getMapDefinition(arc = mapArc, part = mapPart) {
   return MAP_ROUTES[arc]?.[part] ?? null;
@@ -231,7 +247,7 @@ function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function enemySpriteScaleX(facing) { return facing === 'left' ? 1 : -1; }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
 function cellCenter(key) { return getHexCenter(getActiveCell(map, key, 'chapter1'), origin); }
-function hexPath(ctx, cell, pad = 0) { const center = getHexCenter(cell, origin); const vertices = getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
+function hexPath(ctx, cell, pad = 0, geometry = null) { const center = geometry?.center ?? getHexCenter(cell, origin); const vertices = geometry?.vertices ?? getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
 function silhouetteFilter(colour, radius) {
   return `drop-shadow(${radius}px 0 0 ${colour}) drop-shadow(${-radius}px 0 0 ${colour}) drop-shadow(0 ${radius}px 0 ${colour}) drop-shadow(0 ${-radius}px 0 ${colour})`;
 }
@@ -298,6 +314,8 @@ function syncKatanaState() {
 function setupWorld(nextMap, { previousActor = null } = {}) {
   map = nextMap;
   origin = { x: 36, y: 36 };
+  renderIndex = createPlayRenderIndex(map, origin);
+  visibleRenderKey = '';
   mapBounds = getOddRRectangularBounds(map, origin);
   physicsBounds = { minX: mapBounds.left + 7, maxX: mapBounds.right - 7, minY: mapBounds.top + 8, maxY: mapBounds.bottom - 8 };
   spawn = chooseSpawn(map);
@@ -338,6 +356,8 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
   updateAwakeningPresentation();
   updateCamera();
+  updateVisibleRenderEntries(true);
+  hudUpdateGate.reset();
   updateHud();
   loadingMask.classList.add('is-hidden');
 }
@@ -394,20 +414,44 @@ function updateCamera() {
   cameraReadout.textContent = `主角 60% 錨點 · ${camera.edgeX}`;
 }
 
-function renderBackground() {
-  const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-  gradient.addColorStop(0, '#0c3155'); gradient.addColorStop(.5, '#061a31'); gradient.addColorStop(1, '#030e1d');
-  context.fillStyle = gradient; context.fillRect(0, 0, canvas.width, canvas.height);
-  context.save(); context.globalAlpha = .13; context.strokeStyle = '#6ee8ff'; context.lineWidth = 1;
-  for (let x = -canvas.height; x < canvas.width + canvas.height; x += 88) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x - canvas.height * .25, canvas.height); context.stroke(); }
-  context.restore();
+function updateVisibleRenderEntries(force = false) {
+  if (!renderIndex) return;
+  const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
+  const bucketSize = 8;
+  const indexedCamera = {
+    x: Math.floor(camera.x / bucketSize) * bucketSize,
+    y: Math.floor(camera.y / bucketSize) * bucketSize,
+  };
+  const key = `${indexedCamera.x}:${indexedCamera.y}:${viewport.width}:${viewport.height}`;
+  if (!force && key === visibleRenderKey) return;
+  visibleRenderKey = key;
+  visibleRenderCells = getVisiblePlayCells(renderIndex, indexedCamera, viewport, 56);
+  visibleRenderEdges = getVisiblePlayEdges(renderIndex, indexedCamera, viewport, 60);
 }
 
-function renderCell(cell, key) {
-  const center = getHexCenter(cell, origin);
-  if (center.y < camera.y - 40 || center.y > camera.y + canvas.height / SCALE + 40) return;
+function buildBackgroundLayer() {
+  const layer = document.createElement('canvas');
+  layer.width = canvas.width;
+  layer.height = canvas.height;
+  const layerContext = layer.getContext('2d');
+  const gradient = layerContext.createLinearGradient(0, 0, layer.width, layer.height);
+  gradient.addColorStop(0, '#0c3155'); gradient.addColorStop(.5, '#061a31'); gradient.addColorStop(1, '#030e1d');
+  layerContext.fillStyle = gradient; layerContext.fillRect(0, 0, layer.width, layer.height);
+  layerContext.save(); layerContext.globalAlpha = .13; layerContext.strokeStyle = '#6ee8ff'; layerContext.lineWidth = 1;
+  for (let x = -layer.height; x < layer.width + layer.height; x += 88) { layerContext.beginPath(); layerContext.moveTo(x, 0); layerContext.lineTo(x - layer.height * .25, layer.height); layerContext.stroke(); }
+  layerContext.restore();
+  return layer;
+}
+
+function renderBackground() {
+  if (!backgroundLayer || backgroundLayer.width !== canvas.width || backgroundLayer.height !== canvas.height) backgroundLayer = buildBackgroundLayer();
+  context.drawImage(backgroundLayer, 0, 0);
+}
+
+function renderCell(cell, key, geometry = null) {
+  const center = geometry?.center ?? getHexCenter(cell, origin);
   context.save();
-  hexPath(context, cell);
+  hexPath(context, cell, 0, geometry);
   context.clip();
   drawImage(activeTilePath(cell), center.x, center.y, TILE_SIZE * 1.78, TILE_SIZE * 2.03, cell.terrain === 'blocked' ? .98 : .86);
   if (cell.waterLayer === 'T2' && cell.terrain !== 'blocked') { context.fillStyle = 'rgba(11, 16, 49, .24)'; context.fillRect(center.x - TILE_SIZE, center.y - TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2); }
@@ -419,7 +463,7 @@ function renderCell(cell, key) {
   context.restore();
   if (cell.conditionalGate && !cell.conditionalGate.opened) {
     context.save();
-    hexPath(context, cell, 1.3);
+    hexPath(context, cell, 1.3, geometry);
     context.strokeStyle = CONDITIONAL_GATE_GUIDE.colour;
     context.lineWidth = 1.15;
     context.shadowColor = CONDITIONAL_GATE_GUIDE.colour;
@@ -433,7 +477,7 @@ function renderCell(cell, key) {
 
 function drawWaterMotion(cell, center) {
   const phase = cell.q * 1.71 + cell.r * 0.93;
-  const time = performance.now() / 1000;
+  const time = renderClock;
   const pulse = 0.5 + Math.sin(time * 0.8 + phase) * 0.5;
   const intensity = 5;
   context.save();
@@ -478,11 +522,10 @@ function drawTerrainBoundaries() {
   // Keep the transition in world units so the enlarged play camera produces
   // the same deep, almost-black seam as the editor reference image.
   const clearTransitionBorder = { width: 1.25, colour: 'rgba(1, 8, 18, 0.92)' };
-  Object.entries(map.cells).forEach(([key, baseCell]) => {
+  visibleRenderCells.forEach((geometry) => {
+    const key = geometry.key;
     const cell = getActiveCell(map, key, 'chapter1');
-    const center = getHexCenter(cell, origin);
-    if (center.y < camera.y - 40 || center.y > camera.y + canvas.height / SCALE + 40) return;
-    const vertices = getHexVertices(cell, origin);
+    const vertices = geometry.vertices;
     for (let directionIndex = 0; directionIndex <= 2; directionIndex += 1) {
       const adjacentKey = [
         `${cell.q + 1},${cell.r}`,
@@ -606,20 +649,17 @@ function drawProgrammaticEdge(visual, geometry, edge, size) {
 }
 
 function drawEdges() {
-  allMapEdges(map).forEach(({ a, b, key }) => {
+  visibleRenderEdges.forEach(({ a, b, key, from, to }) => {
     const edge = getActiveEdge(map, key, 'chapter1') ?? getEdgeBetween(map, a, b, 'chapter1');
     if (!edge || edge.type === 'none') return;
     const fromCell = getActiveCell(map, a, 'chapter1');
     const toCell = getActiveCell(map, b, 'chapter1');
-    const from = cellCenter(a);
-    const to = cellCenter(b);
     const geometry = getEdgeAttachmentGeometry(from, to, fromCell?.terrain, toCell?.terrain, {
       edgeLength: HEX_SIZE,
       blockedInset: 1.25,
     });
     if (!geometry) return;
     const mid = geometry.midpoint;
-    if (mid.y < camera.y - 45 || mid.y > camera.y + canvas.height / SCALE + 45) return;
     const visual = getPlayEdgeVisual(edge.type);
     const size = getEdgeSetting(edge, 'size');
     const color = visual.color ?? '#bcecff';
@@ -1303,9 +1343,8 @@ function isWorldTargetVisible(x, y, size = 0) {
 
 function collectVisibleDiscoverables() {
   const targets = [];
-  Object.entries(map.cells).forEach(([cellKey]) => {
+  visibleRenderCells.forEach(({ key: cellKey, center }) => {
     const cell = getActiveCell(map, cellKey, 'chapter1');
-    const center = getHexCenter(cell, origin);
     if (cell.conditionalGate && !cell.conditionalGate.opened && isWorldTargetVisible(center.x, center.y, TILE_SIZE)) {
       targets.push({ instanceId: `gate:${cellKey}`, guideKey: 'gate:conditional', guide: CONDITIONAL_GATE_GUIDE, x: center.x, y: center.y, size: TILE_SIZE });
     }
@@ -1328,14 +1367,10 @@ function collectVisibleDiscoverables() {
     });
   });
 
-  allMapEdges(map).forEach(({ a, b, key }) => {
+  visibleRenderEdges.forEach(({ a, b, key, x, y }) => {
     const edge = getActiveEdge(map, key, 'chapter1') ?? getEdgeBetween(map, a, b, 'chapter1');
     const guide = getEdgeDiscoveryGuide(edge?.type);
     if (!guide) return;
-    const from = cellCenter(a);
-    const to = cellCenter(b);
-    const x = (from.x + to.x) * .5;
-    const y = (from.y + to.y) * .5;
     const size = getEdgeSetting(edge, 'size');
     if (isWorldTargetVisible(x, y, size)) targets.push({ instanceId: `edge:${key}`, guideKey: `edge:${edge.type}`, guide, x, y, size });
   });
@@ -1376,10 +1411,12 @@ function drawInkVisibilityMask() {
 }
 
 function render() {
+  renderClock = performance.now() / 1000;
   renderBackground();
   if (!map || !actor) return;
+  updateVisibleRenderEntries();
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
-  Object.entries(map.cells).forEach(([key, cell]) => renderCell(getActiveCell(map, key, 'chapter1'), key));
+  visibleRenderCells.forEach((geometry) => renderCell(getActiveCell(map, geometry.key, 'chapter1'), geometry.key, geometry));
   drawTerrainBoundaries(); drawEdges(); drawStageExit(); drawExperienceOrbs(); drawCombatEffects(); drawEnemyCombatRuntime(); drawEnemies(); drawCombatProjectiles(); drawTrajectory(); drawActor(); drawKatanaEffects();
   const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
@@ -1392,7 +1429,7 @@ function updateHud() {
   if (!actor) return;
   updateHudIconSlots();
   updateUpgradeOverlay();
-  const combatRenderState = getPlayCombatRenderState(combatState);
+  const combatRenderState = getPlayCombatHudState(combatState);
   const progress = combatRenderState.progression;
   const firstRowCenterY = (mapBounds?.top ?? origin.y) + HEX_SIZE;
   const lastRowCenterY = (mapBounds?.bottom ?? origin.y) - HEX_SIZE;
@@ -1436,7 +1473,15 @@ function updateHud() {
   });
   healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))}`;
-  eventsList.innerHTML = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
+  const nextEventLogMarkup = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
+  if (nextEventLogMarkup !== eventLogMarkup) {
+    eventLogMarkup = nextEventLogMarkup;
+    eventsList.innerHTML = nextEventLogMarkup;
+  }
+}
+
+function updateHudIfDue(now) {
+  if (hudUpdateGate.shouldUpdate(now)) updateHud();
 }
 
 let resonanceUiSignature = '';
@@ -1466,6 +1511,10 @@ function updateResonancePanel(resonance) {
 }
 
 function updateHudIconSlots() {
+  const slots = getPlayerHudSlots(combatState.build);
+  const signature = slots.map(({ key, id, level, path }) => `${key}:${id ?? ''}:${level ?? 0}:${path ?? ''}`).join('|');
+  if (signature === hudSlotSignature) return;
+  hudSlotSignature = signature;
   const slotRoot = document.querySelector('.visor-icon-slots');
   if (slotRoot) {
     if (!slotRoot.querySelector('[data-visor-group-label="weapon"]')) {
@@ -1483,7 +1532,6 @@ function updateHudIconSlots() {
       slotRoot.append(label);
     }
   }
-  const slots = getPlayerHudSlots(combatState.build);
   visorSlots.forEach((slotElement, index) => {
     const slot = slots[index];
     const icon = slotElement.querySelector('[data-visor-icon]');
@@ -1740,13 +1788,13 @@ function simulate(elapsed, now = performance.now()) {
   if (awakeningState.active) {
     stepPlayAwakening(awakeningState, elapsed);
     updateAwakeningPresentation();
-    updateHud();
+    updateHudIfDue(now);
     return;
   }
   if (!paused && !transitioning && !runCompleted && map && actor && !actor.gameOver) {
     if (combatState.awaitingUpgrade) {
       accumulator = 0;
-      updateHud();
+      updateHudIfDue(now);
       return;
     }
     accumulator += Math.min(.1, Math.max(0, elapsed));
@@ -1847,7 +1895,7 @@ function simulate(elapsed, now = performance.now()) {
       accumulator -= FIXED_STEP;
     }
     updateCamera();
-    updateHud();
+    updateHudIfDue(now);
   }
 }
 

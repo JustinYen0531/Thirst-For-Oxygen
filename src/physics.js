@@ -919,21 +919,13 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   });
   actor.activeCheckpointKey = activeCheckpointKey;
   if (mutateMap) {
-    Object.entries(map.cells).forEach(([cellKey]) => {
-      const editable = getEditableCell(map, cellKey, chapter);
-      const nextObjects = editable.objects.map((object, index) => (
-        object.kind === 'button' && object.mode === 'toggle' && object.pressed && !activeToggleButtons.has(`${cellKey}:object:${index}`)
-          ? { ...object, pressed: false }
-          : object
-      ));
-      const nextFreeObjects = (editable.freeObjects ?? []).map((object, index) => (
-        object.kind === 'button' && object.mode === 'toggle' && object.pressed && !activeToggleButtons.has(`${cellKey}:free:${index}`)
-          ? { ...object, pressed: false }
-          : object
-      ));
-      const changed = nextObjects.some((object, index) => object !== editable.objects[index])
-        || nextFreeObjects.some((object, index) => object !== (editable.freeObjects ?? [])[index]);
-      if (changed) patchCell(map, cellKey, { objects: nextObjects, freeObjects: nextFreeObjects }, chapter);
+    contactObjects.forEach(({ key, ownerKey, object, free, index }) => {
+      if (object.kind !== 'button' || object.mode !== 'toggle' || activeToggleButtons.has(key)) return;
+      const liveCell = getActiveCell(map, ownerKey, chapter);
+      const liveObjects = free ? (liveCell?.freeObjects ?? []) : (liveCell?.objects ?? []);
+      const liveButton = liveObjects[index];
+      if (!liveButton?.pressed) return;
+      markButtonPressed(map, { ownerKey, index, free }, chapter, false);
     });
   }
   if (actor.inInk) addEvent(events, 'ink', '墨水區：預覽視野受限。');

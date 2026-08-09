@@ -552,3 +552,15 @@ export function getPlayCombatRenderState(state) {
     },
   };
 }
+
+export function getPlayCombatHudState(state) {
+  const progress = getExperienceProgress(state.progression);
+  return {
+    resonance: getResonanceRenderState(state.resonance),
+    progression: {
+      ...progress,
+      pendingLevelUps: state.progression.pendingLevelUps,
+      awaitingUpgrade: state.awaitingUpgrade,
+    },
+  };
+}
