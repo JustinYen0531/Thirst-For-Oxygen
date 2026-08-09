@@ -1064,6 +1064,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-10 — Step 128 complete
 
+- 修正從主頁進入 Play 後偶發只剩瀏覽器預設排版的樣式失效：截圖證實玩家、Canvas 與發現卡均已執行，故障範圍限定為 `play.css` 與 `visor-hud.css` 未套用，而非再次刪除 HUD 或玩家。
+- 保留 `play.html` 原有兩個 stylesheet link 作為首屏樣式，同時由已成功執行的 `play-page.js` 匯入同一組 CSS；因此只要遊戲模組能執行並畫出 Canvas，Play／HUD 樣式便會由同一模組圖保證安裝。
+- 新增雙重樣式入口回歸；相關測試 19/19、完整 `npm run check` 284/284、Vite production build 與 scoped `git diff --check` 均通過。production `play.html` 仍只輸出兩個 stylesheet link，沒有重複 CSS 資產。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Step 128 complete
+
 - 地圖編輯器不再顯示 Play 專用的氧氣、能量、生命值與 Attempts HUD；HUD 的正式遊戲程式與素材保留，只有編輯器畫布強制隱藏，蓋圖時不再被面罩遮住。
 - 編輯器新增「目前遊玩地圖」清單，可直接載入下沉篇第一、二、三部分；載入後修改並按「儲存並套用到遊戲」，會覆寫 Play 實際讀取的同一份 JSON 地圖。
 - 本機 Vite 開發伺服器新增受限制的地圖儲存入口，只允許三個既定地圖代號，拒絕任意檔名與路徑；匯入一般 JSON 或重設空白地圖後，不可直接覆寫正式遊玩地圖。

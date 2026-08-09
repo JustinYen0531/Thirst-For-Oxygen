@@ -28,6 +28,11 @@ import {
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import { getEdgeAttachmentGeometry } from './edge-attachment.js';
+// Keep gameplay styling in the same module graph as the runtime. The direct
+// links in play.html remain as an early-paint fallback, while these imports
+// guarantee that a successful Play module boot also installs both HUD styles.
+import './play.css';
+import './visor-hud.css';
 import {
   createPlayAwakeningState,
   getPlayAttemptState,

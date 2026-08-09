@@ -9,6 +9,13 @@ const preload = read('../src/play-preload.js');
 const html = read('../play.html');
 const home = read('../home.html');
 
+test('formal Play runtime owns both gameplay styles in addition to HTML early-paint links', () => {
+  assert.match(html, /href="\/src\/play\.css"/);
+  assert.match(html, /href="\/src\/visor-hud\.css"/);
+  assert.match(page, /import '\.\/play\.css';/);
+  assert.match(page, /import '\.\/visor-hud\.css';/);
+});
+
 test('formal play connects the shared combat build instead of a hard-coded HUD showcase', () => {
   assert.match(page, /createPlayCombatState\(\)/);
   assert.match(page, /stepPlayCombat\(combatState/);
