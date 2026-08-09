@@ -80,6 +80,7 @@ import {
   getPlayerSpriteScaleX,
 } from './player-animation.js';
 import { getEnergyHud, getHealthHud, getOxygenHud } from './visor-hud.js';
+import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
 import {
   applyEditorTranslations,
   editorT,
@@ -2648,17 +2649,22 @@ function stepGame() {
   recordEvents(events);
 }
 
-function animationFrame(now) {
-  const elapsed = Math.min((now - (animationFrame.last ?? now)) / 1000, 0.1);
-  animationFrame.last = now;
-  state.animationTime += elapsed;
+function advanceEditorSimulation(elapsed) {
+  const scaledElapsed = scaleSimulationDelta(elapsed, Boolean(state.dragging));
+  state.animationTime += scaledElapsed;
   if (state.mode === 'play') {
-    state.accumulator += elapsed;
+    state.accumulator += scaledElapsed;
     while (state.accumulator >= FIXED_STEP) {
       stepGame();
       state.accumulator -= FIXED_STEP;
     }
   }
+}
+
+function animationFrame(now) {
+  const elapsed = Math.min((now - (animationFrame.last ?? now)) / 1000, 0.1);
+  animationFrame.last = now;
+  advanceEditorSimulation(elapsed);
   render();
   requestAnimationFrame(animationFrame);
 }
@@ -3041,6 +3047,7 @@ window.render_game_to_text = () => {
       facing: getPlayerFacingDirection(state.actor),
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
       launchLockedFor: formatNumber(state.actor.launchLockTimer),
+      timeScale: getAimTimeScale(Boolean(state.dragging)),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },
     viewport: {
@@ -3055,11 +3062,7 @@ window.render_game_to_text = () => {
 };
 
 window.advanceTime = (milliseconds) => {
-  const steps = Math.max(1, Math.round(milliseconds / (FIXED_STEP * 1000)));
-  for (let index = 0; index < steps; index += 1) {
-    state.animationTime += FIXED_STEP;
-    stepGame();
-  }
+  advanceEditorSimulation(Math.max(0, Number(milliseconds) || 0) / 1000);
   render();
   return window.render_game_to_text();
 };

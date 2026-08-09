@@ -38,6 +38,7 @@ import {
 } from './progression.js';
 import { getKatanaWavePose } from './katana-visual.js';
 import { reduceEnemyResonanceOnDamage } from './resonance.js';
+import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
 
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
@@ -728,8 +729,6 @@ export function beginSandboxAim(state, point) {
   }
   state.aiming = true;
   state.aimPoint = { x: point.x, y: point.y };
-  state.actor.vx = 0;
-  state.actor.vy = 0;
   return { ok: true };
 }
 
@@ -1922,28 +1921,29 @@ function updatePlayerStatusEffects(state, dt) {
 
 export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
   if (!state.running || state.awaitingUpgrade) return state;
-  state.time += dt;
+  const simulationDt = scaleSimulationDelta(dt, state.aiming);
+  state.time += simulationDt;
   state.actor.cooldowns ??= {};
   Object.keys(state.actor.cooldowns ?? {}).forEach((key) => {
-    state.actor.cooldowns[key] = Math.max(0, state.actor.cooldowns[key] - dt);
+    state.actor.cooldowns[key] = Math.max(0, state.actor.cooldowns[key] - simulationDt);
   });
   updateLightMachineGunBurst(state);
   if (state.infiniteResources) {
     state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
   }
-  updatePlayerStatusEffects(state, dt);
+  updatePlayerStatusEffects(state, simulationDt);
   if (state.actor.inInk && state.time >= (state.actor.inkUntil ?? 0)) state.actor.inInk = false;
   // Keep the sandbox invincibility switch as a wrapper around the official
   // damage gate; all movement, gravity, drag, boundary reflection, oxygen,
   // facing and launch momentum now come from the production step.
-  if (state.invincible) state.actor.invulnerability = Math.max(state.actor.invulnerability ?? 0, dt + 0.01);
+  if (state.invincible) state.actor.invulnerability = Math.max(state.actor.invulnerability ?? 0, simulationDt + 0.01);
   const previousPosition = { x: state.actor.x, y: state.actor.y };
-  const physicsEvents = state.aiming ? [] : stepPhysics({
+  const physicsEvents = stepPhysics({
     map: state.physicsMap,
     chapter: 'chapter1',
     actor: state.actor,
-    dt,
+    dt: simulationDt,
     origin: state.physicsOrigin,
     bounds: state.physicsBounds,
     mutateMap: false,
@@ -1968,22 +1968,22 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
     state.actor.energy = MAX_ENERGY;
   }
-  updateEnemies(state, dt);
+  updateEnemies(state, simulationDt);
   markKatanaMovement(state, previousPosition);
   processKatanaAutoAttack(state);
-  processTridentAutoAttack(state, dt);
+  processTridentAutoAttack(state, simulationDt);
   processLightMachineGunAutoAttack(state);
   processKnifeMovementEffect(state, previousPosition);
   processPlayerEnemyCollisions(state, previousPosition);
   processStationaryKnifeArea(state);
-  updateProjectiles(state, dt);
+  updateProjectiles(state, simulationDt);
   collectSandboxExperience(state);
-  updateZones(state, dt);
+  updateZones(state, simulationDt);
   state.effects = state.effects.filter((effect) => {
-    effect.elapsed += dt;
+    effect.elapsed += simulationDt;
     return effect.elapsed < effect.duration;
   });
-  state.rules = state.rules.map((rule) => ({ ...rule, remaining: rule.remaining - dt })).filter((rule) => rule.remaining > 0);
+  state.rules = state.rules.map((rule) => ({ ...rule, remaining: rule.remaining - simulationDt })).filter((rule) => rule.remaining > 0);
   return state;
 }
 

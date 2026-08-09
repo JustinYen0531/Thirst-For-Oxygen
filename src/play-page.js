@@ -60,6 +60,7 @@ import {
 } from './play-katana.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
+import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
 import { WEAPONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import {
   choosePlayUpgrade,
@@ -1414,7 +1415,6 @@ function drawInkVisibilityMask() {
 }
 
 function render() {
-  renderClock = performance.now() / 1000;
   renderBackground();
   if (!map || !actor) return;
   updateVisibleRenderEntries();
@@ -1876,8 +1876,10 @@ window.addEventListener('keydown', (event) => {
 });
 
 function simulate(elapsed, now = performance.now()) {
+  const scaledElapsed = scaleSimulationDelta(elapsed, dragging);
+  renderClock += scaledElapsed;
   if (awakeningState.active) {
-    stepPlayAwakening(awakeningState, elapsed);
+    stepPlayAwakening(awakeningState, scaledElapsed);
     updateAwakeningPresentation();
     updateHudIfDue(now);
     return;
@@ -1888,7 +1890,7 @@ function simulate(elapsed, now = performance.now()) {
       updateHudIfDue(now);
       return;
     }
-    accumulator += Math.min(.1, Math.max(0, elapsed));
+    accumulator += Math.min(.1, scaledElapsed);
     while (accumulator >= FIXED_STEP) {
       worldTime += FIXED_STEP;
       refillUnlimitedResources();
@@ -2031,6 +2033,8 @@ window.render_game_to_text = () => {
     unlimitedResources,
     damageReductionPercent: Math.round(playerDamageReduction * 100),
     paused,
+    aiming: dragging,
+    timeScale: getAimTimeScale(dragging),
   });
 };
 window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Math.max(0, milliseconds) / (1000 / 60))); for (let index = 0; index < steps; index += 1) simulate(FIXED_STEP, performance.now()); render(); };

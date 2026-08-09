@@ -39,6 +39,7 @@ import { getEnemySpriteScaleX } from './enemy-movement.js';
 import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 import { installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
 import { attachMenuMusic } from './music.js';
+import { getAimTimeScale } from './aim-slow-motion.js';
 
 attachMenuMusic(document);
 
@@ -1361,7 +1362,7 @@ window.render_game_to_text = () => JSON.stringify({
   mode: 'sandbox',
   weaponMode: 'all-equipped',
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), launchLockedRemaining: format(state.actor.launchLockTimer), gravityImmuneRemaining: format(state.actor.gravityImmunity), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
-  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, launchMomentumTimer: format(state.actor.launchMomentumTimer) },
+  motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, timeScale: getAimTimeScale(state.aiming), launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
   autoWeapons: getSandboxAutoWeaponStatuses(state).map(({ id, level, phase, label, remaining, progress }) => ({ id, level, phase, label, remaining: format(remaining), progress: format(progress) })),
   build: state.build,
