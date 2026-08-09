@@ -40,6 +40,8 @@ export const PLAY_ENEMY_RENDER_SCALE = 2;
 export const PLAY_ENEMY_SPAWN_SAFE_RADIUS = HEX_SIZE * 18;
 export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 14;
 export const PLAY_ENEMY_ACTION_VISUAL_HOLD = 1.44;
+export const PLAY_ENEMY_FRAME_COUNT = 6;
+export const PLAY_ENEMY_FRAME_DURATION = 0.18;
 
 const encyclopediaById = Object.freeze(Object.fromEntries(
   ENEMY_ENCYCLOPEDIA.map((entry) => [entry.id, entry]),
@@ -60,9 +62,22 @@ export const PLAY_ENEMY_VISUALS = Object.freeze(Object.fromEntries(
   Object.entries(PLAY_ENEMY_VISUAL_SETS).map(([enemyId, visualSet]) => [enemyId, visualSet.idle]),
 ));
 
-export const PLAY_ENEMY_ASSET_PATHS = Object.freeze([...new Set(
+export const PLAY_ENEMY_ANIMATED_ASSET_PATHS = Object.freeze([...new Set(
   Object.values(PLAY_ENEMY_VISUAL_SETS).flatMap((visualSet) => [visualSet.idle, ...Object.values(visualSet.actions)]).filter(Boolean),
 )]);
+
+export function getPlayEnemyFramePaths(animatedPath) {
+  const match = String(animatedPath ?? '').match(/^\/assets\/enemies-afterimage\/([^/]+)\/reconstructed-preview__(.+)\.webp$/i);
+  if (!match) return Object.freeze([]);
+  const [, enemyId, animationSlug] = match;
+  return Object.freeze(Array.from({ length: PLAY_ENEMY_FRAME_COUNT }, (_, index) => (
+    `/assets/enemy-frames/${enemyId}/${animationSlug}/${String(index + 1).padStart(2, '0')}.png`
+  )));
+}
+
+export const PLAY_ENEMY_ASSET_PATHS = Object.freeze(
+  PLAY_ENEMY_ANIMATED_ASSET_PATHS.flatMap((animatedPath) => getPlayEnemyFramePaths(animatedPath)),
+);
 
 function activeEnemyVisualAction(enemy, now) {
   const explicit = enemy.visualAction;
@@ -116,6 +131,26 @@ export function getPlayEnemyVisualState(enemy, time = 0) {
     mode: 'idle',
     actionId: null,
     playbackKey: `${enemy.instanceId ?? enemy.enemyId}:idle`,
+  });
+}
+
+export function getPlayEnemyFrameState(enemy, time = 0) {
+  const now = Number.isFinite(time) ? time : 0;
+  const visualState = getPlayEnemyVisualState(enemy, now);
+  const framePaths = getPlayEnemyFramePaths(visualState.path);
+  if (!framePaths.length) return Object.freeze({ ...visualState, animatedPath: visualState.path, frameIndex: 0, frameCount: 0 });
+  const activeAction = visualState.mode === 'action' ? activeEnemyVisualAction(enemy, now) : null;
+  const idleOffset = ((Number(enemy?.phase) || 0) / (Math.PI * 2)) * PLAY_ENEMY_FRAME_COUNT * PLAY_ENEMY_FRAME_DURATION;
+  const elapsed = visualState.mode === 'action'
+    ? Math.max(0, now - Number(activeAction?.startedAt ?? now))
+    : Math.max(0, now + idleOffset);
+  const frameIndex = Math.floor(elapsed / PLAY_ENEMY_FRAME_DURATION) % PLAY_ENEMY_FRAME_COUNT;
+  return Object.freeze({
+    ...visualState,
+    animatedPath: visualState.path,
+    path: framePaths[frameIndex],
+    frameIndex,
+    frameCount: PLAY_ENEMY_FRAME_COUNT,
   });
 }
 
@@ -1581,7 +1616,7 @@ export function getPlayEnemyRenderState(enemies, time = null) {
       outgoingDamageMultiplier: enemy.outgoingDamageMultiplier ?? 1,
       projectileSpeedMultiplier: enemy.projectileSpeedMultiplier ?? 1,
       damageStack: enemy.damageStack ?? 0,
-      visual: getPlayEnemyVisualState(enemy, now),
+      visual: getPlayEnemyFrameState(enemy, now),
       lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,
     })),
   };

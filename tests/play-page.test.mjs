@@ -63,10 +63,10 @@ test('formal play renders serialized Boss rules, summons, beams, and oxygen corr
   assert.match(page, /'abyssAwakening'/);
 });
 
-test('formal play restarts the exact enemy animation selected by runtime skill state', () => {
+test('formal play draws deterministic static frames selected by runtime skill state', () => {
   assert.match(page, /PLAY_ENEMY_ASSET_PATHS/);
-  assert.match(page, /getPlayEnemyVisualState\(enemy, worldTime\)/);
-  assert.match(page, /enemyAnimationImages\.get\(enemy\.instanceId\)/);
-  assert.match(page, /cached\?\.playbackKey === visualState\.playbackKey/);
+  assert.match(page, /getPlayEnemyFrameState\(enemy, worldTime\)/);
+  assert.match(page, /images\.get\(visualState\.path\)/);
+  assert.doesNotMatch(page, /enemyAnimationImages/);
   assert.doesNotMatch(page, /images\.get\(enemy\.visual\)/);
 });

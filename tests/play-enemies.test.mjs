@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -13,11 +14,16 @@ import {
   PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_ACTION_VISUAL_HOLD,
+  PLAY_ENEMY_ANIMATED_ASSET_PATHS,
   PLAY_ENEMY_ASSET_PATHS,
+  PLAY_ENEMY_FRAME_COUNT,
+  PLAY_ENEMY_FRAME_DURATION,
   PLAY_ENEMY_VISUAL_SETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
   getReachablePlayCellKeys,
+  getPlayEnemyFramePaths,
+  getPlayEnemyFrameState,
   getPlayEnemyRenderState,
   getPlayEnemyPose,
   getPlayEnemyVisualState,
@@ -225,12 +231,12 @@ test('movement loops idle art and each authored skill selects its exact attack a
     const visualSet = PLAY_ENEMY_VISUAL_SETS[enemyId];
     assert.ok(visualSet?.idle, `${enemyId} should expose a natural-floating loop`);
     assert.equal(PLAY_ENEMY_VISUALS[enemyId], visualSet.idle);
-    assert.equal(PLAY_ENEMY_ASSET_PATHS.includes(visualSet.idle), true);
+    assert.equal(PLAY_ENEMY_ANIMATED_ASSET_PATHS.includes(visualSet.idle), true);
     assert.equal(existsSync(fileURLToPath(new URL(`../public${visualSet.idle}`, import.meta.url))), true);
     ENEMY_DEFINITIONS[enemyId].attacks.forEach((skill) => {
       const actionPath = visualSet.actions[skill.id];
       assert.ok(actionPath, `${enemyId}.${skill.id} should select its own animation`);
-      assert.equal(PLAY_ENEMY_ASSET_PATHS.includes(actionPath), true);
+      assert.equal(PLAY_ENEMY_ANIMATED_ASSET_PATHS.includes(actionPath), true);
       assert.equal(existsSync(fileURLToPath(new URL(`../public${actionPath}`, import.meta.url))), true);
     });
   });
@@ -244,6 +250,30 @@ test('movement loops idle art and each authored skill selects its exact attack a
   });
 });
 
+test('formal rendering advances six distinct static frames instead of trusting animated image decoding', () => {
+  assert.equal(PLAY_ENEMY_FRAME_COUNT, 6);
+  assert.equal(PLAY_ENEMY_ASSET_PATHS.length, PLAY_ENEMY_ANIMATED_ASSET_PATHS.length * PLAY_ENEMY_FRAME_COUNT);
+  PLAY_ENEMY_ANIMATED_ASSET_PATHS.forEach((animatedPath) => {
+    const framePaths = getPlayEnemyFramePaths(animatedPath);
+    assert.equal(framePaths.length, PLAY_ENEMY_FRAME_COUNT);
+    const hashes = framePaths.map((framePath) => {
+      const absolutePath = fileURLToPath(new URL(`../public${framePath}`, import.meta.url));
+      assert.equal(existsSync(absolutePath), true, `${framePath} should be a real runtime frame`);
+      return createHash('sha256').update(readFileSync(absolutePath)).digest('hex');
+    });
+    assert.ok(new Set(hashes).size > 1, `${animatedPath} must visibly change across its extracted frames`);
+  });
+
+  const moving = authoredEnemy('crabGuard', { state: 'chasing', vx: 24, phase: 0 });
+  const first = getPlayEnemyFrameState(moving, 0);
+  const second = getPlayEnemyFrameState(moving, PLAY_ENEMY_FRAME_DURATION);
+  assert.equal(first.mode, 'idle');
+  assert.equal(first.frameIndex, 0);
+  assert.equal(second.frameIndex, 1);
+  assert.notEqual(first.path, second.path);
+  assert.match(first.path, /\/assets\/enemy-frames\/crabGuard\/base-float-move\/01\.png$/);
+});
+
 test('a skill animation starts with its cast, survives resolution, then returns to idle', () => {
   const enemy = authoredEnemy('crabGuard', { alerted: true });
   const actor = { x: 0, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
@@ -251,9 +281,12 @@ test('a skill animation starts with its cast, survives resolution, then returns 
   updatePlayEnemies([enemy], actor, 1 / 60, 0);
   assert.equal(enemy.pendingSkill?.skillId, 'clawSwipe');
   const castingVisual = getPlayEnemyVisualState(enemy, 0);
+  const castingFrame = getPlayEnemyFrameState(enemy, 0);
   assert.equal(castingVisual.mode, 'action');
   assert.equal(castingVisual.actionId, 'clawSwipe');
   assert.equal(castingVisual.path, PLAY_ENEMY_VISUAL_SETS.crabGuard.actions.clawSwipe);
+  assert.equal(castingFrame.frameIndex, 0);
+  assert.match(castingFrame.path, /\/assets\/enemy-frames\/crabGuard\/attack-claw-swing\/01\.png$/);
 
   updatePlayEnemies([enemy], actor, 0.5, 0.5);
   const resolvedVisual = getPlayEnemyVisualState(enemy, 0.5);
