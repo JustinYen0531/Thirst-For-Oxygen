@@ -38,6 +38,9 @@ test('representative dynamic combat messages retain their meaning in English', (
     ['下一個放置：爆腹燈籠魚。', 'Next placement: Burst-Belly Anglerfish.'],
     ['Build 已更新：武士刀 Lv.2。', 'Build updated: Katana Lv.2.'],
     ['深淵抹香鯨已擊敗：下沉篇完成。', 'Abyssal Sperm Whale defeated: Descent complete.'],
+    ['共鳴能力保留，前往上升篇・第一部分…', 'Resonance abilities preserved. Traveling to Ascent · Part I…'],
+    ['RESONANCE 完成：螃蟹守衛成為中立夥伴，永久獲得「甲殼靜養」— 高氧高能時的生命恢復速度 +15%。', 'RESONANCE complete: Crab Guard is now neutral. Permanent buff acquired: "Carapace Repose" — Health recovery at high oxygen and energy +15%.'],
+    ['RESONANCE 完成：螃蟹守衛成為中立夥伴；此物種 Buff 已經持有。', 'RESONANCE complete: Crab Guard is now neutral; this species buff is already owned.'],
   ];
   messages.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
 });
