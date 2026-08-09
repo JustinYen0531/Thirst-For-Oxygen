@@ -60,7 +60,7 @@ export const PLAY_STARTUP_ASSET_PATHS = Object.freeze([
   // temporarily keeps two documents' worth of large bitmaps alive and can
   // starve the first gameplay frames. Only warm the assets needed to reveal
   // the map, diver and visor immediately.
-  PLAYER_ANIMATION_ASSETS.swim[0],
+  ...PLAYER_ANIMATION_ASSETS.swim,
   ...Object.values(PLAY_TILE_ASSETS),
   VISOR_HUD_ASSET,
   '/assets/editor/hud/visor-surround-balanced.png',

@@ -80,13 +80,13 @@ test('loading movie skips its slow opening and begins at the authored third seco
   assert.equal(video.muted, false);
 });
 
-test('formal Play knows every runtime image while homepage startup warms only the critical first frame', () => {
+test('formal Play knows every runtime image while homepage startup warms only the critical reveal assets', () => {
   assert.ok(PLAY_IMAGE_ASSET_PATHS.length > 300);
   assert.equal(new Set(PLAY_STARTUP_ASSET_PATHS).size, PLAY_STARTUP_ASSET_PATHS.length);
-  assert.ok(PLAY_STARTUP_ASSET_PATHS.length < 20, 'homepage must not decode hundreds of animation frames before navigation');
+  assert.ok(PLAY_STARTUP_ASSET_PATHS.length < 24, 'homepage must not decode hundreds of animation frames before navigation');
   assert.ok(PLAY_STARTUP_ASSET_PATHS.includes(PLAY_MAP_ASSET_URLS.descent[1]));
   assert.equal(PLAY_STARTUP_ASSET_PATHS.some((path) => path.includes('/enemies-afterimage/')), false);
-  assert.equal(PLAY_STARTUP_ASSET_PATHS.filter((path) => path.includes('/actors/player/')).length, 1);
+  assert.equal(PLAY_STARTUP_ASSET_PATHS.filter((path) => path.includes('/actors/player/swim/')).length, 6);
   Object.values(PLAY_TILE_ASSETS).forEach((path) => assert.ok(PLAY_IMAGE_ASSET_PATHS.includes(path), path));
   PLAY_IMAGE_ASSET_PATHS.forEach((path) => {
     assert.equal(existsSync(`${ROOT}\\public${decodeURIComponent(path).replaceAll('/', '\\')}`), true, path);

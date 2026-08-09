@@ -311,7 +311,10 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   syncKatanaState();
   if (!previousActor) worldTime = 0;
   awakeningState = createPlayAwakeningState({
-    enabled: mapPart === 1 && !previousActor,
+    // Gameplay must become interactive as soon as setup succeeds. The former
+    // Part 1 eye-opening sequence hid the complete HUD and rejected pointer
+    // input after the map had already appeared, which looked like a crash.
+    enabled: false,
     reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
   });
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
