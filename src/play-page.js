@@ -410,11 +410,13 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   if (!previousActor) worldTime = 0;
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
   storyIntroState = createPlayStoryIntroState({
-    enabled: mapArc === 'descent' && mapPart === 1 && !previousActor,
+    enabled: mapArc === 'descent',
+    part: mapPart,
     reducedMotion,
   });
   awakeningState = createPlayAwakeningState({
     enabled: !storyIntroState.active && mapPart === 1 && !previousActor,
+    part: mapPart,
     reducedMotion,
   });
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
@@ -848,6 +850,7 @@ function updateStoryIntroPresentation() {
 function finishStoryIntro() {
   awakeningState = createPlayAwakeningState({
     enabled: true,
+    part: mapPart,
     reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
   });
   if (awakeningState.awaitingTrigger) beginPlayAwakening(awakeningState);

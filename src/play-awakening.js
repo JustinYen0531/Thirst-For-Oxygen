@@ -59,12 +59,13 @@ export function getPlayAttemptState(actor) {
   return Object.freeze({ remaining, maximum, label: `ATTEMPT ${remaining}/${maximum}` });
 }
 
-export function createPlayAwakeningState({ enabled = true, reducedMotion = false } = {}) {
+export function createPlayAwakeningState({ enabled = true, reducedMotion = false, part = 1 } = {}) {
   return {
     active: false,
     awaitingTrigger: Boolean(enabled),
     elapsed: 0,
     reducedMotion: Boolean(reducedMotion),
+    activeRouteIndex: Math.min(2, Math.max(0, Math.floor(Number(part) || 1) - 1)),
   };
 }
 
@@ -81,6 +82,7 @@ export function getPlayAwakeningRenderState(state, timing = PLAY_AWAKENING_TIMIN
   const awaitingTrigger = Boolean(state?.awaitingTrigger);
   const elapsed = Math.max(0, Number(state?.elapsed) || 0);
   const duration = getPlayAwakeningDuration(timing);
+  const activeRouteIndex = Math.min(2, Math.max(0, Math.floor(Number(state?.activeRouteIndex) || 0)));
   if (awaitingTrigger) {
     return Object.freeze({
       active: false,
@@ -94,7 +96,7 @@ export function getPlayAwakeningRenderState(state, timing = PLAY_AWAKENING_TIMIN
       routeLightRatio: 0,
       routeOpacity: 0,
       shutterOpenRatio: 1,
-      activeRouteIndex: 0,
+      activeRouteIndex,
       maskVisible: false,
     });
   }
@@ -111,7 +113,7 @@ export function getPlayAwakeningRenderState(state, timing = PLAY_AWAKENING_TIMIN
       routeLightRatio: 1,
       routeOpacity: 0,
       shutterOpenRatio: 1,
-      activeRouteIndex: 0,
+      activeRouteIndex,
       maskVisible: false,
     });
   }
@@ -147,7 +149,7 @@ export function getPlayAwakeningRenderState(state, timing = PLAY_AWAKENING_TIMIN
     routeLightRatio,
     routeOpacity,
     shutterOpenRatio,
-    activeRouteIndex: 0,
+    activeRouteIndex,
     maskVisible: true,
   });
 }

@@ -3,9 +3,11 @@ import { existsSync, statSync } from 'node:fs';
 import test from 'node:test';
 import {
   PLAY_STORY_INTRO_SLIDES,
+  PLAY_STORY_INTRO_SLIDES_BY_PART,
   advancePlayStoryIntro,
   createPlayStoryIntroState,
   getPlayStoryIntroRenderState,
+  getPlayStoryIntroSlides,
   skipPlayStoryIntro,
   stepPlayStoryIntro,
 } from '../src/play-story-intro.js';
@@ -25,12 +27,30 @@ test('first descent story intro contains three external-text slides', () => {
   assert.match(PLAY_STORY_INTRO_SLIDES[2].narrator, /活著的肉身/);
 });
 
+test('each descent part owns three story slides and continues the same causal thread', () => {
+  assert.deepEqual(Object.keys(PLAY_STORY_INTRO_SLIDES_BY_PART), ['1', '2', '3']);
+  assert.deepEqual([1, 2, 3].map((part) => getPlayStoryIntroSlides(part).length), [3, 3, 3]);
+  assert.match(getPlayStoryIntroSlides(2)[0].narrator, /忘記呼吸/);
+  assert.match(getPlayStoryIntroSlides(2)[1].narrator, /堵住了海床深處的裂口/);
+  assert.match(getPlayStoryIntroSlides(3)[0].narrator, /異文明武器/);
+  assert.match(getPlayStoryIntroSlides(3)[1].narrator, /守護的不是寶藏/);
+});
+
 test('story slide raster assets are present and non-empty', () => {
-  PLAY_STORY_INTRO_SLIDES.forEach(({ imagePath }) => {
+  Object.values(PLAY_STORY_INTRO_SLIDES_BY_PART).flat().forEach(({ imagePath }) => {
     const filePath = new URL(`..\/public${imagePath}`, import.meta.url);
     assert.equal(existsSync(filePath), true, imagePath);
     assert.ok(statSync(filePath).size > 100_000, imagePath);
   });
+});
+
+test('story state selects the matching descent part without mixing its slides', () => {
+  const partTwo = getPlayStoryIntroRenderState(createPlayStoryIntroState({ part: 2, reducedMotion: true }));
+  const partThree = getPlayStoryIntroRenderState(createPlayStoryIntroState({ part: 3, reducedMotion: true }));
+  assert.equal(partTwo.part, 2);
+  assert.equal(partTwo.imagePath, '/assets/story/descent-part2/slide-01-forgotten-breath.png');
+  assert.equal(partThree.part, 3);
+  assert.equal(partThree.imagePath, '/assets/story/descent-part3/slide-01-ruins-remember.png');
 });
 
 test('narrator types, first activation completes text, then advances slides', () => {

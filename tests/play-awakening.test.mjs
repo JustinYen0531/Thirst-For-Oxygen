@@ -75,6 +75,12 @@ test('pressure shutter route labels preserve all three authored Descent names', 
   ]);
 });
 
+test('awakening lights the route belonging to the entered descent part', () => {
+  assert.equal(getPlayAwakeningRenderState(createPlayAwakeningState({ part: 1 })).activeRouteIndex, 0);
+  assert.equal(getPlayAwakeningRenderState(createPlayAwakeningState({ part: 2 })).activeRouteIndex, 1);
+  assert.equal(getPlayAwakeningRenderState(createPlayAwakeningState({ part: 3 })).activeRouteIndex, 2);
+});
+
 test('pressure shutter always crops fixed top and bottom source halves before moving them', () => {
   const source = { imageWidth: 1672, imageHeight: 941, canvasWidth: 1200, canvasHeight: 680 };
   const closedTop = getPlayShutterHalfDrawRect({ ...source, topHalf: true, openRatio: 0 });
