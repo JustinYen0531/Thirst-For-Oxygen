@@ -64,10 +64,11 @@ import {
   getPlayWorldAssetPaths,
 } from './play-world-visuals.js';
 import {
-  PLAY_ENEMY_VISUALS,
+  PLAY_ENEMY_ASSET_PATHS,
   createPlayEnemies,
   getPlayEnemyRenderState,
   getPlayEnemyPose,
+  getPlayEnemyVisualState,
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from './play-enemies.js';
@@ -142,7 +143,8 @@ const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-se
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const visorSlots = [...document.querySelectorAll('[data-visor-slot]')];
 const images = new Map();
-[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...getPlayWorldAssetPaths(), ...Object.values(PLAY_ENEMY_VISUALS), ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+[...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...getPlayWorldAssetPaths(), ...PLAY_ENEMY_ASSET_PATHS, ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+const enemyAnimationImages = new Map();
 
 let map = null;
 let mapPart = 1;
@@ -259,6 +261,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   syncPlayCombatBuild(combatState, actor);
   actor.oxygen = Math.min(actor.oxygen, actor.derivedStats?.maxOxygen ?? MAX_OXYGEN);
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
+  enemyAnimationImages.clear();
   syncKatanaState();
   if (!previousActor) worldTime = 0;
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
@@ -923,13 +926,31 @@ function drawEnemyHealthBar(enemy, x, y, width, height) {
   context.restore();
 }
 
+function getEnemyAnimationImage(enemy, visualState) {
+  if (!visualState?.path) return null;
+  const cached = enemyAnimationImages.get(enemy.instanceId);
+  if (cached?.playbackKey === visualState.playbackKey && cached.path === visualState.path) return cached.image;
+  const image = new Image();
+  image.src = visualState.path;
+  enemyAnimationImages.set(enemy.instanceId, {
+    playbackKey: visualState.playbackKey,
+    path: visualState.path,
+    image,
+  });
+  return image;
+}
+
 function drawEnemies() {
   const viewport = { width: canvas.width / SCALE, height: canvas.height / SCALE };
   enemies.forEach((enemy) => {
     if (enemy.defeated || !isPlayEnemyVisible(enemy, camera, viewport)) return;
     const pose = getPlayEnemyPose(enemy, worldTime);
     const guide = getEnemyDiscoveryGuide(enemy.enemyId);
-    const image = images.get(enemy.visual);
+    const visualState = getPlayEnemyVisualState(enemy, worldTime);
+    const playbackImage = getEnemyAnimationImage(enemy, visualState);
+    const image = playbackImage?.complete && playbackImage.naturalWidth > 0
+      ? playbackImage
+      : images.get(visualState.path);
     const imageReady = image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
     const height = enemy.renderSize;
     const rawRatio = imageReady ? image.naturalWidth / image.naturalHeight : 1;
@@ -1613,7 +1634,7 @@ window.render_game_to_text = () => {
     combat,
     enemyCombat: getPlayEnemyRenderState(enemies, worldTime),
     katana: equippedWeapon('katana') ? { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) } : null,
-    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, visual: getPlayEnemyVisualState(enemy, worldTime), pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
     totalEnemySpawns: enemies.length,
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,

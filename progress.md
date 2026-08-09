@@ -886,3 +886,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式遊玩中的移動型敵人會在直線路徑遇到阻擋 Cell、封閉 Edge 或錯誤水層時選擇可通行的側向路線；三種 authored 定點支援／砲台型敵人維持不移動。
 - 所有敵方投射物速度降為 50%；投射物命中傷害在全敵人 40% 倍率後再減半，最終為原始傷害 20%，不影響玩家武器與非子彈敵技。
 - focused enemy／sandbox／formal page tests 85/85、完整 `npm run check` 214/214 通過；Vite build 與 `git diff --check` 待本步收尾記錄。依專案規則不執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 109 complete
+
+- 正式遊玩不再固定繪製 `enemy.visual`；每隻敵人改以 runtime 的 `pendingSkill`、`suicideCharge`與 `lastResolvedSkill` 選擇觀察圖鑑中同 attack id 的動畫。
+- 待機、追逐與移動狀態都會循環自然漂浮；施放技能時改為該技能專用殘影素材，結算後保留完整六幀 1.44 秒，重複施放會以每隻敵人獨立的 playback key 重新播放。
+- 驗收沙盒同步修正技能動畫太早回 idle 與結算時二次重置的問題；技能從讀條到結算使用同一段完整動畫。
+- focused 正式敵人／正式頁面／沙盒測試 36/36、完整 `npm run check` 218/218、Vite build 與 scoped `git diff --check` 均通過；依專案規則未執行瀏覽器／Playwright。

@@ -41,6 +41,7 @@ import { getKatanaWavePose } from './katana-visual.js';
 export const SANDBOX_WIDTH = 960;
 export const SANDBOX_HEIGHT = 560;
 export const SANDBOX_FIXED_STEP = FIXED_STEP;
+export const SANDBOX_ENEMY_ACTION_VISUAL_HOLD = 1.44;
 // The diver sprite is intentionally smaller than the control affordance. The
 // sandbox should test combat, not punish a click that lands a few pixels beside
 // the diver while the user is trying to start a launch.
@@ -180,7 +181,10 @@ function getNextReadySkill(enemy, distance) {
 function setAnimation(enemy, skillId, time) {
   enemy.animation = skillId ?? 'idle';
   enemy.animationToken += 1;
-  enemy.animationUntil = time + Math.max(0.8, enemyDefinition(enemy)?.attacks.find((skill) => skill.id === skillId)?.telegraph ?? 0.8);
+  enemy.animationUntil = time + Math.max(
+    SANDBOX_ENEMY_ACTION_VISUAL_HOLD,
+    enemyDefinition(enemy)?.attacks.find((skill) => skill.id === skillId)?.telegraph ?? 0,
+  );
 }
 
 function addEffect(state, effect) {
@@ -206,8 +210,10 @@ function beginSuicideCharge(state, enemy, skill) {
   enemy.vx = 0;
   enemy.vy = 0;
   enemy.animation = skill.id;
-  enemy.animationToken += 1;
-  enemy.animationUntil = state.time + (skill.detonationDelay ?? 1) + 0.4;
+  enemy.animationUntil = Math.max(
+    enemy.animationUntil,
+    state.time + (skill.detonationDelay ?? 1) + 0.4,
+  );
   logEvent(state, `${enemyDefinition(enemy).name} 已鎖定定點，抵達後將在 ${skill.detonationDelay ?? 1} 秒後爆炸。`, 'warning');
 }
 
@@ -504,7 +510,7 @@ function startEnemySkillCast(state, enemy, skill, { minimumCast = false } = {}) 
   };
   if (enemy.enemyId === 'squidAssassin' && skill.id === 'inkShadowSlash') enemy.hidden = true;
   enemy.state = 'casting';
-  enemy.animationUntil = state.time + duration;
+  enemy.animationUntil = Math.max(enemy.animationUntil, state.time + duration);
   addEffect(state, {
     type: 'telegraph',
     x: skill.type === 'melee' || skill.type === 'teleportMelee' || skill.type === 'projectile' ? state.actor.x : enemy.x,
@@ -795,7 +801,12 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
     return { ok: false, reason: 'cooldown' };
   }
   if (!options.resolve) enemy.cooldowns[skill.id] = (skill.cooldown ?? 0) * enemyCooldownMultiplier(enemy);
-  setAnimation(enemy, skill.id, state.time);
+  if (options.resolve) {
+    enemy.animation = skill.id;
+    enemy.animationUntil = Math.max(enemy.animationUntil, state.time + SANDBOX_ENEMY_ACTION_VISUAL_HOLD);
+  } else {
+    setAnimation(enemy, skill.id, state.time);
+  }
   if (!options.resolve && startEnemySkillCast(state, enemy, skill, { minimumCast: options.minimumCast ?? hasPlayerDamage(skill) })) {
     return { ok: true, pending: true, enemy: enemy.instanceId, skill: skill.id };
   }

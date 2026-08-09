@@ -12,11 +12,15 @@ import {
   PLAY_ENEMY_ACTIVATION_RADIUS,
   PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
+  PLAY_ENEMY_ACTION_VISUAL_HOLD,
+  PLAY_ENEMY_ASSET_PATHS,
+  PLAY_ENEMY_VISUAL_SETS,
   PLAY_ENEMY_VISUALS,
   createPlayEnemies,
   getReachablePlayCellKeys,
   getPlayEnemyRenderState,
   getPlayEnemyPose,
+  getPlayEnemyVisualState,
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from '../src/play-enemies.js';
@@ -59,6 +63,8 @@ function authoredEnemy(enemyId, overrides = {}) {
     nextSkillIndex: 0,
     pendingSkill: null,
     suicideCharge: null,
+    visualAction: null,
+    visualActionSequence: 0,
     stunnedUntil: 0,
     linkedTargets: [],
     linkedTarget: null,
@@ -211,6 +217,53 @@ test('all nine regular descent visuals exist and enemy display size is at least 
   assert.notDeepEqual(first, later);
   assert.equal(isPlayEnemyVisible(enemy, { x: 80, y: 160 }, { width: 100, height: 100 }), true);
   assert.equal(isPlayEnemyVisible(enemy, { x: 400, y: 400 }, { width: 100, height: 100 }), false);
+});
+
+test('movement loops idle art and each authored skill selects its exact attack animation', () => {
+  const formalEnemyIds = [...DESCENT_ENEMY_ROSTER, ...PLAY_SPECIAL_ENEMY_IDS];
+  formalEnemyIds.forEach((enemyId) => {
+    const visualSet = PLAY_ENEMY_VISUAL_SETS[enemyId];
+    assert.ok(visualSet?.idle, `${enemyId} should expose a natural-floating loop`);
+    assert.equal(PLAY_ENEMY_VISUALS[enemyId], visualSet.idle);
+    assert.equal(PLAY_ENEMY_ASSET_PATHS.includes(visualSet.idle), true);
+    assert.equal(existsSync(fileURLToPath(new URL(`../public${visualSet.idle}`, import.meta.url))), true);
+    ENEMY_DEFINITIONS[enemyId].attacks.forEach((skill) => {
+      const actionPath = visualSet.actions[skill.id];
+      assert.ok(actionPath, `${enemyId}.${skill.id} should select its own animation`);
+      assert.equal(PLAY_ENEMY_ASSET_PATHS.includes(actionPath), true);
+      assert.equal(existsSync(fileURLToPath(new URL(`../public${actionPath}`, import.meta.url))), true);
+    });
+  });
+
+  const moving = authoredEnemy('crabGuard', { state: 'chasing', vx: 24 });
+  assert.deepEqual(getPlayEnemyVisualState(moving, 2), {
+    path: PLAY_ENEMY_VISUAL_SETS.crabGuard.idle,
+    mode: 'idle',
+    actionId: null,
+    playbackKey: 'test-crabGuard:idle',
+  });
+});
+
+test('a skill animation starts with its cast, survives resolution, then returns to idle', () => {
+  const enemy = authoredEnemy('crabGuard', { alerted: true });
+  const actor = { x: 0, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+
+  updatePlayEnemies([enemy], actor, 1 / 60, 0);
+  assert.equal(enemy.pendingSkill?.skillId, 'clawSwipe');
+  const castingVisual = getPlayEnemyVisualState(enemy, 0);
+  assert.equal(castingVisual.mode, 'action');
+  assert.equal(castingVisual.actionId, 'clawSwipe');
+  assert.equal(castingVisual.path, PLAY_ENEMY_VISUAL_SETS.crabGuard.actions.clawSwipe);
+
+  updatePlayEnemies([enemy], actor, 0.5, 0.5);
+  const resolvedVisual = getPlayEnemyVisualState(enemy, 0.5);
+  assert.equal(enemy.lastResolvedSkill?.skillId, 'clawSwipe');
+  assert.equal(resolvedVisual.path, castingVisual.path);
+  assert.equal(resolvedVisual.playbackKey, castingVisual.playbackKey, 'resolution must continue the same playback instead of restarting mid-swing');
+
+  const idleVisual = getPlayEnemyVisualState(enemy, 0.5 + PLAY_ENEMY_ACTION_VISUAL_HOLD + 0.01);
+  assert.equal(idleVisual.mode, 'idle');
+  assert.equal(idleVisual.path, PLAY_ENEMY_VISUAL_SETS.crabGuard.idle);
 });
 
 test('special map markers instantiate the documented Mini Bosses and Boss without reducing regular populations', () => {

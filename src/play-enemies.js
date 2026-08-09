@@ -39,17 +39,97 @@ export const PLAY_ENEMY_TARGETS = Object.freeze({ 1: 40, 2: 40, 3: 48 });
 export const PLAY_ENEMY_RENDER_SCALE = 2;
 export const PLAY_ENEMY_SPAWN_SAFE_RADIUS = HEX_SIZE * 18;
 export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 14;
+export const PLAY_ENEMY_ACTION_VISUAL_HOLD = 1.44;
 
 const encyclopediaById = Object.freeze(Object.fromEntries(
   ENEMY_ENCYCLOPEDIA.map((entry) => [entry.id, entry]),
 ));
 
-export const PLAY_ENEMY_VISUALS = Object.freeze(Object.fromEntries(
+export const PLAY_ENEMY_VISUAL_SETS = Object.freeze(Object.fromEntries(
   [...DESCENT_ENEMY_ROSTER, ...PLAY_SPECIAL_ENEMY_IDS].map((enemyId) => {
     const visuals = encyclopediaById[enemyId]?.visuals;
-    return [enemyId, visuals?.afterimageIdle ?? visuals?.idle ?? null];
+    return [enemyId, Object.freeze({
+      idle: visuals?.afterimageIdle ?? visuals?.idle ?? null,
+      actions: Object.freeze({ ...(visuals?.afterimageActions ?? visuals?.actions ?? {}) }),
+    })];
   }),
 ));
+
+// Backwards-compatible idle lookup for spawn data and external diagnostics.
+export const PLAY_ENEMY_VISUALS = Object.freeze(Object.fromEntries(
+  Object.entries(PLAY_ENEMY_VISUAL_SETS).map(([enemyId, visualSet]) => [enemyId, visualSet.idle]),
+));
+
+export const PLAY_ENEMY_ASSET_PATHS = Object.freeze([...new Set(
+  Object.values(PLAY_ENEMY_VISUAL_SETS).flatMap((visualSet) => [visualSet.idle, ...Object.values(visualSet.actions)]).filter(Boolean),
+)]);
+
+function activeEnemyVisualAction(enemy, now) {
+  const explicit = enemy.visualAction;
+  if (explicit) {
+    const isCasting = enemy.pendingSkill?.skillId === explicit.skillId;
+    const isCharging = enemy.suicideCharge?.skillId === explicit.skillId;
+    if (isCasting || isCharging || now <= Number(explicit.holdUntil ?? -Infinity)) return explicit;
+  }
+  if (enemy.pendingSkill?.skillId) {
+    return {
+      skillId: enemy.pendingSkill.skillId,
+      sequence: enemy.pendingSkill.visualSequence ?? 0,
+      startedAt: enemy.pendingSkill.startedAt ?? now,
+    };
+  }
+  if (enemy.suicideCharge?.skillId) {
+    return {
+      skillId: enemy.suicideCharge.skillId,
+      sequence: enemy.suicideCharge.visualSequence ?? 0,
+      startedAt: enemy.suicideCharge.startedAt ?? now,
+    };
+  }
+  const resolved = enemy.lastResolvedSkill;
+  if (resolved?.supported !== false && Number.isFinite(resolved?.resolvedAt)
+    && now - resolved.resolvedAt <= PLAY_ENEMY_ACTION_VISUAL_HOLD) {
+    return {
+      skillId: resolved.skillId,
+      sequence: resolved.visualSequence ?? 0,
+      startedAt: resolved.resolvedAt,
+    };
+  }
+  return null;
+}
+
+export function getPlayEnemyVisualState(enemy, time = 0) {
+  const now = Number.isFinite(time) ? time : 0;
+  const visualSet = PLAY_ENEMY_VISUAL_SETS[enemy?.enemyId];
+  if (!visualSet) return Object.freeze({ path: null, mode: 'missing', actionId: null, playbackKey: 'missing' });
+  const activeAction = activeEnemyVisualAction(enemy, now);
+  const actionPath = activeAction ? visualSet.actions[activeAction.skillId] : null;
+  if (actionPath) {
+    return Object.freeze({
+      path: actionPath,
+      mode: 'action',
+      actionId: activeAction.skillId,
+      playbackKey: `${enemy.instanceId ?? enemy.enemyId}:${activeAction.skillId}:${activeAction.sequence ?? activeAction.startedAt ?? 0}`,
+    });
+  }
+  return Object.freeze({
+    path: visualSet.idle,
+    mode: 'idle',
+    actionId: null,
+    playbackKey: `${enemy.instanceId ?? enemy.enemyId}:idle`,
+  });
+}
+
+function beginPlayEnemyVisualAction(enemy, skillId, time) {
+  const sequence = (enemy.visualActionSequence ?? 0) + 1;
+  enemy.visualActionSequence = sequence;
+  enemy.visualAction = {
+    skillId,
+    sequence,
+    startedAt: time,
+    holdUntil: time + PLAY_ENEMY_ACTION_VISUAL_HOLD,
+  };
+  return enemy.visualAction;
+}
 
 function isDescentEnemy(enemyId) {
   return DESCENT_ENEMY_ROSTER.includes(enemyId);
@@ -310,6 +390,8 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       nextSkillIndex: 0,
       pendingSkill: null,
       suicideCharge: null,
+      visualAction: null,
+      visualActionSequence: 0,
       stunnedUntil: 0,
       linkedTarget: null,
       linkedTargets: [],
@@ -795,6 +877,8 @@ function createSummonedPlayEnemy(runtime, enemyId, summoner, x, y, index) {
     nextSkillIndex: 0,
     pendingSkill: null,
     suicideCharge: null,
+    visualAction: null,
+    visualActionSequence: 0,
     stunnedUntil: 0,
     linkedTarget: null,
     linkedTargets: [],
@@ -960,12 +1044,15 @@ function updateLinkedSupport(runtime, enemies, enemy, definition, dt) {
 }
 
 function beginSuicideCharge(runtime, enemy, skill, actor) {
+  const visualAction = beginPlayEnemyVisualAction(enemy, skill.id, runtime.time);
   enemy.suicideCharge = {
     skillId: skill.id,
     phase: 'seeking',
     targetX: actor.x,
     targetY: actor.y,
     remaining: skill.detonationDelay ?? 1,
+    startedAt: runtime.time,
+    visualSequence: visualAction.sequence,
   };
   enemy.vx = 0;
   enemy.vy = 0;
@@ -1054,7 +1141,17 @@ function resolvePlayEnemySkill(runtime, enemies, enemy, skill, actor, onDamage, 
   const distance = distanceBetween(enemy, actor);
   const source = `${enemy.name}・${skill.name}`;
   const damageType = ['contact', 'melee', 'teleportMelee', 'dash'].includes(skill.type) ? 'generic' : 'ranged';
-  enemy.lastResolvedSkill = { skillId: skill.id, skillType: skill.type, resolvedAt: runtime.time, supported: true };
+  const visualAction = enemy.visualAction?.skillId === skill.id
+    ? enemy.visualAction
+    : beginPlayEnemyVisualAction(enemy, skill.id, runtime.time);
+  visualAction.holdUntil = Math.max(visualAction.holdUntil, runtime.time + PLAY_ENEMY_ACTION_VISUAL_HOLD);
+  enemy.lastResolvedSkill = {
+    skillId: skill.id,
+    skillType: skill.type,
+    resolvedAt: runtime.time,
+    visualSequence: visualAction.sequence,
+    supported: true,
+  };
   if (skill.type === 'teleportMelee' || skill.type === 'dash') {
     const angle = angleBetween(enemy, actor);
     enemy.x = actor.x - Math.cos(angle) * 28;
@@ -1422,11 +1519,14 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     const authoredCastTime = Number(skill.castTime ?? skill.telegraph ?? 0);
     const castTime = authoredCastTime > 0 ? authoredCastTime : hasPlayerDamage(skill) ? .32 : 0;
     if (castTime > 0) {
+      const visualAction = beginPlayEnemyVisualAction(enemy, skill.id, runtime.time);
       enemy.pendingSkill = {
         skillId: skill.id,
         remaining: castTime,
         targetX: actor.x,
         targetY: actor.y,
+        startedAt: runtime.time,
+        visualSequence: visualAction.sequence,
       };
       enemy.state = 'casting';
       addPlayEnemyEffect(runtime, {
@@ -1480,6 +1580,7 @@ export function getPlayEnemyRenderState(enemies, time = null) {
       outgoingDamageMultiplier: enemy.outgoingDamageMultiplier ?? 1,
       projectileSpeedMultiplier: enemy.projectileSpeedMultiplier ?? 1,
       damageStack: enemy.damageStack ?? 0,
+      visual: getPlayEnemyVisualState(enemy, now),
       lastResolvedSkill: enemy.lastResolvedSkill ? { ...enemy.lastResolvedSkill } : null,
     })),
   };
