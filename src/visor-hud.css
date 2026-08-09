@@ -22,8 +22,6 @@
   pointer-events: none;
   opacity: .58;
   mix-blend-mode: screen;
-  -webkit-backdrop-filter: saturate(1.08) brightness(1.03);
-  backdrop-filter: saturate(1.08) brightness(1.03);
   background:
     linear-gradient(116deg, transparent 0 22%, rgba(224, 253, 255, .24) 28%, rgba(224, 253, 255, .07) 31%, transparent 38% 62%, rgba(224, 253, 255, .13) 69%, transparent 75%),
     linear-gradient(168deg, rgba(220, 252, 255, .13), transparent 17% 73%, rgba(220, 252, 255, .1)),

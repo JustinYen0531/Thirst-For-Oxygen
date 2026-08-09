@@ -12,10 +12,17 @@ import {
 } from '../src/play-performance.js';
 import { createTestActor, stepPhysics } from '../src/physics.js';
 import { createPlayCombatState, getPlayCombatHudState } from '../src/play-combat.js';
+import {
+  getPlayEnemyAssetPaths,
+  getPlayEnemyRenderState,
+  getPlayEnemyRenderView,
+  updatePlayEnemies,
+} from '../src/play-enemies.js';
+import { PLAY_BASE_IMAGE_ASSET_PATHS, PLAY_IMAGE_ASSET_PATHS } from '../src/play-preload.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-test('the long first map renders only the camera neighbourhood instead of all 2880 cells', () => {
+test('the long first map renders only the camera neighbourhood instead of all map cells', () => {
   const map = JSON.parse(readFileSync(`${ROOT}\\maps\\下沉篇\\下沉篇-第1部分.json`, 'utf8'));
   const index = createPlayRenderIndex(map, { x: 36, y: 36 });
   const viewport = { width: 400, height: 225 };
@@ -23,11 +30,35 @@ test('the long first map renders only the camera neighbourhood instead of all 28
   const visibleCells = getVisiblePlayCells(index, camera, viewport);
   const visibleEdges = getVisiblePlayEdges(index, camera, viewport);
 
-  assert.equal(index.cells.length, 2880);
+  assert.equal(index.cells.length, Object.keys(map.cells).length);
   assert.ok(visibleCells.length > 0);
   assert.ok(visibleCells.length < index.cells.length * 0.15);
   assert.ok(visibleEdges.length > 0);
   assert.ok(visibleEdges.length < index.edges.length * 0.15);
+});
+
+test('formal Play boots a bounded base set and requests only the current enemy roster', () => {
+  const partOneEnemyPaths = getPlayEnemyAssetPaths(['explodingLanternfish', 'juvenileSeahorseCaller', 'crabGuard']);
+  assert.ok(PLAY_BASE_IMAGE_ASSET_PATHS.length < PLAY_IMAGE_ASSET_PATHS.length);
+  assert.ok(partOneEnemyPaths.length > 0);
+  assert.ok(partOneEnemyPaths.length < PLAY_IMAGE_ASSET_PATHS.length);
+  assert.ok(partOneEnemyPaths.every((path) => PLAY_IMAGE_ASSET_PATHS.includes(path)));
+});
+
+test('steady enemy simulation returns events without cloning its render tree', () => {
+  const enemies = [{
+    instanceId: 'performance-enemy', enemyId: 'crabGuard', x: 0, y: 0, homeX: 0, homeY: 0,
+    radius: 8, health: 100, maxHealth: 100, moveSpeed: 0, cooldowns: {}, activeEffects: {}, linkedTargets: [],
+    nextSkillIndex: 0, phase: 0, resonanceProgress: 0, resonanceRequired: 100,
+  }];
+  const actor = { x: 500, y: 500, radius: 6, health: 100, oxygen: 100, energy: 100, dead: false, invulnerability: 0 };
+  const result = updatePlayEnemies(enemies, actor, 1 / 60, 1 / 60);
+  const view = getPlayEnemyRenderView(enemies, 1 / 60);
+  const snapshot = getPlayEnemyRenderState(enemies, 1 / 60);
+  assert.deepEqual(Object.keys(result), ['resonanceEvents']);
+  assert.equal(view.enemies, enemies);
+  assert.equal(view.enemyIndex.get('performance-enemy'), enemies[0]);
+  assert.notEqual(snapshot.enemies[0], enemies[0]);
 });
 
 test('HUD update gate keeps gameplay simulation at full rate while limiting DOM refreshes', () => {
@@ -56,6 +87,10 @@ test('formal Play consumes the indexed camera slice and cached background layer'
   assert.doesNotMatch(renderBody, /Object\.entries\(map\.cells\)/);
   assert.match(source, /backgroundLayer = buildBackgroundLayer\(\)/);
   assert.match(source, /updateHudIfDue\(now\)/);
+  assert.match(source, /WATER_MOTION_FPS = 30/);
+  assert.match(source, /cacheOutlinedSprite/);
+  assert.match(source, /discoveryUpdateGate = createPlayUpdateGate\(120\)/);
+  assert.doesNotMatch(source, /ensureImageAssets\(PLAY_IMAGE_ASSET_PATHS\)/);
 });
 
 test('steady physics steps reuse the object cache without enumerating every map cell again', () => {

@@ -32,6 +32,14 @@ export const PLAY_HUD_ASSET_PATHS = Object.freeze([
   )),
 ]);
 
+export const PLAY_BASE_IMAGE_ASSET_PATHS = Object.freeze([...new Set([
+  ...Object.values(PLAYER_ANIMATION_ASSETS).flat(),
+  ...Object.values(PLAY_TILE_ASSETS),
+  ...getPlayWorldAssetPaths(),
+  ...PLAY_WEAPON_ASSET_PATHS,
+  ...PLAY_HUD_ASSET_PATHS,
+].filter(Boolean))]);
+
 export const PLAY_MAP_ASSET_URLS = Object.freeze({
   descent: Object.freeze({
     1: new URL('../maps/下沉篇/下沉篇-第1部分.json', import.meta.url).href,
@@ -46,12 +54,8 @@ export const PLAY_MAP_ASSET_URLS = Object.freeze({
 });
 
 export const PLAY_IMAGE_ASSET_PATHS = Object.freeze([...new Set([
-  ...Object.values(PLAYER_ANIMATION_ASSETS).flat(),
-  ...Object.values(PLAY_TILE_ASSETS),
-  ...getPlayWorldAssetPaths(),
+  ...PLAY_BASE_IMAGE_ASSET_PATHS,
   ...PLAY_ENEMY_ASSET_PATHS,
-  ...PLAY_WEAPON_ASSET_PATHS,
-  ...PLAY_HUD_ASSET_PATHS,
 ].filter(Boolean))]);
 
 export const PLAY_STARTUP_ASSET_PATHS = Object.freeze([

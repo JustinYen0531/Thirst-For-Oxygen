@@ -43,6 +43,7 @@ export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 14;
 export const PLAY_ENEMY_ACTION_VISUAL_HOLD = 1.44;
 export const PLAY_ENEMY_FRAME_COUNT = 6;
 export const PLAY_ENEMY_FRAME_DURATION = 0.18;
+export const PLAY_ENEMY_DORMANT_UPDATE_INTERVAL = 0.25;
 
 const encyclopediaById = Object.freeze(Object.fromEntries(
   ENEMY_ENCYCLOPEDIA.map((entry) => [entry.id, entry]),
@@ -79,6 +80,16 @@ export function getPlayEnemyFramePaths(animatedPath) {
 export const PLAY_ENEMY_ASSET_PATHS = Object.freeze(
   PLAY_ENEMY_ANIMATED_ASSET_PATHS.flatMap((animatedPath) => getPlayEnemyFramePaths(animatedPath)),
 );
+
+export function getPlayEnemyAssetPaths(enemyIds = []) {
+  const requestedIds = new Set(enemyIds);
+  return Object.freeze([...requestedIds].flatMap((enemyId) => {
+    const visualSet = PLAY_ENEMY_VISUAL_SETS[enemyId];
+    if (!visualSet) return [];
+    return [...new Set([visualSet.idle, ...Object.values(visualSet.actions)].filter(Boolean))]
+      .flatMap((animatedPath) => getPlayEnemyFramePaths(animatedPath));
+  }));
+}
 
 function activeEnemyVisualAction(enemy, now) {
   const explicit = enemy.visualAction;
@@ -513,10 +524,20 @@ function getPlayEnemyRuntime(enemies) {
       nextSummonEventId: 1,
       nextRuleId: 1,
       playerResources: null,
+      enemyIndex: new Map(),
+      indexedEnemyCount: -1,
+      renderView: null,
     };
     playEnemyRuntimes.set(enemies, runtime);
   }
   return runtime;
+}
+
+function getPlayEnemyIndex(runtime, enemies) {
+  if (runtime.indexedEnemyCount === enemies.length) return runtime.enemyIndex;
+  runtime.enemyIndex = new Map(enemies.map((enemy) => [enemy.instanceId, enemy]));
+  runtime.indexedEnemyCount = enemies.length;
+  return runtime.enemyIndex;
 }
 
 function addPlayEnemyEffect(runtime, effect) {
@@ -1615,7 +1636,16 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   const elapsed = Math.max(0, Number(dt) || 0);
   const runtime = getPlayEnemyRuntime(enemies);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
-  enemies.forEach((enemy) => recoverPlayEnemyFromBlockedTerrain(enemy, world));
+  enemies.forEach((enemy) => {
+    const requiresFullMaintenance = enemy.alerted
+      || enemy.pendingSkill
+      || enemy.suicideCharge
+      || distanceBetween(enemy, actor) <= PLAY_ENEMY_ACTIVATION_RADIUS * 1.6;
+    enemy.maintenanceElapsed = (enemy.maintenanceElapsed ?? 0) + elapsed;
+    if (!requiresFullMaintenance && enemy.maintenanceElapsed < PLAY_ENEMY_DORMANT_UPDATE_INTERVAL) return;
+    recoverPlayEnemyFromBlockedTerrain(enemy, world);
+    enemy.maintenanceElapsed = 0;
+  });
   const resonanceEvents = stepEnemyResonance({
     enemies,
     projectiles: runtime.projectiles,
@@ -1667,6 +1697,20 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       else if (distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35) enemy.alerted = false;
       if (!enemy.alerted) {
         if ((enemy.moveSpeed ?? 0) > 0 && world?.map) {
+          enemy.dormantMovementElapsed = (enemy.dormantMovementElapsed ?? 0) + elapsed;
+          const usesDormantLod = distance > PLAY_ENEMY_ACTIVATION_RADIUS * 1.35;
+          if (usesDormantLod && enemy.dormantMovementElapsed < PLAY_ENEMY_DORMANT_UPDATE_INTERVAL) {
+            enemy.x += (enemy.vx ?? 0) * elapsed;
+            enemy.y += (enemy.vy ?? 0) * elapsed;
+            if (bounds) {
+              enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+              enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+            }
+            if (Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0) > 0.01) enemy.state = 'roaming';
+            return;
+          }
+          const movementElapsed = enemy.dormantMovementElapsed;
+          enemy.dormantMovementElapsed = 0;
           const target = getPlayEnemyLoiterTarget(
             enemy,
             { x: enemy.homeX ?? enemy.x, y: enemy.homeY ?? enemy.y },
@@ -1677,7 +1721,19 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
             'home',
           );
           enemy.movementGoal = { x: target.x, y: target.y, mode: 'home', phase: target.phase };
-          if (target.phase === 'travel') movePlayEnemyToward(enemy, target, enemy.moveSpeed * 0.58, elapsed, world, bounds, 'roaming');
+          if (target.phase === 'travel') {
+            const steeringElapsed = usesDormantLod ? Math.min(movementElapsed, 1 / 30) : movementElapsed;
+            const moved = movePlayEnemyToward(enemy, target, enemy.moveSpeed * 0.58, steeringElapsed, world, bounds, 'roaming');
+            const remainingElapsed = movementElapsed - steeringElapsed;
+            if (moved && usesDormantLod && remainingElapsed > 0) {
+              enemy.x += (enemy.vx ?? 0) * remainingElapsed;
+              enemy.y += (enemy.vy ?? 0) * remainingElapsed;
+              if (bounds) {
+                enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+                enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+              }
+            }
+          }
           else stopPlayEnemyMovement(enemy, 'loitering');
         } else {
           stopPlayEnemyMovement(enemy, 'idle');
@@ -1777,7 +1833,22 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     energy: actor.energy ?? null,
     stunnedUntil: actor.stunnedUntil ?? 0,
   };
-  return { ...getPlayEnemyRenderState(enemies, runtime.time), resonanceEvents };
+  return { resonanceEvents };
+}
+
+export function getPlayEnemyRenderView(enemies, time = null) {
+  const runtime = getPlayEnemyRuntime(enemies);
+  const view = runtime.renderView ??= {};
+  view.time = Number.isFinite(time) ? time : runtime.time;
+  view.projectiles = runtime.projectiles;
+  view.zones = runtime.zones;
+  view.rules = runtime.rules;
+  view.summons = runtime.summons;
+  view.effects = runtime.effects;
+  view.playerResources = runtime.playerResources;
+  view.enemies = enemies;
+  view.enemyIndex = getPlayEnemyIndex(runtime, enemies);
+  return view;
 }
 
 export function getPlayEnemyRenderState(enemies, time = null) {

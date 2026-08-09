@@ -1135,3 +1135,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 被動增傷、共鳴加成、側刃 70%、武士刀強化雙倍與敵人承傷倍率仍在新的 0.6 基準上相乘，不改變各自的相對效果。
 - 珊瑚群落維持既有保護功能，沒有改成穿牆物件；新的牆邊穿行入口暫定規劃名為「潛壁鰓門」，等玩法規格確認後再實作與放入地圖。
 - 傷害與進度聚焦測試 81/81、完整 `npm run check` 300/300、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 134 complete
+
+- 正式 Play 水域微動畫改為 16 組相位 Canvas 快取，以 30 FPS 更新流動細節；玩家、戰鬥、底圖與 HUD 仍維持每幀繪製。精靈發光輪廓改為有 1,800 萬像素上限的 LRU 快取，不再每幀重算多層 drop-shadow。
+- 敵人 runtime 新增零複製 render view 與 instance ID 索引；每個物理步驟只回傳 Resonance 事件，完整快照只保留給 `render_game_to_text`。遠距生物以 0.25 秒低頻導航，進入玩家範圍後立即恢復完整模擬。
+- Play 由原本一次建立 328 張圖片，改為 76 張共用基礎素材加當前地圖敵人幀；Part 1/2/3 分別為 196/238/256 張，減少約 40%/27%/22%。教學辨識掃描降為 120 ms 一次，並移除 HUD 長駐 backdrop-filter。
+- 針對性測試 62/62、完整 `npm run check` 306/306、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器或 Playwright，因此不聲稱已實測 FPS。

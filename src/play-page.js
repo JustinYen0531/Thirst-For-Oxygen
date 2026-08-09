@@ -81,8 +81,10 @@ import {
 } from './play-world-visuals.js';
 import {
   createPlayEnemies,
+  getPlayEnemyAssetPaths,
   getPlayEnemyFrameState,
   getPlayEnemyRenderState,
+  getPlayEnemyRenderView,
   getPlayEnemyPose,
   isPlayEnemyVisible,
   updatePlayEnemies,
@@ -97,7 +99,7 @@ import {
   updateDiscoverySession,
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
-import { PLAY_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
+import { PLAY_BASE_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
 import {
   createPlayRenderIndex,
   createPlayUpdateGate,
@@ -173,7 +175,16 @@ const healthSegments = [...resourceBars.health.querySelectorAll('[data-health-se
 const healthPointer = resourceBars.health.querySelector('.health-pointer');
 const visorSlots = [...document.querySelectorAll('[data-visor-slot]')];
 const images = new Map();
-PLAY_IMAGE_ASSET_PATHS.forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
+function ensureImageAssets(paths) {
+  paths.forEach((path) => {
+    if (!path || images.has(path)) return;
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = path;
+    images.set(path, image);
+  });
+}
+ensureImageAssets(PLAY_BASE_IMAGE_ASSET_PATHS);
 
 let map = null;
 let mapArc = 'descent';
@@ -231,6 +242,8 @@ let renderClock = 0;
 let hudSlotSignature = '';
 let eventLogMarkup = '';
 const hudUpdateGate = createPlayUpdateGate(50);
+const discoveryUpdateGate = createPlayUpdateGate(120);
+let activeDiscoveryGuides = [];
 
 function getMapDefinition(arc = mapArc, part = mapPart) {
   return MAP_ROUTES[arc]?.[part] ?? null;
@@ -254,6 +267,39 @@ function hexPath(ctx, cell, pad = 0, geometry = null) { const center = geometry?
 function silhouetteFilter(colour, radius) {
   return `drop-shadow(${radius}px 0 0 ${colour}) drop-shadow(${-radius}px 0 0 ${colour}) drop-shadow(0 ${radius}px 0 ${colour}) drop-shadow(0 ${-radius}px 0 ${colour})`;
 }
+const OUTLINED_SPRITE_CACHE_MAX_PIXELS = 18_000_000;
+const outlinedSpriteCache = new Map();
+let outlinedSpriteCachePixels = 0;
+function cacheOutlinedSprite(image, width, height, radius, colour) {
+  const pixelWidth = Math.max(1, Math.round(Math.abs(width) * SCALE));
+  const pixelHeight = Math.max(1, Math.round(Math.abs(height) * SCALE));
+  const key = `${image.currentSrc || image.src}|${pixelWidth}x${pixelHeight}|${radius}|${colour}`;
+  const existing = outlinedSpriteCache.get(key);
+  if (existing) {
+    outlinedSpriteCache.delete(key);
+    outlinedSpriteCache.set(key, existing);
+    return existing;
+  }
+  const padding = Math.max(3, Math.ceil(radius * SCALE * 2.5));
+  const sprite = document.createElement('canvas');
+  sprite.width = pixelWidth + padding * 2;
+  sprite.height = pixelHeight + padding * 2;
+  const spriteContext = sprite.getContext('2d');
+  spriteContext.filter = silhouetteFilter(colour, radius * SCALE);
+  spriteContext.drawImage(image, padding, padding, pixelWidth, pixelHeight);
+  spriteContext.filter = 'none';
+  spriteContext.drawImage(image, padding, padding, pixelWidth, pixelHeight);
+  const entry = { sprite, worldWidth: sprite.width / SCALE, worldHeight: sprite.height / SCALE, pixels: sprite.width * sprite.height };
+  outlinedSpriteCache.set(key, entry);
+  outlinedSpriteCachePixels += entry.pixels;
+  while (outlinedSpriteCachePixels > OUTLINED_SPRITE_CACHE_MAX_PIXELS && outlinedSpriteCache.size > 1) {
+    const oldestKey = outlinedSpriteCache.keys().next().value;
+    const oldest = outlinedSpriteCache.get(oldestKey);
+    outlinedSpriteCache.delete(oldestKey);
+    outlinedSpriteCachePixels -= oldest.pixels;
+  }
+  return entry;
+}
 function drawImage(path, x, y, width, height, alpha = 1, rotation = 0, outlineColour = null) {
   const image = images.get(path);
   if (!image?.complete || !image.naturalWidth) return false;
@@ -262,11 +308,11 @@ function drawImage(path, x, y, width, height, alpha = 1, rotation = 0, outlineCo
   context.translate(x, y);
   context.rotate(rotation);
   if (outlineColour) {
-    context.filter = silhouetteFilter(outlineColour, .75);
+    const cached = cacheOutlinedSprite(image, width, height, .75, outlineColour);
+    context.drawImage(cached.sprite, -cached.worldWidth / 2, -cached.worldHeight / 2, cached.worldWidth, cached.worldHeight);
+  } else {
     context.drawImage(image, -width / 2, -height / 2, width, height);
-    context.filter = 'none';
   }
-  context.drawImage(image, -width / 2, -height / 2, width, height);
   context.restore();
   return true;
 }
@@ -275,10 +321,8 @@ function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, r
   context.globalAlpha = alpha;
   context.translate(x, y);
   context.scale(scaleX, 1);
-  context.filter = silhouetteFilter(colour, radius);
-  context.drawImage(image, -width / 2, -height / 2, width, height);
-  context.filter = 'none';
-  context.drawImage(image, -width / 2, -height / 2, width, height);
+  const cached = cacheOutlinedSprite(image, width, height, radius, colour);
+  context.drawImage(cached.sprite, -cached.worldWidth / 2, -cached.worldHeight / 2, cached.worldWidth, cached.worldHeight);
   context.restore();
 }
 function visibleCell(cell) { return cell.q !== undefined && cell.r !== undefined && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y > camera.y - 40 && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y < camera.y + canvas.height / SCALE + 40; }
@@ -335,6 +379,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   syncPlayCombatBuild(combatState, actor);
   actor.oxygen = Math.min(actor.oxygen, actor.derivedStats?.maxOxygen ?? MAX_OXYGEN);
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
+  ensureImageAssets(getPlayEnemyAssetPaths(enemies.map((enemy) => enemy.enemyId)));
   bossRoomState = createPlayBossRoomState(map);
   syncKatanaState();
   if (!previousActor) worldTime = 0;
@@ -349,6 +394,8 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   discoverySession.activeByGuideKey.clear();
   discoverySession.pendingByGuideKey.clear();
   discoveryAcknowledgementTargets = [];
+  activeDiscoveryGuides = [];
+  discoveryUpdateGate.reset();
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
   const mapDefinition = getMapDefinition();
   eventLog = [
@@ -479,38 +526,72 @@ function renderCell(cell, key, geometry = null) {
   (cell.freeObjects ?? []).forEach((object) => { const offset = object.offset ?? { x: 0, y: 0 }; drawObject(object, center.x + offset.x, center.y + offset.y); });
 }
 
-function drawWaterMotion(cell, center) {
-  const phase = cell.q * 1.71 + cell.r * 0.93;
-  const time = renderClock;
+const WATER_MOTION_FPS = 30;
+const WATER_MOTION_PHASE_BUCKETS = 16;
+const WATER_MOTION_WORLD_SIZE = 30;
+const waterMotionAtlas = { frame: -1, sprites: [] };
+function paintWaterMotion(target, phase, time) {
   const pulse = 0.5 + Math.sin(time * 0.8 + phase) * 0.5;
   const intensity = 5;
-  context.save();
-  context.globalCompositeOperation = 'screen';
+  target.save();
+  target.globalCompositeOperation = 'screen';
   for (let index = 0; index < 3; index += 1) {
     const localPhase = phase + index * 2.07;
     const angle = localPhase + Math.sin(time * 0.45 + localPhase) * 0.42;
     const radius = 3.2 + index * 2.2;
-    const x = center.x + Math.cos(localPhase * 0.7 + time * 0.16) * 2.2;
-    const y = center.y + Math.sin(localPhase * 0.8 - time * 0.14) * 2.2;
-    context.strokeStyle = `rgba(193, 235, 255, ${(0.035 + pulse * 0.045) * intensity})`;
-    context.lineWidth = (0.42 * 1.7) / SCALE;
-    context.beginPath();
-    context.arc(x, y, radius, angle, angle + 0.95 + pulse * 0.18);
-    context.stroke();
+    const x = Math.cos(localPhase * 0.7 + time * 0.16) * 2.2;
+    const y = Math.sin(localPhase * 0.8 - time * 0.14) * 2.2;
+    target.strokeStyle = `rgba(193, 235, 255, ${(0.035 + pulse * 0.045) * intensity})`;
+    target.lineWidth = (0.42 * 1.7) / SCALE;
+    target.beginPath();
+    target.arc(x, y, radius, angle, angle + 0.95 + pulse * 0.18);
+    target.stroke();
   }
   for (let index = 0; index < 2; index += 1) {
     const particlePhase = phase + index * 3.1;
-    const x = center.x + Math.sin(time * (0.28 + index * 0.05) + particlePhase) * 7.4;
-    const y = center.y + Math.cos(time * (0.22 + index * 0.04) + particlePhase * 1.3) * 6.2;
-    context.fillStyle = `rgba(218, 247, 255, ${(0.08 + pulse * 0.08) * intensity})`;
-    context.beginPath();
-    context.arc(x, y, (0.42 + pulse * 0.18) * 1.45, 0, Math.PI * 2);
-    context.fill();
+    const x = Math.sin(time * (0.28 + index * 0.05) + particlePhase) * 7.4;
+    const y = Math.cos(time * (0.22 + index * 0.04) + particlePhase * 1.3) * 6.2;
+    target.fillStyle = `rgba(218, 247, 255, ${(0.08 + pulse * 0.08) * intensity})`;
+    target.beginPath();
+    target.arc(x, y, (0.42 + pulse * 0.18) * 1.45, 0, Math.PI * 2);
+    target.fill();
   }
-  context.fillStyle = `rgba(181, 229, 255, ${(0.012 + pulse * 0.018) * intensity})`;
-  context.beginPath();
-  context.arc(center.x + Math.cos(time * 0.22 + phase) * 4.5, center.y + Math.sin(time * 0.19 + phase * 1.2) * 4.5, 4.5 + pulse * 4.5, 0, Math.PI * 2);
-  context.fill();
+  target.fillStyle = `rgba(181, 229, 255, ${(0.012 + pulse * 0.018) * intensity})`;
+  target.beginPath();
+  target.arc(Math.cos(time * 0.22 + phase) * 4.5, Math.sin(time * 0.19 + phase * 1.2) * 4.5, 4.5 + pulse * 4.5, 0, Math.PI * 2);
+  target.fill();
+  target.restore();
+}
+
+function refreshWaterMotionAtlas() {
+  const frame = Math.floor(renderClock * WATER_MOTION_FPS);
+  if (waterMotionAtlas.frame === frame) return;
+  waterMotionAtlas.frame = frame;
+  for (let index = 0; index < WATER_MOTION_PHASE_BUCKETS; index += 1) {
+    let sprite = waterMotionAtlas.sprites[index];
+    if (!sprite) {
+      sprite = document.createElement('canvas');
+      sprite.width = WATER_MOTION_WORLD_SIZE * SCALE;
+      sprite.height = WATER_MOTION_WORLD_SIZE * SCALE;
+      waterMotionAtlas.sprites[index] = sprite;
+    }
+    const spriteContext = sprite.getContext('2d');
+    spriteContext.setTransform(1, 0, 0, 1, 0, 0);
+    spriteContext.clearRect(0, 0, sprite.width, sprite.height);
+    spriteContext.setTransform(SCALE, 0, 0, SCALE, sprite.width / 2, sprite.height / 2);
+    paintWaterMotion(spriteContext, index / WATER_MOTION_PHASE_BUCKETS * Math.PI * 2, frame / WATER_MOTION_FPS);
+  }
+}
+
+function drawWaterMotion(cell, center) {
+  refreshWaterMotionAtlas();
+  const phase = cell.q * 1.71 + cell.r * 0.93;
+  const normalizedPhase = ((phase % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  const bucket = Math.round(normalizedPhase / (Math.PI * 2) * WATER_MOTION_PHASE_BUCKETS) % WATER_MOTION_PHASE_BUCKETS;
+  const sprite = waterMotionAtlas.sprites[bucket];
+  context.save();
+  context.globalCompositeOperation = 'screen';
+  context.drawImage(sprite, center.x - WATER_MOTION_WORLD_SIZE / 2, center.y - WATER_MOTION_WORLD_SIZE / 2, WATER_MOTION_WORLD_SIZE, WATER_MOTION_WORLD_SIZE);
   context.restore();
 }
 
@@ -1165,7 +1246,8 @@ function drawEnemies() {
 }
 
 function drawEnemyCombatRuntime() {
-  const runtime = getPlayEnemyRenderState(enemies, worldTime);
+  const runtime = getPlayEnemyRenderView(enemies, worldTime);
+  const enemyById = runtime.enemyIndex;
   runtime.zones.forEach((zone) => {
     const duration = zone.phase === 'bubble'
       ? zone.bubbleLifetime
@@ -1199,7 +1281,8 @@ function drawEnemyCombatRuntime() {
     context.restore();
   });
   runtime.rules.forEach((rule) => {
-    const owner = enemies.find((enemy) => enemy.instanceId === rule.ownerId && !enemy.defeated);
+    const owner = enemyById.get(rule.ownerId);
+    if (owner?.defeated) return;
     if (!owner) return;
     const duration = Math.max(rule.duration ?? rule.remaining ?? 1, .001);
     const progress = 1 - clamp(rule.remaining / duration, 0, 1);
@@ -1221,7 +1304,8 @@ function drawEnemyCombatRuntime() {
     context.restore();
   });
   runtime.summons.filter((summon) => summon.status === 'active').forEach((summon) => {
-    const owner = enemies.find((enemy) => enemy.instanceId === summon.ownerId && !enemy.defeated);
+    const owner = enemyById.get(summon.ownerId);
+    if (owner?.defeated) return;
     if (!owner) return;
     context.save();
     context.globalCompositeOperation = 'lighter';
@@ -1229,7 +1313,8 @@ function drawEnemyCombatRuntime() {
     context.strokeStyle = '#72e8ff';
     context.lineWidth = .8;
     (summon.spawnedIds ?? []).forEach((targetId) => {
-      const target = enemies.find((enemy) => enemy.instanceId === targetId && !enemy.defeated);
+      const target = enemyById.get(targetId);
+      if (target?.defeated) return;
       if (!target) return;
       context.beginPath();
       context.moveTo(owner.x, owner.y);
@@ -1300,16 +1385,16 @@ function drawEnemyCombatRuntime() {
       context.restore();
     }
   });
-  runtime.enemies.forEach((entry) => {
-    const source = enemies.find((enemy) => enemy.instanceId === entry.instanceId);
-    if (!source || !entry.linkedTargets.length) return;
+  runtime.enemies.forEach((source) => {
+    if (!source || !source.linkedTargets?.length) return;
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.strokeStyle = '#78ffc2';
     context.globalAlpha = .58;
     context.lineWidth = 1;
-    entry.linkedTargets.forEach((targetId) => {
-      const target = enemies.find((enemy) => enemy.instanceId === targetId && !enemy.defeated);
+    source.linkedTargets.forEach((targetId) => {
+      const target = enemyById.get(targetId);
+      if (target?.defeated) return;
       if (!target) return;
       context.beginPath();
       context.moveTo(source.x, source.y);
@@ -1421,8 +1506,10 @@ function render() {
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   visibleRenderCells.forEach((geometry) => renderCell(getActiveCell(map, geometry.key, 'chapter1'), geometry.key, geometry));
   drawTerrainBoundaries(); drawEdges(); drawStageExit(); drawExperienceOrbs(); drawCombatEffects(); drawEnemyCombatRuntime(); drawEnemies(); drawCombatProjectiles(); drawTrajectory(); drawActor(); drawKatanaEffects();
-  const activeGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
-  discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
+  if (discoveryUpdateGate.shouldUpdate(renderClock * 1000)) {
+    activeDiscoveryGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
+  }
+  discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeDiscoveryGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
   drawInkVisibilityMask();
   drawAwakeningMask();
