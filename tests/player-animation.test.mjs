@@ -8,6 +8,36 @@ import {
   getPlayerSpriteScaleX,
 } from '../src/player-animation.js';
 import { createTestActor, launchActor } from '../src/physics.js';
+import { ENEMY_DEFINITIONS } from '../src/game-data.js';
+import { getEnemySpriteScaleX, syncEnemyFacing } from '../src/enemy-movement.js';
+import { getPlayEnemySteeringAngle } from '../src/play-enemies.js';
+import { createEmptyMap, getHexCenter } from '../src/map-model.js';
+
+test('enemy facing follows horizontal movement and mirrors left-facing source art to the right', () => {
+  const enemy = { facing: 'left', vx: 32 };
+  assert.equal(syncEnemyFacing(enemy), 'right');
+  assert.equal(getEnemySpriteScaleX(enemy.facing), -1);
+  enemy.vx = -18;
+  assert.equal(syncEnemyFacing(enemy), 'left');
+  assert.equal(getEnemySpriteScaleX(enemy.facing), 1);
+  enemy.vx = 0;
+  assert.equal(syncEnemyFacing(enemy), 'left', 'stopping keeps the last readable direction');
+});
+
+test('mobile enemies steer around a blocked direct cell while authored stationary supports stay fixed', () => {
+  const map = createEmptyMap({ width: 5, height: 5 });
+  const origin = { x: 0, y: 0 };
+  const start = getHexCenter(map.cells['1,2'], origin);
+  const target = getHexCenter(map.cells['3,2'], origin);
+  map.cells['2,2'].terrain = 'blocked';
+  const angle = getPlayEnemySteeringAngle(start, target, 52, 1 / 60, { map, chapter: 'chapter1', origin });
+  assert.notEqual(angle, null);
+  assert.ok(Math.cos(angle) > 0 && Math.abs(Math.sin(angle)) > 0.2, 'the route keeps making rightward progress through an open side cell');
+  assert.deepEqual(
+    Object.values(ENEMY_DEFINITIONS).filter((enemy) => enemy.moveSpeed === 0).map((enemy) => enemy.id),
+    ['juvenileSeahorseCaller', 'coralBackSeahorse', 'mutantNautilusOracle'],
+  );
+});
 
 test('player facing keeps the last physics-synced side while vertical', () => {
   const actor = { vx: -40, vy: 0, facing: 'right' };
