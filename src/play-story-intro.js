@@ -28,18 +28,21 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
   ]),
   2: Object.freeze([
     Object.freeze({
+      videoPath: '/assets/story/descent-part2/CH2-1.mp4',
       imagePath: '/assets/story/descent-part2/slide-01-forgotten-breath.png',
       eyebrow: 'DEEP SEA RECORD / 04',
       title: '不再需要氧氣的生命',
       narrator: '越往下，越少生物需要氧氣。牠們不是適應了死亡，而是被迫學會忘記呼吸。',
     }),
     Object.freeze({
+      videoPath: '/assets/story/descent-part2/CH2-2.mp4',
       imagePath: '/assets/story/descent-part2/slide-02-sealed-wound.png',
       eyebrow: 'DEEP SEA RECORD / 05',
       title: '核心也封住了傷口',
       narrator: '熱泉的脈動告訴我：核心不只污染生命，也堵住了海床深處的裂口。拔出它，傷口也會醒來。',
     }),
     Object.freeze({
+      videoPath: '/assets/story/descent-part2/CH2-3.mp4',
       imagePath: '/assets/story/descent-part2/slide-03-no-harmless-answer.png',
       eyebrow: 'DEEP SEA RECORD / 06',
       title: '沒有無害的答案',
@@ -48,18 +51,21 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
   ]),
   3: Object.freeze([
     Object.freeze({
+      videoPath: '/assets/story/descent-part3/CH3-1.mp4',
       imagePath: '/assets/story/descent-part3/slide-01-ruins-remember.png',
       eyebrow: 'DEEP SEA RECORD / 07',
       title: '遺跡記得第一次墜落',
       narrator: '石壁留下的不是祭祀，而是警告。這顆核心從來不是海洋的心臟，而是終止人類戰爭的異文明武器。',
     }),
     Object.freeze({
+      videoPath: '/assets/story/descent-part3/CH3-2.mp4',
       imagePath: '/assets/story/descent-part3/slide-02-sleeping-guardian.png',
       eyebrow: 'DEEP SEA RECORD / 08',
       title: '守護者仍在沉睡',
       narrator: '遺跡深處，有某種巨大生命與裂口一同呼吸。牠守護的不是寶藏，而是這個勉強維持的封印。',
     }),
     Object.freeze({
+      videoPath: '/assets/story/descent-part3/CH3-3.mp4',
       imagePath: '/assets/story/descent-part3/slide-03-atonement-choice.png',
       eyebrow: 'DEEP SEA RECORD / 09',
       title: '謝罪不是得到原諒',

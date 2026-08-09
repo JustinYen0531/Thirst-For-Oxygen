@@ -69,6 +69,29 @@ test('story state selects the matching descent part without mixing its slides', 
   assert.equal(partThree.imagePath, '/assets/story/descent-part3/slide-01-ruins-remember.png');
 });
 
+test('all three descent parts use their authored chapter videos', () => {
+  const expectedVideoPaths = [
+    '/assets/story/descent-part1/ZH1-1.mp4',
+    '/assets/story/descent-part1/ZH1-2.mp4',
+    '/assets/story/descent-part1/ZH1-3.mp4',
+    '/assets/story/descent-part2/CH2-1.mp4',
+    '/assets/story/descent-part2/CH2-2.mp4',
+    '/assets/story/descent-part2/CH2-3.mp4',
+    '/assets/story/descent-part3/CH3-1.mp4',
+    '/assets/story/descent-part3/CH3-2.mp4',
+    '/assets/story/descent-part3/CH3-3.mp4',
+  ];
+  const actualVideoPaths = Object.values(PLAY_STORY_INTRO_SLIDES_BY_PART)
+    .flat()
+    .map(({ videoPath }) => videoPath);
+  assert.deepEqual(actualVideoPaths, expectedVideoPaths);
+  actualVideoPaths.forEach((videoPath) => {
+    const filePath = new URL(`..\/public${videoPath}`, import.meta.url);
+    assert.equal(existsSync(filePath), true, videoPath);
+    assert.ok(statSync(filePath).size > 100_000, videoPath);
+  });
+});
+
 test('narrator types, first activation completes text, then advances slides', () => {
   const state = createPlayStoryIntroState();
   let render = getPlayStoryIntroRenderState(state);
