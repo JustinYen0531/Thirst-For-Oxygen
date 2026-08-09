@@ -789,3 +789,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 修正沙盒武器選擇與實際 Build 不同步的斷層：武器與被動下拉選單現在選擇後立即套用，移除容易讓人誤以為已裝備的額外「套用 Build」步驟。
 - 三叉戟顯示靜止蓄能倒數、移動／拉射暫停原因；輕量機槍顯示自動六連射進度與下一輪冷卻。相同狀態也寫入 `render_game_to_text` 的 `autoWeapons` 欄位。
 - 新增自動發射狀態與頁面接線回歸測試；瀏覽器／Playwright 依專案指示不執行，改以純 Node 狀態模擬、DOM 原始碼契約、完整靜態檢查與 Vite 建置驗證。
+
+## 2026-08-09 — Step 99 complete
+
+- 補齊正式遊玩頁已引用、卻尚未進入 Git 的 HUD 槽位標籤契約，避免遠端乾淨 checkout 因缺少 `getPlayerHudSlotLabel` export 而無法載入。
+- 正式遊玩與沙盒共用武器／被動分組標籤、每格 `Level N · 名稱`，並把主槽放在最靠近中央 HP 的位置。
+- 完整靜態驗證通過：`npm run check`（144/144）、`npm run build`、`git diff --check`；依專案規則未執行瀏覽器／Playwright。

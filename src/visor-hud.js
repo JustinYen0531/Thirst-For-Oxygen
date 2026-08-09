@@ -56,6 +56,10 @@ export function getPlayerHudSlots(loadout = {}) {
   });
 }
 
+export function getPlayerHudSlotLabel(slot) {
+  return slot?.path ? `Level ${slot.level} · ${slot.name}` : '';
+}
+
 function getHealthColor(ratio) {
   const hue = Math.round(clamp(ratio, 0, 1) * 120);
   return Object.freeze({

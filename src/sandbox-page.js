@@ -35,7 +35,7 @@ import {
 } from './sandbox-sim.js';
 import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
-import { getHealthHud, getPlayerHudSlots } from './visor-hud.js';
+import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
 const ctx = canvas.getContext('2d');
@@ -438,6 +438,23 @@ function renderSandboxHud() {
 }
 
 function updateSandboxHudIconSlots() {
+  const slotRoot = document.querySelector('.visor-icon-slots');
+  if (slotRoot) {
+    if (!slotRoot.querySelector('[data-visor-group-label="weapon"]')) {
+      const label = document.createElement('span');
+      label.className = 'visor-group-label visor-group-label-weapon';
+      label.dataset.visorGroupLabel = 'weapon';
+      label.textContent = '武器槽位';
+      slotRoot.append(label);
+    }
+    if (!slotRoot.querySelector('[data-visor-group-label="passive"]')) {
+      const label = document.createElement('span');
+      label.className = 'visor-group-label visor-group-label-passive';
+      label.dataset.visorGroupLabel = 'passive';
+      label.textContent = '被動能力';
+      slotRoot.append(label);
+    }
+  }
   const slots = getPlayerHudSlots({
     weapons: state.build.weapons,
     passives: state.build.passives,
@@ -446,8 +463,17 @@ function updateSandboxHudIconSlots() {
     const slot = slots[index];
     const icon = slotElement.querySelector('[data-visor-icon]');
     if (!slot || !icon) return;
+    let label = slotElement.querySelector('[data-visor-slot-label]');
+    if (!label) {
+      label = document.createElement('small');
+      label.className = 'visor-slot-label';
+      label.dataset.visorSlotLabel = '';
+      slotElement.append(label);
+    }
     const filled = Boolean(slot.path);
     slotElement.dataset.visorFilled = String(filled);
+    label.hidden = !filled;
+    label.textContent = getPlayerHudSlotLabel(slot);
     if (!filled) {
       icon.hidden = true;
       icon.removeAttribute('src');
@@ -455,9 +481,9 @@ function updateSandboxHudIconSlots() {
       return;
     }
     icon.src = slot.path;
-    icon.alt = `${slot.name} Lv.${slot.level}`;
+    icon.alt = getPlayerHudSlotLabel(slot);
     icon.hidden = false;
-    slotElement.setAttribute('aria-label', `${slot.name} Lv.${slot.level}`);
+    slotElement.setAttribute('aria-label', getPlayerHudSlotLabel(slot));
   });
 }
 

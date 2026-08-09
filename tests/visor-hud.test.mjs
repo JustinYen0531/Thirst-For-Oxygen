@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudIconPath, getPlayerHudSlots } from '../src/visor-hud.js';
+import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudIconPath, getPlayerHudSlotLabel, getPlayerHudSlots } from '../src/visor-hud.js';
 
 test('player HUD maps the starter knife to the first weapon slot', () => {
   assert.equal(getPlayerHudIconPath('weapon', 'knife', 1), '/assets/editor/icons/weapons/knife/lv1.png');
@@ -12,6 +12,8 @@ test('player HUD maps the starter knife to the first weapon slot', () => {
   });
   assert.equal(slots[1].path, null);
   assert.equal(slots[3].path, null);
+  assert.equal(getPlayerHudSlotLabel(slots[0]), 'Level 1 · 小刀');
+  assert.equal(getPlayerHudSlotLabel(slots[1]), '');
 });
 
 test('player HUD maps equipped sandbox weapons and passives to their own sides', () => {
