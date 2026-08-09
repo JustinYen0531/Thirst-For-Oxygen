@@ -5,18 +5,21 @@ export const PLAY_STORY_INTRO_TIMING = Object.freeze({
 export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
   1: Object.freeze([
   Object.freeze({
+    videoPath: '/assets/story/descent-part1/ZH1-1.mp4',
     imagePath: '/assets/story/descent-part1/slide-01-oxygen-collapse.png',
     eyebrow: 'DEEP SEA RECORD / 01',
     title: '世界正在停止呼吸',
     narrator: '地表的氧氣正在消失。不是一座城市，也不是一片海域——是整個世界正在慢慢停止呼吸。',
   }),
   Object.freeze({
+    videoPath: '/assets/story/descent-part1/ZH1-2.mp4',
     imagePath: '/assets/story/descent-part1/slide-02-abyss-core.png',
     eyebrow: 'DEEP SEA RECORD / 02',
     title: '海溝最深處的核心',
     narrator: '海溝最深處，有一個維持生命循環的核心。機械無法靠近它，因為這片海會拒絕鋼鐵。',
   }),
   Object.freeze({
+    videoPath: '/assets/story/descent-part1/ZH1-3.mp4',
     imagePath: '/assets/story/descent-part1/slide-03-flesh-diver.png',
     eyebrow: 'DEEP SEA RECORD / 03',
     title: '只有肉身能夠共鳴',
@@ -110,6 +113,7 @@ export function getPlayStoryIntroRenderState(state) {
     slideIndex,
     slideNumber: slideIndex + 1,
     totalSlides: slides.length,
+    videoPath: slide.videoPath,
     imagePath: slide.imagePath,
     eyebrow: slide.eyebrow,
     title: slide.title,

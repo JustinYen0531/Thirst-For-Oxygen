@@ -164,15 +164,22 @@ test('Part 1 presents Attempt separately from HP and preserves the authored awak
 
 test('Part 1 presents the three-slide narrator before the existing awakening', () => {
   assert.match(html, /id="play-story-intro"/);
-  assert.match(html, /id="play-story-image"/);
+  assert.match(html, /id="play-story-video"[^>]*muted[^>]*playsinline/);
+  assert.doesNotMatch(html, /id="play-story-video"[^>]*loop/);
   assert.match(html, /id="play-story-narrator"/);
   assert.match(html, /id="play-story-skip"/);
   assert.match(page, /advancePlayStoryIntro/);
   assert.match(page, /stepPlayStoryIntro/);
   assert.match(page, /storyIntroState\.active/);
   assert.match(page, /finishStoryIntro/);
-  assert.match(page, /storyIntro: getPlayStoryIntroRenderState/);
-  assert.match(page, /stageWrap\?\.classList\.toggle\('is-story-intro', story\.active\)/);
+  assert.match(page, /storyIntro:\s*\{\s*\.\.\.getPlayStoryIntroRenderState\(storyIntroState\)/);
+  assert.match(page, /stageWrap\?\.classList\.toggle\('is-story-intro', visible\)/);
+  assert.match(page, /createStoryTypingSound/);
+  assert.match(page, /storyIntroCoverMode/);
+  assert.match(page, /route-lock/);
+  assert.match(page, /storyIntroVideo\.playbackRate = 0\.5/);
+  assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
+  assert.match(page, /story\.slideIndex >= story\.totalSlides - 1/);
   assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
   assert.match(css, /\.play-story-intro-overlay/);
   assert.match(css, /z-index: 1/);

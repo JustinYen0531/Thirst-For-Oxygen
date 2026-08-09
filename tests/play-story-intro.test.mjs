@@ -15,6 +15,14 @@ import {
 test('first descent story intro contains three external-text slides', () => {
   assert.equal(PLAY_STORY_INTRO_SLIDES.length, 3);
   assert.deepEqual(
+    PLAY_STORY_INTRO_SLIDES.map(({ videoPath }) => videoPath),
+    [
+      '/assets/story/descent-part1/ZH1-1.mp4',
+      '/assets/story/descent-part1/ZH1-2.mp4',
+      '/assets/story/descent-part1/ZH1-3.mp4',
+    ],
+  );
+  assert.deepEqual(
     PLAY_STORY_INTRO_SLIDES.map(({ imagePath }) => imagePath),
     [
       '/assets/story/descent-part1/slide-01-oxygen-collapse.png',
@@ -25,6 +33,14 @@ test('first descent story intro contains three external-text slides', () => {
   assert.match(PLAY_STORY_INTRO_SLIDES[0].narrator, /氧氣正在消失/);
   assert.match(PLAY_STORY_INTRO_SLIDES[1].narrator, /生命循環的核心/);
   assert.match(PLAY_STORY_INTRO_SLIDES[2].narrator, /活著的肉身/);
+});
+
+test('story slide videos are present and non-empty', () => {
+  PLAY_STORY_INTRO_SLIDES.forEach(({ videoPath }) => {
+    const filePath = new URL(`..\/public${videoPath}`, import.meta.url);
+    assert.equal(existsSync(filePath), true, videoPath);
+    assert.ok(statSync(filePath).size > 100_000, videoPath);
+  });
 });
 
 test('each descent part owns three story slides and continues the same causal thread', () => {

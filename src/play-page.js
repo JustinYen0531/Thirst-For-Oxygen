@@ -54,7 +54,7 @@ import {
 } from './player-animation.js';
 import { attachMusicControls, createMusicController, getMusicTrack } from './music.js';
 import { attachSfxVolumeControl, createSfxController } from './sfx.js';
-import { bindLanguageSelect, installLiveLocalization } from './i18n-gameplay.js';
+import { bindLanguageSelect, installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
 import {
   createPlayKatanaState,
   markPlayKatanaMovement,
@@ -64,6 +64,7 @@ import {
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
+import { createStoryTypingSound } from './story-typing-sound.js';
 import { WEAPONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import {
   choosePlayUpgrade,
@@ -175,7 +176,7 @@ const unlimitedResourcesButton = document.querySelector('#play-unlimited-resourc
 const ambientToggle = document.querySelector('#play-ambient-toggle');
 const attemptsReadout = document.querySelector('#play-attempts');
 const storyIntroOverlay = document.querySelector('#play-story-intro');
-const storyIntroImage = document.querySelector('#play-story-image');
+const storyIntroVideo = document.querySelector('#play-story-video');
 const storyIntroEyebrow = document.querySelector('#play-story-eyebrow');
 const storyIntroProgress = document.querySelector('#play-story-progress');
 const storyIntroTitle = document.querySelector('#play-story-title');
@@ -262,6 +263,10 @@ let transitioning = false;
 let runCompleted = false;
 let awakeningState = createPlayAwakeningState({ enabled: false });
 let storyIntroState = createPlayStoryIntroState({ enabled: false });
+let storyIntroCoverMode = 'none';
+let storyIntroLastSlide = -1;
+let storyIntroLastTypedCharacters = 0;
+const storyTypingSound = createStoryTypingSound();
 let backgroundLayer = null;
 let renderClock = 0;
 let hudSlotSignature = '';
@@ -414,6 +419,9 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
     part: mapPart,
     reducedMotion,
   });
+  storyIntroCoverMode = 'none';
+  storyIntroLastSlide = -1;
+  storyIntroLastTypedCharacters = 0;
   awakeningState = createPlayAwakeningState({
     enabled: !storyIntroState.active && mapPart === 1 && !previousActor,
     part: mapPart,
@@ -470,6 +478,7 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     setupWorld(await response.json(), { previousActor });
   } catch (error) {
     storyIntroState.active = false;
+    storyIntroCoverMode = 'none';
     updateStoryIntroPresentation();
     awakeningState.active = false;
     awakeningState.awaitingTrigger = false;
@@ -829,25 +838,60 @@ function drawEdges() {
 function updateStoryIntroPresentation() {
   const story = getPlayStoryIntroRenderState(storyIntroState);
   if (!storyIntroOverlay) return story;
-  storyIntroOverlay.hidden = !story.active;
-  stageFrame.classList.toggle('is-story-intro', story.active);
-  stageWrap?.classList.toggle('is-story-intro', story.active);
-  if (!story.active) return story;
-  if (storyIntroImage && storyIntroImage.getAttribute('src') !== story.imagePath) storyIntroImage.src = story.imagePath;
+  const visible = story.active || storyIntroCoverMode !== 'none';
+  storyIntroOverlay.hidden = !visible;
+  storyIntroOverlay.classList.toggle('is-story-cover', storyIntroCoverMode === 'black');
+  stageFrame.classList.toggle('is-story-intro', visible);
+  stageWrap?.classList.toggle('is-story-intro', visible);
+  if (!story.active) {
+    if (storyIntroCoverMode === 'none' && storyIntroVideo && !storyIntroVideo.paused) storyIntroVideo.pause();
+    return story;
+  }
+  if (storyIntroVideo) {
+    storyIntroVideo.poster = story.imagePath;
+    storyIntroVideo.playbackRate = 0.5;
+    if (!story.videoPath) {
+      if (storyIntroVideo.getAttribute('src')) {
+        storyIntroVideo.pause();
+        storyIntroVideo.removeAttribute('src');
+        storyIntroVideo.load();
+      }
+    } else if (storyIntroVideo.getAttribute('src') !== story.videoPath) {
+      storyIntroVideo.src = story.videoPath;
+      storyIntroVideo.load();
+    }
+    if (story.videoPath && storyIntroVideo.paused) void storyIntroVideo.play().catch(() => {});
+  }
+  if (story.slideIndex !== storyIntroLastSlide) {
+    storyIntroLastSlide = story.slideIndex;
+    storyIntroLastTypedCharacters = 0;
+  }
+  if (story.typedCharacters > storyIntroLastTypedCharacters) {
+    storyTypingSound.play();
+    storyIntroLastTypedCharacters = story.typedCharacters;
+  }
   if (storyIntroEyebrow) storyIntroEyebrow.textContent = story.eyebrow;
   if (storyIntroProgress) storyIntroProgress.textContent = `${String(story.slideNumber).padStart(2, '0')} / ${String(story.totalSlides).padStart(2, '0')}`;
-  if (storyIntroTitle) storyIntroTitle.textContent = translateGameplayText(story.title);
-  if (storyIntroNarrator) {
-    const translatedNarrator = translateGameplayText(story.typedText);
-    storyIntroNarrator.textContent = translatedNarrator === 'English copy pending review' ? story.typedText : translatedNarrator;
-  }
-  if (storyIntroHint) storyIntroHint.textContent = translateGameplayText(story.textComplete
+  const translateStoryText = (value) => {
+    const translated = translateGameplayText(value);
+    return translated === 'English copy pending review' ? String(value ?? '') : translated;
+  };
+  if (storyIntroTitle) storyIntroTitle.textContent = translateStoryText(story.title);
+  if (storyIntroNarrator) storyIntroNarrator.textContent = translateStoryText(story.typedText);
+  if (storyIntroHint) storyIntroHint.textContent = translateStoryText(story.textComplete
     ? (story.slideNumber === story.totalSlides ? '點擊或按 Space 開始遊戲' : '點擊或按 Space 下一頁')
     : '點擊或按 Space 顯示完整旁白');
   return story;
 }
 
-function finishStoryIntro() {
+storyIntroVideo?.addEventListener('ended', () => {
+  const story = getPlayStoryIntroRenderState(storyIntroState);
+  if (!story.active || story.slideIndex >= story.totalSlides - 1) return;
+  advanceStoryIntroInput();
+});
+
+function finishStoryIntro({ retainFinalSlide = false } = {}) {
+  storyIntroCoverMode = retainFinalSlide ? 'third-slide' : 'black';
   awakeningState = createPlayAwakeningState({
     enabled: true,
     part: mapPart,
@@ -860,13 +904,17 @@ function finishStoryIntro() {
 
 function advanceStoryIntroInput() {
   const story = advancePlayStoryIntro(storyIntroState);
-  if (!story.active) finishStoryIntro();
+  if (!story.active) finishStoryIntro({ retainFinalSlide: true });
   updateStoryIntroPresentation();
   render();
 }
 
 function updateAwakeningPresentation() {
   const awakening = getPlayAwakeningRenderState(awakeningState);
+  if (storyIntroCoverMode !== 'none' && ['route-lock', 'shutter-open', 'final-open'].includes(awakening.phase)) {
+    storyIntroCoverMode = 'none';
+    updateStoryIntroPresentation();
+  }
   stageFrame.classList.toggle('is-awakening', awakening.active);
   stageFrame.style.setProperty('--awakening-attempt-opacity', String(awakening.attemptOpacity));
   stageFrame.style.setProperty('--awakening-hud-opacity', String(awakening.hudOpacity));
@@ -1982,11 +2030,13 @@ storyIntroOverlay?.addEventListener('pointerdown', (event) => {
   if (!storyIntroState.active || event.target.closest('#play-story-skip')) return;
   event.preventDefault();
   event.stopPropagation();
+  storyTypingSound.unlock();
   advanceStoryIntroInput();
 });
 storyIntroSkip?.addEventListener('click', (event) => {
   event.preventDefault();
   event.stopPropagation();
+  storyTypingSound.unlock();
   skipPlayStoryIntro(storyIntroState);
   finishStoryIntro();
   render();
@@ -2112,6 +2162,7 @@ window.addEventListener('keydown', (event) => {
   if (storyIntroState.active) {
     if (event.code === 'Space') {
       event.preventDefault();
+      storyTypingSound.unlock();
       advanceStoryIntroInput();
     }
     return;
@@ -2272,7 +2323,7 @@ window.render_game_to_text = () => {
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
     player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
     attempt: actor ? getPlayAttemptState(actor) : null,
-    storyIntro: getPlayStoryIntroRenderState(storyIntroState),
+    storyIntro: { ...getPlayStoryIntroRenderState(storyIntroState), coverMode: storyIntroCoverMode },
     awakening: getPlayAwakeningRenderState(awakeningState),
     hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
     combat,
