@@ -90,11 +90,19 @@ import {
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
 
-const MAPS = {
-  1: { path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分' },
-  2: { path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分' },
-  3: { path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分' },
-};
+const MAP_ROUTES = Object.freeze({
+  descent: Object.freeze({
+    1: Object.freeze({ path: '/maps/下沉篇/下沉篇-第1部分.json', label: '下沉篇・第一部分' }),
+    2: Object.freeze({ path: '/maps/下沉篇/下沉篇-第2部分.json', label: '下沉篇・第二部分' }),
+    3: Object.freeze({ path: '/maps/下沉篇/下沉篇-第3部分.json', label: '下沉篇・第三部分' }),
+  }),
+  ascent: Object.freeze({
+    1: Object.freeze({ path: '/maps/上升篇/上升篇-第1部分.json', label: '上升篇・第一部分' }),
+    2: Object.freeze({ path: '/maps/上升篇/上升篇-第2部分.json', label: '上升篇・第二部分' }),
+    3: Object.freeze({ path: '/maps/上升篇/上升篇-第3部分.json', label: '上升篇・第三部分' }),
+  }),
+});
+const ARC_LABELS = Object.freeze({ descent: '下沉篇', ascent: '上升篇' });
 // A 4x world scale intentionally shows only about 60% of the reference map's
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
@@ -155,6 +163,7 @@ const images = new Map();
 [...Object.values(PLAYER_ASSETS).flat(), ...Object.values(TILE_ASSETS), ...getPlayWorldAssetPaths(), ...PLAY_ENEMY_ASSET_PATHS, ...WEAPON_ASSETS].filter(Boolean).forEach((path) => { if (images.has(path)) return; const image = new Image(); image.src = path; images.set(path, image); });
 
 let map = null;
+let mapArc = 'descent';
 let mapPart = 1;
 let origin = { x: 40, y: 40 };
 let mapBounds = null;
@@ -193,11 +202,26 @@ let activeCollisionSoundKeys = new Set();
 const discoverySession = createDiscoverySession();
 let discoveryAcknowledgementTargets = [];
 const requestedPart = new URLSearchParams(window.location.search).get('part');
+const requestedRoute = new URLSearchParams(window.location.search).get('route');
 let combatState = createPlayCombatState();
 let katanaState = createPlayKatanaState(1);
 let transitioning = false;
 let runCompleted = false;
 let awakeningState = createPlayAwakeningState({ enabled: false });
+
+function getMapDefinition(arc = mapArc, part = mapPart) {
+  return MAP_ROUTES[arc]?.[part] ?? null;
+}
+
+function mapSelectionValue(arc = mapArc, part = mapPart) {
+  return `${arc}:${part}`;
+}
+
+function parseMapSelection(value) {
+  const [arc, rawPart] = String(value).split(':');
+  const part = Number(rawPart);
+  return MAP_ROUTES[arc]?.[part] ? { arc, part } : { arc: 'descent', part: 1 };
+}
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function enemySpriteScaleX(facing) { return facing === 'left' ? 1 : -1; }
@@ -300,13 +324,14 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   discoverySession.pendingByGuideKey.clear();
   discoveryAcknowledgementTargets = [];
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
+  const mapDefinition = getMapDefinition();
   eventLog = [
     '拖曳潛水夫，放開即可彈射。',
-    `${MAPS[mapPart].label} 已載入。`,
+    `${mapDefinition.label} 已載入。`,
     `已生成 ${enemies.length} 名敵人（${encounterGroupCount} 個遭遇群）。`,
     `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
   ];
-  mapTitle.textContent = `${MAPS[mapPart].label} · ${map.layout.width} × ${map.layout.height}`;
+  mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
   loadingMask.classList.add('is-hidden');
   updateAwakeningPresentation();
   updateCamera();
@@ -319,18 +344,20 @@ function refillUnlimitedResources() {
   actor.energy = MAX_ENERGY;
 }
 
-async function loadMap(part, { preserveRun = false } = {}) {
+async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
   const previousActor = preserveRun ? actor : null;
   if (!preserveRun) {
     combatState = createPlayCombatState();
     runCompleted = false;
     completionOverlay.hidden = true;
   }
-  mapPart = Number(part) || 1;
+  mapArc = MAP_ROUTES[arc] ? arc : 'descent';
+  mapPart = MAP_ROUTES[mapArc]?.[Number(part)] ? Number(part) : 1;
+  mapSelect.value = mapSelectionValue();
   loadingMask.classList.remove('is-hidden');
-  loadingMask.textContent = mapPart === 1 && !preserveRun ? '' : '正在潛入水域…';
+  loadingMask.textContent = mapPart === 1 && !preserveRun ? '' : mapArc === 'ascent' ? '正在逆游上升…' : '正在潛入水域…';
   try {
-    const response = await fetch(MAPS[mapPart].path);
+    const response = await fetch(getMapDefinition().path);
     if (!response.ok) throw new Error(`map ${response.status}`);
     setupWorld(await response.json(), { previousActor });
   } catch (error) {
@@ -1321,9 +1348,13 @@ function updateHud() {
   const combatRenderState = getPlayCombatRenderState(combatState);
   const progress = combatRenderState.progression;
   const firstRowCenterY = (mapBounds?.top ?? origin.y) + HEX_SIZE;
-  const depthMeters = Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
-  depthReadout.textContent = `${String(depthMeters).padStart(3, '0')} m`;
-  depthReadout.setAttribute('aria-label', `目前下沉 ${depthMeters} 公尺`);
+  const lastRowCenterY = (mapBounds?.bottom ?? origin.y) - HEX_SIZE;
+  const routeMeters = mapArc === 'ascent'
+    ? Math.max(0, Math.round((lastRowCenterY - actor.y) / (HEX_SIZE * 1.5)))
+    : Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
+  depthReadout.previousElementSibling.textContent = mapArc === 'ascent' ? 'ASCENT' : 'DEPTH';
+  depthReadout.textContent = `${String(routeMeters).padStart(3, '0')} m`;
+  depthReadout.setAttribute('aria-label', `目前${mapArc === 'ascent' ? '上升' : '下沉'} ${routeMeters} 公尺`);
   levelReadout.textContent = String(progress.level).padStart(2, '0');
   experienceReadout.textContent = progress.atMaxLevel
     ? `EXP ${String(Math.floor(progress.current)).padStart(3, '0')} / MAX`
@@ -1551,23 +1582,26 @@ function syncMusicTrack() {
 }
 
 function beginStageTransition(nextPart) {
-  if (transitioning || !MAPS[nextPart]) return;
+  if (transitioning || !getMapDefinition(mapArc, nextPart)) return;
   transitioning = true;
   accumulator = 0;
   loadingMask.classList.remove('is-hidden');
-  loadingMask.textContent = `前往${MAPS[nextPart].label}…`;
-  mapSelect.value = String(nextPart);
+  loadingMask.textContent = `前往${getMapDefinition(mapArc, nextPart).label}…`;
+  mapSelect.value = mapSelectionValue(mapArc, nextPart);
   mapPart = nextPart;
   syncMusicTrack();
-  loadMap(nextPart, { preserveRun: true })
+  loadMap(nextPart, { preserveRun: true, arc: mapArc })
     .then(() => { eventLog.push('跨段完成：生命、氧氣、能量、經驗與 Build 已保留。'); })
     .finally(() => { transitioning = false; });
 }
 mapSelect.addEventListener('change', () => {
   sfxController.play('menuSelection');
-  mapPart = Number(mapSelect.value) || 1;
+  const selection = parseMapSelection(mapSelect.value);
+  mapArc = selection.arc;
+  mapPart = selection.part;
+  musicArcSelect.value = mapArc === 'ascent' ? 'ascent20' : 'descent';
   syncMusicTrack();
-  loadMap(mapPart);
+  loadMap(mapPart, { arc: mapArc });
 });
 upgradeCategories.addEventListener('click', (event) => {
   const button = event.target.closest('[data-upgrade-category]');
@@ -1685,8 +1719,13 @@ function simulate(elapsed, now = performance.now()) {
         }
         if (stageExit.completed) {
           runCompleted = true;
+          completionOverlay.querySelector('.eyebrow').textContent = `${mapArc.toUpperCase()} COMPLETE`;
+          completionOverlay.querySelector('#play-completion-title').textContent = `${ARC_LABELS[mapArc]}航線完成`;
+          completionOverlay.querySelector('[data-completion-copy]').textContent = mapArc === 'ascent'
+            ? '潛水員完成強化後的逆重力返航，從第三部分抵達海面出口。'
+            : '深淵抹香鯨已被擊敗，潛水員抵達第三部分終點。';
           completionOverlay.hidden = false;
-          eventLog.push('深淵抹香鯨已擊敗：下沉篇完成。');
+          eventLog.push(`深淵抹香鯨已擊敗：${ARC_LABELS[mapArc]}完成。`);
           accumulator = 0;
           break;
         }
@@ -1704,7 +1743,8 @@ window.render_game_to_text = () => {
   const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
   return JSON.stringify({
     coordinateSystem: 'world origin is top-left; x right, y down',
-    map: MAPS[mapPart]?.label ?? 'loading',
+    map: getMapDefinition()?.label ?? 'loading',
+    mapArc,
     mapPart,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
     player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), activeEffects: actor.activeEffects ?? {} } : null,
@@ -1735,10 +1775,12 @@ window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Ma
 
 function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }
 
-if (requestedPart && MAPS[requestedPart]) { mapSelect.value = requestedPart; mapPart = Number(requestedPart); }
+if (MAP_ROUTES[requestedRoute]) mapArc = requestedRoute;
+if (requestedPart && MAP_ROUTES[mapArc]?.[requestedPart]) mapPart = Number(requestedPart);
+mapSelect.value = mapSelectionValue();
 const requestedArc = new URLSearchParams(window.location.search).get('arc');
 const requestedMode = new URLSearchParams(window.location.search).get('mode');
-if (requestedArc === 'ascent20') musicArcSelect.value = requestedArc;
+if (requestedArc === 'ascent20' || mapArc === 'ascent') musicArcSelect.value = 'ascent20';
 if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
 syncMusicTrack();
 musicController.start();
@@ -1750,5 +1792,5 @@ function unlockAmbientAudio() {
 // canvas child; repeated attempts also recover from a browser autoplay reject.
 window.addEventListener('pointerdown', unlockAmbientAudio, { capture: true });
 window.addEventListener('keydown', unlockAmbientAudio, { capture: true });
-loadMap(mapPart);
+loadMap(mapPart, { arc: mapArc });
 requestAnimationFrame(frame);

@@ -35,10 +35,13 @@ test('formal play renders and reports stationary experience orbs, projectiles, a
 });
 
 test('the public play entry starts at Part 1 and stage exits preserve the run', () => {
+  assert.match(page, /MAP_ROUTES/);
+  assert.match(page, /let mapArc = 'descent';/);
   assert.match(page, /let mapPart = 1;/);
-  assert.match(page, /loadMap\(nextPart, \{ preserveRun: true \}\)/);
+  assert.match(page, /loadMap\(nextPart, \{ preserveRun: true, arc: mapArc \}\)/);
   assert.match(page, /getPlayStageExitState\(\{ map, mapPart, actor, enemies, origin \}\)/);
-  assert.match(html, /<option value="1" selected>/);
+  assert.match(html, /<option value="descent:1" selected>/);
+  assert.match(html, /<option value="ascent:1">上升篇・第一部分<\/option>/);
   assert.doesNotMatch(home, /play\.html\?part=3/);
   assert.match(home, /data-turn-state="front"/);
   assert.match(home, /src="\/src\/home-page\.js"/);
@@ -87,7 +90,7 @@ test('Part 1 presents Attempt separately from HP and blocks play during the awak
   assert.match(page, /stepPlayAwakening\(awakeningState, elapsed\)/);
   assert.match(page, /if \(paused \|\| awakeningState\.active \|\| actor\.dead/);
   assert.match(page, /context\.ellipse\(/);
-  assert.match(page, /mapPart === 1 && !preserveRun \? '' : '正在潛入水域…'/);
+  assert.match(page, /mapPart === 1 && !preserveRun \? '' : mapArc === 'ascent' \? '正在逆游上升…' : '正在潛入水域…'/);
   assert.match(page, /attemptsReadout\.textContent = attempt\.label/);
   assert.match(page, /getPlayAttemptState\(actor\)\.label}，已回到最近啟用的 Checkpoint/);
   assert.doesNotMatch(page, /失去 1 條命/);

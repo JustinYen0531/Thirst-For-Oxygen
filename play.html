@@ -24,15 +24,22 @@
           <div class="stage-meta"><span id="play-speed">速度 0</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>
           <div class="play-stage-frame is-awakening" style="--awakening-attempt-opacity: 0; --awakening-hud-opacity: 0">
             <div class="play-canvas-viewport" aria-label="HUD 鏡片內的遊戲畫面">
-              <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇地圖遊玩畫面"></canvas>
+              <canvas id="play-canvas" width="1200" height="680" aria-label="下沉篇與上升篇地圖遊玩畫面"></canvas>
             </div>
             <label class="top-map-picker" for="play-map-select">
               <span class="chapter-picker-label">地圖章節</span>
               <span class="sr-only">選擇地圖部分</span>
               <select id="play-map-select" aria-label="選擇地圖部分">
-                <option value="1" selected>下沉篇・第一部分</option>
-                <option value="2">下沉篇・第二部分</option>
-                <option value="3">下沉篇・第三部分</option>
+                <optgroup label="下沉篇">
+                  <option value="descent:1" selected>下沉篇・第一部分</option>
+                  <option value="descent:2">下沉篇・第二部分</option>
+                  <option value="descent:3">下沉篇・第三部分</option>
+                </optgroup>
+                <optgroup label="上升篇｜鏡像強化">
+                  <option value="ascent:1">上升篇・第一部分</option>
+                  <option value="ascent:2">上升篇・第二部分</option>
+                  <option value="ascent:3">上升篇・第三部分</option>
+                </optgroup>
               </select>
             </label>
             <div class="depth-readout" aria-label="目前下沉深度"><span class="depth-label">DEPTH</span><output id="play-depth-value" class="depth-value">000 m</output></div>
@@ -83,7 +90,7 @@
               <div class="play-completion-panel">
                 <p class="eyebrow">DESCENT COMPLETE</p>
                 <h2 id="play-completion-title">下沉篇航線完成</h2>
-                <p>深淵抹香鯨已被擊敗，潛水員抵達第三部分終點。</p>
+                <p data-completion-copy>深淵抹香鯨已被擊敗，潛水員抵達第三部分終點。</p>
                 <a class="action-primary" href="/home.html">回到水下主控台</a>
               </div>
             </section>
