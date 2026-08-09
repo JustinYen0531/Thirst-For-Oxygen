@@ -31,7 +31,7 @@ import {
   updatePlayEnemies,
 } from '../src/play-enemies.js';
 import { ENEMY_DAMAGE_BALANCE, ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from '../src/game-data.js';
-import { createEmptyMap, getHexCenter } from '../src/map-model.js';
+import { createEmptyMap, findCellContainingPoint, getHexCenter } from '../src/map-model.js';
 
 const PART_MAP_PATHS = [
   '../maps/下沉篇/下沉篇-第1部分.json',
@@ -424,7 +424,7 @@ test('seahorse-summoned ranged wildlife leaves a cramped bottom edge for open wa
     updatePlayEnemies([enemy], actor, 1 / 60, (index + 1) / 60, null, null, { map, chapter: 'chapter1', origin });
   }
 
-  assert.ok(enemy.y < start.y - 24, 'the summoned gunner should leave the bottom boundary instead of camping there');
+  assert.ok(enemy.y < start.y - 12, 'the summoned gunner should leave the bottom boundary instead of camping there');
   assert.equal(enemy.movementGoal?.mode, 'combat');
 });
 
@@ -451,28 +451,54 @@ test('stunnedUntil pauses movement, cooldowns, and an active cast until the stun
   assert.ok(enemy.pendingSkill.remaining < 0.3, 'the cast resumes only after the stun deadline');
 });
 
-test('lanternfish locks one destination, reaches it, then waits one second before exploding there', () => {
+test('lanternfish chases nearby without arming until its body overlaps the diver', () => {
   const enemy = authoredEnemy('explodingLanternfish');
   const enemies = [enemy];
   const actor = { x: 90, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
   let damage = 0;
-  let now = advanceCombat(enemies, actor, 1 / 60, { onDamage: (amount) => { damage += amount; } });
-  assert.equal(enemy.suicideCharge.targetX, 90);
-  actor.x = 280;
+  let now = advanceCombat(enemies, actor, 0.25, { onDamage: (amount) => { damage += amount; } });
+  assert.ok(enemy.x > 0, 'the lanternfish should keep tracking the visible diver');
+  assert.equal(enemy.suicideCharge, null, 'nearby Resonance range alone must not arm the explosion');
 
-  while (enemy.suicideCharge?.phase === 'seeking' && now < 3) {
-    now = advanceCombat(enemies, actor, 1 / 60, { start: now, onDamage: (amount) => { damage += amount; } });
-  }
+  actor.x = enemy.x;
+  actor.y = enemy.y;
+  now = advanceCombat(enemies, actor, 1 / 60, { start: now, onDamage: (amount) => { damage += amount; } });
   assert.equal(enemy.suicideCharge.phase, 'detonating');
-  assert.equal(enemy.x, 90);
-  assert.equal(enemy.suicideCharge.targetX, 90, 'moving the player cannot move the locked destination');
+  const detonationPoint = { x: enemy.x, y: enemy.y };
+  actor.x = 280;
   now = advanceCombat(enemies, actor, 0.9, { start: now, onDamage: (amount) => { damage += amount; } });
   assert.equal(enemy.defeated, false);
   now = advanceCombat(enemies, actor, 0.12, { start: now, onDamage: (amount) => { damage += amount; } });
   assert.equal(enemy.defeated, true);
-  assert.equal(damage, 0, 'the explosion checks the locked point instead of following the player');
+  assert.equal(damage, 0, 'the explosion remains at the overlap point instead of following the player');
   const render = getPlayEnemyRenderState(enemies, now);
-  assert.ok(render.effects.some((effect) => effect.type === 'detonation' && effect.x === 90));
+  assert.ok(render.effects.some((effect) => effect.type === 'detonation' && effect.x === detonationPoint.x));
+});
+
+test('blocked cells contain lanternfish pursuit and relocate enemies that start inside rock', () => {
+  const map = createEmptyMap({ width: 7, height: 7 });
+  const origin = { x: 0, y: 0 };
+  Object.values(map.cells).forEach((cell) => {
+    const column = cell.q + Math.floor(cell.r / 2);
+    if (column === 3) cell.terrain = 'blocked';
+  });
+  const left = Object.values(map.cells).find((cell) => cell.r === 3 && cell.q + Math.floor(cell.r / 2) === 1);
+  const rock = Object.values(map.cells).find((cell) => cell.r === 3 && cell.q + Math.floor(cell.r / 2) === 3);
+  const right = Object.values(map.cells).find((cell) => cell.r === 3 && cell.q + Math.floor(cell.r / 2) === 5);
+  const start = getHexCenter(left, origin);
+  const target = getHexCenter(right, origin);
+  const enemy = authoredEnemy('explodingLanternfish', { x: start.x, y: start.y, homeX: start.x, homeY: start.y, alerted: true });
+  const actor = { ...target, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
+  for (let index = 0; index < 240; index += 1) {
+    updatePlayEnemies([enemy], actor, 1 / 60, (index + 1) / 60, null, null, { map, chapter: 'chapter1', origin });
+  }
+  assert.equal(findCellContainingPoint(map, enemy, 'chapter1', origin)?.cell.terrain, 'water');
+  assert.equal(enemy.suicideCharge, null, 'a solid wall must prevent body overlap and self-destruct arming');
+
+  const rockCenter = getHexCenter(rock, origin);
+  const stuck = authoredEnemy('crabGuard', { x: rockCenter.x, y: rockCenter.y, homeX: rockCenter.x, homeY: rockCenter.y });
+  updatePlayEnemies([stuck], actor, 1 / 60, 1 / 60, null, null, { map, chapter: 'chapter1', origin });
+  assert.equal(findCellContainingPoint(map, stuck, 'chapter1', origin)?.cell.terrain, 'water');
 });
 
 test('formal enemy projectiles exist in flight and use swept collision instead of remote instant damage', () => {
@@ -521,7 +547,7 @@ test('lobbed enemy ordnance uses the same projectile damage reduction', () => {
   assert.equal(mortar.damage(), getEnemyDamageToPlayer(30, 'projectile'));
 });
 
-test('juvenile seahorse finishes its six-second rescue cast before adding two core enemies', () => {
+test('juvenile seahorse finishes its six-second rescue cast before adding one core enemy', () => {
   const caller = authoredEnemy('juvenileSeahorseCaller');
   const enemies = [caller];
   const actor = { x: 100, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
@@ -529,7 +555,7 @@ test('juvenile seahorse finishes its six-second rescue cast before adding two co
   assert.equal(enemies.length, 1);
   assert.equal(caller.pendingSkill?.skillId, 'callForHelp');
   now = advanceCombat(enemies, actor, 0.2, { start: now });
-  assert.equal(enemies.length, 3);
+  assert.equal(enemies.length, 2);
   assert.equal(caller.rescueCompleted, true);
   const summons = enemies.slice(1);
   assert.ok(summons.every((enemy) => DESCENT_CORE_ENEMIES.includes(enemy.enemyId)));

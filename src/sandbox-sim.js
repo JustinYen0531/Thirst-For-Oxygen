@@ -154,6 +154,7 @@ function getContactAttack(enemy) {
 
 function getPreferredEnemyDistance(enemy) {
   const definition = enemyDefinition(enemy);
+  if (definition?.attacks.some((skill) => skill.type === 'suicideCharge')) return 0;
   const contact = getContactAttack(enemy);
   // Stop just inside the collision envelope; leaving an eight-pixel gap here
   // makes a melee enemy orbit forever without ever reaching its attack.
@@ -172,7 +173,7 @@ function getNextReadySkill(enemy, distance) {
     const skill = attacks[index];
     if ((enemy.cooldowns[skill.id] ?? 0) > 0) continue;
     if (CONTACT_ATTACK_TYPES.has(skill.type) && distance > (skill.range ?? skill.radius ?? 44) + enemy.radius + 12) continue;
-    if (skill.type === 'suicideCharge' && distance > (skill.triggerRange ?? 260)) continue;
+    if (skill.type === 'suicideCharge' && distance > enemy.radius + 12) continue;
     return { skill, index };
   }
   return null;
@@ -202,9 +203,9 @@ function addEffect(state, effect) {
 function beginSuicideCharge(state, enemy, skill) {
   enemy.suicideCharge = {
     skillId: skill.id,
-    phase: 'seeking',
-    targetX: state.actor.x,
-    targetY: state.actor.y,
+    phase: 'detonating',
+    targetX: enemy.x,
+    targetY: enemy.y,
     remaining: skill.detonationDelay ?? 1,
   };
   enemy.vx = 0;
@@ -214,7 +215,8 @@ function beginSuicideCharge(state, enemy, skill) {
     enemy.animationUntil,
     state.time + (skill.detonationDelay ?? 1) + 0.4,
   );
-  logEvent(state, `${enemyDefinition(enemy).name} 已鎖定定點，抵達後將在 ${skill.detonationDelay ?? 1} 秒後爆炸。`, 'warning');
+  addEffect(state, { type: 'telegraph', x: enemy.x, y: enemy.y, radius: skill.radius ?? 52, duration: skill.detonationDelay ?? 1, colour: '#ffb86e' });
+  logEvent(state, `${enemyDefinition(enemy).name} 已與玩家重疊，將在 ${skill.detonationDelay ?? 1} 秒後爆炸。`, 'warning');
 }
 
 function detonateSuicideCharge(state, enemy, skill) {
@@ -233,24 +235,6 @@ function updateSuicideCharge(state, enemy, dt) {
   if (!skill) {
     enemy.suicideCharge = null;
     return false;
-  }
-  if (charge.phase === 'seeking') {
-    const distance = Math.hypot(charge.targetX - enemy.x, charge.targetY - enemy.y);
-    const travel = (enemy.moveSpeed ?? enemyDefinition(enemy).moveSpeed) * dt;
-    if (distance <= Math.max(8, travel)) {
-      enemy.x = charge.targetX;
-      enemy.y = charge.targetY;
-      charge.phase = 'detonating';
-      charge.remaining = skill.detonationDelay ?? 1;
-      enemy.animationUntil = state.time + charge.remaining;
-      addEffect(state, { type: 'telegraph', x: enemy.x, y: enemy.y, radius: skill.radius ?? 52, duration: charge.remaining, colour: '#ffb86e' });
-      logEvent(state, `${enemyDefinition(enemy).name} 已抵達定點，倒數 ${charge.remaining} 秒。`, 'warning');
-    } else {
-      const angle = Math.atan2(charge.targetY - enemy.y, charge.targetX - enemy.x);
-      enemy.x += Math.cos(angle) * travel;
-      enemy.y += Math.sin(angle) * travel;
-    }
-    return true;
   }
   charge.remaining -= dt;
   enemy.vx = 0;
@@ -791,6 +775,10 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   const definition = enemyDefinition(enemy);
   const skill = definition.attacks.find((candidate) => candidate.id === skillId) ?? definition.attacks[0];
   if (!skill) return { ok: false, reason: 'skill' };
+  const distance = distanceBetween(enemy, state.actor);
+  if (skill.type === 'suicideCharge' && distance > enemy.radius + state.actor.radius) {
+    return { ok: false, reason: 'overlap' };
+  }
   if (enemy.rescueCompleted && skill.id === 'callForHelp' && !options.resolve) return { ok: false, reason: 'completed' };
   if (enemy.suicideCharge) return { ok: false, reason: 'busy' };
   // Manual sandbox selection is an inspection tool: choosing another skill
@@ -815,7 +803,6 @@ export function executeEnemySkill(state, instanceId = state.selectedEnemyInstanc
   if (!options.resolve && startEnemySkillCast(state, enemy, skill, { minimumCast: options.minimumCast ?? hasPlayerDamage(skill) })) {
     return { ok: true, pending: true, enemy: enemy.instanceId, skill: skill.id };
   }
-  const distance = distanceBetween(enemy, state.actor);
   const source = `${definition.name}・${skill.name}`;
   logEvent(state, `${source} 已啟動。`);
 
@@ -1685,7 +1672,7 @@ function processKnifeMovementEffect(state, previousPosition) {
   const entry = getEquippedWeaponEntry(state, 'knife');
   if (state.aiming || !entry) return;
   const distance = distanceBetween(state.actor, previousPosition);
-  if (distance < 1.5) return;
+  if (distance / SANDBOX_FIXED_STEP < 45) return;
   const weapon = getWeaponStats('knife', entry.level);
   const cooldownKey = 'weapon:knife:visual';
   if ((state.actor.cooldowns[cooldownKey] ?? 0) > 0) return;

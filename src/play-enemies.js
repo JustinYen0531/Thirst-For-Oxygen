@@ -651,13 +651,24 @@ const PLAY_ENEMY_STEERING_OFFSETS = Object.freeze([
   -Math.PI * 2 / 3,
 ]);
 
-function canOccupyPlayEnemyPoint(world, fromPoint, nextPoint) {
+function canOccupyPlayEnemyPoint(world, fromPoint, nextPoint, radius = 0) {
   if (!world?.map) return true;
   const chapter = world.chapter ?? 'chapter1';
   const origin = world.origin ?? { x: 0, y: 0 };
   const current = findCellContainingPoint(world.map, fromPoint, chapter, origin);
   const candidate = findCellContainingPoint(world.map, nextPoint, chapter, origin);
   if (!candidate || candidate.cell.terrain === 'blocked') return false;
+  const footprintRadius = Math.max(0, Number(radius) || 0) * 0.68;
+  if (footprintRadius > 0) {
+    const footprintFits = Array.from({ length: 6 }, (_, index) => {
+      const angle = Math.PI * 2 * index / 6;
+      return findCellContainingPoint(world.map, {
+        x: nextPoint.x + Math.cos(angle) * footprintRadius,
+        y: nextPoint.y + Math.sin(angle) * footprintRadius,
+      }, chapter, origin);
+    }).every((sample) => sample?.cell.terrain === 'water');
+    if (!footprintFits) return false;
+  }
   if (!current || current.key === candidate.key) return true;
   const edge = getActiveEdge(world.map, edgeKey(current.key, candidate.key), chapter);
   if (edge?.blocksPassage && edge.type !== 'layerPortal') return false;
@@ -675,7 +686,7 @@ export function getPlayEnemySteeringAngle(enemy, target, speed, elapsed, world =
       x: enemy.x + Math.cos(angle) * probeDistance,
       y: enemy.y + Math.sin(angle) * probeDistance,
     };
-    if (!canOccupyPlayEnemyPoint(world, enemy, point)) return null;
+    if (!canOccupyPlayEnemyPoint(world, enemy, point, enemy.radius)) return null;
     return {
       angle,
       score: distanceBetween(point, target) + Math.abs(offset) * HEX_SIZE * 0.28,
@@ -706,7 +717,7 @@ function getLocalReachablePlayEnemyCells(enemy, world, maxSteps = 8) {
       const nextCell = getActiveCell(world.map, nextKey, chapter);
       if (!nextCell || nextCell.terrain === 'blocked') return;
       const nextPoint = getHexCenter(nextCell, origin);
-      if (!canOccupyPlayEnemyPoint(world, fromPoint, nextPoint)) return;
+      if (!canOccupyPlayEnemyPoint(world, fromPoint, nextPoint, enemy.radius)) return;
       visited.add(nextKey);
       queue.push({ key: nextKey, depth: current.depth + 1 });
     });
@@ -767,7 +778,7 @@ function movePlayEnemyToward(enemy, target, speed, elapsed, world, bounds, state
   }
   easeEnemyVelocity(enemy, angle, speed, elapsed);
   const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
-  if (!canOccupyPlayEnemyPoint(world, enemy, nextPosition)) {
+  if (!canOccupyPlayEnemyPoint(world, enemy, nextPosition, enemy.radius)) {
     stopPlayEnemyMovement(enemy, 'blocked');
     return false;
   }
@@ -782,6 +793,39 @@ function movePlayEnemyToward(enemy, target, speed, elapsed, world, bounds, state
   return true;
 }
 
+function recoverPlayEnemyFromBlockedTerrain(enemy, world) {
+  if (!world?.map) return false;
+  const chapter = world.chapter ?? 'chapter1';
+  const origin = world.origin ?? { x: 0, y: 0 };
+  const current = findCellContainingPoint(world.map, enemy, chapter, origin);
+  const currentColumn = current?.cell ? current.cell.q + Math.floor(current.cell.r / 2) : -1;
+  const onOuterBoundary = Boolean(current?.cell && (
+    current.cell.r === 0
+    || current.cell.r === world.map.layout.height - 1
+    || currentColumn === 0
+    || currentColumn === world.map.layout.width - 1
+  ));
+  if (!onOuterBoundary && canOccupyPlayEnemyPoint(world, enemy, enemy, enemy.radius)) return false;
+  const candidates = Object.keys(world.map.cells).flatMap((key) => {
+    const cell = getActiveCell(world.map, key, chapter);
+    if (!cell || cell.terrain !== 'water') return [];
+    const column = cell.q + Math.floor(cell.r / 2);
+    if (cell.r === 0 || cell.r === world.map.layout.height - 1 || column === 0 || column === world.map.layout.width - 1) return [];
+    const point = getHexCenter(cell, origin);
+    if (!canOccupyPlayEnemyPoint(world, point, point, enemy.radius)) return [];
+    return [{ point, distance: distanceBetween(enemy, point) }];
+  }).sort((left, right) => left.distance - right.distance);
+  const nearest = candidates[0]?.point;
+  if (!nearest) return false;
+  enemy.x = nearest.x;
+  enemy.y = nearest.y;
+  enemy.vx = 0;
+  enemy.vy = 0;
+  enemy.movementGoal = null;
+  enemy.loiterTarget = null;
+  return true;
+}
+
 function hasPlayerDamage(skill) {
   return Number(skill?.damage ?? 0) > 0
     || Number(skill?.damagePerSecond ?? 0) > 0
@@ -789,16 +833,17 @@ function hasPlayerDamage(skill) {
 }
 
 function preferredDistance(enemy, definition) {
+  if (definition.attacks.some((skill) => skill.type === 'suicideCharge')) return 0;
   const contact = definition.attacks.find((skill) => skill.type === 'contact' || skill.type === 'melee');
   if (contact) return Math.max(24, (contact.range ?? contact.radius ?? 44) + enemy.radius + 2);
   const ranged = definition.attacks.find((skill) => skill.range || ['projectile', 'spread', 'lobbed'].includes(skill.type));
   return clampValue((ranged?.range ?? 280) * 0.55, 90, 220);
 }
 
-function canUsePlaySkill(enemy, skill, distance) {
+function canUsePlaySkill(enemy, skill, distance, actorRadius = 6) {
   if ((enemy.cooldowns[skill.id] ?? 0) > 0) return false;
   if (skill.type === 'contact' || skill.type === 'melee') return distance <= attackReach(enemy, skill);
-  if (skill.type === 'suicideCharge') return distance <= (skill.triggerRange ?? 260);
+  if (skill.type === 'suicideCharge') return distance <= enemy.radius + Math.max(0, Number(actorRadius) || 0);
   if (skill.type === 'summon' && enemy.enemyId === 'juvenileSeahorseCaller') {
     return !enemy.rescueCompleted && distance <= (skill.summonRadius ?? 190);
   }
@@ -1208,24 +1253,24 @@ function beginSuicideCharge(runtime, enemy, skill, actor) {
   const visualAction = beginPlayEnemyVisualAction(enemy, skill.id, runtime.time);
   enemy.suicideCharge = {
     skillId: skill.id,
-    phase: 'seeking',
-    targetX: actor.x,
-    targetY: actor.y,
+    phase: 'detonating',
+    targetX: enemy.x,
+    targetY: enemy.y,
     remaining: skill.detonationDelay ?? 1,
     startedAt: runtime.time,
     visualSequence: visualAction.sequence,
   };
   enemy.vx = 0;
   enemy.vy = 0;
-  enemy.state = 'charging';
+  enemy.state = 'detonating';
   addPlayEnemyEffect(runtime, {
-    type: 'lockedTarget',
+    type: 'detonationTelegraph',
     ownerId: enemy.instanceId,
     skillId: skill.id,
-    x: actor.x,
-    y: actor.y,
+    x: enemy.x,
+    y: enemy.y,
     radius: skill.radius ?? 52,
-    duration: 0.8,
+    duration: skill.detonationDelay ?? 1,
   });
 }
 
@@ -1236,42 +1281,6 @@ function updateSuicideCharge(runtime, enemy, definition, actor, dt, onDamage, bo
   if (!skill) {
     enemy.suicideCharge = null;
     return false;
-  }
-  if (charge.phase === 'seeking') {
-    const target = { x: charge.targetX, y: charge.targetY };
-    const distance = distanceBetween(enemy, target);
-    const travel = (enemy.moveSpeed ?? definition.moveSpeed ?? 0) * dt;
-    if (distance <= Math.max(8, travel)) {
-      enemy.x = target.x;
-      enemy.y = target.y;
-      charge.phase = 'detonating';
-      charge.remaining = skill.detonationDelay ?? 1;
-      enemy.vx = 0;
-      enemy.vy = 0;
-      enemy.state = 'detonating';
-      addPlayEnemyEffect(runtime, {
-        type: 'detonationTelegraph',
-        ownerId: enemy.instanceId,
-        skillId: skill.id,
-        x: enemy.x,
-        y: enemy.y,
-        radius: skill.radius ?? 52,
-        duration: charge.remaining,
-      });
-    } else {
-      const angle = angleBetween(enemy, target);
-      enemy.vx = Math.cos(angle) * (enemy.moveSpeed ?? definition.moveSpeed ?? 0);
-      enemy.vy = Math.sin(angle) * (enemy.moveSpeed ?? definition.moveSpeed ?? 0);
-      enemy.x += Math.cos(angle) * travel;
-      enemy.y += Math.sin(angle) * travel;
-      enemy.state = 'charging';
-      if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
-      if (bounds) {
-        enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
-        enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
-      }
-    }
-    return true;
   }
   charge.remaining -= dt;
   enemy.vx = 0;
@@ -1576,6 +1585,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   const elapsed = Math.max(0, Number(dt) || 0);
   const runtime = getPlayEnemyRuntime(enemies);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
+  enemies.forEach((enemy) => recoverPlayEnemyFromBlockedTerrain(enemy, world));
   const resonanceEvents = stepEnemyResonance({
     enemies,
     projectiles: runtime.projectiles,
@@ -1689,7 +1699,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     if (!attacks.length) return;
     const start = enemy.nextSkillIndex % attacks.length;
     const selected = attacks.map((skill, index) => ({ skill, index: (start + index) % attacks.length }))
-      .find(({ skill }) => canUsePlaySkill(enemy, skill, distance));
+      .find(({ skill }) => canUsePlaySkill(enemy, skill, distance, actor.radius));
     if (!selected) return;
     const { skill, index } = selected;
     enemy.nextSkillIndex = (index + 1) % attacks.length;

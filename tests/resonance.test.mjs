@@ -90,28 +90,28 @@ test('dangerous melee Resonance is dramatically faster than safe ranged grazing'
   assert.ok(getResonanceRequirement(ranged) / RESONANCE_RULES.rangedProjectileGainPerSecond > 8);
 });
 
-test('lanternfish stacks exactly three times for nine-percent damage reduction and then caps', () => {
+test('lanternfish grants one-percent micro-stacks up to nine-percent damage reduction', () => {
   const state = createResonanceState();
   const events = [];
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 10; index += 1) {
     const target = enemy({ instanceId: `lantern-${index}`, resonanceProgress: 39 });
     events.push(stepEnemyResonance({ enemies: [target], actor, state, dt: 1 })[0]);
   }
-  assert.equal(state.stacksByEnemyId.get('explodingLanternfish'), 3);
-  assert.deepEqual(events.map((entry) => entry.stackGained), [true, true, true, false]);
-  assert.equal(events[3].stackCount, 3);
+  assert.equal(state.stacksByEnemyId.get('explodingLanternfish'), 9);
+  assert.deepEqual(events.map((entry) => entry.stackGained), [true, true, true, true, true, true, true, true, true, false]);
+  assert.equal(events[9].stackCount, 9);
   const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
   assert.equal(stats.resonanceDamageTakenMultiplier, 0.91);
 });
 
-test('powerful Boss Resonance buffs cap at one stack', () => {
+test('powerful Boss Resonance buffs use three micro-stacks while preserving their old total cap', () => {
   const state = createResonanceState();
   state.stacksByEnemyId.set('abyssalSpermWhale', 4);
   const render = getResonanceRenderState(state);
-  assert.equal(render.buffs[0].stacks, 1);
-  assert.equal(render.buffs[0].maxStacks, 1);
+  assert.equal(render.buffs[0].stacks, 3);
+  assert.equal(render.buffs[0].maxStacks, 3);
   const stats = applyResonanceBuffsToStats(getPlayerDerivedStats([]), state);
-  assert.equal(stats.currentDamageMultiplier, 1.1);
+  assert.ok(Math.abs(stats.currentDamageMultiplier - 1.1) < 1e-9);
   assert.equal(stats.resonanceDamageTakenMultiplier, 0.96);
 });
 
@@ -123,8 +123,8 @@ test('unlocked buffs are applied from a fresh base without compounding each fram
   const base = getPlayerDerivedStats([]);
   const first = applyResonanceBuffsToStats(base, state);
   const second = applyResonanceBuffsToStats(base, state);
-  assert.equal(first.maxOxygen, 108);
-  assert.equal(first.currentDamageMultiplier, 1.06);
-  assert.equal(first.oxygenDrainMultiplier, 0.94);
+  assert.ok(Math.abs(first.maxOxygen - 100 * Math.cbrt(1.08)) < 1e-9);
+  assert.ok(Math.abs(first.currentDamageMultiplier - Math.cbrt(1.06)) < 1e-9);
+  assert.ok(Math.abs(first.oxygenDrainMultiplier - Math.cbrt(0.94)) < 1e-9);
   assert.deepEqual(second, first);
 });

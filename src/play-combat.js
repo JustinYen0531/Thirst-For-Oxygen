@@ -30,6 +30,7 @@ import {
 } from './resonance.js';
 
 export const PLAY_COMBAT_FIXED_STEP = 1 / 60;
+export const KNIFE_DASH_MINIMUM_SPEED = 45;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const distanceBetween = (left, right) => Math.hypot(left.x - right.x, left.y - right.y);
@@ -424,7 +425,7 @@ function processKnifePath(state, actor, enemies, previousPosition) {
   if (!entry || !previousPosition) return;
   const weapon = getWeaponStats('knife', entry.level);
   const movement = distanceBetween(previousPosition, actor);
-  if (movement < 1.5) return;
+  if (movement / PLAY_COMBAT_FIXED_STEP < KNIFE_DASH_MINIMUM_SPEED) return;
   const start = { x: previousPosition.x, y: previousPosition.y };
   const end = { x: actor.x, y: actor.y };
   const hits = [];

@@ -39,10 +39,10 @@ test('representative dynamic combat messages retain their meaning in English', (
     ['Build 已更新：武士刀 Lv.2。', 'Build updated: Katana Lv.2.'],
     ['深淵抹香鯨已擊敗：下沉篇完成。', 'Abyssal Sperm Whale defeated: Descent complete.'],
     ['共鳴能力保留，前往上升篇・第一部分…', 'Resonance abilities preserved. Traveling to Ascent · Part I…'],
-    ['RESONANCE 完成：螃蟹守衛成為中立夥伴，永久獲得「甲殼靜養」— 高氧高能時的生命恢復速度 +15%。', 'RESONANCE complete: Crab Guard is now neutral. Permanent buff acquired: "Carapace Repose" — Health recovery at high oxygen and energy +15%.'],
+    ['RESONANCE 完成：螃蟹守衛成為中立夥伴，永久獲得「甲殼靜養」— 每層高氧高能時的生命恢復速度約 +4.77%。', 'RESONANCE complete: Crab Guard is now neutral. Permanent buff acquired: "Carapace Repose" — Per stack: Health recovery at high oxygen and energy approximately +4.77%.'],
     ['RESONANCE 完成：螃蟹守衛成為中立夥伴；此物種 Buff 已經持有。', 'RESONANCE complete: Crab Guard is now neutral; this species buff is already owned.'],
-    ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；「冷光耐爆」提升至 3/3 層，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; "Coldlight Blastproofing" advanced to stack 3/3. No EXP granted.'],
-    ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；Buff 已達 3/3 層上限，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; buff already capped at 3/3. No EXP granted.'],
+    ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；「冷光耐爆」提升至 3/9 層，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; "Coldlight Blastproofing" advanced to stack 3/9. No EXP granted.'],
+    ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；Buff 已達 9/9 層上限，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; buff already capped at 9/9. No EXP granted.'],
   ];
   messages.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
 });

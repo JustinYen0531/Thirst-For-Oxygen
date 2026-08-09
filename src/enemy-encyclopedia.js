@@ -213,8 +213,8 @@ const ENEMY_LORE = Object.freeze({
 });
 
 const ATTACK_DESCRIPTIONS = Object.freeze({
-  contactExplosion: '先鎖定玩家當下位置並直線追擊；抵達定點後停住倒數 1 秒，再引爆腹部。爆炸半徑內會受到一次高額傷害。',
-  callForHelp: '停在原地發出求援訊號，施法完成後在範圍內召來兩名援軍；打斷牠能避免戰線擴大。',
+  contactExplosion: '持續追蹤視野內的玩家，但只有身體曾與玩家重疊後才會停住倒數 1 秒並引爆腹部；單純靠近不會啟動自爆。',
+  callForHelp: '停在原地發出求援訊號，施法完成後在範圍內召來一名二級援軍；打斷牠能避免戰線擴大。',
   clawSwipe: '以巨螯掃過身前短距離扇形，適合懲罰貼身玩家。',
   dashClamp: '先鎖定方向再衝刺夾擊，命中距離遠於普通揮擊，看到前搖時應立即改變高度。',
   longClawStab: '伸出長螯直刺前方，射程比一般近戰更長，但攻擊方向固定。',

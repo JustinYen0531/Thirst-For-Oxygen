@@ -279,19 +279,18 @@ test('sandbox gives the diver a generous control area before enemy placement', (
   assert.equal(isSandboxPlayerHit(state, { x: state.actor.x + SANDBOX_PLAYER_INTERACTION_RADIUS + 1, y: state.actor.y }), false);
 });
 
-test('lanternfish locks a point, waits one second, then detonates', () => {
+test('lanternfish only starts its one-second detonation after overlapping the diver', () => {
   const state = createSandboxState();
   const enemy = spawnSandboxEnemy(state, 'explodingLanternfish', { x: state.actor.x + 200, y: state.actor.y });
-  const target = { x: state.actor.x, y: state.actor.y };
-  assert.equal(executeEnemySkill(state, enemy.instanceId, 'contactExplosion').ok, true);
-  assert.equal(enemy.defeated, false);
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'contactExplosion').reason, 'overlap');
+  assert.equal(enemy.suicideCharge ?? null, null);
 
-  let arrivalSteps = 0;
-  while (enemy.suicideCharge?.phase !== 'detonating' && arrivalSteps < 240) {
-    stepSandbox(state);
-    arrivalSteps += 1;
-  }
-  assert.ok(arrivalSteps < 240, 'lanternfish should reach the locked detonation point');
+  enemy.x = state.actor.x;
+  enemy.y = state.actor.y;
+  assert.equal(executeEnemySkill(state, enemy.instanceId, 'contactExplosion').ok, true);
+  const target = { x: enemy.x, y: enemy.y };
+  assert.equal(enemy.defeated, false);
+  assert.equal(enemy.suicideCharge?.phase, 'detonating');
   assert.deepEqual({ x: enemy.x, y: enemy.y }, target);
   assert.equal(enemy.defeated, false);
 
@@ -366,8 +365,8 @@ test('seahorse rescue waits six seconds before summoning core enemies', () => {
   assert.equal(state.enemies.length, initialCount, '援軍不應該在六秒前出現');
 
   stepSandbox(state);
-  assert.equal(state.enemies.length, initialCount + 2);
-  assert.ok(state.enemies.slice(-2).every((candidate) => ['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin'].includes(candidate.enemyId)));
+  assert.equal(state.enemies.length, initialCount + 1);
+  assert.ok(['crabGuard', 'lobsterSoldier', 'lionfishGunner', 'squidAssassin'].includes(state.enemies.at(-1).enemyId));
 });
 
 test('lionfish venom projectile applies a timed player status', () => {
@@ -409,7 +408,7 @@ test('juvenile seahorse begins its rescue cast when the diver enters its radius'
   assert.equal(state.enemies.length, 1, '援軍應該先等待求援倒數');
   for (let index = 0; index < 360; index += 1) stepSandbox(state);
   assert.equal(enemy.rescueCompleted, true);
-  assert.equal(state.enemies.length, 3);
+  assert.equal(state.enemies.length, 2);
 });
 
 test('coral seahorse remains invulnerable while multiple Lv.2 allies are linked', () => {

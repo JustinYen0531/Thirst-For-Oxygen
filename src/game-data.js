@@ -402,7 +402,7 @@ export const ENEMY_DEFINITIONS = Object.freeze({
   },
   juvenileSeahorseCaller: {
     id: 'juvenileSeahorseCaller', name: '求援幼年海馬', tier: 1, role: 'support', maxHealth: 45, moveSpeed: 0,
-    attacks: [attack('callForHelp', '求援呼叫', 'summon', { damage: 0, castTime: 6, cooldown: 12, summonRadius: 190, summonCount: 2 })],
+    attacks: [attack('callForHelp', '求援呼叫', 'summon', { damage: 0, castTime: 6, cooldown: 12, summonRadius: 190, summonCount: 1 })],
   },
   crabGuard: {
     id: 'crabGuard', name: '螃蟹守衛', tier: 2, role: 'melee', maxHealth: 150, moveSpeed: 52,

@@ -1,4 +1,5 @@
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const thirdStackMultiplier = (fullStackMultiplier) => Math.cbrt(fullStackMultiplier);
 
 export const RESONANCE_RULES = Object.freeze({
   bodyGrazePadding: 34,
@@ -17,25 +18,25 @@ const buff = (enemyId, name, description, combatStyle, maxStacks, modifiers) => 
 // Every authored creature has one explicit permanent contract. Values stack for
 // the current run and deliberately survive the descent -> ascent transition.
 export const RESONANCE_BUFFS = Object.freeze({
-  explodingLanternfish: buff('explodingLanternfish', '冷光耐爆', '每層受到的所有傷害 -3%。', 'melee', 3, { damageReductionBonus: 0.03 }),
-  juvenileSeahorseCaller: buff('juvenileSeahorseCaller', '幼潮肺囊', '每層最大氧氣 +8%。', 'ranged', 2, { maxOxygenMultiplier: 1.08 }),
-  crabGuard: buff('crabGuard', '甲殼靜養', '每層高氧高能時的生命恢復速度 +15%。', 'melee', 3, { healthRecoveryMultiplier: 1.15 }),
-  lobsterSoldier: buff('lobsterSoldier', '鉗擊節律', '每層所有武器傷害 +6%。', 'ranged', 3, { weaponDamageMultiplier: 1.06 }),
-  lionfishGunner: buff('lionfishGunner', '棘砲校準', '每層武器傷害 +4%，武器能量消耗 -2%。', 'ranged', 2, { weaponDamageMultiplier: 1.04, weaponEnergyCostMultiplier: 0.98 }),
-  squidAssassin: buff('squidAssassin', '墨域呼吸', '每層氧氣倒數速度 -6%。', 'ranged', 2, { oxygenDrainMultiplier: 0.94 }),
-  splitLanternfish: buff('splitLanternfish', '裂殖餘光', '每層受到的傷害 -2%，生命恢復 +8%。', 'melee', 3, { damageReductionBonus: 0.02, healthRecoveryMultiplier: 1.08 }),
-  coralBackSeahorse: buff('coralBackSeahorse', '珊瑚肺葉', '每層最大氧氣 +6%，氧氣倒數速度 -3%。', 'ranged', 2, { maxOxygenMultiplier: 1.06, oxygenDrainMultiplier: 0.97 }),
-  mantisShrimpBrute: buff('mantisShrimpBrute', '蝦蛄爆發', '每層彈射初速 +8%。', 'melee', 2, { launchSpeedMultiplier: 1.08 }),
-  nautilusOracle: buff('nautilusOracle', '螺旋節能', '每層彈射能量消耗 -6%。', 'ranged', 2, { launchEnergyCostMultiplier: 0.94 }),
-  arcTideRay: buff('arcTideRay', '弧潮回生', '每層在補充氧氣或能量時，額外恢復 4% 生命。', 'ranged', 2, { resourceRecoveryHealthRatioBonus: 0.04 }),
-  mutantMantisShrimp: buff('mutantMantisShrimp', '變異爆發', '彈射初速 +10%，武器傷害 +3%。', 'melee', 1, { launchSpeedMultiplier: 1.10, weaponDamageMultiplier: 1.03 }),
-  mutantNautilusOracle: buff('mutantNautilusOracle', '變異螺旋', '彈射與武器能量消耗各 -5%。', 'ranged', 1, { launchEnergyCostMultiplier: 0.95, weaponEnergyCostMultiplier: 0.95 }),
-  mutantArcTideRay: buff('mutantArcTideRay', '變異弧潮', '生命恢復 +12%，補充資源時額外恢復 3% 生命。', 'ranged', 1, { healthRecoveryMultiplier: 1.12, resourceRecoveryHealthRatioBonus: 0.03 }),
-  prismCrabGuardian: buff('prismCrabGuardian', '稜鏡甲冑', '受到的傷害 -5%。', 'ranged', 1, { damageReductionBonus: 0.05 }),
-  tideLawNautilus: buff('tideLawNautilus', '潮律肺鐘', '最大氧氣 +10%，氧氣倒數速度 -5%。', 'ranged', 1, { maxOxygenMultiplier: 1.10, oxygenDrainMultiplier: 0.95 }),
-  mutantPrismCrabGuardian: buff('mutantPrismCrabGuardian', '變異稜鏡', '受到的傷害 -6%，生命恢復 +8%。', 'ranged', 1, { damageReductionBonus: 0.06, healthRecoveryMultiplier: 1.08 }),
-  mutantTideLawNautilus: buff('mutantTideLawNautilus', '變異潮律', '最大氧氣 +12%，武器能量消耗 -4%。', 'ranged', 1, { maxOxygenMultiplier: 1.12, weaponEnergyCostMultiplier: 0.96 }),
-  abyssalSpermWhale: buff('abyssalSpermWhale', '深淵共鳴', '武器傷害 +10%，受到的傷害 -4%。', 'ranged', 1, { weaponDamageMultiplier: 1.10, damageReductionBonus: 0.04 }),
+  explodingLanternfish: buff('explodingLanternfish', '冷光耐爆', '每層受到的所有傷害 -1%。', 'melee', 9, { damageReductionBonus: 0.01 }),
+  juvenileSeahorseCaller: buff('juvenileSeahorseCaller', '幼潮肺囊', '每層最大氧氣約 +2.60%。', 'ranged', 6, { maxOxygenMultiplier: thirdStackMultiplier(1.08) }),
+  crabGuard: buff('crabGuard', '甲殼靜養', '每層高氧高能時的生命恢復速度約 +4.77%。', 'melee', 9, { healthRecoveryMultiplier: thirdStackMultiplier(1.15) }),
+  lobsterSoldier: buff('lobsterSoldier', '鉗擊節律', '每層所有武器傷害約 +1.96%。', 'ranged', 9, { weaponDamageMultiplier: thirdStackMultiplier(1.06) }),
+  lionfishGunner: buff('lionfishGunner', '棘砲校準', '每層武器傷害約 +1.32%，武器能量消耗約 -0.67%。', 'ranged', 6, { weaponDamageMultiplier: thirdStackMultiplier(1.04), weaponEnergyCostMultiplier: thirdStackMultiplier(0.98) }),
+  squidAssassin: buff('squidAssassin', '墨域呼吸', '每層氧氣倒數速度約 -2.04%。', 'ranged', 6, { oxygenDrainMultiplier: thirdStackMultiplier(0.94) }),
+  splitLanternfish: buff('splitLanternfish', '裂殖餘光', '每層受到的傷害約 -0.67%，生命恢復約 +2.60%。', 'melee', 9, { damageReductionBonus: 0.02 / 3, healthRecoveryMultiplier: thirdStackMultiplier(1.08) }),
+  coralBackSeahorse: buff('coralBackSeahorse', '珊瑚肺葉', '每層最大氧氣約 +1.96%，氧氣倒數速度約 -1.01%。', 'ranged', 6, { maxOxygenMultiplier: thirdStackMultiplier(1.06), oxygenDrainMultiplier: thirdStackMultiplier(0.97) }),
+  mantisShrimpBrute: buff('mantisShrimpBrute', '蝦蛄爆發', '每層彈射初速約 +2.60%。', 'melee', 6, { launchSpeedMultiplier: thirdStackMultiplier(1.08) }),
+  nautilusOracle: buff('nautilusOracle', '螺旋節能', '每層彈射能量消耗約 -2.04%。', 'ranged', 6, { launchEnergyCostMultiplier: thirdStackMultiplier(0.94) }),
+  arcTideRay: buff('arcTideRay', '弧潮回生', '每層在補充氧氣或能量時，額外恢復約 1.33% 生命。', 'ranged', 6, { resourceRecoveryHealthRatioBonus: 0.04 / 3 }),
+  mutantMantisShrimp: buff('mutantMantisShrimp', '變異爆發', '每層彈射初速約 +3.23%，武器傷害約 +0.99%。', 'melee', 3, { launchSpeedMultiplier: thirdStackMultiplier(1.10), weaponDamageMultiplier: thirdStackMultiplier(1.03) }),
+  mutantNautilusOracle: buff('mutantNautilusOracle', '變異螺旋', '每層彈射與武器能量消耗各約 -1.70%。', 'ranged', 3, { launchEnergyCostMultiplier: thirdStackMultiplier(0.95), weaponEnergyCostMultiplier: thirdStackMultiplier(0.95) }),
+  mutantArcTideRay: buff('mutantArcTideRay', '變異弧潮', '每層生命恢復約 +3.85%，補充資源時額外恢復 1% 生命。', 'ranged', 3, { healthRecoveryMultiplier: thirdStackMultiplier(1.12), resourceRecoveryHealthRatioBonus: 0.01 }),
+  prismCrabGuardian: buff('prismCrabGuardian', '稜鏡甲冑', '每層受到的傷害約 -1.67%。', 'ranged', 3, { damageReductionBonus: 0.05 / 3 }),
+  tideLawNautilus: buff('tideLawNautilus', '潮律肺鐘', '每層最大氧氣約 +3.23%，氧氣倒數速度約 -1.70%。', 'ranged', 3, { maxOxygenMultiplier: thirdStackMultiplier(1.10), oxygenDrainMultiplier: thirdStackMultiplier(0.95) }),
+  mutantPrismCrabGuardian: buff('mutantPrismCrabGuardian', '變異稜鏡', '每層受到的傷害 -2%，生命恢復約 +2.60%。', 'ranged', 3, { damageReductionBonus: 0.02, healthRecoveryMultiplier: thirdStackMultiplier(1.08) }),
+  mutantTideLawNautilus: buff('mutantTideLawNautilus', '變異潮律', '每層最大氧氣約 +3.85%，武器能量消耗約 -1.35%。', 'ranged', 3, { maxOxygenMultiplier: thirdStackMultiplier(1.12), weaponEnergyCostMultiplier: thirdStackMultiplier(0.96) }),
+  abyssalSpermWhale: buff('abyssalSpermWhale', '深淵共鳴', '每層武器傷害約 +3.23%，受到的傷害約 -1.33%。', 'ranged', 3, { weaponDamageMultiplier: thirdStackMultiplier(1.10), damageReductionBonus: 0.04 / 3 }),
 });
 
 export function createResonanceState() {

@@ -54,7 +54,7 @@ const ENEMY_EN = Object.freeze({
       identification: 'Round pressure belly, small photophores, compact fish body, and a forward-charging pose.',
       visualSetting: 'A small stone-bodied lanternfish with an unstable pressure sac. Cyan cracks concentrate around the belly and head; avoid a humanoid bomb or equipped character.',
     },
-    attacks: { contactExplosion: ['Locked-Point Detonation', 'Locks the player\'s current position and charges in a straight line. It stops at that point, counts down for one second, then detonates once within its blast radius.'] },
+    attacks: { contactExplosion: ['Contact Detonation', 'Continues pursuing a visible player, but only starts its one-second stationary detonation countdown after its body overlaps the player. Proximity alone does not arm it.'] },
   },
   juvenileSeahorseCaller: {
     name: 'Juvenile Seahorse Caller', role: 'Support',
@@ -64,7 +64,7 @@ const ENEMY_EN = Object.freeze({
       identification: 'Oversized head, short body, curled tail, and a sound-wave organ above the head.',
       visualSetting: 'A small, timid stone seahorse. Cyan cracks gather around the throat and crown; sound rings are an external effect, not an added weapon.',
     },
-    attacks: { callForHelp: ['Rescue Call', 'Stops in place and broadcasts a distress signal. If the cast completes, two reinforcements arrive nearby; interrupt it to prevent the battle line from expanding.'] },
+    attacks: { callForHelp: ['Rescue Call', 'Stops in place and broadcasts a distress signal. If the cast completes, one Tier 2 reinforcement arrives nearby; interrupt it to prevent the battle line from expanding.'] },
   },
   crabGuard: {
     name: 'Crab Guard', role: 'Melee defender',

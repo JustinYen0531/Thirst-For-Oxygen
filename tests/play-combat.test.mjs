@@ -4,6 +4,7 @@ import './resonance.test.mjs';
 import { getEnemyDamageToPlayer } from '../src/game-data.js';
 import { createTestActor } from '../src/physics.js';
 import {
+  KNIFE_DASH_MINIMUM_SPEED,
   choosePlayUpgrade,
   choosePlayUpgradeCategory,
   createPlayCombatState,
@@ -102,6 +103,20 @@ test('knife path pierces every crossed enemy and Lv.2 side tracks deal seventy p
   assert.equal(centreB.health, 176, 'main path must penetrate instead of stopping at the first target');
   assert.ok(Math.abs(side.health - (200 - 24 * 0.7)) < 1e-9);
   assert.ok(state.effects.some((effect) => effect.type === 'knifePath' && effect.hitIds.length === 2));
+});
+
+test('a medium forty-five-pixel-per-second dash is enough to trigger the knife path', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 100, y: 100 });
+  const slowStart = { x: actor.x, y: actor.y };
+  actor.x += (KNIFE_DASH_MINIMUM_SPEED - 5) / 60;
+  stepPlayCombat(state, { actor, enemies: [], previousPosition: slowStart, dt: 1 / 60 });
+  assert.equal(state.effects.some((effect) => effect.type === 'knifePath'), false);
+
+  const mediumStart = { x: actor.x, y: actor.y };
+  actor.x += (KNIFE_DASH_MINIMUM_SPEED + 5) / 60;
+  stepPlayCombat(state, { actor, enemies: [], previousPosition: mediumStart, dt: 1 / 60 });
+  assert.equal(state.effects.some((effect) => effect.type === 'knifePath'), true);
 });
 
 test('knife Lv.3 damages nearby enemies while stationary', () => {

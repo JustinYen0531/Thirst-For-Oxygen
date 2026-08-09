@@ -939,6 +939,10 @@ test('sandbox can run every defined enemy skill without a missing implementation
   getSandboxEnemyIds().forEach((enemyId, index) => {
     const enemy = spawnSandboxEnemy(state, enemyId, { x: 600 + (index % 4) * 70, y: 120 + (index % 5) * 70 });
     ENEMY_DEFINITIONS[enemyId].attacks.forEach((skill) => {
+      if (skill.type === 'suicideCharge') {
+        enemy.x = state.actor.x;
+        enemy.y = state.actor.y;
+      }
       const result = executeEnemySkill(state, enemy.instanceId, skill.id);
       assert.equal(result.ok, true, `${enemyId}/${skill.id} should be executable in the sandbox`);
       enemy.cooldowns[skill.id] = 0;
