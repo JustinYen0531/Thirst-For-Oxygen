@@ -67,7 +67,9 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-abyss-video[\s\S]*opacity: 0\.76/);
   assert.match(css, /brightness\(0\.68\)/);
   assert.match(css, /\.home-helmet-stage[\s\S]*scale\(0\.88\)/);
-  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 28vh, 0\) scale\(0\.72\)/);
+  assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 20vh, 0\) scale\(0\.72\)/);
+  assert.match(css, /\.home-helmet-frame[\s\S]*brightness\(0\.5\)[\s\S]*saturate\(0\.55\)/);
+  assert.match(css, /#home-map-preview[\s\S]*brightness\(0\.48\)[\s\S]*saturate\(0\.56\)/);
 });
 
 test('helmet map preview uses all three authored descent maps', () => {
@@ -94,21 +96,25 @@ test('background enemies use real six-frame idle and skill animations', () => {
   assert.equal(getHomeEnemyFrameIndex(1080), 0);
 });
 
-test('eight swimmers remain evenly staggered across the viewport', () => {
+test('eight left-facing swimmers travel right-to-left at three distinct speeds', () => {
   assert.equal(HOME_ENEMY_SWIM_DURATION_MS, 32000);
-  [0, 4000, 12000, 24000, 31999].forEach((elapsedMs) => {
+  assert.deepEqual(
+    [...new Set(HOME_ENEMY_SHOWCASE.map((enemy) => enemy.swimDurationMs))].sort((a, b) => a - b),
+    [26000, 34000, 44000],
+  );
+  HOME_ENEMY_SHOWCASE.forEach((_, index) => {
+    const start = getHomeEnemySwimPosition(0, index, HOME_ENEMY_SHOWCASE.length);
+    const later = getHomeEnemySwimPosition(1000, index, HOME_ENEMY_SHOWCASE.length);
+    assert.equal(start.direction, 'left');
+    assert.ok(later.xVw < start.xVw, `enemy ${index} should move left`);
+  });
+  for (let elapsedMs = 0; elapsedMs <= 600000; elapsedMs += 1000) {
     const positions = HOME_ENEMY_SHOWCASE.map((_, index) => (
       getHomeEnemySwimPosition(elapsedMs, index, HOME_ENEMY_SHOWCASE.length)
     ));
     const visibleCount = positions.filter(({ xVw }) => xVw >= -12 && xVw <= 100).length;
-    assert.ok(visibleCount >= 6, `${elapsedMs}ms should retain at least six swimmers, got ${visibleCount}`);
-    const sorted = positions.map(({ progress }) => progress).sort((a, b) => a - b);
-    const gaps = sorted.map((progress, index) => {
-      const next = sorted[(index + 1) % sorted.length] + (index === sorted.length - 1 ? 1 : 0);
-      return Number((next - progress).toFixed(3));
-    });
-    assert.deepEqual(gaps, Array(8).fill(0.125));
-  });
+    assert.ok(visibleCount >= 5, `${elapsedMs}ms should retain at least five swimmers, got ${visibleCount}`);
+  }
 });
 
 test('helmet no-signal easter egg stays brief and leaves the map underneath', () => {

@@ -12,14 +12,14 @@ export const HOME_ENEMY_SWIM_DURATION_MS = 32000;
 export const HOME_NO_SIGNAL_DURATION_MS = 950;
 
 export const HOME_ENEMY_SHOWCASE = Object.freeze([
-  Object.freeze({ instanceId: 'lanternfish-1', enemyId: 'explodingLanternfish', label: '爆炸燈籠魚', actionId: 'contactExplosion', actionLabel: '接觸爆炸', laneY: 8, scale: 0.82 }),
-  Object.freeze({ instanceId: 'seahorse-1', enemyId: 'juvenileSeahorseCaller', label: '幼年海馬', actionId: 'callForHelp', actionLabel: '呼喚援軍', laneY: 21, scale: 0.74 }),
-  Object.freeze({ instanceId: 'crab-1', enemyId: 'crabGuard', label: '螃蟹守衛', actionId: 'clawSwipe', actionLabel: '螯擊', laneY: 35, scale: 0.88 }),
-  Object.freeze({ instanceId: 'lobster-1', enemyId: 'lobsterSoldier', label: '龍蝦士兵', actionId: 'spearThrow', actionLabel: '長槍投擲', laneY: 49, scale: 0.86 }),
-  Object.freeze({ instanceId: 'lionfish-1', enemyId: 'lionfishGunner', label: '獅子魚砲手', actionId: 'spineScatter', actionLabel: '棘刺散射', laneY: 63, scale: 0.8 }),
-  Object.freeze({ instanceId: 'squid-1', enemyId: 'squidAssassin', label: '烏賊刺客', actionId: 'inkShadowSlash', actionLabel: '墨影斬', laneY: 76, scale: 0.78 }),
-  Object.freeze({ instanceId: 'mantis-1', enemyId: 'mantisShrimpBrute', label: '螳螂蝦猛將', actionId: 'punch', actionLabel: '重拳', laneY: 28, scale: 0.9 }),
-  Object.freeze({ instanceId: 'ray-1', enemyId: 'arcTideRay', label: '弧潮獵鰩', actionId: 'arcTideBombardment', actionLabel: '弧潮轟炸', laneY: 69, scale: 1.08 }),
+  Object.freeze({ instanceId: 'lanternfish-1', enemyId: 'explodingLanternfish', label: '爆炸燈籠魚', actionId: 'contactExplosion', actionLabel: '接觸爆炸', laneY: 8, scale: 0.82, swimDurationMs: 26000, swimPhase: 0 }),
+  Object.freeze({ instanceId: 'seahorse-1', enemyId: 'juvenileSeahorseCaller', label: '幼年海馬', actionId: 'callForHelp', actionLabel: '呼喚援軍', laneY: 21, scale: 0.74, swimDurationMs: 44000, swimPhase: 0.25 }),
+  Object.freeze({ instanceId: 'crab-1', enemyId: 'crabGuard', label: '螃蟹守衛', actionId: 'clawSwipe', actionLabel: '螯擊', laneY: 35, scale: 0.88, swimDurationMs: 34000, swimPhase: 1 / 6 }),
+  Object.freeze({ instanceId: 'lobster-1', enemyId: 'lobsterSoldier', label: '龍蝦士兵', actionId: 'spearThrow', actionLabel: '長槍投擲', laneY: 49, scale: 0.86, swimDurationMs: 34000, swimPhase: 0.5 }),
+  Object.freeze({ instanceId: 'lionfish-1', enemyId: 'lionfishGunner', label: '獅子魚砲手', actionId: 'spineScatter', actionLabel: '棘刺散射', laneY: 63, scale: 0.8, swimDurationMs: 26000, swimPhase: 1 / 3 }),
+  Object.freeze({ instanceId: 'squid-1', enemyId: 'squidAssassin', label: '烏賊刺客', actionId: 'inkShadowSlash', actionLabel: '墨影斬', laneY: 76, scale: 0.78, swimDurationMs: 44000, swimPhase: 0.75 }),
+  Object.freeze({ instanceId: 'mantis-1', enemyId: 'mantisShrimpBrute', label: '螳螂蝦猛將', actionId: 'punch', actionLabel: '重拳', laneY: 28, scale: 0.9, swimDurationMs: 34000, swimPhase: 5 / 6 }),
+  Object.freeze({ instanceId: 'ray-1', enemyId: 'arcTideRay', label: '弧潮獵鰩', actionId: 'arcTideBombardment', actionLabel: '弧潮轟炸', laneY: 69, scale: 1.08, swimDurationMs: 26000, swimPhase: 2 / 3 }),
 ]);
 
 export function getHomeHelmetTurnFrame(elapsedMs, durationMs = HOME_HELMET_TURN_DURATION_MS) {
@@ -43,12 +43,17 @@ export function getHomeEnemyAnimationFrames(enemyId, actionId = null) {
 export function getHomeEnemySwimPosition(elapsedMs, index, count = HOME_ENEMY_SHOWCASE.length) {
   const safeCount = Math.max(1, Math.floor(Number(count) || 1));
   const safeIndex = ((Math.floor(Number(index) || 0) % safeCount) + safeCount) % safeCount;
-  const elapsedProgress = Math.max(0, Number(elapsedMs) || 0) / HOME_ENEMY_SWIM_DURATION_MS;
-  const progress = (elapsedProgress + safeIndex / safeCount) % 1;
+  const config = HOME_ENEMY_SHOWCASE[safeIndex];
+  const durationMs = Math.max(1, Number(config?.swimDurationMs) || HOME_ENEMY_SWIM_DURATION_MS);
+  const startingPhase = Number.isFinite(config?.swimPhase) ? config.swimPhase : safeIndex / safeCount;
+  const elapsedProgress = Math.max(0, Number(elapsedMs) || 0) / durationMs;
+  const progress = (elapsedProgress + startingPhase) % 1;
   return {
     bobVh: Math.sin(progress * Math.PI * 2 + safeIndex * 0.73) * 1.55,
+    direction: 'left',
+    durationMs,
     progress,
-    xVw: -14 + progress * 128,
+    xVw: 114 - progress * 128,
   };
 }
 
@@ -170,6 +175,8 @@ export function attachHomeEnemyShowcase(root, options = {}) {
       mode: enemy.mode,
       progress: Number(enemy.progress.toFixed(3)),
       sequence: enemy.sequence,
+      swimDirection: 'left',
+      swimDurationMs: enemy.swimDurationMs,
       xVw: Number(enemy.xVw.toFixed(2)),
       yVh: Number(enemy.yVh.toFixed(2)),
     })),
