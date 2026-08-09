@@ -10,6 +10,7 @@ const sandbox = read('../src/sandbox-page.js');
 const html = read('../play.html');
 const home = read('../home.html');
 const css = read('../src/play.css');
+const storyIntro = read('../src/play-story-intro.js');
 
 test('formal Play runtime owns both gameplay styles in addition to HTML early-paint links', () => {
   assert.match(html, /href="\/src\/play\.css"/);
@@ -159,4 +160,20 @@ test('Part 1 presents Attempt separately from HP and preserves the authored awak
   assert.match(page, /attemptsReadout\.textContent = attempt\.label/);
   assert.match(page, /getPlayAttemptState\(actor\)\.label}，已回到最近啟用的 Checkpoint/);
   assert.doesNotMatch(page, /失去 1 條命/);
+});
+
+test('Part 1 presents the three-slide narrator before the existing awakening', () => {
+  assert.match(html, /id="play-story-intro"/);
+  assert.match(html, /id="play-story-image"/);
+  assert.match(html, /id="play-story-narrator"/);
+  assert.match(html, /id="play-story-skip"/);
+  assert.match(page, /advancePlayStoryIntro/);
+  assert.match(page, /stepPlayStoryIntro/);
+  assert.match(page, /storyIntroState\.active/);
+  assert.match(page, /finishStoryIntro/);
+  assert.match(page, /storyIntro: getPlayStoryIntroRenderState/);
+  assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
+  assert.match(css, /\.play-story-intro-overlay/);
+  assert.match(css, /z-index: 1/);
+  assert.match(css, /play-story-breathe/);
 });

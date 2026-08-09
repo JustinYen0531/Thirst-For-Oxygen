@@ -101,6 +101,13 @@ import {
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
 import { PLAY_BASE_IMAGE_ASSET_PATHS, PLAY_MAP_ASSET_URLS, PLAY_TILE_ASSETS } from './play-preload.js';
 import {
+  advancePlayStoryIntro,
+  createPlayStoryIntroState,
+  getPlayStoryIntroRenderState,
+  skipPlayStoryIntro,
+  stepPlayStoryIntro,
+} from './play-story-intro.js';
+import {
   createPlayRenderIndex,
   createPlayUpdateGate,
   getVisiblePlayCells,
@@ -158,6 +165,14 @@ const eventsList = document.querySelector('#play-events');
 const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
 const ambientToggle = document.querySelector('#play-ambient-toggle');
 const attemptsReadout = document.querySelector('#play-attempts');
+const storyIntroOverlay = document.querySelector('#play-story-intro');
+const storyIntroImage = document.querySelector('#play-story-image');
+const storyIntroEyebrow = document.querySelector('#play-story-eyebrow');
+const storyIntroProgress = document.querySelector('#play-story-progress');
+const storyIntroTitle = document.querySelector('#play-story-title');
+const storyIntroNarrator = document.querySelector('#play-story-narrator');
+const storyIntroHint = document.querySelector('#play-story-hint');
+const storyIntroSkip = document.querySelector('#play-story-skip');
 const upgradeOverlay = document.querySelector('#play-upgrade-overlay');
 const upgradeNote = document.querySelector('#play-upgrade-note');
 const upgradeCategories = document.querySelector('#play-upgrade-categories');
@@ -237,6 +252,7 @@ let bossRoomState = createPlayBossRoomState(null);
 let transitioning = false;
 let runCompleted = false;
 let awakeningState = createPlayAwakeningState({ enabled: false });
+let storyIntroState = createPlayStoryIntroState({ enabled: false });
 let backgroundLayer = null;
 let renderClock = 0;
 let hudSlotSignature = '';
@@ -383,9 +399,14 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   bossRoomState = createPlayBossRoomState(map);
   syncKatanaState();
   if (!previousActor) worldTime = 0;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+  storyIntroState = createPlayStoryIntroState({
+    enabled: mapArc === 'descent' && mapPart === 1 && !previousActor,
+    reducedMotion,
+  });
   awakeningState = createPlayAwakeningState({
-    enabled: mapPart === 1 && !previousActor,
-    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+    enabled: !storyIntroState.active && mapPart === 1 && !previousActor,
+    reducedMotion,
   });
   camera = { x: 0, y: 0, edgeX: '中段', edgeY: '中段' };
   aimPoint = null;
@@ -405,6 +426,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
     `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
   ];
   mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
+  updateStoryIntroPresentation();
   updateAwakeningPresentation();
   updateCamera();
   updateVisibleRenderEntries(true);
@@ -436,6 +458,8 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     if (!response.ok) throw new Error(`map ${response.status}`);
     setupWorld(await response.json(), { previousActor });
   } catch (error) {
+    storyIntroState.active = false;
+    updateStoryIntroPresentation();
     awakeningState.active = false;
     updateAwakeningPresentation();
     eventLog = [`地圖載入失敗：${error.message}`];
@@ -788,6 +812,39 @@ function drawEdges() {
     const height = aspect >= 1 ? size / aspect : size;
     drawImage(asset, renderX, renderY, width, height, .92, rotation, getEdgeDiscoveryGuide(edge.type)?.colour);
   });
+}
+
+function updateStoryIntroPresentation() {
+  const story = getPlayStoryIntroRenderState(storyIntroState);
+  if (!storyIntroOverlay) return story;
+  storyIntroOverlay.hidden = !story.active;
+  stageFrame.classList.toggle('is-story-intro', story.active);
+  if (!story.active) return story;
+  if (storyIntroImage && storyIntroImage.getAttribute('src') !== story.imagePath) storyIntroImage.src = story.imagePath;
+  if (storyIntroEyebrow) storyIntroEyebrow.textContent = story.eyebrow;
+  if (storyIntroProgress) storyIntroProgress.textContent = `${String(story.slideNumber).padStart(2, '0')} / ${String(story.totalSlides).padStart(2, '0')}`;
+  if (storyIntroTitle) storyIntroTitle.textContent = story.title;
+  if (storyIntroNarrator) storyIntroNarrator.textContent = story.typedText;
+  if (storyIntroHint) storyIntroHint.textContent = story.textComplete
+    ? (story.slideNumber === story.totalSlides ? '點擊或按 Space 開始遊戲' : '點擊或按 Space 下一頁')
+    : '點擊或按 Space 顯示完整旁白';
+  return story;
+}
+
+function finishStoryIntro() {
+  awakeningState = createPlayAwakeningState({
+    enabled: mapArc === 'descent' && mapPart === 1,
+    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+  });
+  updateStoryIntroPresentation();
+  updateAwakeningPresentation();
+}
+
+function advanceStoryIntroInput() {
+  const story = advancePlayStoryIntro(storyIntroState);
+  if (!story.active) finishStoryIntro();
+  updateStoryIntroPresentation();
+  render();
 }
 
 function updateAwakeningPresentation() {
@@ -1833,6 +1890,20 @@ function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); retur
 function screenToWorld(point) { return { x: point.x / SCALE + camera.x, y: point.y / SCALE + camera.y }; }
 function actorCanvasPoint() { return { x: (actor.x - camera.x) * SCALE, y: (actor.y - camera.y) * SCALE }; }
 
+storyIntroOverlay?.addEventListener('pointerdown', (event) => {
+  if (!storyIntroState.active || event.target.closest('#play-story-skip')) return;
+  event.preventDefault();
+  event.stopPropagation();
+  advanceStoryIntroInput();
+});
+storyIntroSkip?.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  skipPlayStoryIntro(storyIntroState);
+  finishStoryIntro();
+  render();
+});
+
 canvas.addEventListener('pointerdown', (event) => {
   if (!actor) return;
   const point = canvasPoint(event);
@@ -1847,7 +1918,7 @@ canvas.addEventListener('pointerdown', (event) => {
     }
     return;
   }
-  if (paused || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
+  if (paused || storyIntroState.active || awakeningState.active || actor.dead || (actor.stunnedUntil ?? 0) > worldTime || combatState.awaitingUpgrade || (actor.launchLockTimer ?? 0) > 0) return;
   event.preventDefault();
   const actorPoint = actorCanvasPoint();
   if (Math.hypot(point.x - actorPoint.x, point.y - actorPoint.y) > 58) return;
@@ -1950,6 +2021,13 @@ upgradeChoices.addEventListener('click', (event) => {
 musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 window.addEventListener('keydown', (event) => {
+  if (storyIntroState.active) {
+    if (event.code === 'Space') {
+      event.preventDefault();
+      advanceStoryIntroInput();
+    }
+    return;
+  }
   if (event.key.toLowerCase() === 'r') resetButton.click();
   if (event.key.toLowerCase() === 'e' && map && actor && !actor.gameOver) {
     const result = toggleSeaweedAttachment(actor, map, 'chapter1', origin);
@@ -1966,6 +2044,12 @@ window.addEventListener('keydown', (event) => {
 function simulate(elapsed, now = performance.now()) {
   const scaledElapsed = scaleSimulationDelta(elapsed, dragging);
   renderClock += scaledElapsed;
+  if (storyIntroState.active) {
+    stepPlayStoryIntro(storyIntroState, scaledElapsed);
+    updateStoryIntroPresentation();
+    updateHudIfDue(now);
+    return;
+  }
   if (awakeningState.active) {
     stepPlayAwakening(awakeningState, scaledElapsed);
     updateAwakeningPresentation();
@@ -2100,6 +2184,7 @@ window.render_game_to_text = () => {
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
     player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
     attempt: actor ? getPlayAttemptState(actor) : null,
+    storyIntro: getPlayStoryIntroRenderState(storyIntroState),
     awakening: getPlayAwakeningRenderState(awakeningState),
     hudLoadout: getPlayerHudSlots(combatState.build).map(({ key, kind, id, level, path }) => ({ key, kind, id, level, path })),
     combat,
