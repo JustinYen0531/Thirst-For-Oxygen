@@ -378,7 +378,7 @@ test('lionfish venom projectile applies a timed player status', () => {
   const enemy = spawnSandboxEnemy(state, 'lionfishGunner', { x: state.actor.x + 70, y: state.actor.y }, { moveSpeed: 0 });
 
   assert.equal(executeEnemySkill(state, enemy.instanceId, 'venomStraightShot').ok, true);
-  stepSandbox(state, 0.35);
+  stepSandbox(state, 0.6);
 
   assert.ok((state.actor.activeEffects.venom ?? 0) > 0, '毒刺命中後應保留持續效果');
   const healthAfterHit = state.actor.health;
@@ -497,6 +497,7 @@ test('lobster spear and lionfish scatter each create their authored projectile c
   stepSandbox(lobsterState, 0.32);
   assert.equal(lobsterState.projectiles.length, 1);
   assert.equal(lobsterState.projectiles[0].damage, 24);
+  assert.equal(Math.hypot(lobsterState.projectiles[0].vx, lobsterState.projectiles[0].vy), 130);
 
   const lionfishState = createSandboxState();
   const lionfish = spawnSandboxEnemy(lionfishState, 'lionfishGunner', { x: lionfishState.actor.x + 180, y: lionfishState.actor.y }, { moveSpeed: 0 });

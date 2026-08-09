@@ -5,8 +5,10 @@ import {
   WEAPONS,
   createEnemyState,
   getEnemyDamageToPlayer,
+  getEnemyProjectileSpeed,
   getWeaponStats,
 } from './game-data.js';
+import { syncEnemyFacing } from './enemy-movement.js';
 import {
   createEmptyMap,
 } from './map-model.js';
@@ -337,7 +339,7 @@ function collectSandboxExperience(state) {
 function applyPlayerDamage(state, amount, source, damageType = 'generic') {
   const result = state.invincible
     ? { applied: 0, blocked: true }
-    : applyDamage(state.actor, getEnemyDamageToPlayer(amount), source, damageType);
+    : applyDamage(state.actor, getEnemyDamageToPlayer(amount, damageType), source, damageType);
   if (result.applied > 0) {
     logEvent(state, `玩家受到 ${Math.round(result.applied)} 傷害（${source}）。`, 'danger');
   } else if (state.invincible) {
@@ -415,18 +417,22 @@ function defeatEnemy(state, enemy) {
 
 function spawnProjectile(state, source, options) {
   const angle = options.angle ?? angleBetween(source, state.actor);
+  const authoredSpeed = Math.max(0, Number(options.speed) || 0);
+  const speed = options.source === 'enemy' && !options.enemySpeedBalanced
+    ? getEnemyProjectileSpeed(authoredSpeed)
+    : authoredSpeed;
   state.projectiles.push({
     id: state.nextProjectileId++,
     x: options.x ?? source.x,
     y: options.y ?? source.y,
-    vx: Math.cos(angle) * options.speed,
-    vy: Math.sin(angle) * options.speed,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
     angle,
     source: options.source ?? 'enemy',
     ownerId: source.instanceId,
     damage: options.damage ?? 0,
-    damageType: options.damageType ?? 'ranged',
-    life: options.life ?? ((options.returnDelay ?? 0) + (options.range ?? 360) / Math.max(options.speed, 1)),
+    damageType: options.damageType ?? (options.source === 'enemy' ? 'projectile' : 'ranged'),
+    life: options.life ?? ((options.returnDelay ?? 0) + (options.range ?? 360) / Math.max(speed, 1)),
     age: 0,
     returnDelay: options.returnDelay ?? null,
     returning: false,
@@ -1584,7 +1590,7 @@ function updateProjectiles(state, dt) {
     }
     return projectile.x > -40 && projectile.x < SANDBOX_WIDTH + 40 && projectile.y > -40 && projectile.y < SANDBOX_HEIGHT + 40;
   });
-  generated.forEach(({ owner, ...options }) => spawnProjectile(state, owner, options));
+  generated.forEach(({ owner, ...options }) => spawnProjectile(state, owner, { ...options, enemySpeedBalanced: true }));
 }
 
 function spawnZoneSpread(state, zone) {
@@ -1774,7 +1780,7 @@ function updateEnemyMovement(state, enemy, dt) {
     enemy.x = clamp(enemy.x + enemy.vx * dt, 30, SANDBOX_WIDTH - 30);
     enemy.y = clamp(enemy.y + enemy.vy * dt, 30, SANDBOX_HEIGHT - 30);
     enemy.state = 'chasing';
-    if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
+    syncEnemyFacing(enemy);
   } else {
     enemy.vx = 0;
     enemy.vy = 0;

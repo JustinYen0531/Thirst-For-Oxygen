@@ -35,6 +35,7 @@ import {
 } from './sandbox-sim.js';
 import { BUILD_SLOT_LEVEL_CAPS, getExperienceProgress } from './progression.js';
 import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana-visual.js';
+import { getEnemySpriteScaleX } from './enemy-movement.js';
 import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 
 const canvas = document.querySelector('#sandbox-canvas');
@@ -1165,6 +1166,7 @@ function renderSprites() {
       image.style.left = `${(enemy.x / SANDBOX_WIDTH) * 100}%`;
       image.style.top = `${(enemy.y / SANDBOX_HEIGHT) * 100}%`;
       image.style.opacity = enemy.hidden ? '0.08' : '1';
+      image.style.transform = `translate(-50%, -50%) scaleX(${getEnemySpriteScaleX(enemy.facing)})`;
     } else {
       let fallback = sprites.querySelector(`[data-instance-id="${enemy.instanceId}"]`);
       if (!fallback || fallback.tagName !== 'DIV') {

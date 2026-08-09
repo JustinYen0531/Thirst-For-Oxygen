@@ -18,10 +18,21 @@ export const RESOURCE_HEALTH_RECOVERY = Object.freeze({
 
 export const ENEMY_DAMAGE_BALANCE = Object.freeze({
   playerDamageMultiplier: 0.4,
+  projectileDamageMultiplier: 0.5,
+  projectileSpeedMultiplier: 0.5,
 });
 
-export function getEnemyDamageToPlayer(amount) {
-  return Math.max(0, Number(amount) || 0) * ENEMY_DAMAGE_BALANCE.playerDamageMultiplier;
+export function getEnemyDamageToPlayer(amount, damageType = 'generic') {
+  const projectileMultiplier = damageType === 'projectile'
+    ? ENEMY_DAMAGE_BALANCE.projectileDamageMultiplier
+    : 1;
+  return Math.max(0, Number(amount) || 0)
+    * ENEMY_DAMAGE_BALANCE.playerDamageMultiplier
+    * projectileMultiplier;
+}
+
+export function getEnemyProjectileSpeed(speed) {
+  return Math.max(0, Number(speed) || 0) * ENEMY_DAMAGE_BALANCE.projectileSpeedMultiplier;
 }
 
 export const PLAYER_BASE_STATS = Object.freeze({

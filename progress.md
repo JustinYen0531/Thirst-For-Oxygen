@@ -879,3 +879,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 所有敵人對玩家的最終生命傷害統一降為原始 authored 數值的 40%；正式敵技、沙盒敵技、毒素與 Boss 荊棘反傷共用同一資料契約，環境傷害維持原值。
 - 首次接觸資訊卡改為單張 active 加 pending queue；整張卡片都可點擊關閉，按下後才顯示下一個仍在畫面內的目標，renderer 最多繪製一張。
 - focused discovery／formal enemy／combat／katana／sandbox tests 101/101、完整 `npm run check` 206/206 通過；Vite build 與 `git diff --check` 也通過。依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 108 complete
+
+- 正式遊玩與沙盒敵人共用水平朝向規則：素材原始朝左，向右移動時水平翻面，停止後保留最後朝向。
+- 正式遊玩中的移動型敵人會在直線路徑遇到阻擋 Cell、封閉 Edge 或錯誤水層時選擇可通行的側向路線；三種 authored 定點支援／砲台型敵人維持不移動。
+- 所有敵方投射物速度降為 50%；投射物命中傷害在全敵人 40% 倍率後再減半，最終為原始傷害 20%，不影響玩家武器與非子彈敵技。
+- focused enemy／sandbox／formal page tests 85/85、完整 `npm run check` 214/214 通過；Vite build 與 `git diff --check` 待本步收尾記錄。依專案規則不執行瀏覽器／Playwright。

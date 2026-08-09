@@ -1,5 +1,6 @@
-import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from './game-data.js';
+import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer, getEnemyProjectileSpeed } from './game-data.js';
 import { ENEMY_ENCYCLOPEDIA } from './enemy-encyclopedia.js';
+import { syncEnemyFacing } from './enemy-movement.js';
 import {
   DIRECTIONS,
   HEX_SIZE,
@@ -495,6 +496,49 @@ function attackReach(enemy, skill) {
   return (skill.range ?? skill.radius ?? 44) + enemy.radius + (enemy.actorRadius ?? 6);
 }
 
+const PLAY_ENEMY_STEERING_OFFSETS = Object.freeze([
+  0,
+  Math.PI / 3,
+  -Math.PI / 3,
+  Math.PI / 2,
+  -Math.PI / 2,
+  Math.PI * 2 / 3,
+  -Math.PI * 2 / 3,
+]);
+
+function canOccupyPlayEnemyPoint(world, fromPoint, nextPoint) {
+  if (!world?.map) return true;
+  const chapter = world.chapter ?? 'chapter1';
+  const origin = world.origin ?? { x: 0, y: 0 };
+  const current = findCellContainingPoint(world.map, fromPoint, chapter, origin);
+  const candidate = findCellContainingPoint(world.map, nextPoint, chapter, origin);
+  if (!candidate || candidate.cell.terrain === 'blocked') return false;
+  if (!current || current.key === candidate.key) return true;
+  const edge = getActiveEdge(world.map, edgeKey(current.key, candidate.key), chapter);
+  if (edge?.blocksPassage && edge.type !== 'layerPortal') return false;
+  if (current.cell.waterLayer !== candidate.cell.waterLayer && edge?.type !== 'layerPortal') return false;
+  return true;
+}
+
+export function getPlayEnemySteeringAngle(enemy, target, speed, elapsed, world = null) {
+  const directAngle = angleBetween(enemy, target);
+  if (!world?.map) return directAngle;
+  const probeDistance = Math.max(Math.max(0, speed) * Math.max(elapsed, 1 / 60), HEX_SIZE * 1.65);
+  const candidates = PLAY_ENEMY_STEERING_OFFSETS.map((offset) => {
+    const angle = directAngle + offset;
+    const point = {
+      x: enemy.x + Math.cos(angle) * probeDistance,
+      y: enemy.y + Math.sin(angle) * probeDistance,
+    };
+    if (!canOccupyPlayEnemyPoint(world, enemy, point)) return null;
+    return {
+      angle,
+      score: distanceBetween(point, target) + Math.abs(offset) * HEX_SIZE * 0.28,
+    };
+  }).filter(Boolean).sort((left, right) => left.score - right.score);
+  return candidates[0]?.angle ?? null;
+}
+
 function hasPlayerDamage(skill) {
   return Number(skill?.damage ?? 0) > 0
     || Number(skill?.damagePerSecond ?? 0) > 0
@@ -524,7 +568,7 @@ function canUsePlaySkill(enemy, skill, distance) {
 
 function playEnemyDamage(actor, amount, source, onDamage, damageType = 'generic') {
   if (!amount || actor.dead || actor.invulnerability > 0) return;
-  const scaledDamage = getEnemyDamageToPlayer(amount);
+  const scaledDamage = getEnemyDamageToPlayer(amount, damageType);
   if (typeof onDamage === 'function') onDamage(scaledDamage, source, damageType);
   else actor.health = Math.max(0, actor.health - scaledDamage);
   actor.hurtTimer = Math.max(actor.hurtTimer ?? 0, 0.18);
@@ -537,7 +581,7 @@ function spawnPlayEnemyProjectiles(runtime, enemy, skill, target) {
   for (let index = 0; index < count; index += 1) {
     const ratio = count === 1 ? 0 : index / (count - 1) - 0.5;
     const angle = centre + ratio * spread;
-    const speed = Math.max(1, Number(skill.projectileSpeed ?? 280) * (enemy.projectileSpeedMultiplier ?? 1));
+    const speed = Math.max(1, getEnemyProjectileSpeed(skill.projectileSpeed ?? 280) * (enemy.projectileSpeedMultiplier ?? 1));
     const outboundDistance = skill.range
       ?? (skill.returnDelay ? speed * skill.returnDelay : distanceBetween(enemy, target));
     runtime.projectiles.push({
@@ -601,7 +645,7 @@ function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage) {
     projectile.y += projectile.vy * dt;
     if (!projectile.returning) projectile.remainingDistance -= travel;
     if (distanceToSegment(actor, previous, projectile) <= (actor.radius ?? 0) + projectile.radius) {
-      playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'ranged');
+      playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'projectile');
       if (projectile.applies) {
         actor.activeEffects ??= {};
         actor.activeEffects[projectile.applies] = {
@@ -1327,28 +1371,35 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     }
     const preferred = preferredDistance(enemy, definition);
     if ((enemy.moveSpeed ?? 0) > 0 && distance > preferred) {
-      const angle = angleBetween(enemy, actor);
       const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
         * (enemy.passiveState?.moveSpeedMultiplier ?? 1);
-      enemy.vx = Math.cos(angle) * enemy.moveSpeed * moveSpeedMultiplier;
-      enemy.vy = Math.sin(angle) * enemy.moveSpeed * moveSpeedMultiplier;
-      const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
-      const nextCell = world?.map
-        ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
-        : null;
-      if (nextCell?.cell?.terrain === 'blocked') {
+      const speed = enemy.moveSpeed * moveSpeedMultiplier;
+      const angle = getPlayEnemySteeringAngle(enemy, actor, speed, elapsed, world);
+      if (angle == null) {
         enemy.vx = 0;
         enemy.vy = 0;
         enemy.state = 'blocked';
       } else {
-        enemy.x = nextPosition.x;
-        enemy.y = nextPosition.y;
-        enemy.state = 'chasing';
-      }
-      if (Math.abs(enemy.vx) > 1) enemy.facing = enemy.vx < 0 ? 'left' : 'right';
-      if (bounds) {
-        enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
-        enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+        enemy.vx = Math.cos(angle) * speed;
+        enemy.vy = Math.sin(angle) * speed;
+        const nextPosition = { x: enemy.x + enemy.vx * elapsed, y: enemy.y + enemy.vy * elapsed };
+        const nextCell = world?.map
+          ? findCellContainingPoint(world.map, nextPosition, world.chapter ?? 'chapter1', world.origin ?? { x: 0, y: 0 })
+          : null;
+        if (nextCell?.cell?.terrain === 'blocked') {
+          enemy.vx = 0;
+          enemy.vy = 0;
+          enemy.state = 'blocked';
+        } else {
+          enemy.x = nextPosition.x;
+          enemy.y = nextPosition.y;
+          enemy.state = 'chasing';
+        }
+        syncEnemyFacing(enemy);
+        if (bounds) {
+          enemy.x = clampValue(enemy.x, bounds.minX, bounds.maxX);
+          enemy.y = clampValue(enemy.y, bounds.minY, bounds.maxY);
+        }
       }
     } else {
       enemy.vx = 0;

@@ -174,6 +174,7 @@ let transitioning = false;
 let runCompleted = false;
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+function enemySpriteScaleX(facing) { return facing === 'left' ? 1 : -1; }
 function activeTilePath(cell) { return TILE_ASSETS[cell.terrain === 'blocked' ? 'blocked' : (cell.gravityLevel ?? 'L0')]; }
 function cellCenter(key) { return getHexCenter(getActiveCell(map, key, 'chapter1'), origin); }
 function hexPath(ctx, cell, pad = 0) { const center = getHexCenter(cell, origin); const vertices = getHexVertices(cell, origin); ctx.beginPath(); vertices.forEach((point, index) => { const dx = point.x - center.x; const dy = point.y - center.y; const length = Math.hypot(dx, dy) || 1; const x = center.x + dx * (1 - pad / length); const y = center.y + dy * (1 - pad / length); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.closePath(); }
@@ -196,13 +197,15 @@ function drawImage(path, x, y, width, height, alpha = 1, rotation = 0, outlineCo
   context.restore();
   return true;
 }
-function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, radius = 0.55, colour = 'rgba(246, 252, 255, 0.88)') {
+function drawImageWithSilhouetteOutline(image, x, y, width, height, alpha = 1, radius = 0.55, colour = 'rgba(246, 252, 255, 0.88)', scaleX = 1) {
   context.save();
   context.globalAlpha = alpha;
+  context.translate(x, y);
+  context.scale(scaleX, 1);
   context.filter = silhouetteFilter(colour, radius);
-  context.drawImage(image, x - width / 2, y - height / 2, width, height);
+  context.drawImage(image, -width / 2, -height / 2, width, height);
   context.filter = 'none';
-  context.drawImage(image, x - width / 2, y - height / 2, width, height);
+  context.drawImage(image, -width / 2, -height / 2, width, height);
   context.restore();
 }
 function visibleCell(cell) { return cell.q !== undefined && cell.r !== undefined && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y > camera.y - 40 && cellCenter(cell.key ?? `${cell.q},${cell.r}`).y < camera.y + canvas.height / SCALE + 40; }
@@ -943,7 +946,7 @@ function drawEnemies() {
     context.restore();
 
     if (imageReady) {
-      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .75, guide?.colour);
+      drawImageWithSilhouetteOutline(image, pose.x, pose.y, width, height, .96, .75, guide?.colour, enemySpriteScaleX(enemy.facing));
       return;
     }
 
