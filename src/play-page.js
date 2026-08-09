@@ -2137,15 +2137,28 @@ const requestedMode = new URLSearchParams(window.location.search).get('mode');
 if (requestedArc === 'ascent20' || mapArc === 'ascent') musicArcSelect.value = 'ascent20';
 if (requestedMode === 'boss') musicModeSelect.value = requestedMode;
 syncMusicTrack();
-musicController.start();
-sfxController.startAmbient();
-function unlockAmbientAudio() {
-  if (ambientEnabled) sfxController.startAmbient();
+let musicUnlocked = false;
+let musicUnlockAttempt = null;
+function unlockMusicAudio() {
+  if (musicUnlocked) return Promise.resolve(true);
+  if (musicUnlockAttempt) return musicUnlockAttempt;
+  musicUnlockAttempt = musicController.start()
+    .then((didStart) => {
+      musicUnlocked = didStart;
+      return didStart;
+    })
+    .finally(() => { musicUnlockAttempt = null; });
+  return musicUnlockAttempt;
+}
+function unlockGameplayAudio() {
+  void unlockMusicAudio();
+  if (ambientEnabled) void sfxController.startAmbient();
 }
 // Capture the first trusted gesture even when it lands on a HUD control or
 // canvas child; repeated attempts also recover from a browser autoplay reject.
-window.addEventListener('pointerdown', unlockAmbientAudio, { capture: true });
-window.addEventListener('keydown', unlockAmbientAudio, { capture: true });
+window.addEventListener('pointerdown', unlockGameplayAudio, { capture: true });
+window.addEventListener('keydown', unlockGameplayAudio, { capture: true });
+unlockGameplayAudio();
 installLiveLocalization(document);
 bindLanguageSelect(document.querySelector('#play-language'));
 loadMap(mapPart, { arc: mapArc });

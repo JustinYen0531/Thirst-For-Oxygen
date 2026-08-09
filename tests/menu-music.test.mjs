@@ -23,3 +23,17 @@ test('shared menu music starts on autoplay when allowed and retries on a user ge
   assert.match(music, /eventTarget\.addEventListener\('keydown', onKeyDown\)/);
   assert.match(music, /void unlock\(\);/);
 });
+
+test('formal Play retries both chapter music and diving ambience after autoplay rejection', () => {
+  const page = read('../src/play-page.js');
+  const sfx = read('../src/sfx.js');
+  assert.match(page, /function unlockMusicAudio\(\)/);
+  assert.match(page, /function unlockGameplayAudio\(\)/);
+  assert.match(page, /void unlockMusicAudio\(\);/);
+  assert.match(page, /void sfxController\.startAmbient\(\);/);
+  assert.match(page, /window\.addEventListener\('pointerdown', unlockGameplayAudio, \{ capture: true \}\)/);
+  assert.match(page, /window\.addEventListener\('keydown', unlockGameplayAudio, \{ capture: true \}\)/);
+  assert.match(sfx, /underwater-loop\.mp3/);
+  assert.match(sfx, /underwaterLoop: 0\.82/);
+  assert.match(sfx, /scubaBubbles: 0\.24/);
+});

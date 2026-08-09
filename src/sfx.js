@@ -1,7 +1,7 @@
 import buttonClickSource from './assets/audio/sfx/ui/button-click.wav';
 import menuSelectionSource from './assets/audio/sfx/ui/menu-selection.wav';
 import scubaBubblesSource from './assets/audio/sfx/environment/scuba-bubbles.mp3';
-import underwaterLoopSource from './assets/audio/sfx/environment/underwater-loop.wav';
+import underwaterLoopSource from './assets/audio/sfx/environment/underwater-loop.mp3';
 import waterDropSource from './assets/audio/sfx/environment/water-drop-splash.aiff?url';
 import launchWhooshSource from './assets/audio/sfx/movement/launch-whoosh.wav';
 import impactWetSource from './assets/audio/sfx/collision/impact-wet.wav';
@@ -11,7 +11,12 @@ import laserSource from './assets/audio/sfx/combat/laser.ogg';
 import gameOverSource from './assets/audio/sfx/player/game-over-explode.wav';
 
 const SFX_VOLUME_KEY = 'thirst-for-oxygen:sfx-volume';
-const DEFAULT_SFX_VOLUME = 0.65;
+const DEFAULT_SFX_VOLUME = 0.75;
+
+export const AMBIENT_AUDIO_MIX = Object.freeze({
+  underwaterLoop: 0.82,
+  scubaBubbles: 0.24,
+});
 
 const SFX_SOURCES = Object.freeze({
   button: buttonClickSource,
@@ -89,8 +94,8 @@ export function createSfxController() {
       // The loop is the primary diving bed; bubbles sit underneath it so the
       // water presence remains audible without competing with collision cues.
       return Promise.all([
-        startAmbient('underwaterLoop', 0.42),
-        startAmbient('scubaBubbles', 0.12),
+        startAmbient('underwaterLoop', AMBIENT_AUDIO_MIX.underwaterLoop),
+        startAmbient('scubaBubbles', AMBIENT_AUDIO_MIX.scubaBubbles),
       ]);
     },
     stopAmbient,

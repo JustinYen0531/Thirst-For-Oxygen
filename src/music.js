@@ -12,7 +12,7 @@ import phase3NormalSource from './assets/audio/music/phase-3-normal.mp3';
 import phase3NormalAscentSource from './assets/audio/music/phase-3-normal-2.0.mp3';
 
 const MUSIC_VOLUME_KEY = 'thirst-for-oxygen:music-volume';
-const DEFAULT_VOLUME = 0.55;
+const DEFAULT_VOLUME = 0.65;
 const LOOP_DELAY_MS = 2600;
 const FADE_IN_MS = 1800;
 const FADE_OUT_MS = 1800;
