@@ -42,9 +42,19 @@ function canTraverse(map, fromKey, toKey) {
   return true;
 }
 
-function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY } = {}) {
+function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY, portals = false } = {}) {
   const start = actorsOf(map, 'playerStart')[0]?.key;
   if (!start) return new Set();
+  const portalDestinations = new Map();
+  if (portals) {
+    Object.entries(map.edges).forEach(([key, edge]) => {
+      if (edge.type !== 'multiPortal' || !edge.portalTargetKey) return;
+      const sourceCellKey = edge.cells.find((cellKey) => map.cells[cellKey]?.terrain === 'water');
+      const target = map.edges[edge.portalTargetKey];
+      const targetCellKey = target?.cells?.find((cellKey) => map.cells[cellKey]?.terrain === 'water');
+      if (sourceCellKey && targetCellKey) portalDestinations.set(sourceCellKey, targetCellKey);
+    });
+  }
   const visited = new Set([start]);
   const queue = [start];
   while (queue.length) {
@@ -55,6 +65,11 @@ function reachableKeysWithOpenedGates(map, { maxRow = Number.POSITIVE_INFINITY }
       visited.add(next);
       queue.push(next);
     });
+    const portalDestination = portalDestinations.get(key);
+    if (portalDestination && !visited.has(portalDestination) && map.cells[portalDestination].r <= maxRow) {
+      visited.add(portalDestination);
+      queue.push(portalDestination);
+    }
   }
   return visited;
 }
@@ -96,12 +111,26 @@ test('generated descent maps are valid and have one authored player start', () =
   });
 });
 
-test('part 1 and part 2 have a connected authored route after gates open', () => {
-  mapNames.slice(0, 2).forEach((name) => {
+test('all three maps expose a reachable late runtime exit', () => {
+  mapNames.forEach((name) => {
     const map = loadMap(name);
-    const reachable = reachableKeysWithOpenedGates(map);
-    const targetRow = map.layout.height - 4;
-    assert.ok([...reachable].some((key) => map.cells[key].r >= targetRow), `${name} should connect its start to its closing room`);
+    const reachable = reachableKeysWithOpenedGates(map, { portals: true });
+    assert.ok(map.metadata.exitCellKey, `${name} should declare a runtime exit cell`);
+    assert.equal(map.cells[map.metadata.exitCellKey]?.terrain, 'water', `${name} exit should be a water cell`);
+    assert.ok(map.cells[map.metadata.exitCellKey].r >= map.layout.height - 4, `${name} exit should sit in the closing section`);
+    assert.equal(reachable.has(map.metadata.exitCellKey), true, `${name} exit should be reachable from playerStart`);
+  });
+});
+
+test('part 3 portal network reaches every authored special encounter and is reciprocal', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const reachable = reachableKeysWithOpenedGates(part3, { portals: true });
+  [...actorsOf(part3, 'miniBossSpawn'), ...actorsOf(part3, 'bossSpawn')].forEach(({ key, actor }) => {
+    assert.equal(reachable.has(key), true, `${actor.enemyId} at ${key} should be reachable through the portal route`);
+  });
+  Object.entries(part3.edges).filter(([, edge]) => edge.type === 'multiPortal').forEach(([key, edge]) => {
+    assert.ok(edge.portalTargetKey, `${key} should not advertise a portal without a destination`);
+    assert.equal(part3.edges[edge.portalTargetKey]?.portalTargetKey, key, `${key} portal link should be reciprocal`);
   });
 });
 
@@ -227,9 +256,19 @@ test('part 3 preserves the player-authored template geometry as the final exam',
     assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
   });
   assert.equal(part3.metadata.source, '範本map.json（玩家原始第三部分）');
-  assert.ok(Object.values(part3.edges).filter((edge) => edge.type === 'multiPortal').length >= 39);
+  assert.equal(Object.values(part3.edges).filter((edge) => edge.type === 'multiPortal').length, 38);
+  assert.equal(freeObjectsOf(part3).filter(({ object }) => object.kind === 'torricelli').length,
+    new Set(freeObjectsOf(part3).filter(({ object }) => object.kind === 'torricelli').map(({ key }) => key)).size,
+    'Part 3 must not stack two Torricelli objects in one cell');
+  assert.equal(actorsOf(part3, 'miniBossSpawn')[0].actor.enemyId, 'tideLawNautilus');
+  assert.equal(actorsOf(part3, 'bossSpawn')[0].actor.enemyId, 'abyssalSpermWhale');
   assert.equal(actorsOf(part3, 'bossSpawn').length, 1);
   assert.ok(actorsOf(part3, 'bossSpawn')[0].cell.r >= part3.layout.height - 8);
+});
+
+test('part 2 Mini Boss marker identifies the prism crab guardian', () => {
+  const part2 = loadMap('下沉篇-第2部分.json');
+  assert.equal(actorsOf(part2, 'miniBossSpawn')[0].actor.enemyId, 'prismCrabGuardian');
 });
 
 test('all generated multi-edge portals touch a blocked hex', () => {

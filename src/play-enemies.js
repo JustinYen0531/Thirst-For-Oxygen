@@ -10,6 +10,11 @@ export const DESCENT_ENEMY_ROSTER = Object.freeze([
   ...DESCENT_CORE_ENEMIES,
   ...DESCENT_ELITE_ENEMIES,
 ]);
+export const PLAY_SPECIAL_ENEMY_IDS = Object.freeze([
+  'prismCrabGuardian',
+  'tideLawNautilus',
+  'abyssalSpermWhale',
+]);
 
 // All three current maps are sections of Chapter 1: Descent. Their encounter
 // progression follows GDD/05_內容/敵人/敵人配置.md instead of treating each map
@@ -30,7 +35,7 @@ const encyclopediaById = Object.freeze(Object.fromEntries(
 ));
 
 export const PLAY_ENEMY_VISUALS = Object.freeze(Object.fromEntries(
-  DESCENT_ENEMY_ROSTER.map((enemyId) => {
+  [...DESCENT_ENEMY_ROSTER, ...PLAY_SPECIAL_ENEMY_IDS].map((enemyId) => {
     const visuals = encyclopediaById[enemyId]?.visuals;
     return [enemyId, visuals?.afterimageIdle ?? visuals?.idle ?? null];
   }),
@@ -38,6 +43,11 @@ export const PLAY_ENEMY_VISUALS = Object.freeze(Object.fromEntries(
 
 function isDescentEnemy(enemyId) {
   return DESCENT_ENEMY_ROSTER.includes(enemyId);
+}
+
+function enemyTierWeight(tier) {
+  if (Number.isFinite(Number(tier))) return Number(tier);
+  return { miniBoss: 4, mutatedMiniBoss: 5, finalBoss: 6 }[tier] ?? 2;
 }
 
 function cellColumn(cell) {
@@ -159,12 +169,16 @@ function getDistributedSpawnCells(map, chapter, origin, targetCount, markers) {
 export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = { x: 0, y: 0 }) {
   const part = PLAY_ENEMY_TARGETS[mapPart] ? Number(mapPart) : 1;
   const markers = [];
+  const specialMarkers = [];
 
   Object.keys(map.cells).forEach((cellKey) => {
     const cell = getActiveCell(map, cellKey, chapter);
     if (!cell || cell.terrain !== 'water') return;
     (cell.actors ?? []).forEach((marker, markerIndex) => {
       if (marker.kind === 'enemySpawn') markers.push({ cellKey, cell, marker, markerIndex });
+      if (['miniBossSpawn', 'bossSpawn'].includes(marker.kind) && ENEMY_DEFINITIONS[marker.enemyId]) {
+        specialMarkers.push({ cellKey, cell, marker, markerIndex });
+      }
     });
   });
 
@@ -173,51 +187,71 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
     || cellColumn(left.cell) - cellColumn(right.cell)
     || left.markerIndex - right.markerIndex
   ));
-  if (!markers.length) return [];
-
   const targetCount = PLAY_ENEMY_TARGETS[part];
-  const spawnCells = getDistributedSpawnCells(map, chapter, origin, targetCount, markers);
+  const spawnCells = markers.length ? getDistributedSpawnCells(map, chapter, origin, targetCount, markers) : [];
   const localCounts = new Map();
 
-  return spawnCells.map((spawn, globalIndex) => {
+  const createInstance = ({ enemyId, spawn, anchorCellKey, instanceId, markerKind }) => {
+    const definition = ENEMY_DEFINITIONS[enemyId];
+    const position = getHexCenter(spawn.cell, origin);
+    const tierWeight = enemyTierWeight(definition.tier);
+    return {
+      instanceId,
+      enemyId,
+      name: definition.name,
+      tier: definition.tier,
+      markerKind,
+      anchorCellKey,
+      spawnCellKey: spawn.cellKey,
+      spawnPattern: spawn.spawnPattern,
+      x: position.x,
+      y: position.y,
+      homeX: position.x,
+      homeY: position.y,
+      health: definition.maxHealth,
+      maxHealth: definition.maxHealth,
+      moveSpeed: definition.moveSpeed ?? 0,
+      vx: 0,
+      vy: 0,
+      radius: (4.5 + tierWeight * 0.65) * PLAY_ENEMY_RENDER_SCALE,
+      renderSize: (12 + tierWeight * 1.8) * PLAY_ENEMY_RENDER_SCALE,
+      visual: PLAY_ENEMY_VISUALS[enemyId] ?? null,
+      phase: ((spawn.cell.q * 31 + spawn.cell.r * 17) % 360) * Math.PI / 180,
+      state: 'idle',
+      facing: 'left',
+      alerted: false,
+      cooldowns: {},
+      nextSkillIndex: 0,
+      pendingSkill: null,
+      defeated: false,
+    };
+  };
+
+  const regularEnemies = spawnCells.map((spawn, globalIndex) => {
       const encounterIndex = Math.min(markers.length - 1, Math.floor(globalIndex * markers.length / spawnCells.length));
       const marker = markers[encounterIndex];
       const localIndex = localCounts.get(encounterIndex) ?? 0;
       localCounts.set(encounterIndex, localIndex + 1);
       const configuredEnemyId = encounterEnemyId(part, encounterIndex, markers.length, localIndex, globalIndex);
       const enemyId = isDescentEnemy(marker.marker.enemyId) ? marker.marker.enemyId : configuredEnemyId;
-      const definition = ENEMY_DEFINITIONS[enemyId];
-      const position = getHexCenter(spawn.cell, origin);
-      return {
-        instanceId: `map-enemy-${spawn.cellKey}-${globalIndex}`,
+      return createInstance({
         enemyId,
-        name: definition.name,
-        tier: definition.tier,
+        spawn,
         anchorCellKey: marker.cellKey,
-        spawnCellKey: spawn.cellKey,
-        spawnPattern: spawn.spawnPattern,
-        x: position.x,
-        y: position.y,
-        homeX: position.x,
-        homeY: position.y,
-        health: definition.maxHealth,
-        maxHealth: definition.maxHealth,
-        moveSpeed: definition.moveSpeed ?? 0,
-        vx: 0,
-        vy: 0,
-        radius: (4.5 + definition.tier * 0.65) * PLAY_ENEMY_RENDER_SCALE,
-        renderSize: (12 + definition.tier * 1.8) * PLAY_ENEMY_RENDER_SCALE,
-        visual: PLAY_ENEMY_VISUALS[enemyId] ?? encyclopediaById[enemyId]?.visuals?.idle ?? null,
-        phase: ((spawn.cell.q * 31 + spawn.cell.r * 17 + globalIndex * 13) % 360) * Math.PI / 180,
-        state: 'idle',
-        facing: 'left',
-        alerted: false,
-        cooldowns: {},
-        nextSkillIndex: 0,
-        pendingSkill: null,
-        defeated: false,
-      };
+        instanceId: `map-enemy-${spawn.cellKey}-${globalIndex}`,
+        markerKind: 'enemySpawn',
+      });
   });
+
+  const specialEnemies = specialMarkers.map((entry, index) => createInstance({
+    enemyId: entry.marker.enemyId,
+    spawn: { cellKey: entry.cellKey, cell: entry.cell, spawnPattern: 'special' },
+    anchorCellKey: entry.cellKey,
+    instanceId: `map-special-${entry.marker.kind}-${entry.cellKey}-${index}`,
+    markerKind: entry.marker.kind,
+  }));
+
+  return [...regularEnemies, ...specialEnemies];
 }
 
 const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));

@@ -15456,17 +15456,6 @@
         {
           "kind": "torricelli",
           "offset": {
-            "x": -0.5091945505760123,
-            "y": 0.8139461383063917
-          },
-          "size": 17,
-          "params": {
-            "oxygenRecoveryPerSecond": 20
-          }
-        },
-        {
-          "kind": "torricelli",
-          "offset": {
             "x": 0,
             "y": 0
           },
@@ -29130,7 +29119,8 @@
       "freeObjects": [],
       "actors": [
         {
-          "kind": "miniBossSpawn"
+          "kind": "miniBossSpawn",
+          "enemyId": "tideLawNautilus"
         }
       ],
       "region": "default"
@@ -36065,7 +36055,8 @@
       "freeObjects": [],
       "actors": [
         {
-          "kind": "bossSpawn"
+          "kind": "bossSpawn",
+          "enemyId": "abyssalSpermWhale"
         }
       ],
       "region": "default"
@@ -36965,9 +36956,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-11",
+      "portalGroupId": "part3-upper-ring-a",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "1,29|2,29"
     },
     "1,29|2,29": {
       "cells": [
@@ -36980,9 +36971,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-11",
-      "portalSlot": 5,
-      "portalTargetKey": null
+      "portalGroupId": "part3-upper-ring-b",
+      "portalSlot": 0,
+      "portalTargetKey": "-4,29|-5,29"
     },
     "1,30|2,29": {
       "cells": [
@@ -36995,8 +36986,8 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-3",
-      "portalSlot": 0,
+      "portalGroupId": "part3-upper-ring-b",
+      "portalSlot": 1,
       "portalTargetKey": "-5,29|-5,30"
     },
     "1,30|2,30": {
@@ -37010,9 +37001,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-4",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-upper-ring-b",
+      "portalSlot": 2,
+      "portalTargetKey": "-5,30|-6,30"
     },
     "1,30|1,31": {
       "cells": [
@@ -37025,9 +37016,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-5",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-upper-ring-b",
+      "portalSlot": 3,
+      "portalTargetKey": "-5,30|-6,31"
     },
     "0,31|1,31": {
       "cells": [
@@ -37040,8 +37031,8 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-6",
-      "portalSlot": 0,
+      "portalGroupId": "part3-upper-ring-b",
+      "portalSlot": 4,
       "portalTargetKey": "-5,31|-6,31"
     },
     "-5,29|-5,30": {
@@ -37055,8 +37046,8 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-7",
-      "portalSlot": 0,
+      "portalGroupId": "part3-upper-ring-a",
+      "portalSlot": 1,
       "portalTargetKey": "1,30|2,29"
     },
     "-5,30|-6,30": {
@@ -37070,9 +37061,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-8",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-upper-ring-a",
+      "portalSlot": 2,
+      "portalTargetKey": "1,30|2,30"
     },
     "-5,30|-6,31": {
       "cells": [
@@ -37085,9 +37076,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-9",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-upper-ring-a",
+      "portalSlot": 3,
+      "portalTargetKey": "1,30|1,31"
     },
     "-5,31|-6,31": {
       "cells": [
@@ -37100,8 +37091,8 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-12",
-      "portalSlot": 0,
+      "portalGroupId": "part3-upper-ring-a",
+      "portalSlot": 4,
       "portalTargetKey": "0,31|1,31"
     },
     "-3,29|-4,29": {
@@ -37220,9 +37211,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-13",
+      "portalGroupId": "part3-lower-ring-a",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "1,38|2,38"
     },
     "5,30|5,31": {
       "cells": [
@@ -37235,9 +37226,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-14",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 1,
+      "portalTargetKey": "2,37|2,38"
     },
     "4,31|5,31": {
       "cells": [
@@ -37250,9 +37241,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-15",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 2,
+      "portalTargetKey": "2,37|3,37"
     },
     "4,31|4,32": {
       "cells": [
@@ -37265,9 +37256,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-16",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 3,
+      "portalTargetKey": "3,36|3,37"
     },
     "3,32|4,32": {
       "cells": [
@@ -37280,9 +37271,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-17",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 4,
+      "portalTargetKey": "3,36|4,36"
     },
     "3,32|3,33": {
       "cells": [
@@ -37295,9 +37286,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-18",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 5,
+      "portalTargetKey": "4,35|4,36"
     },
     "2,33|3,33": {
       "cells": [
@@ -37310,9 +37301,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-19",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-a",
+      "portalSlot": 6,
+      "portalTargetKey": "4,35|5,35"
     },
     "1,38|2,38": {
       "cells": [
@@ -37325,9 +37316,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-20",
+      "portalGroupId": "part3-lower-ring-b",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "5,30|6,30"
     },
     "2,37|2,38": {
       "cells": [
@@ -37340,9 +37331,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-21",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 1,
+      "portalTargetKey": "5,30|5,31"
     },
     "2,37|3,37": {
       "cells": [
@@ -37355,9 +37346,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-22",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 2,
+      "portalTargetKey": "4,31|5,31"
     },
     "3,36|3,37": {
       "cells": [
@@ -37370,9 +37361,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-23",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 3,
+      "portalTargetKey": "4,31|4,32"
     },
     "3,36|4,36": {
       "cells": [
@@ -37385,9 +37376,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-24",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 4,
+      "portalTargetKey": "3,32|4,32"
     },
     "4,35|4,36": {
       "cells": [
@@ -37400,9 +37391,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-25",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 5,
+      "portalTargetKey": "3,32|3,33"
     },
     "4,35|5,35": {
       "cells": [
@@ -37415,24 +37406,21 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-26",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-lower-ring-b",
+      "portalSlot": 6,
+      "portalTargetKey": "2,33|3,33"
     },
     "5,34|5,35": {
       "cells": [
         "5,34",
         "5,35"
       ],
-      "type": "multiPortal",
+      "type": "none",
       "blocksPassage": false,
       "currentDirection": 0,
       "currentStrength": 0,
       "size": 1,
-      "params": {},
-      "portalGroupId": "portal-27",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "params": {}
     },
     "2,33|2,34": {
       "cells": [
@@ -37445,9 +37433,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-28",
+      "portalGroupId": "part3-late-route-a",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "-24,66|-25,67"
     },
     "-24,66|-25,67": {
       "cells": [
@@ -37460,9 +37448,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-1",
+      "portalGroupId": "part3-late-route-b",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "2,33|2,34"
     },
     "-24,67|-25,67": {
       "cells": [
@@ -37475,9 +37463,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-2",
+      "portalGroupId": "part3-deep-ring-a",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "-22,65|-23,65"
     },
     "-24,67|-25,68": {
       "cells": [
@@ -37490,9 +37478,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-10",
-      "portalSlot": 0,
-      "portalTargetKey": "-22,66|-23,66"
+      "portalGroupId": "part3-deep-ring-a",
+      "portalSlot": 1,
+      "portalTargetKey": "-22,65|-23,66"
     },
     "-24,68|-25,68": {
       "cells": [
@@ -37505,9 +37493,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-29",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-a",
+      "portalSlot": 2,
+      "portalTargetKey": "-22,66|-23,66"
     },
     "-24,68|-25,69": {
       "cells": [
@@ -37520,9 +37508,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-30",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-a",
+      "portalSlot": 3,
+      "portalTargetKey": "-22,66|-23,67"
     },
     "-24,69|-25,69": {
       "cells": [
@@ -37535,9 +37523,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-31",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-a",
+      "portalSlot": 4,
+      "portalTargetKey": "-22,67|-23,67"
     },
     "-22,64|-23,65": {
       "cells": [
@@ -37550,9 +37538,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-32",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-a",
+      "portalSlot": 5,
+      "portalTargetKey": "-22,67|-23,68"
     },
     "-22,65|-23,65": {
       "cells": [
@@ -37565,9 +37553,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-33",
+      "portalGroupId": "part3-deep-ring-b",
       "portalSlot": 0,
-      "portalTargetKey": null
+      "portalTargetKey": "-24,67|-25,67"
     },
     "-22,65|-23,66": {
       "cells": [
@@ -37580,9 +37568,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-34",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-b",
+      "portalSlot": 1,
+      "portalTargetKey": "-24,67|-25,68"
     },
     "-22,66|-23,66": {
       "cells": [
@@ -37595,9 +37583,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-35",
-      "portalSlot": 0,
-      "portalTargetKey": "-24,67|-25,68"
+      "portalGroupId": "part3-deep-ring-b",
+      "portalSlot": 2,
+      "portalTargetKey": "-24,68|-25,68"
     },
     "-22,66|-23,67": {
       "cells": [
@@ -37610,9 +37598,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-36",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-b",
+      "portalSlot": 3,
+      "portalTargetKey": "-24,68|-25,69"
     },
     "-22,67|-23,67": {
       "cells": [
@@ -37625,9 +37613,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-37",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-b",
+      "portalSlot": 4,
+      "portalTargetKey": "-24,69|-25,69"
     },
     "-22,67|-23,68": {
       "cells": [
@@ -37640,9 +37628,9 @@
       "currentStrength": 0,
       "size": 1,
       "params": {},
-      "portalGroupId": "portal-38",
-      "portalSlot": 0,
-      "portalTargetKey": null
+      "portalGroupId": "part3-deep-ring-b",
+      "portalSlot": 5,
+      "portalTargetKey": "-22,64|-23,65"
     },
     "-1,18|-1,19": {
       "cells": [
@@ -37945,6 +37933,7 @@
     ],
     "endGoal": "完成玩家原始遺跡路線並抵達深淵 Boss。",
     "source": "範本map.json（玩家原始第三部分）",
-    "spawnPoints": "已配置"
+    "spawnPoints": "已配置",
+    "exitCellKey": "-46,116"
   }
 }

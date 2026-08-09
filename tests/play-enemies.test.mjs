@@ -8,6 +8,7 @@ import {
   DESCENT_ENEMY_ROSTER,
   DESCENT_LV1_ENEMIES,
   PLAY_ENEMY_RENDER_SCALE,
+  PLAY_SPECIAL_ENEMY_IDS,
   PLAY_ENEMY_ACTIVATION_RADIUS,
   PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
@@ -29,12 +30,14 @@ function readMap(relativePath) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8'));
 }
 
+const regularEnemies = (enemies) => enemies.filter((enemy) => enemy.markerKind === 'enemySpawn');
+
 test('all descent map parts distribute the required population with sparse authored clusters', () => {
   const allEnemyIds = new Set();
   PART_MAP_PATHS.forEach((relativePath, index) => {
     const part = index + 1;
-    const enemies = createPlayEnemies(readMap(relativePath), part, 'chapter1', { x: 36, y: 36 });
-    assert.equal(enemies.length, PLAY_ENEMY_TARGETS[part], `Part ${part} should reach its authored population`);
+    const enemies = regularEnemies(createPlayEnemies(readMap(relativePath), part, 'chapter1', { x: 36, y: 36 }));
+    assert.equal(enemies.length, PLAY_ENEMY_TARGETS[part], `Part ${part} should keep its authored regular population`);
     assert.equal(new Set(enemies.map((enemy) => enemy.spawnCellKey)).size, enemies.length, `Part ${part} should spread enemies across distinct water cells`);
     assert.equal(enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length, Math.floor(enemies.length * .2), `Part ${part} should reserve only a small share for local clusters`);
     enemies.forEach((enemy) => {
@@ -49,7 +52,7 @@ test('enemy distribution protects the player start and covers the map instead of
   PART_MAP_PATHS.forEach((relativePath, index) => {
     const map = readMap(relativePath);
     const origin = { x: 36, y: 36 };
-    const enemies = createPlayEnemies(map, index + 1, 'chapter1', origin);
+    const enemies = regularEnemies(createPlayEnemies(map, index + 1, 'chapter1', origin));
     const startCell = Object.values(map.cells).find((cell) => cell.actors?.some((actor) => actor.kind === 'playerStart'));
     const start = getHexCenter(startCell, origin);
     assert.ok(enemies.every((enemy) => Math.hypot(enemy.x - start.x, enemy.y - start.y) >= PLAY_ENEMY_SPAWN_SAFE_RADIUS), `Part ${index + 1} should keep a safe opening around the player`);
@@ -63,9 +66,9 @@ test('enemy distribution protects the player start and covers the map instead of
 });
 
 test('enemy progression follows the configuration document instead of a made-up tier per map', () => {
-  const part1 = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
-  const part2 = createPlayEnemies(readMap(PART_MAP_PATHS[1]), 2, 'chapter1', { x: 36, y: 36 });
-  const part3 = createPlayEnemies(readMap(PART_MAP_PATHS[2]), 3, 'chapter1', { x: 36, y: 36 });
+  const part1 = regularEnemies(createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 }));
+  const part2 = regularEnemies(createPlayEnemies(readMap(PART_MAP_PATHS[1]), 2, 'chapter1', { x: 36, y: 36 }));
+  const part3 = regularEnemies(createPlayEnemies(readMap(PART_MAP_PATHS[2]), 3, 'chapter1', { x: 36, y: 36 }));
   const firstPart1Anchors = [...new Set(part1.map((enemy) => enemy.anchorCellKey))].slice(0, 3);
 
   assert.ok(part1.filter((enemy) => firstPart1Anchors.includes(enemy.anchorCellKey)).every((enemy) => DESCENT_LV1_ENEMIES.includes(enemy.enemyId)), 'Part 1 should establish both Lv.1 enemies first');
@@ -81,20 +84,21 @@ test('explicit markers can select a documented descent enemy but cannot inject a
   const markers = Object.values(map.cells).flatMap((cell) => cell.actors ?? []).filter((actor) => actor.kind === 'enemySpawn');
   markers[0].enemyId = 'lionfishGunner';
   markers[1].enemyId = 'splitLanternfish';
-  const enemies = createPlayEnemies(map, 2, 'chapter1', { x: 36, y: 36 });
+  const enemies = regularEnemies(createPlayEnemies(map, 2, 'chapter1', { x: 36, y: 36 }));
   const anchors = [...new Set(enemies.map((enemy) => enemy.anchorCellKey))];
 
   assert.ok(enemies.filter((enemy) => enemy.anchorCellKey === anchors[0]).every((enemy) => enemy.enemyId === 'lionfishGunner'));
   assert.ok(enemies.filter((enemy) => enemy.anchorCellKey === anchors[1]).every((enemy) => enemy.enemyId !== 'splitLanternfish'));
 });
 
-test('all nine descent visuals exist and enemy display size is at least doubled', () => {
-  Object.entries(PLAY_ENEMY_VISUALS).forEach(([enemyId, source]) => {
+test('all nine regular descent visuals exist and enemy display size is at least doubled', () => {
+  DESCENT_ENEMY_ROSTER.forEach((enemyId) => {
+    const source = PLAY_ENEMY_VISUALS[enemyId];
     assert.ok(source, `${enemyId} should have a play visual`);
     const assetPath = fileURLToPath(new URL(`../public${source}`, import.meta.url));
     assert.equal(existsSync(assetPath), true, `${enemyId} visual should exist at ${source}`);
   });
-  assert.equal(Object.keys(PLAY_ENEMY_VISUALS).length, 9);
+  assert.deepEqual(new Set(Object.keys(PLAY_ENEMY_VISUALS)), new Set([...DESCENT_ENEMY_ROSTER, ...PLAY_SPECIAL_ENEMY_IDS]));
   assert.equal(PLAY_ENEMY_RENDER_SCALE >= 2, true);
 
   const enemies = createPlayEnemies(readMap(PART_MAP_PATHS[0]), 1, 'chapter1', { x: 36, y: 36 });
@@ -110,6 +114,30 @@ test('all nine descent visuals exist and enemy display size is at least doubled'
   assert.notDeepEqual(first, later);
   assert.equal(isPlayEnemyVisible(enemy, { x: 80, y: 160 }, { width: 100, height: 100 }), true);
   assert.equal(isPlayEnemyVisible(enemy, { x: 400, y: 400 }, { width: 100, height: 100 }), false);
+});
+
+test('special map markers instantiate the documented Mini Bosses and Boss without reducing regular populations', () => {
+  const expectedSpecials = [
+    [],
+    [['miniBossSpawn', 'prismCrabGuardian']],
+    [['miniBossSpawn', 'tideLawNautilus'], ['bossSpawn', 'abyssalSpermWhale']],
+  ];
+  PART_MAP_PATHS.forEach((relativePath, index) => {
+    const map = readMap(relativePath);
+    const enemies = createPlayEnemies(map, index + 1, 'chapter1', { x: 36, y: 36 });
+    assert.equal(regularEnemies(enemies).length, PLAY_ENEMY_TARGETS[index + 1]);
+    const specials = enemies.filter((enemy) => enemy.markerKind !== 'enemySpawn');
+    assert.deepEqual(specials.map((enemy) => [enemy.markerKind, enemy.enemyId]), expectedSpecials[index]);
+    specials.forEach((enemy) => {
+      assert.equal(enemy.spawnPattern, 'special');
+      assert.equal(enemy.anchorCellKey, enemy.spawnCellKey);
+      assert.ok(Number.isFinite(enemy.radius) && Number.isFinite(enemy.renderSize));
+      if (enemy.visual) {
+        assert.equal(existsSync(fileURLToPath(new URL(`../public${enemy.visual}`, import.meta.url))), true);
+      }
+    });
+  });
+  assert.equal(PLAY_ENEMY_VISUALS.abyssalSpermWhale, null, 'Boss art is honestly absent instead of borrowing another enemy asset');
 });
 
 test('play enemies chase the actor and expose a real damage callback', () => {

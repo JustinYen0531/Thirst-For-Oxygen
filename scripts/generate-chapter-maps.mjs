@@ -88,11 +88,18 @@ function chooseWaterCell(map, row, columnHint, used = new Set()) {
   return null;
 }
 
-function addActor(map, kind, row, columnHint) {
+function addActor(map, kind, row, columnHint, extra = {}) {
   const cell = chooseWaterCell(map, row, columnHint);
   if (!cell) throw new Error(`無法在 row ${row} 放置 ${kind}`);
-  cell.actors.push({ kind });
+  cell.actors.push({ kind, ...extra });
   return cellKey(cell);
+}
+
+function setRuntimeExit(map, row, columnHint) {
+  const cell = chooseWaterCell(map, row, columnHint);
+  if (!cell) throw new Error(`無法在 row ${row} 配置 runtime 終點`);
+  map.metadata.exitCellKey = cellKey(cell);
+  return map.metadata.exitCellKey;
 }
 
 function addFreeObject(map, kind, row, columnHint, used, extra = {}) {
@@ -244,6 +251,130 @@ function addLinkedPortal(map, firstRow, secondRow, prefix, usedCenters) {
     });
     map.edges[firstKey].portalTargetKey = secondKey;
   }
+}
+
+function requireExistingEdge(map, key, expectedType = null) {
+  const entry = allMapEdges(map).find((candidate) => candidate.key === key);
+  const edge = map.edges[key];
+  if (!entry || !edge || (expectedType && edge.type !== expectedType)) {
+    throw new Error(`找不到預期的 ${expectedType ?? 'Edge'}：${key}`);
+  }
+  return { entry, edge };
+}
+
+function connectExistingPortalEdges(map, firstKeys, secondKeys, prefix) {
+  if (firstKeys.length !== secondKeys.length) throw new Error(`${prefix} 傳送門邊數不一致`);
+  firstKeys.forEach((firstKey, index) => {
+    const secondKey = secondKeys[index];
+    const first = requireExistingEdge(map, firstKey, 'multiPortal').edge;
+    const second = requireExistingEdge(map, secondKey, 'multiPortal').edge;
+    Object.assign(first, {
+      portalGroupId: `${prefix}-a`,
+      portalSlot: index,
+      portalTargetKey: secondKey,
+    });
+    Object.assign(second, {
+      portalGroupId: `${prefix}-b`,
+      portalSlot: index,
+      portalTargetKey: firstKey,
+    });
+  });
+}
+
+function clearInvalidPortalEdge(map, key) {
+  const edge = requireExistingEdge(map, key, 'multiPortal').edge;
+  Object.assign(edge, {
+    type: 'none',
+    blocksPassage: false,
+    currentDirection: 0,
+    currentStrength: 0,
+  });
+  delete edge.portalGroupId;
+  delete edge.portalSlot;
+  delete edge.portalTargetKey;
+}
+
+function repairPart3PortalRoute(map) {
+  // The player-authored ruin uses three visible portal rings. The template
+  // preserved their geometry, but most individual Edge targets were null.
+  // Pair every matching side explicitly so runtime traversal is deterministic.
+  connectExistingPortalEdges(map, [
+    '-4,29|-5,29',
+    '-5,29|-5,30',
+    '-5,30|-6,30',
+    '-5,30|-6,31',
+    '-5,31|-6,31',
+  ], [
+    '1,29|2,29',
+    '1,30|2,29',
+    '1,30|2,30',
+    '1,30|1,31',
+    '0,31|1,31',
+  ], 'part3-upper-ring');
+
+  connectExistingPortalEdges(map, [
+    '5,30|6,30',
+    '5,30|5,31',
+    '4,31|5,31',
+    '4,31|4,32',
+    '3,32|4,32',
+    '3,32|3,33',
+    '2,33|3,33',
+  ], [
+    '1,38|2,38',
+    '2,37|2,38',
+    '2,37|3,37',
+    '3,36|3,37',
+    '3,36|4,36',
+    '4,35|4,36',
+    '4,35|5,35',
+  ], 'part3-lower-ring');
+
+  // Leave the visible middle ring intact, but use its remaining portal as the
+  // actual route into the late-game ruin. This is the missing link that makes
+  // the authored Mini Boss and Boss chambers reachable from playerStart.
+  connectExistingPortalEdges(map, [
+    '2,33|2,34',
+  ], [
+    '-24,66|-25,67',
+  ], 'part3-late-route');
+
+  connectExistingPortalEdges(map, [
+    '-24,67|-25,67',
+    '-24,67|-25,68',
+    '-24,68|-25,68',
+    '-24,68|-25,69',
+    '-24,69|-25,69',
+    '-22,64|-23,65',
+  ], [
+    '-22,65|-23,65',
+    '-22,65|-23,66',
+    '-22,66|-23,66',
+    '-22,66|-23,67',
+    '-22,67|-23,67',
+    '-22,67|-23,68',
+  ], 'part3-deep-ring');
+
+  // One unmatched decorative segment claimed to be a portal without an exit.
+  // Keep the authored wall geometry, but stop presenting it as a usable portal.
+  clearInvalidPortalEdge(map, '5,34|5,35');
+}
+
+function deduplicateCellObjectKind(map, kind) {
+  Object.values(map.cells).forEach((cell) => {
+    const matches = (cell.freeObjects ?? []).filter((object) => object.kind === kind);
+    if (matches.length <= 1) return;
+    const keep = [...matches].sort((left, right) => (Number(right.size) || 0) - (Number(left.size) || 0))[0];
+    let kept = false;
+    cell.freeObjects = cell.freeObjects.filter((object) => {
+      if (object.kind !== kind) return true;
+      if (!kept && object === keep) {
+        kept = true;
+        return true;
+      }
+      return false;
+    });
+  });
 }
 
 function carveWaterCell(map, row, column, region, gravityLevel = 'L1') {
@@ -457,6 +588,7 @@ function buildPart1() {
   addEdgeNear(map, 'spike', 105, 2);
   addEdgeSet(map, 'seaweed', [26, 55, 90, 126, 150]);
   addEdgeSet(map, 'coralCluster', [12, 34, 68, 98, 134, 156]);
+  setRuntimeExit(map, 157, 9);
   return map;
 }
 
@@ -511,7 +643,7 @@ function buildPart2() {
   const gateKeys = addConditionalGateWall(map, 44, [9, 10]);
   addActor(map, 'playerStart', 3, 8);
   [[18, 13], [38, 5], [59, 14], [78, 6]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
-  addActor(map, 'miniBossSpawn', 82, 11);
+  addActor(map, 'miniBossSpawn', 82, 11, { enemyId: 'prismCrabGuardian' });
   const used = new Set();
   [
     ['oxygen', 6, 7], ['bubble', 11, 12], ['torricelli', 17, 4],
@@ -530,6 +662,7 @@ function buildPart2() {
   addEdgeSet(map, 'coralCluster', [27, 63, 83]);
   addLayerPortal(map, 21);
   addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
+  setRuntimeExit(map, 85, 12);
   return map;
 }
 
@@ -555,10 +688,12 @@ function buildPart3(source) {
     endGoal: '完成玩家原始遺跡路線並抵達深淵 Boss。',
   });
   removeInvalidButtons(map);
+  repairPart3PortalRoute(map);
+  deduplicateCellObjectKind(map, 'torricelli');
   addActor(map, 'playerStart', 3, 12);
   [[20, 5], [35, 18], [52, 7], [70, 19], [88, 5], [104, 18]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
-  addActor(map, 'miniBossSpawn', 92, 12);
-  addActor(map, 'bossSpawn', 114, 12);
+  addActor(map, 'miniBossSpawn', 92, 12, { enemyId: 'tideLawNautilus' });
+  addActor(map, 'bossSpawn', 114, 12, { enemyId: 'abyssalSpermWhale' });
   const used = new Set(Object.entries(map.cells).filter(([, cell]) => cell.freeObjects.length).map(([key]) => key));
   [
     ['oxygen', 15, 3], ['bubble', 24, 18], ['mine', 33, 8],
@@ -573,6 +708,7 @@ function buildPart3(source) {
   addEdgeSet(map, 'current', [12, 52, 82, 112]);
   addEdgeSet(map, 'seaweed', [27, 68, 96]);
   addEdgeSet(map, 'coralCluster', [42, 76, 106]);
+  setRuntimeExit(map, 116, 12);
   return map;
 }
 

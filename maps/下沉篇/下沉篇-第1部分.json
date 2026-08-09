@@ -38126,6 +38126,7 @@
     ],
     "endGoal": "抵達森林底部的熱泉門檻。",
     "source": "獨立路線設計（scripts/generate-chapter-maps.mjs）",
-    "spawnPoints": "已配置"
+    "spawnPoints": "已配置",
+    "exitCellKey": "-69,157"
   }
 }

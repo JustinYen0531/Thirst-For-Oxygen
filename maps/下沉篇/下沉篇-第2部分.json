@@ -21733,7 +21733,8 @@
       "freeObjects": [],
       "actors": [
         {
-          "kind": "miniBossSpawn"
+          "kind": "miniBossSpawn",
+          "enemyId": "prismCrabGuardian"
         }
       ],
       "region": "thermal-rise"
@@ -23510,6 +23511,7 @@
     ],
     "endGoal": "開啟壓力閘門後抵達遺跡入口。",
     "source": "獨立路線設計（scripts/generate-chapter-maps.mjs）",
-    "spawnPoints": "已配置"
+    "spawnPoints": "已配置",
+    "exitCellKey": "-30,85"
   }
 }

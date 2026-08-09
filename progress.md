@@ -817,3 +817,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 小刀改為沿玩家移動路徑穿透全部敵人，Lv.2 加入兩側 70% 傷害軌跡，Lv.3 靜止時形成近身範圍；三叉戟會在停止移動且未拉射滿一秒後自動單發，Lv.2 暈眩、Lv.3 命中縮短冷卻。
 - 輕量機槍自動鎖定一次方向完成六發，整輪只扣一次能量；Lv.2 僅後三發描邊，Lv.3 六發使用六色稜彩，沒有舊版雙傷或爆炸漂移。
 - 建立正式 play 可用的 Build 同步、死亡獎勵、經驗拾取、升級、投射物 swept hit 與可序列化 render state API；相關 Node 測試 67/67 通過，未執行瀏覽器／Playwright。
+
+## 2026-08-09 — Step 103 complete
+
+- 三張下沉篇地圖加入位於末段且從起點可達的 `metadata.exitCellKey`；第三部分修為 portal-aware 雙向路線，起點能抵達 Mini Boss、Boss 與終點，38 條 multiPortal 全部有互相指回的有效目標。
+- Part 2 配置稜鏡蟹守衛，Part 3 配置潮律鸚鵡螺與深淵抹香鯨；普通小怪仍維持 40／40／48，特殊敵人額外生成，不會吃掉原本的小怪名額。
+- 第三部分同一格重複的托里拆利空間已去重；最終 Boss 沒有素材時使用誠實的程式 fallback，不借用其他敵人的圖冒充。
+- 地圖與敵人 focused tests 21/21、完整 `npm run check` 155/155、Vite build 與 `git diff --check` 均通過；未執行瀏覽器／Playwright。
