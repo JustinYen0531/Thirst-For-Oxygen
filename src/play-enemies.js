@@ -388,7 +388,10 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
     || cellColumn(left.cell) - cellColumn(right.cell)
     || left.markerIndex - right.markerIndex
   ));
-  const targetCount = PLAY_ENEMY_TARGETS[part];
+  const authoredTargetCount = Number(map?.metadata?.enemyTargetCount);
+  const targetCount = Number.isFinite(authoredTargetCount)
+    ? Math.max(1, Math.min(96, Math.round(authoredTargetCount)))
+    : PLAY_ENEMY_TARGETS[part];
   const spawnCells = markers.length ? getDistributedSpawnCells(map, chapter, origin, targetCount, markers) : [];
   const localCounts = new Map();
 

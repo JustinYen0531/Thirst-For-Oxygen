@@ -16,9 +16,19 @@ const mapNames = [
   '下沉篇-第2部分.json',
   '下沉篇-第3部分.json',
 ];
+const ascentMapsDirectory = join(process.cwd(), 'maps', '上升篇');
+const ascentMapNames = [
+  '上升篇-第1部分.json',
+  '上升篇-第2部分.json',
+  '上升篇-第3部分.json',
+];
 
 function loadMap(name) {
   return JSON.parse(readFileSync(join(mapsDirectory, name), 'utf8'));
+}
+
+function loadAscentMap(name) {
+  return JSON.parse(readFileSync(join(ascentMapsDirectory, name), 'utf8'));
 }
 
 function actorsOf(map, kind) {
@@ -34,7 +44,7 @@ function freeObjectsOf(map) {
 }
 
 test('all center and Edge objects serialize the shared thirty-pixel size', () => {
-  mapNames.map(loadMap).forEach((map) => {
+  [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map) => {
     Object.values(map.cells).forEach((cell) => {
       [...(cell.objects ?? []), ...(cell.freeObjects ?? [])].forEach((object) => {
         assert.equal(object.size, MAP_OBJECT_SIZE, `${object.kind} should be ${MAP_OBJECT_SIZE}px`);
@@ -44,6 +54,61 @@ test('all center and Edge objects serialize the shared thirty-pixel size', () =>
       assert.equal(edge.size, MAP_OBJECT_SIZE, `${edge.type} Edge should be ${MAP_OBJECT_SIZE}px`);
     });
   });
+});
+
+test('ascent trilogy is a playable bottom-to-top vertical mirror of descent', () => {
+  ascentMapNames.forEach((name, index) => {
+    const ascent = loadAscentMap(name);
+    const descent = loadMap(mapNames[index]);
+    const errors = validateMap(ascent).filter((result) => result.level === 'error');
+    const starts = actorsOf(ascent, 'playerStart');
+    const { reachable, openedGates } = reachableKeysAfterAvailableButtons(ascent);
+    assert.equal(errors.length, 0, `${name}: ${errors.map((result) => result.message).join('; ')}`);
+    assert.equal(ascent.metadata.chapter, '上升篇');
+    assert.equal(ascent.metadata.mirroredFrom, mapNames[index]);
+    assert.equal(starts.length, 1, `${name} should contain exactly one player start`);
+    assert.ok(starts[0].cell.r >= ascent.layout.height - 4, `${name} should begin at the mirrored bottom`);
+    assert.ok(ascent.cells[ascent.metadata.exitCellKey].r <= 3, `${name} should finish at the mirrored top`);
+    assert.equal(reachable.has(ascent.metadata.exitCellKey), true, `${name} top exit should be reachable from the bottom start`);
+    Object.entries(ascent.cells).filter(([, cell]) => cell.conditionalGate).forEach(([gateKey]) => {
+      assert.equal(openedGates.has(gateKey), true, `${name} gate ${gateKey} should retain a reachable mirrored button`);
+    });
+    Object.values(descent.cells).forEach((sourceCell) => {
+      const mirroredRow = descent.layout.height - 1 - sourceCell.r;
+      const sourceColumn = sourceCell.q + Math.floor(sourceCell.r / 2);
+      const mirroredColumn = descent.layout.height % 2 === 0
+        ? descent.layout.width - 1 - sourceColumn
+        : sourceColumn;
+      const mirroredKey = `${mirroredColumn - Math.floor(mirroredRow / 2)},${mirroredRow}`;
+      const mirroredCell = ascent.cells[mirroredKey];
+      assert.equal(mirroredCell?.terrain, sourceCell.terrain, `${name} should mirror terrain at ${mirroredKey}`);
+      assert.equal(mirroredCell?.waterLayer, sourceCell.waterLayer, `${name} should mirror water layers at ${mirroredKey}`);
+      assert.equal(mirroredCell?.gravityLevel, sourceCell.gravityLevel, `${name} should mirror gravity tiles at ${mirroredKey}`);
+    });
+  });
+});
+
+test('ascent difficulty rises through denser hazards and scarcer oxygen', () => {
+  const ascentMaps = ascentMapNames.map(loadAscentMap);
+  const descentMaps = mapNames.map(loadMap);
+  const countObjects = (map, kind) => freeObjectsOf(map).filter(({ object }) => object.kind === kind).length;
+  const countEdges = (map, type) => Object.values(map.edges).filter((edge) => edge.type === type).length;
+  assert.deepEqual(ascentMaps.map((map) => map.metadata.enemyTargetCount), [48, 56, 64]);
+  assert.deepEqual(ascentMaps.map((map) => countObjects(map, 'ink')), [2, 5, 8]);
+  ascentMaps.forEach((map, index) => {
+    const challenge = map.metadata.ascentChallenge;
+    assert.ok(countObjects(map, 'oxygen') < countObjects(descentMaps[index], 'oxygen'), `Part ${index + 1} should reduce direct oxygen`);
+    assert.ok(countObjects(map, 'checkpoint') < countObjects(descentMaps[index], 'checkpoint'), `Part ${index + 1} should reduce full refills`);
+    assert.ok(countObjects(map, 'torricelli') <= countObjects(descentMaps[index], 'torricelli'), `Part ${index + 1} should not add hidden oxygen rooms`);
+    assert.equal(countEdges(map, 'spike'), countEdges(descentMaps[index], 'spike') + challenge.addedSpikes);
+    assert.equal(countEdges(map, 'current'), countEdges(descentMaps[index], 'current') + challenge.addedCurrents);
+    assert.equal(countEdges(map, 'barrier'), countEdges(descentMaps[index], 'barrier') + challenge.addedBarriers);
+    assert.equal(Object.values(map.edges).filter((edge) => edge.ascentDetour).length, challenge.forcedDetours);
+  });
+  assert.ok(countEdges(ascentMaps[0], 'spike') < countEdges(ascentMaps[1], 'spike'));
+  assert.ok(countEdges(ascentMaps[1], 'spike') < countEdges(ascentMaps[2], 'spike'));
+  assert.ok(countObjects(ascentMaps[0], 'oxygen') > countObjects(ascentMaps[1], 'oxygen'));
+  assert.ok(countObjects(ascentMaps[1], 'oxygen') > countObjects(ascentMaps[2], 'oxygen'));
 });
 
 function canTraverse(map, fromKey, toKey, openedGates = new Set()) {

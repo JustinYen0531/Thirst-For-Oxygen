@@ -82,6 +82,13 @@ test('helmet map preview uses all three authored descent maps', () => {
   });
 });
 
+test('helmet map preview exposes all three authored ascent maps', () => {
+  assert.deepEqual(HOME_PREVIEW_ROUTES.ascent.map((route) => route.part), [1, 2, 3]);
+  HOME_PREVIEW_ROUTES.ascent.forEach((route) => {
+    assert.equal(existsSync(`${ROOT}${decodeURIComponent(route.path).replaceAll('/', '\\')}`), true, route.path);
+  });
+});
+
 test('background enemies use real six-frame idle and skill animations', () => {
   assert.equal(HOME_ENEMY_SHOWCASE.length, 8);
   assert.equal(new Set(HOME_ENEMY_SHOWCASE.map((enemy) => enemy.enemyId)).size, 8);

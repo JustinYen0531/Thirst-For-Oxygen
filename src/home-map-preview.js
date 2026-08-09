@@ -44,6 +44,11 @@ const DESCENT_MAP_URLS = Object.freeze({
   2: new URL('../maps/下沉篇/下沉篇-第2部分.json', import.meta.url).href,
   3: new URL('../maps/下沉篇/下沉篇-第3部分.json', import.meta.url).href,
 });
+const ASCENT_MAP_URLS = Object.freeze({
+  1: new URL('../maps/上升篇/上升篇-第1部分.json', import.meta.url).href,
+  2: new URL('../maps/上升篇/上升篇-第2部分.json', import.meta.url).href,
+  3: new URL('../maps/上升篇/上升篇-第3部分.json', import.meta.url).href,
+});
 
 export const HOME_PREVIEW_ROUTES = Object.freeze({
   descent: Object.freeze([
@@ -66,9 +71,26 @@ export const HOME_PREVIEW_ROUTES = Object.freeze({
       url: DESCENT_MAP_URLS[3],
     }),
   ]),
-  // The ascent route deliberately stays empty until its authored map files
-  // exist. Reversing the descent maps here would present a fake playable route.
-  ascent: Object.freeze([]),
+  ascent: Object.freeze([
+    Object.freeze({
+      part: 1,
+      label: '第一部分｜逆游深海遺跡',
+      path: '/maps/上升篇/上升篇-第1部分.json',
+      url: ASCENT_MAP_URLS[1],
+    }),
+    Object.freeze({
+      part: 2,
+      label: '第二部分｜逆穿熱泉',
+      path: '/maps/上升篇/上升篇-第2部分.json',
+      url: ASCENT_MAP_URLS[2],
+    }),
+    Object.freeze({
+      part: 3,
+      label: '第三部分｜重返森林出口',
+      path: '/maps/上升篇/上升篇-第3部分.json',
+      url: ASCENT_MAP_URLS[3],
+    }),
+  ]),
 });
 
 function clamp(value, min, max) {

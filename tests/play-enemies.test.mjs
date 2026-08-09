@@ -38,6 +38,11 @@ const PART_MAP_PATHS = [
   '../maps/下沉篇/下沉篇-第2部分.json',
   '../maps/下沉篇/下沉篇-第3部分.json',
 ];
+const ASCENT_MAP_PATHS = [
+  '../maps/上升篇/上升篇-第1部分.json',
+  '../maps/上升篇/上升篇-第2部分.json',
+  '../maps/上升篇/上升篇-第3部分.json',
+];
 
 function readMap(relativePath) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8'));
@@ -134,6 +139,17 @@ test('all descent map parts distribute the required population with sparse autho
     });
   });
   assert.deepEqual(new Set(DESCENT_ENEMY_ROSTER), allEnemyIds, 'the three descent parts should use the complete documented nine-enemy roster');
+});
+
+test('ascent maps use their authored buffed enemy populations', () => {
+  const populations = ASCENT_MAP_PATHS.map((relativePath, index) => {
+    const map = readMap(relativePath);
+    const enemies = regularEnemies(createPlayEnemies(map, index + 1, 'chapter1', { x: 36, y: 36 }));
+    assert.equal(enemies.length, map.metadata.enemyTargetCount, `Ascent Part ${index + 1} should use its stronger population`);
+    assert.equal(new Set(enemies.map((enemy) => enemy.spawnCellKey)).size, enemies.length);
+    return enemies.length;
+  });
+  assert.deepEqual(populations, [48, 56, 64]);
 });
 
 test('enemy instance IDs remain unique when combat state survives a map-part transition', () => {

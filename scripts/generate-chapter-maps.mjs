@@ -16,8 +16,10 @@ import {
 
 const root = resolve('.');
 const sourcePath = join(root, '範本map.json');
-const outputDir = join(root, 'maps', '下沉篇');
-mkdirSync(outputDir, { recursive: true });
+const descentOutputDir = join(root, 'maps', '下沉篇');
+const ascentOutputDir = join(root, 'maps', '上升篇');
+mkdirSync(descentOutputDir, { recursive: true });
+mkdirSync(ascentOutputDir, { recursive: true });
 
 const cellKey = (cell) => `${cell.q},${cell.r}`;
 const columnOf = (cell) => cell.q + Math.floor(cell.r / 2);
@@ -180,6 +182,35 @@ function addEdgeSet(map, type, rows) {
     addEdge(map, entry, type, type === 'current'
       ? { currentDirection: index % 6, currentStrength: 0.78 + (index % 3) * 0.16 }
       : {});
+    used.add(entry.key);
+  });
+}
+
+function addPassageBarrierSet(map, rows) {
+  const used = new Set(Object.entries(map.edges).filter(([, edge]) => edge.type !== 'none').map(([key]) => key));
+  const openNeighbourCount = (key) => DIRECTIONS.filter((_, direction) => {
+    const neighbour = neighborKey(key, direction);
+    return map.cells[neighbour]?.terrain === 'water';
+  }).length;
+  rows.forEach((row) => {
+    const entry = allMapEdges(map)
+      .filter(({ key, a, b }) => (
+        !used.has(key)
+        && map.cells[a]?.terrain === 'water'
+        && map.cells[b]?.terrain === 'water'
+        && map.cells[a]?.waterLayer === map.cells[b]?.waterLayer
+        && !map.cells[a]?.conditionalGate
+        && !map.cells[b]?.conditionalGate
+        && openNeighbourCount(a) >= 4
+        && openNeighbourCount(b) >= 4
+      ))
+      .sort((left, right) => {
+        const leftDistance = Math.abs((map.cells[left.a].r + map.cells[left.b].r) / 2 - row);
+        const rightDistance = Math.abs((map.cells[right.a].r + map.cells[right.b].r) / 2 - row);
+        return leftDistance - rightDistance || left.key.localeCompare(right.key);
+      })[0];
+    if (!entry) throw new Error(`row ${row} 找不到可形成繞路的水域通行邊`);
+    addEdge(map, entry, 'barrier', { ascentDetour: true });
     used.add(entry.key);
   });
 }
@@ -771,10 +802,202 @@ function buildPart3(source) {
   return map;
 }
 
-const outputs = [
+const ASCENT_CHALLENGE = Object.freeze({
+  1: Object.freeze({ enemyTargetCount: 48, oxygen: 4, torricelli: 3, checkpoints: 3, ink: 2, spikeRows: [18, 39, 61, 83, 105, 127, 149], currentRows: [52, 118], barrierRows: [73, 139], extraEnemyAnchors: 3 }),
+  2: Object.freeze({ enemyTargetCount: 56, oxygen: 2, torricelli: 1, checkpoints: 2, ink: 5, spikeRows: [9, 19, 29, 39, 49, 59, 69, 79], currentRows: [15, 36, 57, 78], barrierRows: [25, 65], extraEnemyAnchors: 4 }),
+  3: Object.freeze({ enemyTargetCount: 64, oxygen: 1, torricelli: 1, checkpoints: 1, ink: 8, spikeRows: [8, 18, 28, 38, 48, 58, 68, 78, 88, 98], currentRows: [14, 34, 54, 74, 94, 112], barrierRows: [24, 64, 104], extraEnemyAnchors: 5 }),
+});
+
+function mirroredCellKey(map, sourceKey) {
+  const sourceCell = map.cells[sourceKey];
+  if (!sourceCell) return sourceKey;
+  const mirroredRow = map.layout.height - 1 - sourceCell.r;
+  // An even-height odd-r rectangle needs a 180-degree inversion to preserve
+  // every hex adjacency. An odd-height rectangle preserves parity under a
+  // direct vertical reflection, so its columns remain unchanged.
+  const mirroredColumn = map.layout.height % 2 === 0
+    ? map.layout.width - 1 - columnOf(sourceCell)
+    : columnOf(sourceCell);
+  return cellKeyFromColumn(mirroredColumn, mirroredRow);
+}
+
+function mirrorMapVertically(source, part) {
+  const map = createEmptyMap({ width: source.layout.width, height: source.layout.height });
+  map.version = Math.max(2, Number(source.version) || 1);
+  map.chapterStates = {
+    chapter1: { cells: {}, edges: {} },
+    chapter2: { cells: {}, edges: {} },
+  };
+  const keyMap = new Map(Object.keys(source.cells).map((key) => [key, mirroredCellKey(source, key)]));
+  Object.entries(source.cells).forEach(([sourceKey, sourceCell]) => {
+    const targetKey = keyMap.get(sourceKey);
+    const mirroredRow = source.layout.height - 1 - sourceCell.r;
+    const mirroredCell = clone(sourceCell);
+    mirroredCell.q = Number(targetKey.split(',')[0]);
+    mirroredCell.r = mirroredRow;
+    mirroredCell.freeObjects = (mirroredCell.freeObjects ?? []).map((object) => ({
+      ...object,
+      ...(Array.isArray(object.targetGates)
+        ? { targetGates: object.targetGates.map((key) => keyMap.get(key) ?? key) }
+        : {}),
+    }));
+    map.cells[targetKey] = mirroredCell;
+  });
+
+  const edgeKeyMap = new Map();
+  Object.entries(source.edges).forEach(([sourceEdgeKey, sourceEdge]) => {
+    const cells = (sourceEdge.cells ?? []).map((key) => keyMap.get(key) ?? key);
+    if (cells.length !== 2) return;
+    edgeKeyMap.set(sourceEdgeKey, edgeKey(cells[0], cells[1]));
+  });
+  Object.entries(source.edges).forEach(([sourceEdgeKey, sourceEdge]) => {
+    const targetEdgeKey = edgeKeyMap.get(sourceEdgeKey);
+    if (!targetEdgeKey) return;
+    const mirroredEdge = clone(sourceEdge);
+    mirroredEdge.cells = (sourceEdge.cells ?? []).map((key) => keyMap.get(key) ?? key);
+    if (mirroredEdge.type === 'current') {
+      const directionMap = source.layout.height % 2 === 0
+        ? [3, 4, 5, 0, 1, 2]
+        : [0, 5, 4, 3, 2, 1];
+      mirroredEdge.currentDirection = directionMap[Number(mirroredEdge.currentDirection) || 0];
+    }
+    if (mirroredEdge.portalTargetKey) {
+      mirroredEdge.portalTargetKey = edgeKeyMap.get(mirroredEdge.portalTargetKey) ?? mirroredEdge.portalTargetKey;
+    }
+    map.edges[targetEdgeKey] = mirroredEdge;
+  });
+
+  const challenge = ASCENT_CHALLENGE[part];
+  const ascentTitles = {
+    1: '上升篇・第一部分｜逆游深海遺跡',
+    2: '上升篇・第二部分｜逆穿熱泉',
+    3: '上升篇・第三部分｜重返森林出口',
+  };
+  map.metadata = {
+    ...clone(source.metadata),
+    chapter: '上升篇',
+    arc: 'ascent',
+    part,
+    title: ascentTitles[part],
+    difficulty: ['hard', 'very-hard', 'extreme'][part - 1],
+    source: `下沉篇第${part}部分垂直鏡像＋上升篇強化（scripts/generate-chapter-maps.mjs）`,
+    mirroredFrom: `下沉篇-第${part}部分.json`,
+    mirrorAxis: source.layout.height % 2 === 0 ? 'hex-safe-180' : 'vertical',
+    exitCellKey: keyMap.get(source.metadata.exitCellKey) ?? source.metadata.exitCellKey,
+    enemyTargetCount: challenge.enemyTargetCount,
+    routeBeats: [...(source.metadata.routeBeats ?? [])].reverse(),
+    designIntent: '保留下沉篇同部位的完整地形與機關體驗，垂直鏡像為由底向上的逆重力返航，再以更密集敵群、尖刺、迷霧與更少補氧形成強化版。',
+    ascentChallenge: {
+      enemyTargetCount: challenge.enemyTargetCount,
+      oxygenSupply: challenge.oxygen,
+      torricelliSupply: challenge.torricelli,
+      checkpoints: challenge.checkpoints,
+      inkZones: challenge.ink,
+      addedSpikes: challenge.spikeRows.length,
+      addedCurrents: challenge.currentRows.length,
+      addedBarriers: challenge.barrierRows.length,
+      forcedDetours: challenge.barrierRows.length,
+    },
+  };
+  delete map.metadata.torricelliDetours;
+  delete map.metadata.broadRouteSamples;
+  delete map.metadata.explorationLoops;
+  return map;
+}
+
+function retainDistributedFreeObjects(map, kind, keepCount) {
+  const entries = Object.entries(map.cells)
+    .flatMap(([key, cell]) => (cell.freeObjects ?? []).map((object, index) => ({ key, cell, object, index })))
+    .filter((entry) => entry.object.kind === kind)
+    .sort((left, right) => right.cell.r - left.cell.r || columnOf(left.cell) - columnOf(right.cell));
+  if (entries.length <= keepCount) return entries.length;
+  const selected = new Set();
+  if (keepCount === 1) selected.add(`${entries[Math.floor(entries.length / 2)].key}:${entries[Math.floor(entries.length / 2)].index}`);
+  for (let index = 0; index < keepCount && keepCount > 1; index += 1) {
+    const position = Math.round(index * (entries.length - 1) / (keepCount - 1));
+    selected.add(`${entries[position].key}:${entries[position].index}`);
+  }
+  Object.entries(map.cells).forEach(([key, cell]) => {
+    cell.freeObjects = (cell.freeObjects ?? []).filter((object, index) => (
+      object.kind !== kind || selected.has(`${key}:${index}`)
+    ));
+  });
+  return selected.size;
+}
+
+function occupiedFreeObjectCells(map) {
+  return new Set(Object.entries(map.cells)
+    .filter(([, cell]) => (cell.freeObjects ?? []).length > 0)
+    .map(([key]) => key));
+}
+
+function addFreeObjectNearRow(map, kind, targetRow, columnHint, used) {
+  for (let distance = 0; distance < map.layout.height; distance += 1) {
+    for (const row of [targetRow + distance, targetRow - distance]) {
+      if (row < 0 || row >= map.layout.height) continue;
+      const cell = chooseWaterCell(map, row, columnHint, used);
+      if (!cell) continue;
+      return addFreeObject(map, kind, row, columnOf(cell), used);
+    }
+  }
+  throw new Error(`找不到可放置 ${kind} 的上升篇水域`);
+}
+
+function addAscentChallengeObjects(map, part) {
+  const challenge = ASCENT_CHALLENGE[part];
+  retainDistributedFreeObjects(map, 'oxygen', challenge.oxygen);
+  retainDistributedFreeObjects(map, 'torricelli', challenge.torricelli);
+  retainDistributedFreeObjects(map, 'checkpoint', challenge.checkpoints);
+  const used = occupiedFreeObjectCells(map);
+  const existingInk = Object.values(map.cells).flatMap((cell) => cell.freeObjects ?? []).filter((object) => object.kind === 'ink').length;
+  for (let index = existingInk; index < challenge.ink; index += 1) {
+    const progress = (index + 1) / (challenge.ink + 1);
+    const row = Math.round((map.layout.height - 1) * (1 - progress));
+    const column = index % 2 === 0 ? Math.max(2, Math.floor(map.layout.width * 0.28)) : Math.min(map.layout.width - 3, Math.ceil(map.layout.width * 0.72));
+    addFreeObjectNearRow(map, 'ink', row, column, used);
+  }
+}
+
+function addAscentEnemyAnchors(map, part) {
+  const challenge = ASCENT_CHALLENGE[part];
+  const used = new Set(Object.entries(map.cells)
+    .filter(([, cell]) => (cell.actors ?? []).some((actor) => actor.kind === 'enemySpawn'))
+    .map(([key]) => key));
+  for (let index = 0; index < challenge.extraEnemyAnchors; index += 1) {
+    const progress = (index + 1) / (challenge.extraEnemyAnchors + 1);
+    const row = Math.round((map.layout.height - 1) * (1 - progress));
+    for (let distance = 0; distance < map.layout.height; distance += 1) {
+      const candidateRow = row + (index % 2 === 0 ? distance : -distance);
+      if (candidateRow < 0 || candidateRow >= map.layout.height) continue;
+      const cell = chooseWaterCell(map, candidateRow, index % 2 === 0 ? 4 : map.layout.width - 5, used);
+      if (!cell) continue;
+      cell.actors.push({ kind: 'enemySpawn' });
+      used.add(cellKey(cell));
+      break;
+    }
+  }
+}
+
+function buildAscentPart(source, part) {
+  const map = mirrorMapVertically(source, part);
+  const challenge = ASCENT_CHALLENGE[part];
+  addAscentChallengeObjects(map, part);
+  addAscentEnemyAnchors(map, part);
+  addEdgeSet(map, 'spike', challenge.spikeRows);
+  addEdgeSet(map, 'current', challenge.currentRows);
+  addPassageBarrierSet(map, challenge.barrierRows);
+  return normalizeMapObjectSizes(map);
+}
+
+const descentOutputs = [
   ['下沉篇-第1部分.json', buildPart1()],
   ['下沉篇-第2部分.json', buildPart2()],
   ['下沉篇-第3部分.json', buildPart3(JSON.parse(readFileSync(sourcePath, 'utf8')))],
 ].map(([name, map]) => [name, normalizeMapObjectSizes(map)]);
-outputs.forEach(([name, map]) => writeFileSync(join(outputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));
-console.log(`generated ${outputs.length} descent maps; part 3 preserves the player's original template`);
+const ascentOutputs = descentOutputs.map(([name, map], index) => [
+  name.replace('下沉篇', '上升篇'),
+  buildAscentPart(map, index + 1),
+]);
+descentOutputs.forEach(([name, map]) => writeFileSync(join(descentOutputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));
+ascentOutputs.forEach(([name, map]) => writeFileSync(join(ascentOutputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));
+console.log(`generated ${descentOutputs.length} descent maps and ${ascentOutputs.length} mirrored ascent maps; part 3 preserves the player's original template`);
