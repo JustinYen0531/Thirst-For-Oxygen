@@ -11506,7 +11506,7 @@
     "-8,38": {
       "q": -8,
       "r": 38,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L2",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11807,7 +11807,7 @@
     "-10,39": {
       "q": -10,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11820,7 +11820,7 @@
     "-9,39": {
       "q": -9,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11833,7 +11833,7 @@
     "-8,39": {
       "q": -8,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,

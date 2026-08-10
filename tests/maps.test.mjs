@@ -43,11 +43,16 @@ function freeObjectsOf(map) {
   ));
 }
 
-test('all center and Edge objects serialize the shared thirty-pixel size', () => {
+test('all ordinary objects keep thirty pixels while Razor hazards use the enlarged three-blade profile', () => {
   [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map) => {
     Object.values(map.cells).forEach((cell) => {
       [...(cell.objects ?? []), ...(cell.freeObjects ?? [])].forEach((object) => {
-        assert.equal(object.size, MAP_OBJECT_SIZE, `${object.kind} should be ${MAP_OBJECT_SIZE}px`);
+        if (object.kind === 'razor') {
+          assert.equal(object.size, 60, 'Razor should use the enlarged 60px visual size');
+          assert.equal(object.params?.count, 3, 'authored Razor hazards should use three blades');
+        } else {
+          assert.equal(object.size, MAP_OBJECT_SIZE, `${object.kind} should be ${MAP_OBJECT_SIZE}px`);
+        }
       });
     });
     Object.values(map.edges).filter((edge) => edge?.type && edge.type !== 'none').forEach((edge) => {
@@ -471,6 +476,20 @@ test('part 3 preserves the player-authored template geometry as the final exam',
   assert.equal(actorsOf(part3, 'bossSpawn')[0].actor.enemyId, 'abyssalSpermWhale');
   assert.equal(actorsOf(part3, 'bossSpawn').length, 1);
   assert.ok(actorsOf(part3, 'bossSpawn')[0].cell.r >= part3.layout.height - 8);
+});
+
+test('part 3 keeps the direct water passage beside the Razor at 38 metres', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const razorCell = part3.cells['-8,37'];
+  const passageKeys = ['-8,38', '-10,39', '-9,39', '-8,39'];
+  const razor = razorCell.freeObjects.find((object) => object.kind === 'razor');
+  assert.equal(razorCell.terrain, 'water');
+  passageKeys.forEach((key) => assert.equal(part3.cells[key].terrain, 'water', `${key} must stay open as the central route breach`));
+  assert.equal(canTraverse(part3, '-8,37', '-8,38'), true);
+  assert.equal(canTraverse(part3, '-8,38', '-9,39'), true);
+  assert.equal(canTraverse(part3, '-9,39', '-9,40'), true);
+  assert.equal(razor.size, 60);
+  assert.equal(razor.params.count, 3);
 });
 
 test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {

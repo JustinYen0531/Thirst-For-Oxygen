@@ -3,7 +3,7 @@ export const MAP_OBJECT_SIZE = 30;
 const FREE_OBJECT_COLLISION_DIAMETERS = Object.freeze({
   ink: 22,
   mine: 17,
-  razor: 48,
+  razor: 60,
   button: 24,
   weightStone: 17,
   oxygen: 17,
@@ -25,6 +25,16 @@ const fixedSizeField = (label = '大小') => ({
   defaultValue: MAP_OBJECT_SIZE,
 });
 
+const razorSizeField = () => ({
+  key: 'size',
+  label: '大小',
+  unit: 'px',
+  min: 60,
+  max: 96,
+  step: 1,
+  defaultValue: 60,
+});
+
 // These are the editor's official starting values. They are written onto new
 // instances, displayed in the Inspector, and available again through Reset.
 // A saved map may override them per object without changing later placements.
@@ -38,8 +48,8 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 24 },
   ]),
   razor: freezeFields([
-    fixedSizeField(),
-    { key: 'count', label: '剃刀數量', unit: '個', min: 1, max: 4, step: 1, defaultValue: 1 },
+    razorSizeField(),
+    { key: 'count', label: '剃刀數量', unit: '個', min: 2, max: 4, step: 1, defaultValue: 3 },
     { key: 'damage', label: '傷害', unit: 'HP', min: 0, max: 100, step: 1, defaultValue: 20 },
     { key: 'knockbackSpeed', label: '強制位移', unit: 'px/s', min: 0, max: 140, step: 1, defaultValue: 58 },
     { key: 'rotationSpeed', label: '旋轉速度', unit: '度/s', min: 0, max: 720, step: 1, defaultValue: 180 },
@@ -162,17 +172,32 @@ export function getEdgeSetting(edge, key) {
 }
 
 export function getFreeObjectHitRadius(object) {
-  // Rendering is uniformly 30 px, while authored contact footprints stay
-  // independent so adjacent 24 px hexes do not activate each other's objects.
+  // Razor blades are intentionally larger than the other free objects. Keep
+  // their contact footprint aligned with the visual size so a large blade is
+  // not only decorative and a resized blade cannot hit from an old radius.
+  if (object?.kind === 'razor') return getFreeObjectSetting(object, 'size') / 2;
   return (FREE_OBJECT_COLLISION_DIAMETERS[object?.kind] ?? 17) / 2;
 }
 
 export function normalizeMapObjectSizes(map) {
   if (!map || typeof map !== 'object') return map;
+  const normalizeObjectSize = (object) => {
+    if (!object || typeof object !== 'object') return;
+    if (object.kind === 'razor') {
+      object.size = getFreeObjectSetting(object, 'size');
+      const rawCount = Number(object.params?.count);
+      const count = Number.isFinite(rawCount) && rawCount >= 2
+        ? getFreeObjectSetting(object, 'count')
+        : getOfficialFreeObjectState('razor').params.count;
+      object.params = { ...(object.params ?? {}), count };
+      return;
+    }
+    object.size = MAP_OBJECT_SIZE;
+  };
   const normalizeCells = (cells = {}) => {
     Object.values(cells).forEach((cell) => {
-      if (Array.isArray(cell?.objects)) cell.objects.forEach((object) => { object.size = MAP_OBJECT_SIZE; });
-      if (Array.isArray(cell?.freeObjects)) cell.freeObjects.forEach((object) => { object.size = MAP_OBJECT_SIZE; });
+      if (Array.isArray(cell?.objects)) cell.objects.forEach(normalizeObjectSize);
+      if (Array.isArray(cell?.freeObjects)) cell.freeObjects.forEach(normalizeObjectSize);
     });
   };
   const normalizeEdges = (edges = {}) => {

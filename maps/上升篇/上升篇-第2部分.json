@@ -7127,9 +7127,9 @@
             "x": 0,
             "y": 0
           },
-          "size": 30,
+          "size": 60,
           "params": {
-            "count": 1,
+            "count": 3,
             "damage": 20,
             "knockbackSpeed": 58,
             "rotationSpeed": 180
@@ -11126,9 +11126,9 @@
             "x": 0,
             "y": 0
           },
-          "size": 30,
+          "size": 60,
           "params": {
-            "count": 1,
+            "count": 3,
             "damage": 20,
             "knockbackSpeed": 58,
             "rotationSpeed": 180

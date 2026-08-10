@@ -91,6 +91,7 @@ import {
 import {
   MAP_OBJECT_SIZE,
   getEdgeSetting,
+  getFreeObjectHitRadius,
   getFreeObjectSetting,
   getOfficialEdgeState,
   getOfficialFreeObjectState,
@@ -489,7 +490,7 @@ test('free-snap water objects use their own position and hitbox', () => {
 test('official object and Edge settings stay explicit and resettable', () => {
   assert.equal(MAP_OBJECT_SIZE, 30);
   assert.deepEqual(getOfficialFreeObjectState('ink'), { size: 30, params: { visibilityRadius: 110 } });
-  assert.deepEqual(getOfficialFreeObjectState('razor'), { size: 30, params: { count: 1, damage: 20, knockbackSpeed: 58, rotationSpeed: 180 } });
+  assert.deepEqual(getOfficialFreeObjectState('razor'), { size: 60, params: { count: 3, damage: 20, knockbackSpeed: 58, rotationSpeed: 180 } });
   assert.deepEqual(getOfficialFreeObjectState('button'), { size: 30, params: {} });
   assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 30, params: { breakSpeed: 31, weight: 4 } });
   assert.deepEqual(getOfficialFreeObjectState('oxygen'), { size: 30, params: { oxygenAmount: 100, activationSpeed: 110 } });
@@ -498,12 +499,15 @@ test('official object and Edge settings stay explicit and resettable', () => {
   assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 30, params: { bounceMultiplier: 1.08 } });
   assert.equal(getFreeObjectSetting({ kind: 'mine', size: 17 }, 'size'), 30);
   assert.equal(getEdgeSetting({ type: 'spike', size: 1 }, 'size'), 30);
+  assert.equal(getFreeObjectSetting({ kind: 'razor', size: 30 }, 'size'), 60);
   assert.equal(getFreeObjectSetting({ kind: 'mine', params: { damage: 37 } }, 'damage'), 37);
+  assert.equal(getFreeObjectSetting({ kind: 'razor', params: { count: 1 } }, 'count'), 2);
   assert.equal(getFreeObjectSetting({ kind: 'razor', params: { count: 4 } }, 'count'), 4);
+  assert.equal(getFreeObjectHitRadius({ kind: 'razor', size: 60 }), 30);
   assert.equal(getEdgeSetting({ type: 'spike', params: { damage: 46 } }, 'damage'), 46);
 });
 
-test('loaded legacy maps normalize base and chapter object sizes to thirty pixels', () => {
+test('loaded maps normalize ordinary objects and upgrade legacy Razor hazards', () => {
   const map = {
     cells: { a: { objects: [{ kind: 'mine', size: 17 }], freeObjects: [{ kind: 'razor', size: 48 }] } },
     edges: { e: { type: 'spike', size: 1 } },
@@ -516,7 +520,8 @@ test('loaded legacy maps normalize base and chapter object sizes to thirty pixel
   };
   normalizeMapObjectSizes(map);
   assert.equal(map.cells.a.objects[0].size, MAP_OBJECT_SIZE);
-  assert.equal(map.cells.a.freeObjects[0].size, MAP_OBJECT_SIZE);
+  assert.equal(map.cells.a.freeObjects[0].size, 60);
+  assert.equal(map.cells.a.freeObjects[0].params.count, 3);
   assert.equal(map.edges.e.size, MAP_OBJECT_SIZE);
   assert.equal(map.chapterStates.chapter1.cells.a.freeObjects[0].size, MAP_OBJECT_SIZE);
   assert.equal(map.chapterStates.chapter1.edges.e.size, MAP_OBJECT_SIZE);

@@ -5336,9 +5336,9 @@
             "x": 0,
             "y": 0
           },
-          "size": 30,
+          "size": 60,
           "params": {
-            "count": 1,
+            "count": 3,
             "damage": 20,
             "knockbackSpeed": 58,
             "rotationSpeed": 180
@@ -24421,7 +24421,7 @@
     "-29,77": {
       "q": -29,
       "r": 77,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -24434,7 +24434,7 @@
     "-28,77": {
       "q": -28,
       "r": 77,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -24447,7 +24447,7 @@
     "-27,77": {
       "q": -27,
       "r": 77,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -24763,7 +24763,7 @@
     "-28,78": {
       "q": -28,
       "r": 78,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L2",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -25075,9 +25075,9 @@
             "x": 0,
             "y": 0
           },
-          "size": 30,
+          "size": 60,
           "params": {
-            "count": 1,
+            "count": 3,
             "damage": 20,
             "knockbackSpeed": 58,
             "rotationSpeed": 180
@@ -32647,7 +32647,7 @@
             "x": 0,
             "y": 0
           },
-          "size": 30,
+          "size": 60,
           "params": {
             "damage": 20,
             "knockbackSpeed": 58,
