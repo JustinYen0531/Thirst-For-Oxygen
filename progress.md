@@ -1295,6 +1295,11 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Tutorial 地圖 metadata 與出口完成導覽卡現在都使用 `Tutorial`／`Tutorial Complete`，不會在完成時重新顯示舊的 Chapter 0 名稱。
 - Tutorial／Play 靜態測試 30/30、完整 `npm run check` 348/348 與 `git diff --check` 通過；依專案規則未執行瀏覽器／Playwright。
 
+## 2026-08-10 — Skip Tutorial continues into the formal chapter
+
+- `Skip Tutorial` 不再導回 `/home.html`；現在與完成 Tutorial 出口共用下沉篇第一部分的轉場，會打開既有故事投影片。
+- Skip 對話文案同步說明會進入 Descent Part 1；Play 靜態測試 21/21、完整 `npm run check` 與 Vite production build 通過，依專案規則未執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Chapter 0 opens with a survival systems briefing
 
 - First Breath 的第一個引導先用英文對話說明 O₂ 會隨時間消耗、Energy 如何支援彈射與 Weapon、Weapon 如何跟著移動／拉射路徑運作，以及 O₂ 與 Energy 維持高位時的自動回血與 Checkpoint 死亡後補滿資源規則。
