@@ -14,6 +14,7 @@ const TUTORIAL_HEIGHT = 24;
 const TUTORIAL_OBJECT_SIZE = 30;
 const TUTORIAL_EXIT_ARRIVAL_RADIUS = 9;
 const TUTORIAL_EXIT_POSITION = Object.freeze({ column: 10, row: 2 });
+export const TUTORIAL_TASK_COMPLETION_TARGET = 10;
 
 export const TUTORIAL_OBJECT_GUIDES = Object.freeze([
   Object.freeze({ id: 'checkpoint', label: 'Checkpoint', description: '碰到後更新重生點，並回滿生命、氧氣與能量。' }),
@@ -48,7 +49,7 @@ export const TUTORIAL_GUIDED_STEPS = Object.freeze([
   Object.freeze({ id: 'weightStone', title: '分辨撞擊速度', body: '重石會把低速撞擊壓回；只有高速撞擊才會被擊碎。', instruction: '請用高速撞擊擊碎重石。', controlHint: '操作：拉射撞上重石；低速會被彈回，高速才會擊碎它。', target: { column: 7, row: 12 }, targetLabel: '重石' }),
   Object.freeze({ id: 'mine', title: '危險也要讀懂', body: '地雷會反彈並造成傷害。這一間房把傷害調低，但你仍要實際碰過它，知道它不是補給。', instruction: '請碰觸深海地雷一次。', controlHint: '操作：用潛水夫碰觸深海地雷，感受它的反彈與傷害。', target: { column: 4, row: 14 }, targetLabel: '深海地雷' }),
   Object.freeze({ id: 'razor', title: '不要硬闖剃刀', body: '剃刀會強制把你推開。遇到它時要調整路線，不是一直往前撞。', instruction: '請碰觸剃刀一次，觀察它如何把你推開。', controlHint: '操作：用潛水夫碰觸剃刀，觀察反彈後再調整下一次拉射。', target: { column: 4, row: 17 }, targetLabel: '剃刀' }),
-  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', controlHint: '操作：靠近珊瑚群落後按 E，啟動短暫隱形。', target: { column: 10, row: 13 }, targetLabel: '珊瑚群落' }),
+  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', controlHint: '操作：靠近珊瑚群落後按 E，啟動短暫隱形。', target: { column: 6, row: 14 }, targetLabel: '珊瑚群落' }),
   Object.freeze({ id: 'button', title: '碰到按鈕才會開門', body: '按鈕會切換指定的條件通行門。先碰按鈕，再觀察前方的門。', instruction: '請碰到按鈕，打開教學房的通行門。', controlHint: '操作：用潛水夫碰到按鈕，條件通行門就會打開。', target: { column: 8, row: 18 }, targetLabel: '按鈕' }),
   Object.freeze({ id: 'springJelly', title: '借力改變方向', body: '彈簧水母會依照入射角反射並加速，把一次撞擊轉成新的位移。', instruction: '請撞上彈簧水母一次，感受反射方向。', controlHint: '操作：用拉射撞上彈簧水母，觀察它把你反射到哪裡。', target: { column: 4, row: 6 }, targetLabel: '彈簧水母' }),
   Object.freeze({ id: 'current', title: '讀懂洋流', body: '洋流會沿箭頭方向推動你，會改變下一次拉射的落點。', instruction: '請穿過洋流一次，觀察它如何改變你的漂移。', controlHint: '操作：讓潛水夫穿過洋流箭頭區域，觀察推力方向。', target: { column: 6, row: 9 }, targetLabel: '洋流' }),
@@ -62,18 +63,28 @@ export const TUTORIAL_GUIDED_STEPS = Object.freeze([
 
 export const TUTORIAL_TASKS = Object.freeze([
   Object.freeze({ id: 'launch', title: '先學會彈射', stepIds: Object.freeze(['launch']) }),
-  Object.freeze({ id: 'anchor', title: '停下來與記住退路', stepIds: Object.freeze(['seaweedAttach', 'seaweedRelease', 'checkpoint']) }),
-  Object.freeze({ id: 'resources', title: '管理氧氣與能量', stepIds: Object.freeze(['oxygen', 'oxygenBubble', 'torricelli', 'bubble']) }),
-  Object.freeze({ id: 'impact', title: '分辨撞擊速度', stepIds: Object.freeze(['weightStone']) }),
-  Object.freeze({ id: 'hazards', title: '讀懂接觸危險', stepIds: Object.freeze(['mine', 'razor']) }),
-  Object.freeze({ id: 'objects', title: '使用環境物件', stepIds: Object.freeze(['coralCluster', 'button', 'springJelly', 'current']) }),
-  Object.freeze({ id: 'edges', title: '分辨尖刺與障礙', stepIds: Object.freeze(['spike', 'barrier']) }),
-  Object.freeze({ id: 'wallGill', title: '穿越潛壁鰓門', stepIds: Object.freeze(['wallGillGate']) }),
-  Object.freeze({ id: 'kill', title: '學會擊殺敵人', stepIds: Object.freeze(['weapon', 'kill']) }),
+  Object.freeze({ id: 'seaweed', title: '附著與離開水草', stepIds: Object.freeze(['seaweedAttach', 'seaweedRelease']) }),
+  Object.freeze({ id: 'checkpoint', title: '記住你的退路', stepIds: Object.freeze(['checkpoint']) }),
+  Object.freeze({ id: 'oxygen', title: '用速度換氧氣', stepIds: Object.freeze(['oxygen']) }),
+  Object.freeze({ id: 'oxygenBubble', title: '接觸式補氧', stepIds: Object.freeze(['oxygenBubble']) }),
+  Object.freeze({ id: 'torricelli', title: '找到可以停留的空間', stepIds: Object.freeze(['torricelli']) }),
+  Object.freeze({ id: 'bubble', title: '讓氣泡替你承受重力', stepIds: Object.freeze(['bubble']) }),
+  Object.freeze({ id: 'weightStone', title: '分辨撞擊速度', stepIds: Object.freeze(['weightStone']) }),
+  Object.freeze({ id: 'mine', title: '讀懂深海地雷', stepIds: Object.freeze(['mine']) }),
+  Object.freeze({ id: 'razor', title: '不要硬闖剃刀', stepIds: Object.freeze(['razor']) }),
+  Object.freeze({ id: 'coralCluster', title: '使用珊瑚掩護', stepIds: Object.freeze(['coralCluster']) }),
+  Object.freeze({ id: 'button', title: '碰到按鈕才會開門', stepIds: Object.freeze(['button']) }),
+  Object.freeze({ id: 'springJelly', title: '借彈簧水母改變方向', stepIds: Object.freeze(['springJelly']) }),
+  Object.freeze({ id: 'current', title: '讀懂洋流', stepIds: Object.freeze(['current']) }),
+  Object.freeze({ id: 'spike', title: '尖刺會傷害你', stepIds: Object.freeze(['spike']) }),
+  Object.freeze({ id: 'barrier', title: '障礙只是在說不行', stepIds: Object.freeze(['barrier']) }),
+  Object.freeze({ id: 'wallGillGate', title: '穿越潛壁鰓門', stepIds: Object.freeze(['wallGillGate']) }),
+  Object.freeze({ id: 'weapon', title: '讓移動也成為攻擊', stepIds: Object.freeze(['weapon']) }),
+  Object.freeze({ id: 'kill', title: '學會擊殺敵人', stepIds: Object.freeze(['kill']) }),
   Object.freeze({ id: 'resonance', title: '學會 Resonance', stepIds: Object.freeze(['resonance']) }),
 ]);
 
-const TUTORIAL_TASK_NAVIGATION_HINT = '操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。';
+const TUTORIAL_TASK_NAVIGATION_HINT = `操作：使用 ← / → 切換 First Breath 任務；完成任意 ${TUTORIAL_TASK_COMPLETION_TARGET} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
 
 const EVENT_TO_OBJECT_ID = Object.freeze({
   checkpoint: 'checkpoint',
@@ -175,13 +186,16 @@ export function createTutorialMap() {
     tutorialRole: 'resonance',
     tutorialInfiniteHealth: true,
     tutorialNoSelfDestruct: true,
+    tutorialStationary: true,
   });
   addActor(map, 9, 15, {
     kind: 'enemySpawn',
     enemyId: 'explodingLanternfish',
     tutorialRole: 'kill',
+    tutorialHealth: 20,
     tutorialNoSelfDestruct: true,
     tutorialResonanceDisabled: true,
+    tutorialStationary: true,
   });
 
   addObject(map, 2, 4, 'checkpoint');
@@ -200,7 +214,7 @@ export function createTutorialMap() {
   addEdge(map, 6, 9, 0, 'current', { currentDirection: 0, currentStrength: 1 });
   addEdge(map, 3, 13, 0, 'spike', { damage: 0 });
   addEdge(map, 9, 13, 0, 'barrier');
-  addEdge(map, 10, 13, 0, 'coralCluster');
+  addEdge(map, 6, 14, 0, 'coralCluster');
   addEdge(map, 10, 18, 0, 'wallGillGate');
 
   const exitCellKey = tutorialKey(TUTORIAL_EXIT_POSITION.column, TUTORIAL_EXIT_POSITION.row);
@@ -219,6 +233,8 @@ export function createTutorialMap() {
         guideName: TUTORIAL_GUIDE_NAME,
         coreSteps: TUTORIAL_TASKS.map((task) => task.id),
         tasks: TUTORIAL_TASKS.map((task) => ({ id: task.id, title: task.title, stepIds: [...task.stepIds] })),
+        taskCount: TUTORIAL_TASKS.length,
+        completionTarget: TUTORIAL_TASK_COMPLETION_TARGET,
         objectGuides: TUTORIAL_OBJECT_GUIDES.map((guide) => guide.id),
         skipKey: 'Enter',
       },
@@ -253,7 +269,7 @@ function isTutorialTaskComplete(state, task) {
 
 function refreshTutorialTaskProgress(state) {
   state.completedTasks = new Set(TUTORIAL_TASKS.filter((task) => isTutorialTaskComplete(state, task)).map((task) => task.id));
-  state.autoReady = state.completedTasks.size >= TUTORIAL_TASKS.length;
+  state.autoReady = state.completedTasks.size >= TUTORIAL_TASK_COMPLETION_TARGET;
   if (state.autoReady) return state;
   const selectedTask = getTaskByIndex(state.selectedTaskIndex);
   if (!isTutorialTaskComplete(state, selectedTask)) return state;
@@ -369,7 +385,7 @@ export function getPlayTutorialExitState({ map, actor, origin = { x: 0, y: 0 }, 
     completed: progress.readyToLeave,
     nextPart: null,
     distance,
-    lockedReason: unlocked ? null : '請先依序完成導航員的操作教學；按 Enter 可開啟 Skip Tutorial。',
+    lockedReason: unlocked ? null : `請先完成任意 ${TUTORIAL_TASK_COMPLETION_TARGET} 項導航員任務；按 Enter 可開啟 Skip Tutorial。`,
   };
 }
 
@@ -434,8 +450,9 @@ export function getPlayTutorialRenderState(state, enemies = []) {
     autoReady: progress.readyToLeave,
     freeExit: progress.readyToLeave
       ? '導航員已解除出口鎖定。請前往右側牆面的 EXIT 離開第零篇章。'
-      : '導航員確認所有操作前，出口會保持鎖定。真的要離開請按 Enter。',
+      : `導航員確認任意 ${TUTORIAL_TASK_COMPLETION_TARGET} 項任務前，出口會保持鎖定。真的要離開請按 Enter。`,
     lockedExit: !progress.readyToLeave,
+    completionTarget: TUTORIAL_TASK_COMPLETION_TARGET,
     lastGuideNote: progress.lastGuideNote,
     targetCellKey,
     targetLabel: currentStep.targetLabel ?? null,

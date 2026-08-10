@@ -71,7 +71,8 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-stage-frame { position: relative; overflow: hidden; min-height: 510px; flex: 1; border: 1px solid rgba(119, 232, 255, .4); border-radius: 12px; background: #061526; box-shadow: 0 24px 80px rgba(0, 0, 0, .36), inset 0 0 50px rgba(29, 135, 190, .15); }
 #play-canvas { display: block; width: 100%; height: auto; min-height: 510px; aspect-ratio: 1200 / 680; cursor: crosshair; touch-action: none; }
 .play-attempts { position: absolute; top: clamp(82px, 12%, 112px); left: 50%; z-index: 7; min-width: 126px; margin: 0; padding: 6px 12px; border: 1px solid rgba(143, 214, 255, .55); border-radius: 5px; color: #d8efff; background: rgba(7, 18, 33, .86); box-shadow: 0 0 18px rgba(74, 199, 255, .14); font-family: "Orbitron", "Segoe UI", sans-serif; font-size: .7rem; font-weight: 800; letter-spacing: .14em; text-align: center; pointer-events: none; transform: translateX(-50%); }
-.play-tutorial-panel { position: absolute; top: clamp(228px, 34%, 316px); right: clamp(18px, 6vw, 90px); z-index: 8; width: min(310px, 27vw); max-height: min(48vh, 430px); overflow: hidden; padding: 13px 14px 12px; border: 1px solid rgba(110, 255, 183, .5); border-left: 3px solid #7dffb1; border-radius: 8px; color: #dfffee; background: linear-gradient(160deg, rgba(3, 29, 38, .9), rgba(4, 14, 29, .86)); box-shadow: 0 0 22px rgba(63, 224, 163, .13), inset 0 0 18px rgba(91, 255, 167, .04); pointer-events: none; }
+.play-tutorial-panel { position: absolute; top: clamp(228px, 34%, 316px); right: clamp(18px, 6vw, 90px); z-index: 8; width: min(310px, 27vw); max-height: min(48vh, 430px); overflow: hidden; padding: 13px 14px 12px; border: 1px solid rgba(110, 255, 183, .24); border-left: 3px solid rgba(125, 255, 177, .58); border-radius: 8px; color: #dfffee; background: linear-gradient(160deg, rgba(3, 29, 38, .28), rgba(4, 14, 29, .2)); box-shadow: 0 0 14px rgba(63, 224, 163, .05), inset 0 0 12px rgba(91, 255, 167, .02); opacity: .42; pointer-events: auto; transition: opacity .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.play-tutorial-panel:hover, .play-tutorial-panel:focus-within { border-color: rgba(110, 255, 183, .72); background: linear-gradient(160deg, rgba(3, 29, 38, .95), rgba(4, 14, 29, .92)); box-shadow: 0 0 22px rgba(63, 224, 163, .16), inset 0 0 18px rgba(91, 255, 167, .05); opacity: 1; }
 .play-tutorial-panel[hidden] { display: none; }
 .play-tutorial-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .play-tutorial-heading .eyebrow { margin: 0 0 4px; color: #73ffc0; font-size: .48rem; }
@@ -84,14 +85,15 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-tutorial-step-instruction { margin-top: 8px !important; padding: 7px 8px; border: 1px solid rgba(125, 255, 177, .26); border-radius: 5px; color: #ecfff3 !important; background: rgba(66, 217, 143, .1); font-weight: 800; }
 .play-tutorial-object-heading { display: flex; justify-content: space-between; gap: 8px; margin-top: 11px; padding-top: 8px; border-top: 1px solid rgba(144, 235, 183, .18); color: #7df9b4; font-size: .56rem; font-weight: 800; letter-spacing: .06em; }
 .play-tutorial-object-heading span:last-child { color: #79a894; font-weight: 600; letter-spacing: 0; }
-.play-tutorial-object-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; max-height: 126px; overflow: hidden; margin: 7px 0 0; padding: 0; list-style: none; }
+.play-tutorial-object-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; max-height: min(25vh, 210px); overflow-x: hidden; overflow-y: auto; margin: 7px 0 0; padding: 0 4px 0 0; list-style: none; }
 .play-tutorial-object-list li { overflow: hidden; color: #73978c; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
 .play-tutorial-object-list li.is-used { color: #bdffd3; text-shadow: 0 0 8px rgba(106, 255, 169, .3); }
 .play-tutorial-object-list li.is-current { color: #f7dc78; }
 .play-tutorial-task-list li.is-complete { color: #bdffd3; text-shadow: 0 0 8px rgba(106, 255, 169, .3); }
 .play-tutorial-task-list li.is-current { color: #f7dc78; font-weight: 800; }
 .play-tutorial-exit-hint { margin-top: 10px !important; padding-top: 8px; border-top: 1px solid rgba(144, 235, 183, .18); color: #8cb8a2 !important; font-size: .56rem !important; }
-.play-tutorial-dialogue { position: absolute; bottom: clamp(88px, 14%, 122px); left: clamp(18px, 6vw, 90px); z-index: 9; display: grid; grid-template-columns: 31px minmax(0, 1fr); gap: 10px; width: min(500px, 44vw); max-height: min(27vh, 210px); overflow: auto; padding: 12px 14px; border: 1px solid rgba(119, 232, 255, .6); border-left: 3px solid var(--cyan); border-radius: 10px; color: #e8f5ff; background: linear-gradient(155deg, rgba(6, 29, 51, .95), rgba(4, 14, 29, .94)); box-shadow: 0 12px 34px rgba(0, 0, 0, .32), 0 0 25px rgba(119, 232, 255, .12), inset 0 0 20px rgba(119, 232, 255, .04); pointer-events: none; }
+.play-tutorial-dialogue { position: absolute; bottom: clamp(88px, 14%, 122px); left: clamp(18px, 6vw, 90px); z-index: 9; display: grid; grid-template-columns: 31px minmax(0, 1fr); gap: 10px; width: min(500px, 44vw); max-height: min(27vh, 210px); overflow: auto; padding: 12px 14px; border: 1px solid rgba(119, 232, 255, .28); border-left: 3px solid rgba(119, 232, 255, .65); border-radius: 10px; color: #e8f5ff; background: linear-gradient(155deg, rgba(6, 29, 51, .3), rgba(4, 14, 29, .22)); box-shadow: 0 8px 20px rgba(0, 0, 0, .1), 0 0 14px rgba(119, 232, 255, .05), inset 0 0 12px rgba(119, 232, 255, .02); opacity: .42; pointer-events: auto; transition: opacity .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.play-tutorial-dialogue:hover, .play-tutorial-dialogue:focus-within { border-color: rgba(119, 232, 255, .78); background: linear-gradient(155deg, rgba(6, 29, 51, .96), rgba(4, 14, 29, .93)); box-shadow: 0 12px 34px rgba(0, 0, 0, .32), 0 0 25px rgba(119, 232, 255, .16), inset 0 0 20px rgba(119, 232, 255, .05); opacity: 1; }
 .play-tutorial-dialogue[hidden] { display: none; }
 .play-tutorial-dialogue-avatar { display: grid; place-items: center; width: 31px; height: 31px; border: 1px solid rgba(119, 232, 255, .8); border-radius: 50%; color: var(--cyan); background: rgba(17, 83, 116, .5); box-shadow: 0 0 15px rgba(119, 232, 255, .3); font-size: 1rem; }
 .play-tutorial-dialogue-heading { display: flex; align-items: baseline; gap: 8px; }
@@ -409,7 +411,7 @@ body { min-width: 0; }
   .level-readout { top: 162px; }
   .play-tutorial-panel { top: 205px; right: 10px; left: 10px; width: auto; max-height: 31vh; padding: 10px 11px; }
   .play-tutorial-panel h3 { margin-top: 7px; }
-  .play-tutorial-object-list { max-height: 54px; }
+  .play-tutorial-object-list { max-height: 110px; }
   .play-tutorial-dialogue { right: 10px; bottom: 88px; left: 10px; width: auto; max-height: 22vh; padding: 10px 11px; }
   .play-tutorial-dialogue p { font-size: .6rem; }
 }

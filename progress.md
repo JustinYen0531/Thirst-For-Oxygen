@@ -1214,3 +1214,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 左側 Resonance 訓練燈籠魚使用無限生命且不會自爆；右側擊殺訓練燈籠魚使用有限生命、不會自爆且停用 Resonance，兩條勝利方式在教學房內分開呈現。
 - EXIT 移到出生區右側牆面並改為醒目的 EXIT／LOCKED 標記；珊瑚移到右側牆邊的 Edge，地雷與珊瑚分離，避免物件重疊或漂浮感。
 - 聚焦測試 25/25、完整 `npm run check` 335/335、Vite production build 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — First Breath restores twenty selectable tasks
+
+- 修正任務清單：右側保留 20 個可用左右鍵切換的 First Breath 任務，完成任意 10 項即可解鎖 EXIT；不是把任務總數刪成 10 項。水草附著／離開仍作為一個完整知識點，所有 21 個實際操作保留。
+- 左側 Resonance 訓練燈籠魚與右側擊殺訓練燈籠魚都固定不動；左側無限生命，右側改為 20 HP、有限生命且不會自爆。玩家必須自己靠近左側魚累積 Resonance。
+- 珊瑚 Edge 從牆邊移到房間內側，兩端都連接可通行水格，避免珊瑚根貼住封閉牆面而難以互動。
+- Chapter 0 First Breath 面板與左下 Guidance 對話框預設半透明，滑鼠懸浮或聚焦時才恢復高不透明度；20 項清單可滾動顯示。

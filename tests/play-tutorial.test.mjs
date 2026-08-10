@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   TUTORIAL_GUIDED_STEPS,
   TUTORIAL_TASKS,
+  TUTORIAL_TASK_COMPLETION_TARGET,
   TUTORIAL_PART,
   createPlayTutorialState,
   createTutorialMap,
@@ -30,15 +31,24 @@ test('tutorial map is Chapter 0 with a small authored room and two training enem
   assert.equal(map.metadata.enemyTargetCount, 2);
   assert.equal(map.metadata.tutorial.guided, true);
   assert.equal(map.metadata.tutorial.coreSteps.length, TUTORIAL_TASKS.length);
-  assert.equal(TUTORIAL_TASKS.length, 10);
+  assert.equal(TUTORIAL_TASKS.length, 20);
+  assert.equal(TUTORIAL_TASK_COMPLETION_TARGET, 10);
+  assert.equal(map.metadata.tutorial.taskCount, 20);
+  assert.equal(map.metadata.tutorial.completionTarget, 10);
   assert.ok(map.cells[map.metadata.exitCellKey]);
   assert.equal(map.cells[map.metadata.exitCellKey].terrain, 'water');
   const enemyMarkers = Object.values(map.cells).flatMap((cell) => cell.actors.filter((actor) => actor.kind === 'enemySpawn'));
   assert.equal(enemyMarkers.length, 2);
   assert.equal(enemyMarkers.find((actor) => actor.tutorialRole === 'resonance')?.tutorialInfiniteHealth, true);
+  assert.equal(enemyMarkers.find((actor) => actor.tutorialRole === 'resonance')?.tutorialStationary, true);
+  assert.equal(enemyMarkers.find((actor) => actor.tutorialRole === 'kill')?.tutorialHealth, 20);
+  assert.equal(enemyMarkers.find((actor) => actor.tutorialRole === 'kill')?.tutorialStationary, true);
   assert.equal(enemyMarkers.every((actor) => actor.tutorialNoSelfDestruct), true);
   assert.ok(Object.values(map.cells).some((cell) => cell.freeObjects.some((object) => object.kind === 'torricelli')));
   assert.ok(Object.values(map.edges).some((edge) => edge.type === 'seaweed'));
+  const coralEdge = Object.values(map.edges).find((edge) => edge.type === 'coralCluster');
+  assert.ok(coralEdge);
+  assert.equal(coralEdge.cells.every((cellKey) => map.cells[cellKey]?.terrain === 'water'), true);
 });
 
 test('tutorial advances only after each guided operation is actually observed', () => {
@@ -46,8 +56,9 @@ test('tutorial advances only after each guided operation is actually observed', 
   const initialRender = getPlayTutorialRenderState(state);
   assert.equal(initialRender.currentStep.id, 'launch');
   assert.equal(initialRender.autoReady, false);
-  assert.equal(initialRender.totalCoreSteps, 10);
-  assert.equal(initialRender.tasks.length, 10);
+  assert.equal(initialRender.totalCoreSteps, 20);
+  assert.equal(initialRender.completionTarget, 10);
+  assert.equal(initialRender.tasks.length, 20);
   assert.equal(initialRender.dialogue.speaker, '深淵導航員');
   assert.match(initialRender.dialogue.controlHint, /← \/ →/);
   assert.ok(TUTORIAL_GUIDED_STEPS.every((step) => step.controlHint), 'every guided step must explain its control');
@@ -62,8 +73,10 @@ test('tutorial advances only after each guided operation is actually observed', 
     { type: 'bubble', success: true },
     { type: 'weightStone', message: '重石已被足夠的撞擊力擊碎。' },
     { type: 'mine' },
-    { type: 'razor' },
   ]);
+  assert.equal(stepPlayTutorial(state).readyToLeave, false);
+  recordPlayTutorialEvents(state, [{ type: 'razor' }]);
+  assert.equal(stepPlayTutorial(state).readyToLeave, true);
   recordPlayTutorialInteraction(state, { type: 'coralInvisibility' });
   recordPlayTutorialEvents(state, [
     { type: 'button', message: '按鈕：已開啟 1 個條件通行門。' },
@@ -77,10 +90,10 @@ test('tutorial advances only after each guided operation is actually observed', 
   recordPlayTutorialCombat(state, { effects: [{ type: 'knifePath', hitIds: ['training-a'] }] });
   const killEnemy = { tutorialRole: 'kill', health: 100, defeated: false, resonanceNeutral: false };
   const resonanceEnemy = { tutorialRole: 'resonance', health: 100, defeated: false, resonanceNeutral: false };
-  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, false);
+  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, true);
   killEnemy.health = 0;
   killEnemy.defeated = true;
-  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, false);
+  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, true);
   resonanceEnemy.resonanceNeutral = true;
   const result = stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] });
   assert.equal(result.readyToLeave, true);
@@ -91,12 +104,20 @@ test('tutorial advances only after each guided operation is actually observed', 
   assert.equal(renderState.completedCoreSteps, TUTORIAL_TASKS.length);
 });
 
+test('First Breath unlocks the exit after any ten selected tasks', () => {
+  const state = createPlayTutorialState();
+  state.completed = new Set(TUTORIAL_TASKS.slice(0, TUTORIAL_TASK_COMPLETION_TARGET).flatMap((task) => task.stepIds));
+  const result = stepPlayTutorial(state);
+  assert.equal(result.readyToLeave, true);
+  assert.equal(getPlayTutorialRenderState(state).completedCoreSteps, 10);
+});
+
 test('First Breath lets the player choose any task with the arrow keys', () => {
   const state = createPlayTutorialState();
   selectPlayTutorialTask(state, -1);
   const previous = getPlayTutorialRenderState(state);
-  assert.equal(previous.selectedTaskIndex, 9);
-  assert.equal(previous.selectedTaskId, TUTORIAL_TASKS[9].id);
+  assert.equal(previous.selectedTaskIndex, 19);
+  assert.equal(previous.selectedTaskId, TUTORIAL_TASKS[19].id);
   selectPlayTutorialTask(state, 1);
   const next = getPlayTutorialRenderState(state);
   assert.equal(next.selectedTaskIndex, 0);
@@ -105,8 +126,7 @@ test('First Breath lets the player choose any task with the arrow keys', () => {
 
 test('defeating an enemy does not satisfy the Resonance lesson', () => {
   const state = createPlayTutorialState();
-  TUTORIAL_GUIDED_STEPS.slice(0, -1).forEach((step) => state.observedActions.add(step.id));
-  state.completed = new Set(TUTORIAL_GUIDED_STEPS.slice(0, -1).map((step) => step.id));
+  state.completed = new Set(TUTORIAL_TASKS.slice(0, TUTORIAL_TASK_COMPLETION_TARGET - 1).flatMap((task) => task.stepIds));
   const result = stepPlayTutorial(state, { enemies: [{ defeated: true, health: 0, resonanceNeutral: false }] });
   assert.equal(result.readyToLeave, false);
   assert.equal(result.outcome, null);

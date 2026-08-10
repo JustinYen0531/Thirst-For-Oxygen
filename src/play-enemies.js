@@ -469,6 +469,8 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
     const position = getHexCenter(spawn.cell, origin);
     const size = getPlayEnemySize(definition.tier);
     const tutorialInfiniteHealth = Boolean(marker?.tutorialInfiniteHealth);
+    const authoredTutorialHealth = Number(marker?.tutorialHealth);
+    const tutorialHealth = Number.isFinite(authoredTutorialHealth) ? Math.max(1, authoredTutorialHealth) : null;
     const instance = {
       instanceId,
       enemyId,
@@ -477,8 +479,10 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       markerKind,
       tutorialRole: marker?.tutorialRole ?? null,
       tutorialInfiniteHealth,
+      tutorialHealth,
       tutorialNoSelfDestruct: Boolean(marker?.tutorialNoSelfDestruct),
       tutorialResonanceDisabled: Boolean(marker?.tutorialResonanceDisabled),
+      tutorialStationary: Boolean(marker?.tutorialStationary),
       anchorCellKey,
       spawnCellKey: spawn.cellKey,
       spawnPattern: spawn.spawnPattern,
@@ -486,8 +490,8 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       y: position.y,
       homeX: position.x,
       homeY: position.y,
-      health: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : definition.maxHealth,
-      maxHealth: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : definition.maxHealth,
+      health: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : tutorialHealth ?? definition.maxHealth,
+      maxHealth: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : tutorialHealth ?? definition.maxHealth,
       moveSpeed: definition.moveSpeed ?? 0,
       vx: 0,
       vy: 0,
@@ -1750,6 +1754,16 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     enemy.activeEffects ??= {};
     enemy.linkedTargets ??= [];
     updatePlayEnemyPassive(runtime, enemy, definition);
+    if (enemy.tutorialStationary) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.movementGoal = null;
+      enemy.alerted = false;
+      enemy.pendingSkill = null;
+      enemy.suicideCharge = null;
+      enemy.state = 'idle';
+      return;
+    }
     if ((enemy.stunnedUntil ?? 0) > runtime.time) {
       enemy.vx = 0;
       enemy.vy = 0;
