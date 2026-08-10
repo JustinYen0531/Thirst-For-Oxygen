@@ -41,6 +41,13 @@ button, select { font: inherit; }
 .play-devtools-shortcuts dt { color: #9dbbd0; font-size: .67rem; }
 .play-devtools-shortcuts dd { margin: 0; color: #fff4b3; font-size: .66rem; white-space: nowrap; }
 .play-devtools kbd { padding: 2px 5px; border: 1px solid #567b96; border-radius: 3px; color: #eaf6ff; background: #132d45; font: .62rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.play-dev-depth-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin: 0 0 12px; padding: 10px 0; border-block: 1px solid rgba(119, 232, 255, .16); }
+.play-dev-depth-form label { grid-column: 1 / -1; color: #b4cce0; font-size: .68rem; }
+.play-dev-depth-form input { width: 100%; min-width: 0; border: 1px solid rgba(119, 232, 255, .4); border-radius: 7px; padding: 9px; color: #fff4b3; background: #0a2746; outline: none; font: .76rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.play-dev-depth-form input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 255, .16); }
+.play-dev-depth-form button { width: auto; white-space: nowrap; }
+.play-dev-depth-form p { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; margin: 0; color: #7f9bb0; font-size: .62rem; }
+.play-dev-depth-form output { color: #8fe4ff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .play-dev-command-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .play-dev-command-form label { grid-column: 1 / -1; margin: 0; color: #9dbbd0; font-size: .68rem; }
 .play-dev-command-form input { width: 100%; min-width: 0; border: 1px solid rgba(119, 232, 255, .4); border-radius: 7px; padding: 9px; color: #e8f5ff; background: #0a2746; outline: none; font: .72rem ui-monospace, SFMono-Regular, Menlo, monospace; }

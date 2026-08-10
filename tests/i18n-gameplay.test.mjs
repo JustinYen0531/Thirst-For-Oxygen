@@ -44,6 +44,8 @@ test('representative dynamic combat messages retain their meaning in English', (
     ['RESONANCE 完成：螃蟹守衛成為中立夥伴；此物種 Buff 已經持有。', 'RESONANCE complete: Crab Guard is now neutral; this species buff is already owned.'],
     ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；「冷光耐爆」提升至 3/9 層，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; "Coldlight Blastproofing" advanced to stack 3/9. No EXP granted.'],
     ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；Buff 已達 9/9 層上限，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; buff already capped at 9/9. No EXP granted.'],
+    ['已傳送至下沉 120 m · T2。', 'Teleported to Descent 120 m · T2.'],
+    ['已傳送至上升 183 m · T1（要求 999 m，已選最近可通行深度）。', 'Teleported to Ascent 183 m · T1 (requested 999 m; nearest traversable depth used).'],
   ];
   messages.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
 });

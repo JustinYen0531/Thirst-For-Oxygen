@@ -82,6 +82,15 @@ const EXACT_ENGLISH = Object.freeze({
   'Resonance：使用敵人 ID，例如 crabGuard、abyssalSpermWhale。正式遊戲第 1 槽預設保留小刀。': 'Resonance: use an enemy ID, such as crabGuard or abyssalSpermWhale. Formal play keeps the knife in slot 1 by default.',
   '正式遊戲開發者快捷鍵': 'Formal play developer shortcuts',
   '只覆寫目前正式遊戲記憶體中的 Build 與 Resonance，不修改地圖檔案。': 'Only overrides the current formal-play Build and Resonance in memory; map files are unchanged.',
+  '只覆寫目前正式遊戲記憶體中的 Build、Resonance 與玩家位置，不修改地圖檔案。': 'Only overrides the current formal-play Build, Resonance, and player position in memory; map files are unchanged.',
+  '深度傳送': 'Depth teleport',
+  '輸入公尺 → 傳送': 'Enter meters → Teleport',
+  '傳送至目前地圖深度': 'Teleport to current-map depth',
+  '傳送': 'Teleport',
+  '目前地圖可傳送範圍': 'Current map teleport range',
+  '地圖仍在載入，暫時無法傳送。': 'The map is still loading; teleport is not available yet.',
+  '深度必須是有效的公尺數字。': 'Depth must be a valid number of meters.',
+  '目前地圖找不到可安全傳送的水域。': 'No safe water cell is available for teleporting on this map.',
   '正式遊戲第 1 槽預設保留小刀。': 'Formal play keeps the knife in slot 1 by default.',
   '主動武器槽位 1': 'Active weapon slot 1',
   '主動武器槽位 2': 'Active weapon slot 2',
@@ -594,6 +603,8 @@ const TERM_ENGLISH = Object.freeze({
 });
 
 const SENTENCE_REPLACEMENTS = Object.freeze([
+  [/^已傳送至(.+) (\d+) m · (T\d)（要求 (\d+) m，已選最近可通行深度）。$/, 'Teleported to $1 $2 m · $3 (requested $4 m; nearest traversable depth used).'],
+  [/^已傳送至(.+) (\d+) m · (T\d)。$/, 'Teleported to $1 $2 m · $3.'],
   [/^操作：使用 ← \/ → 切換 (\d+) 個任務；完成任意 (\d+) 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。$/, 'Control: Use ← / → to switch between $1 tasks; complete any $2 to unlock the EXIT; press Enter to open Skip Tutorial.'],
   [/^速度 (\d+) m\/s$/, 'SPEED $1 m/s'],
   [/^目前下沉 (\d+) 公尺$/, 'Current depth: $1 meters'],

@@ -124,6 +124,18 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('formal developer panel teleports to an authored safe depth instead of changing only the HUD label', () => {
+  assert.match(html, /id="play-dev-depth-form"/);
+  assert.match(html, /id="play-dev-depth"[^>]*type="number"[^>]*min="0"/);
+  assert.match(html, /id="play-dev-depth-range"/);
+  assert.match(page, /findPlayDepthTeleportTarget\(map/);
+  assert.match(page, /function teleportPlayActorToDepth\(requestedDepth\)/);
+  assert.match(page, /actor\.x = target\.x;\s*actor\.y = target\.y;\s*actor\.vx = 0;\s*actor\.vy = 0;/);
+  assert.match(page, /updateVisibleRenderEntries\(true\)/);
+  assert.match(page, /playDevDepthForm\?\.addEventListener\('submit'/);
+  assert.match(page, /depth: actor \? \{/);
+});
+
 test('Chapter 0 Tutorial uses its dedicated Tutorial music', () => {
   const music = read('../src/music.js');
   assert.match(music, /import tutorialSource from ['"]\.\/assets\/audio\/music\/tutorial\.mp3['"];/);

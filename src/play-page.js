@@ -81,6 +81,11 @@ import {
 import { BUILD_SLOT_LEVEL_CAPS } from './progression.js';
 import { RESONANCE_BUFFS } from './resonance.js';
 import { parseSandboxDevCommand } from './sandbox-devtools.js';
+import {
+  findPlayDepthTeleportTarget,
+  getPlayDepthMeters,
+  getPlayDepthRange,
+} from './play-depth-teleport.js';
 import { getPlayStageExitState } from './play-flow.js';
 import {
   TUTORIAL_ROUTE,
@@ -234,6 +239,9 @@ const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
 const playDevtools = document.querySelector('#play-devtools');
 const playDevtoolsClose = document.querySelector('#play-devtools-close');
+const playDevDepthForm = document.querySelector('#play-dev-depth-form');
+const playDevDepthInput = document.querySelector('#play-dev-depth');
+const playDevDepthRange = document.querySelector('#play-dev-depth-range');
 const playDevCommandForm = document.querySelector('#play-dev-command-form');
 const playDevCommand = document.querySelector('#play-dev-command');
 const playDevMessage = document.querySelector('#play-dev-message');
@@ -575,10 +583,67 @@ function applyPlayDevActions(actions) {
   eventLog.push(`開發者工具：${playDevMessage.textContent}`);
 }
 
+function updatePlayDevDepthControls() {
+  if (!playDevDepthInput || !playDevDepthRange) return;
+  const range = getPlayDepthRange(map, origin);
+  playDevDepthInput.max = String(range.max);
+  playDevDepthRange.textContent = `${range.min}–${range.max} m`;
+  if (actor && document.activeElement !== playDevDepthInput) {
+    playDevDepthInput.value = String(getPlayDepthMeters({ map, mapArc, actorY: actor.y, origin }));
+  }
+}
+
+function teleportPlayActorToDepth(requestedDepth) {
+  if (!map || !actor) {
+    const failure = { ok: false, error: 'mapNotReady' };
+    playDevMessage.textContent = '地圖仍在載入，暫時無法傳送。';
+    return failure;
+  }
+  const target = findPlayDepthTeleportTarget(map, {
+    mapArc,
+    requestedDepth,
+    currentX: actor.x,
+    origin,
+  });
+  if (!target.ok) {
+    playDevMessage.textContent = target.error === 'depthMustBeNumber'
+      ? '深度必須是有效的公尺數字。'
+      : '目前地圖找不到可安全傳送的水域。';
+    eventLog.push(`開發者工具：${playDevMessage.textContent}`);
+    return target;
+  }
+  actor.x = target.x;
+  actor.y = target.y;
+  actor.vx = 0;
+  actor.vy = 0;
+  actor.attached = false;
+  actor.insideWall = false;
+  actor.wallEntryEdgeKey = null;
+  actor.blockedResting = false;
+  actor.inInk = false;
+  dragging = false;
+  aimPoint = null;
+  trajectory = [];
+  lastTrajectoryAt = -Infinity;
+  updateCamera();
+  updateVisibleRenderEntries(true);
+  hudUpdateGate.reset();
+  updateHud();
+  render();
+  const routeLabel = mapArc === 'ascent' ? '上升' : '下沉';
+  const clampNote = target.clamped ? `（要求 ${target.requestedDepth} m，已選最近可通行深度）` : '';
+  playDevMessage.textContent = `已傳送至${routeLabel} ${target.depth} m · ${target.waterLayer}${clampNote}。`;
+  eventLog.push(`開發者工具：${playDevMessage.textContent}`);
+  playDevDepthInput.value = String(target.depth);
+  updatePlayDevDepthControls();
+  return target;
+}
+
 function setPlayDevtoolsOpen(open) {
   if (!playDevtools) return;
   playDevtools.hidden = !open;
   if (open) {
+    updatePlayDevDepthControls();
     playDevCommand?.focus();
     playDevCommand?.select();
   }
@@ -689,6 +754,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   updateVisibleRenderEntries(true);
   hudUpdateGate.reset();
   updateHud();
+  updatePlayDevDepthControls();
   loadingMask.classList.add('is-hidden');
 }
 
@@ -2074,11 +2140,7 @@ function updateHud() {
   updateUpgradeOverlay();
   const combatRenderState = getPlayCombatHudState(combatState);
   const progress = combatRenderState.progression;
-  const firstRowCenterY = (mapBounds?.top ?? origin.y) + HEX_SIZE;
-  const lastRowCenterY = (mapBounds?.bottom ?? origin.y) - HEX_SIZE;
-  const routeMeters = mapArc === 'ascent'
-    ? Math.max(0, Math.round((lastRowCenterY - actor.y) / (HEX_SIZE * 1.5)))
-    : Math.max(0, Math.round((actor.y - firstRowCenterY) / (HEX_SIZE * 1.5)));
+  const routeMeters = getPlayDepthMeters({ map, mapArc, actorY: actor.y, origin });
   depthReadout.previousElementSibling.textContent = mapArc === 'ascent' ? 'ASCENT' : 'DEPTH';
   depthReadout.textContent = `${String(routeMeters).padStart(3, '0')} m`;
   depthReadout.setAttribute('aria-label', `目前${mapArc === 'ascent' ? '上升' : '下沉'} ${routeMeters} 公尺`);
@@ -2586,6 +2648,10 @@ upgradeChoices.addEventListener('click', (event) => {
 musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 playDevtoolsClose?.addEventListener('click', () => setPlayDevtoolsOpen(false));
+playDevDepthForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  teleportPlayActorToDepth(playDevDepthInput?.value);
+});
 playDevCommandForm?.addEventListener('submit', (event) => {
   event.preventDefault();
   submitPlayDevCommand(playDevCommand.value);
@@ -2832,6 +2898,10 @@ window.render_game_to_text = () => {
     map: getMapDefinition()?.label ?? 'loading',
     mapArc,
     mapPart,
+    depth: actor ? {
+      current: getPlayDepthMeters({ map, mapArc, actorY: actor.y, origin }),
+      ...getPlayDepthRange(map, origin),
+    } : null,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
     player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, insideWall: Boolean(actor.insideWall), invisibleRemaining: Math.max(0, actor.invisibilityTimer ?? 0), stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
     attempt: actor ? getPlayAttemptState(actor) : null,

@@ -28,14 +28,21 @@
             </div>
             <button id="play-devtools-close" type="button" class="action-secondary">關閉</button>
           </div>
-          <p class="play-devtools-copy">只覆寫目前正式遊戲記憶體中的 Build 與 Resonance，不修改地圖檔案。</p>
+          <p class="play-devtools-copy">只覆寫目前正式遊戲記憶體中的 Build、Resonance 與玩家位置，不修改地圖檔案。</p>
           <dl class="play-devtools-shortcuts">
             <div><dt>開／關此視窗</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd></dd></div>
             <div><dt>武器槽拉滿</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd></dd></div>
             <div><dt>被動槽拉滿</dt><dd><kbd>Alt</kbd> + <kbd>2</kbd></dd></div>
             <div><dt>Resonance 拉滿</dt><dd><kbd>Alt</kbd> + <kbd>3</kbd></dd></div>
             <div><dt>清除覆寫</dt><dd><kbd>Alt</kbd> + <kbd>0</kbd></dd></div>
+            <div><dt>深度傳送</dt><dd>輸入公尺 → 傳送</dd></div>
           </dl>
+          <form id="play-dev-depth-form" class="play-dev-depth-form">
+            <label for="play-dev-depth">傳送至目前地圖深度</label>
+            <input id="play-dev-depth" type="number" min="0" step="1" inputmode="numeric" value="0" />
+            <button type="submit" class="action-secondary">傳送</button>
+            <p><span>目前地圖可傳送範圍</span><output id="play-dev-depth-range">0–0 m</output></p>
+          </form>
           <form id="play-dev-command-form" class="play-dev-command-form">
             <label for="play-dev-command">指定命令（Enter 套用，Esc 關閉）</label>
             <input id="play-dev-command" type="text" autocomplete="off" spellcheck="false" placeholder="weapon 2 katana 3; resonance crabGuard 9" />
