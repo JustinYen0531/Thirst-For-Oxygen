@@ -5,7 +5,9 @@ import {
   PLAY_STORY_INTRO_SLIDES,
   PLAY_STORY_INTRO_SLIDES_BY_PART,
   advancePlayStoryIntro,
+  advancePlayStoryIntroAfterVideo,
   createPlayStoryIntroState,
+  getPlayStoryIntroNarratorText,
   getPlayStoryIntroRenderState,
   getPlayStoryIntroSlides,
   skipPlayStoryIntro,
@@ -92,6 +94,13 @@ test('all three descent parts use their authored chapter videos', () => {
   });
 });
 
+test('story slides with authored diver footage use suit-free framing', () => {
+  assert.deepEqual(
+    Object.values(PLAY_STORY_INTRO_SLIDES_BY_PART).flat().map(({ mediaFraming }) => mediaFraming ?? 'standard'),
+    ['standard', 'standard', 'suit-free-right', 'suit-free-right', 'standard', 'suit-free-right', 'suit-free-right', 'standard', 'suit-free-left'],
+  );
+});
+
 test('narrator types, first activation completes text, then advances slides', () => {
   const state = createPlayStoryIntroState();
   let render = getPlayStoryIntroRenderState(state);
@@ -109,6 +118,36 @@ test('narrator types, first activation completes text, then advances slides', ()
   render = getPlayStoryIntroRenderState(state);
   assert.equal(render.slideNumber, 2);
   assert.equal(render.textComplete, false);
+});
+
+test('narrator typing translates the complete sentence before slicing progress', () => {
+  const state = createPlayStoryIntroState();
+  stepPlayStoryIntro(state, .25);
+  const render = getPlayStoryIntroRenderState(state);
+  const english = getPlayStoryIntroNarratorText(state, (value) => (
+    value === render.narrator ? 'The complete translated narration.' : 'English copy pending review'
+  ));
+  assert.notEqual(english, 'English copy pending review');
+  assert.ok(english.length > 0);
+  assert.ok(english.length < 'The complete translated narration.'.length);
+});
+
+test('video completion advances directly instead of replaying the ended slide', () => {
+  const state = createPlayStoryIntroState();
+  const firstVideo = getPlayStoryIntroRenderState(state).videoPath;
+  const next = advancePlayStoryIntroAfterVideo(state);
+  assert.equal(next.slideNumber, 2);
+  assert.equal(next.typedCharacters, 0);
+  assert.notEqual(next.videoPath, firstVideo);
+});
+
+test('the final video completion closes the story intro', () => {
+  const state = createPlayStoryIntroState({ reducedMotion: true });
+  advancePlayStoryIntroAfterVideo(state);
+  advancePlayStoryIntroAfterVideo(state);
+  const render = advancePlayStoryIntroAfterVideo(state);
+  assert.equal(render.active, false);
+  assert.equal(render.blocksGameplay, false);
 });
 
 test('final slide closes the story intro and releases gameplay', () => {

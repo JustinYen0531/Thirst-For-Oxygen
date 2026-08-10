@@ -37,7 +37,7 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(page, /resonanceState: combatState\.resonance/);
   assert.match(page, /enemyResult\?\.resonanceEvents\?\.length/);
   assert.match(page, /beginArcTransition\('ascent', 1\)/);
-  assert.match(page, /Resonance 永久 Buff 全數保留/);
+  assert.match(page, /下沉→上升：生命與能量已回滿；氧氣、Build 與 Resonance 永久 Buff 保留/);
   assert.match(page, /neutral: Boolean\(enemy\.resonanceNeutral\)/);
   assert.match(html, /id="play-level-inspect"/);
   assert.match(html, /class="experience-track" id="play-experience-track"/);
@@ -152,9 +152,9 @@ test('formal play draws deterministic static frames selected by runtime skill st
 test('Part 1 presents Attempt separately from HP and preserves the authored awakening mask', () => {
   assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3\/3</);
   assert.doesNotMatch(html, /Attempts 3\/3/);
-  assert.match(page, /enabled: mapPart === 1 && !previousActor/);
+  assert.match(page, /enabled: !storyIntroState\.active && mapPart === 1 && !previousActor/);
   assert.match(page, /stepPlayAwakening\(awakeningState, scaledElapsed\)/);
-  assert.match(page, /if \(paused \|\| awakeningState\.active \|\| actor\.dead/);
+  assert.match(page, /if \(paused \|\| storyIntroState\.active \|\| awakeningState\.awaitingTrigger \|\| awakeningState\.active \|\| actor\.dead/);
   assert.match(page, /context\.ellipse\(/);
   assert.match(page, /mapPart === 1 && !preserveRun \? '' : mapArc === 'ascent' \? '正在逆游上升…' : '正在潛入水域…'/);
   assert.match(page, /attemptsReadout\.textContent = attempt\.label/);
@@ -169,6 +169,8 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(html, /id="play-story-narrator"/);
   assert.match(html, /id="play-story-skip"/);
   assert.match(page, /advancePlayStoryIntro/);
+  assert.match(page, /advancePlayStoryIntroAfterVideo/);
+  assert.match(page, /getPlayStoryIntroNarratorText\(storyIntroState, translateStoryText\)/);
   assert.match(page, /stepPlayStoryIntro/);
   assert.match(page, /storyIntroState\.active/);
   assert.match(page, /finishStoryIntro/);
@@ -183,7 +185,7 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(page, /canvas\.setPointerCapture\(event\.pointerId\)/);
   assert.match(page, /storyIntroVideo\.playbackRate = 0\.5/);
   assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
-  assert.match(page, /story\.slideIndex >= story\.totalSlides - 1/);
+  assert.match(page, /storyIntroOverlay\.dataset\.storyFraming = story\.mediaFraming/);
   assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
   assert.match(css, /\.play-story-intro-overlay/);
   assert.match(css, /z-index: 1/);
@@ -191,4 +193,12 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(css, /\.play-story-narrator \{[^}]*padding:/);
   assert.match(css, /\.play-story-footer button \{[^}]*border: 0/);
   assert.match(css, /play-story-breathe/);
+  assert.match(css, /data-story-framing="suit-free-right"/);
+  assert.match(css, /data-story-framing="suit-free-left"/);
+});
+
+test('chapter transitions refill health and energy while preserving the run', () => {
+  assert.match(page, /actor\.health = MAX_HEALTH/);
+  assert.match(page, /actor\.energy = MAX_ENERGY/);
+  assert.match(page, /生命與能量已回滿；氧氣、經驗與 Build 已保留/);
 });

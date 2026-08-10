@@ -21,6 +21,7 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
   Object.freeze({
     videoPath: '/assets/story/descent-part1/ZH1-3.mp4',
     imagePath: '/assets/story/descent-part1/slide-03-flesh-diver.png',
+    mediaFraming: 'suit-free-right',
     eyebrow: 'DEEP SEA RECORD / 03',
     title: '只有肉身能夠共鳴',
     narrator: '只有活著的肉身能穿過共鳴。我的任務不是征服深海，而是抵達核心，帶回它的回應。',
@@ -30,6 +31,7 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
     Object.freeze({
       videoPath: '/assets/story/descent-part2/CH2-1.mp4',
       imagePath: '/assets/story/descent-part2/slide-01-forgotten-breath.png',
+      mediaFraming: 'suit-free-right',
       eyebrow: 'DEEP SEA RECORD / 04',
       title: '不再需要氧氣的生命',
       narrator: '越往下，越少生物需要氧氣。牠們不是適應了死亡，而是被迫學會忘記呼吸。',
@@ -44,6 +46,7 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
     Object.freeze({
       videoPath: '/assets/story/descent-part2/CH2-3.mp4',
       imagePath: '/assets/story/descent-part2/slide-03-no-harmless-answer.png',
+      mediaFraming: 'suit-free-right',
       eyebrow: 'DEEP SEA RECORD / 06',
       title: '沒有無害的答案',
       narrator: '我仍必須向下。若留下核心，世界會慢慢窒息；若帶走它，深海會立刻流血。',
@@ -53,6 +56,7 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
     Object.freeze({
       videoPath: '/assets/story/descent-part3/CH3-1.mp4',
       imagePath: '/assets/story/descent-part3/slide-01-ruins-remember.png',
+      mediaFraming: 'suit-free-right',
       eyebrow: 'DEEP SEA RECORD / 07',
       title: '遺跡記得第一次墜落',
       narrator: '石壁留下的不是祭祀，而是警告。這顆核心從來不是海洋的心臟，而是終止人類戰爭的異文明武器。',
@@ -67,6 +71,7 @@ export const PLAY_STORY_INTRO_SLIDES_BY_PART = Object.freeze({
     Object.freeze({
       videoPath: '/assets/story/descent-part3/CH3-3.mp4',
       imagePath: '/assets/story/descent-part3/slide-03-atonement-choice.png',
+      mediaFraming: 'suit-free-left',
       eyebrow: 'DEEP SEA RECORD / 09',
       title: '謝罪不是得到原諒',
       narrator: '我已抵達核心。拔出它不會洗清人類的罪，只會把選擇的後果交到我的手上。',
@@ -121,6 +126,7 @@ export function getPlayStoryIntroRenderState(state) {
     totalSlides: slides.length,
     videoPath: slide.videoPath,
     imagePath: slide.imagePath,
+    mediaFraming: slide.mediaFraming ?? 'standard',
     eyebrow: slide.eyebrow,
     title: slide.title,
     narrator: slide.narrator,
@@ -129,6 +135,14 @@ export function getPlayStoryIntroRenderState(state) {
     textComplete: typedCharacters >= slide.narrator.length,
     progress: (slideIndex + 1) / slides.length,
   });
+}
+
+export function getPlayStoryIntroNarratorText(state, translate = (value) => value) {
+  const render = getPlayStoryIntroRenderState(state);
+  const fullText = String(translate(render.narrator) ?? '');
+  const sourceLength = Math.max(1, render.narrator.length);
+  const progress = Math.min(1, Math.max(0, render.typedCharacters / sourceLength));
+  return fullText.slice(0, Math.round(fullText.length * progress));
 }
 
 export function stepPlayStoryIntro(state, elapsed, timing = PLAY_STORY_INTRO_TIMING) {
@@ -149,6 +163,20 @@ export function advancePlayStoryIntro(state) {
     state.typedCharacters = slide.narrator.length;
     return getPlayStoryIntroRenderState(state);
   }
+  const slides = getPlayStoryIntroSlides(state.part);
+  if (state.slideIndex < slides.length - 1) {
+    state.slideIndex += 1;
+    state.typedCharacters = state.reducedMotion
+      ? getPlayStoryIntroSlide(state).narrator.length
+      : 0;
+    return getPlayStoryIntroRenderState(state);
+  }
+  state.active = false;
+  return getPlayStoryIntroRenderState(state);
+}
+
+export function advancePlayStoryIntroAfterVideo(state) {
+  if (!state?.active) return getPlayStoryIntroRenderState(state);
   const slides = getPlayStoryIntroSlides(state.part);
   if (state.slideIndex < slides.length - 1) {
     state.slideIndex += 1;

@@ -111,7 +111,9 @@ import {
 } from './play-preload.js';
 import {
   advancePlayStoryIntro,
+  advancePlayStoryIntroAfterVideo,
   createPlayStoryIntroState,
+  getPlayStoryIntroNarratorText,
   getPlayStoryIntroRenderState,
   skipPlayStoryIntro,
   stepPlayStoryIntro,
@@ -399,9 +401,9 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   actor = createTestActor(spawn);
   setPlayerDamageReduction(actor, playerDamageReduction);
   if (previousActor) {
-    actor.health = previousActor.health;
+    actor.health = MAX_HEALTH;
     actor.oxygen = previousActor.oxygen;
-    actor.energy = previousActor.energy;
+    actor.energy = MAX_ENERGY;
     actor.lives = previousActor.lives;
     actor.maxLives = previousActor.maxLives;
     actor.deathCount = previousActor.deathCount;
@@ -841,6 +843,7 @@ function updateStoryIntroPresentation() {
   const visible = story.active || storyIntroCoverMode !== 'none';
   storyIntroOverlay.hidden = !visible;
   storyIntroOverlay.classList.toggle('is-story-cover', storyIntroCoverMode === 'black');
+  storyIntroOverlay.dataset.storyFraming = story.mediaFraming;
   stageFrame.classList.toggle('is-story-intro', visible);
   stageWrap?.classList.toggle('is-story-intro', visible);
   if (!story.active) {
@@ -877,7 +880,7 @@ function updateStoryIntroPresentation() {
     return translated === 'English copy pending review' ? String(value ?? '') : translated;
   };
   if (storyIntroTitle) storyIntroTitle.textContent = translateStoryText(story.title);
-  if (storyIntroNarrator) storyIntroNarrator.textContent = translateStoryText(story.typedText);
+  if (storyIntroNarrator) storyIntroNarrator.textContent = getPlayStoryIntroNarratorText(storyIntroState, translateStoryText);
   if (storyIntroHint) storyIntroHint.textContent = translateStoryText(story.textComplete
     ? (story.slideNumber === story.totalSlides ? '點擊或按 Space 開始遊戲' : '點擊或按 Space 下一頁')
     : '點擊或按 Space 顯示完整旁白');
@@ -885,9 +888,10 @@ function updateStoryIntroPresentation() {
 }
 
 storyIntroVideo?.addEventListener('ended', () => {
-  const story = getPlayStoryIntroRenderState(storyIntroState);
-  if (!story.active || story.slideIndex >= story.totalSlides - 1) return;
-  advanceStoryIntroInput();
+  const story = advancePlayStoryIntroAfterVideo(storyIntroState);
+  if (!story.active) finishStoryIntro({ retainFinalSlide: true });
+  updateStoryIntroPresentation();
+  render();
 });
 
 function finishStoryIntro({ retainFinalSlide = false } = {}) {
@@ -2104,7 +2108,7 @@ function beginStageTransition(nextPart) {
   mapPart = nextPart;
   syncMusicTrack();
   loadMap(nextPart, { preserveRun: true, arc: mapArc })
-    .then(() => { eventLog.push('跨段完成：生命、氧氣、能量、經驗與 Build 已保留。'); })
+    .then(() => { eventLog.push('跨段完成：生命與能量已回滿；氧氣、經驗與 Build 已保留。'); })
     .finally(() => { transitioning = false; });
 }
 
@@ -2120,7 +2124,7 @@ function beginArcTransition(nextArc, nextPart = 1) {
   loadingMask.classList.remove('is-hidden');
   loadingMask.textContent = `共鳴能力保留，前往${getMapDefinition().label}…`;
   loadMap(mapPart, { preserveRun: true, arc: mapArc })
-    .then(() => { eventLog.push('下沉→上升：生命、資源、Build 與 Resonance 永久 Buff 全數保留。'); })
+    .then(() => { eventLog.push('下沉→上升：生命與能量已回滿；氧氣、Build 與 Resonance 永久 Buff 保留。'); })
     .finally(() => { transitioning = false; });
 }
 mapSelect.addEventListener('change', () => {
