@@ -1,6 +1,8 @@
+@import './ibm-plex-sans-tc.css';
+
 :root {
   color-scheme: dark;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #e8f3ff;
   background: #07111f;
 }

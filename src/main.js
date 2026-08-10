@@ -700,7 +700,7 @@ function drawMapBackplate(bounds) {
 function drawText(text, x, y, options = {}) {
   ctx.save();
   ctx.fillStyle = options.fill ?? '#eff8ff';
-  ctx.font = options.font ?? '12px system-ui';
+  ctx.font = options.font ?? '12px "IBM Plex Sans TC", system-ui, sans-serif';
   ctx.textAlign = options.align ?? 'center';
   ctx.textBaseline = options.baseline ?? 'middle';
   ctx.fillText(text, x, y);

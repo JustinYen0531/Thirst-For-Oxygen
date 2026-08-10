@@ -1,6 +1,8 @@
+@import './ibm-plex-sans-tc.css';
+
 :root {
   color-scheme: dark;
-  font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans TC", "Noto Sans TC", "Segoe UI", sans-serif;
   background: #061427;
   color: #e8f5ff;
   --blue-0: #061427;

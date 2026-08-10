@@ -1,6 +1,8 @@
+@import './ibm-plex-sans-tc.css';
+
 :root {
   color-scheme: dark;
-  font-family: Inter, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  font-family: "IBM Plex Sans TC", Inter, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 }
 
 * {

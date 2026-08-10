@@ -841,7 +841,7 @@ function drawObject(object, x, y) {
     drawButtonObject(object, x, y, size);
     return;
   }
-  if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(translateGameplayText(visual.label ?? objectGlyphs[object.kind] ?? '?'), x, y); context.restore(); }
+  if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px "IBM Plex Sans TC", "Segoe UI", sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(translateGameplayText(visual.label ?? objectGlyphs[object.kind] ?? '?'), x, y); context.restore(); }
 }
 
 function drawProgrammaticEdge(visual, geometry, edge, size) {
@@ -1114,7 +1114,7 @@ function drawAwakeningRouteLock(awakening) {
   context.fillText(translateGameplayText(activeStage.chapterLabel), labelX, labelY);
   context.shadowBlur = 7 * awakening.routeLightRatio;
   context.fillStyle = '#effcff';
-  context.font = `700 ${Math.max(18, canvas.height * .033)}px "Noto Sans TC", "Segoe UI", sans-serif`;
+  context.font = `700 ${Math.max(18, canvas.height * .033)}px "IBM Plex Sans TC", "Noto Sans TC", "Segoe UI", sans-serif`;
   context.fillText(translateGameplayText(activeStage.title), labelX, labelY + canvas.height * .052);
   context.restore();
 }
@@ -1389,7 +1389,7 @@ function drawStageExit() {
   context.arc(x, y, 11 * pulse, 0, Math.PI * 2);
   context.stroke();
   context.setLineDash([]);
-  context.font = 'bold 5px system-ui';
+  context.font = 'bold 5px "IBM Plex Sans TC", system-ui, sans-serif';
   context.textAlign = 'center';
   context.fillStyle = colour;
   context.fillText(stageExit.unlocked ? 'EXIT' : (mapArc === TUTORIAL_ROUTE ? 'GUIDE' : 'BOSS'), x, y + 1.8);
@@ -1424,7 +1424,7 @@ function drawTutorialGuideMarker() {
   context.moveTo(x, y + 5);
   context.lineTo(x, y + 12);
   context.stroke();
-  context.font = 'bold 4.5px system-ui';
+  context.font = 'bold 4.5px "IBM Plex Sans TC", system-ui, sans-serif';
   context.textAlign = 'center';
   context.fillStyle = '#dffff0';
   context.fillText('GUIDE', x, y - 12);
@@ -1589,7 +1589,7 @@ function drawEnemies() {
     context.fill();
     context.stroke();
     context.fillStyle = '#eafaff';
-    context.font = 'bold 4px system-ui';
+    context.font = 'bold 4px "IBM Plex Sans TC", system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(String(enemy.tier), pose.x, pose.y);

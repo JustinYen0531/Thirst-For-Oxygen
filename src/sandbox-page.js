@@ -1121,7 +1121,7 @@ function renderAimPreview() {
   ctx.arc(state.aimPoint.x, state.aimPoint.y, 9, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.font = '12px system-ui';
+  ctx.font = '12px "IBM Plex Sans TC", system-ui, sans-serif';
   ctx.fillStyle = '#fff5b5';
   ctx.fillText(translateGameplayText(`彈射距離 ${Math.round(distance)}`), state.aimPoint.x + 12, state.aimPoint.y - 10);
   ctx.restore();
