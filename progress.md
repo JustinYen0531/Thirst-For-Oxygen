@@ -1232,3 +1232,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 左下 Guidance 操作框不再翻譯串接後的複合句；當前操作與 First Breath 任務切換提示分開翻譯，英文模式不會殘留中文。
 - 聚焦 i18n／Play 靜態測試 27/27 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — First Breath task list has a real scroll range
+
+- 任務清單改成固定 96px 的兩欄滾動區，固定 grid row 高度並強制顯示 scrollbar；20 個任務不再因父卡高度或 auto overflow 而只呈現前 14 個。
+- Scrollbar thumb 與 track 增加明確視覺樣式；Play 靜態結構測試補上真正 scroll range 的 CSS 契約。

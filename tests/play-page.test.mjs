@@ -39,6 +39,8 @@ test('Chapter 0 tutorial cards let Canvas controls pass through while retaining 
   assert.match(css, /\.play-tutorial-panel[^\n]*pointer-events: none/);
   assert.match(css, /\.play-tutorial-dialogue[^\n]*pointer-events: none/);
   assert.match(css, /\.play-tutorial-task-list \{[^\n]*pointer-events: auto/);
+  assert.match(css, /\.play-tutorial-object-list \{[^\n]*grid-auto-rows: max-content[^\n]*height: 96px[^\n]*overflow-y: scroll/);
+  assert.match(css, /\.play-tutorial-task-list::-webkit-scrollbar-thumb/);
   assert.match(css, /\.play-tutorial-panel\.is-pointer-over/);
   assert.match(css, /\.play-tutorial-dialogue\.is-pointer-over/);
 });
