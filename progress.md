@@ -1395,3 +1395,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 所有玩家頁面導覽、執行期素材與六份中英文地圖路徑改為 `./` 相對路徑，避免 itch.io 子路徑部署失效；ZIP 條目由封裝腳本統一使用 `/`，拒絕反斜線、絕對路徑與 `../`。
 - 最終封裝 `output/Thirst-for-Oxygen-itch.io.zip` 共 714 個條目、6 個中文檔名、535,648,996 bytes；獨立驗證確認頭盔首頁與 `editor.html` 存在，SHA-256 為 `F3EB762D0D91938DD9436C5D6C2F20142521B027B63DFB3C54DC6056CF4266DC`。
 - 完整 `npm run check` 381/381、聚焦測試 142/142 與 production build 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Tutorial HUD dimming fix
+
+- 修正 Tutorial 右側任務面板與左下導航對話在非 hover 狀態被固定降到 42% opacity 的可讀性問題；兩者現在常態保持 100% 可見，hover 僅保留邊框與背景回饋。
+- 依專案規則只做靜態測試、build 與 itch.io 封包驗證，不執行瀏覽器／Playwright。
