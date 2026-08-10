@@ -145,16 +145,7 @@
           <div><span class="eyebrow">PLAY SETTINGS</span><h2>遊玩設定</h2></div>
           <button class="settings-close" id="play-settings-close" type="button" aria-label="關閉設定">×</button>
         </div>
-        <p class="settings-note">地圖選擇固定在上方中央；這裡集中音樂、暫停與測試輔助。</p>
-        <section class="settings-section" aria-labelledby="language-settings-title">
-          <h3 id="language-settings-title">語言</h3>
-          <label class="settings-field" for="play-language"><span>介面語言</span>
-            <select id="play-language">
-              <option value="en">English</option>
-              <option value="zh-Hant">繁體中文</option>
-            </select>
-          </label>
-        </section>
+        <p class="settings-note">優先調整生存輔助與資源消耗；音訊與語言放在下方，地圖選擇仍固定於上方中央。</p>
         <section class="settings-section" aria-labelledby="difficulty-settings-title">
           <h3 id="difficulty-settings-title">難度輔助</h3>
           <label class="settings-field" for="play-damage-reduction"><span>玩家承受傷害</span>
@@ -167,6 +158,24 @@
             </select>
           </label>
           <p class="settings-help">套用於敵人、投射物、毒素與環境造成的生命傷害；選擇會儲存在本機。</p>
+        </section>
+        <section class="settings-section" aria-labelledby="play-tools-title">
+          <h3 id="play-tools-title">測試工具</h3>
+          <label class="settings-field" for="play-resource-cost-reduction"><span>氧氣／能量消耗減免</span>
+            <select id="play-resource-cost-reduction">
+              <option value="0">標準（減免 0%）</option>
+              <option value="0.3" selected>減免 30%（推薦）</option>
+              <option value="0.5">減免 50%</option>
+              <option value="0.75">減免 75%</option>
+              <option value="0.9">減免 90%</option>
+            </select>
+          </label>
+          <p class="settings-help">降低拉射、武器與氧氣消耗；不會補滿資源，也不會讓敵人的攻擊失效。選擇會儲存在本機。</p>
+          <div class="play-actions">
+            <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
+            <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
+          </div>
+          <button class="action-secondary settings-exit" id="play-exit" type="button">↩ 離開遊玩</button>
         </section>
         <section class="settings-section" aria-labelledby="music-settings-title">
           <h3 id="music-settings-title">音樂</h3>
@@ -183,25 +192,23 @@
             </select>
           </label>
           <div id="play-music-control"></div>
-        </section>
-        <section class="settings-section" aria-labelledby="play-tools-title">
-          <h3 id="play-tools-title">測試工具</h3>
-          <div class="play-actions">
-            <button class="action-primary" id="play-reset" type="button">↻ 重設主角</button>
-            <button class="action-secondary" id="play-pause" type="button" aria-pressed="false">Ⅱ 暫停</button>
+          <div class="settings-media-card" id="play-ambient-card">
+            <div class="settings-media-heading">
+              <div><span>潛水環境音</span><small>240 秒循環</small></div>
+              <strong>AMBIENT</strong>
+            </div>
+            <button class="resource-toggle" id="play-ambient-toggle" type="button" aria-pressed="true">◉ 潛水環境音：開</button>
+            <div id="play-ambient-volume-control"></div>
           </div>
-          <button class="resource-toggle" id="play-unlimited-resources" type="button" aria-pressed="false">∞ 無限氧氣／能量：關</button>
-          <button class="resource-toggle" id="play-ambient-toggle" type="button" aria-pressed="true">◉ 潛水環境音（240 秒循環）：開</button>
-          <button class="action-secondary settings-exit" id="play-exit" type="button">↩ 離開遊玩</button>
         </section>
-        <section class="camera-card">
-          <span>鏡頭狀態</span>
-          <strong id="play-camera-readout">主角 60% 錨點</strong>
-          <small id="play-map-title">正在載入地圖…</small>
-        </section>
-        <section class="event-card">
-          <span>測試紀錄</span>
-          <ol id="play-events"><li>拖曳潛水夫，放開即可彈射。</li></ol>
+        <section class="settings-section" aria-labelledby="language-settings-title">
+          <h3 id="language-settings-title">語言</h3>
+          <label class="settings-field" for="play-language"><span>介面語言</span>
+            <select id="play-language">
+              <option value="en">English</option>
+              <option value="zh-Hant">繁體中文</option>
+            </select>
+          </label>
         </section>
       </aside>
     </main>

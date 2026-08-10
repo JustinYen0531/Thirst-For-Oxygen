@@ -536,16 +536,19 @@ export function getWeaponUseCost(weaponId = 'knife', level = 1, loadout = []) {
   return stats.energyCost * modifiers.weaponEnergyCostMultiplier;
 }
 
-export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxygen) {
+export function getPlayerDerivedStats(loadout = [], oxygen = RESOURCE_LIMITS.oxygen, resourceCostReduction = 0) {
   const modifiers = getPassiveModifiers(loadout);
   const maxOxygen = RESOURCE_LIMITS.oxygen * modifiers.maxOxygenMultiplier;
   const lowOxygen = oxygen < maxOxygen * 0.5;
   const conditionalEnergyMultiplier = lowOxygen ? modifiers.lowOxygenEnergyCostMultiplier : 1;
+  const normalizedCostReduction = Math.min(0.9, Math.max(0, Number(resourceCostReduction) || 0));
+  const resourceCostMultiplier = 1 - normalizedCostReduction;
   return {
     ...modifiers,
     maxOxygen,
-    launchEnergyCostMultiplier: modifiers.launchEnergyCostMultiplier * conditionalEnergyMultiplier,
-    weaponEnergyCostMultiplier: modifiers.weaponEnergyCostMultiplier * conditionalEnergyMultiplier,
+    oxygenDrainMultiplier: modifiers.oxygenDrainMultiplier * resourceCostMultiplier,
+    launchEnergyCostMultiplier: modifiers.launchEnergyCostMultiplier * conditionalEnergyMultiplier * resourceCostMultiplier,
+    weaponEnergyCostMultiplier: modifiers.weaponEnergyCostMultiplier * conditionalEnergyMultiplier * resourceCostMultiplier,
     currentDamageMultiplier: PLAYER_OUTGOING_DAMAGE_MULTIPLIER * modifiers.damageMultiplier * (oxygen > maxOxygen * 0.5 ? modifiers.highOxygenDamageMultiplier : 1),
   };
 }

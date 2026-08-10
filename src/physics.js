@@ -327,7 +327,8 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     maxLives: MAX_LIVES,
     abilities,
     activeWeapon: { id: 'knife', level: 1 },
-    derivedStats: getPlayerDerivedStats(abilities, MAX_OXYGEN),
+    resourceCostReduction: 0,
+    derivedStats: getPlayerDerivedStats(abilities, MAX_OXYGEN, 0),
     dead: false,
     gameOver: false,
     facing: 'right',
@@ -363,8 +364,10 @@ export function resetTestActor(actor, map, chapter, origin) {
   const lives = Number.isFinite(actor.lives) ? actor.lives : MAX_LIVES;
   const abilities = actor.abilities ?? [];
   const weapon = actor.activeWeapon ?? { id: 'knife', level: 1 };
+  const resourceCostReduction = actor.resourceCostReduction ?? 0;
   Object.assign(actor, createTestActor(spawn));
   actor.lives = lives;
+  actor.resourceCostReduction = resourceCostReduction;
   setPlayerLoadout(actor, abilities, weapon);
   if (lives <= 0) {
     actor.health = 0;
@@ -383,7 +386,7 @@ export function startTestRun(actor, map, chapter, origin) {
 export function setPlayerLoadout(actor, abilities = [], weapon = { id: 'knife', level: 1 }) {
   actor.abilities = abilities.map((ability) => ({ ...ability }));
   actor.activeWeapon = { ...weapon };
-  actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen);
+  actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen, actor.resourceCostReduction);
   actor.oxygen = Math.min(
     Number.isFinite(actor.oxygen) ? actor.oxygen : actor.derivedStats.maxOxygen,
     actor.derivedStats.maxOxygen,
@@ -457,7 +460,7 @@ export function respawnActor(actor, spawn) {
   actor.vy = 0;
   actor.health = MAX_HEALTH;
   actor.energy = MAX_ENERGY;
-  actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen);
+  actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen, actor.resourceCostReduction);
   actor.oxygen = actor.derivedStats.maxOxygen;
   actor.dead = false;
   actor.blockedResting = false;
@@ -977,7 +980,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   actor.shieldTimer = Math.max(0, actor.shieldTimer - dt);
   actor.shieldCooldown = Math.max(0, actor.shieldCooldown - dt);
   processOxygenClock(actor, dt, events);
-  actor.derivedStats = getPlayerDerivedStats(actor.abilities ?? [], actor.oxygen);
+  actor.derivedStats = getPlayerDerivedStats(actor.abilities ?? [], actor.oxygen, actor.resourceCostReduction);
   processResourceHealthRecovery(actor, dt);
   if (actor.attached) {
     if (actor.energyRecoveryDelay <= 0) {

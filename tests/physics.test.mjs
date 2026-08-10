@@ -830,6 +830,17 @@ test('play assistance supports the authored player damage-reduction choices', ()
   assert.equal(setPlayerDamageReduction(actor, 4), 0.9, '減傷必須封頂於 90% 而不是形成無敵');
 });
 
+test('resource cost assistance reduces oxygen and energy costs without refilling resources', () => {
+  const actor = createTestActor();
+  actor.resourceCostReduction = 0.3;
+  actor.derivedStats = getPlayerDerivedStats([], actor.oxygen, actor.resourceCostReduction);
+  assert.equal(getLaunchCosts(100, actor).energy, ENERGY_COST_PER_LAUNCH * 0.7);
+  assert.equal(getOxygenDrainPerSecond(actor), OXYGEN_DRAIN_PER_SECOND * 0.7);
+  assert.equal(actor.energy, 100);
+  assert.equal(actor.oxygen, 100);
+  assert.ok(Math.abs(getPlayerDerivedStats([], 100, 4).launchEnergyCostMultiplier - 0.1) < 1e-9, '資源減免必須封頂於 90%');
+});
+
 test('the last life enters permanent game over and cannot respawn', () => {
   const actor = createTestActor();
   actor.lives = 1;

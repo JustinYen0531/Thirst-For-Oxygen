@@ -171,10 +171,11 @@ const mapSelect = document.querySelector('#play-map-select');
 const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
 const damageReductionSelect = document.querySelector('#play-damage-reduction');
+const resourceCostReductionSelect = document.querySelector('#play-resource-cost-reduction');
 const musicController = createMusicController(getMusicTrack({ part: 1, arc: 'descent', mode: 'normal' }));
 attachMusicControls(document.querySelector('#play-music-control'), musicController);
 const sfxController = createSfxController();
-attachSfxVolumeControl(document.querySelector('[aria-labelledby="music-settings-title"]'), sfxController);
+attachSfxVolumeControl(document.querySelector('#play-ambient-volume-control'), sfxController);
 const resetButton = document.querySelector('#play-reset');
 const pauseButton = document.querySelector('#play-pause');
 const loadingMask = document.querySelector('#play-loading');
@@ -187,11 +188,7 @@ const resonancePanel = document.querySelector('#play-resonance-panel');
 const resonanceClose = document.querySelector('#play-resonance-close');
 const resonanceCount = document.querySelector('#play-resonance-count');
 const resonanceBuffs = document.querySelector('#play-resonance-buffs');
-const mapTitle = document.querySelector('#play-map-title');
-const cameraReadout = document.querySelector('#play-camera-readout');
 const speedReadout = document.querySelector('#play-speed');
-const eventsList = document.querySelector('#play-events');
-const unlimitedResourcesButton = document.querySelector('#play-unlimited-resources');
 const ambientToggle = document.querySelector('#play-ambient-toggle');
 const attemptsReadout = document.querySelector('#play-attempts');
 const storyIntroOverlay = document.querySelector('#play-story-intro');
@@ -262,23 +259,26 @@ let aimPoint = null;
 let trajectory = [];
 let lastTrajectoryAt = -Infinity;
 let paused = false;
-let unlimitedResources = false;
 let ambientEnabled = true;
 const DAMAGE_REDUCTION_STORAGE_KEY = 'thirst-for-oxygen-play-damage-reduction';
 const DAMAGE_REDUCTION_DEFAULT = 0.5;
+const RESOURCE_COST_REDUCTION_STORAGE_KEY = 'thirst-for-oxygen-play-resource-cost-reduction';
+const RESOURCE_COST_REDUCTION_DEFAULT = 0.3;
 const DAMAGE_REDUCTION_OPTIONS = new Set([0, 0.3, 0.5, 0.75, 0.9]);
-function readDamageReductionPreference() {
+function readReductionPreference(storageKey, defaultValue) {
   try {
-    const storedValue = localStorage.getItem(DAMAGE_REDUCTION_STORAGE_KEY);
-    if (storedValue === null) return DAMAGE_REDUCTION_DEFAULT;
+    const storedValue = localStorage.getItem(storageKey);
+    if (storedValue === null) return defaultValue;
     const value = Number(storedValue);
-    return DAMAGE_REDUCTION_OPTIONS.has(value) ? value : DAMAGE_REDUCTION_DEFAULT;
+    return DAMAGE_REDUCTION_OPTIONS.has(value) ? value : defaultValue;
   } catch {
-    return DAMAGE_REDUCTION_DEFAULT;
+    return defaultValue;
   }
 }
-let playerDamageReduction = readDamageReductionPreference();
+let playerDamageReduction = readReductionPreference(DAMAGE_REDUCTION_STORAGE_KEY, DAMAGE_REDUCTION_DEFAULT);
+let resourceCostReduction = readReductionPreference(RESOURCE_COST_REDUCTION_STORAGE_KEY, RESOURCE_COST_REDUCTION_DEFAULT);
 damageReductionSelect.value = String(playerDamageReduction);
+resourceCostReductionSelect.value = String(resourceCostReduction);
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
@@ -301,7 +301,6 @@ const storyTypingSound = createStoryTypingSound();
 let backgroundLayer = null;
 let renderClock = 0;
 let hudSlotSignature = '';
-let eventLogMarkup = '';
 let tutorialUiSignature = '';
 let tutorialSkipPromptOpen = false;
 const hudUpdateGate = createPlayUpdateGate(50);
@@ -513,6 +512,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
     actor.maxLives = previousActor.maxLives;
     actor.deathCount = previousActor.deathCount;
   }
+  actor.resourceCostReduction = resourceCostReduction;
   syncPlayCombatBuild(combatState, actor);
   actor.oxygen = Math.min(actor.oxygen, actor.derivedStats?.maxOxygen ?? MAX_OXYGEN);
   enemies = createPlayEnemies(map, mapPart, 'chapter1', origin);
@@ -557,7 +557,6 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
       `已生成 ${enemies.length} 名敵人（${encounterGroupCount} 個遭遇群）。`,
       `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
     ];
-  mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
   updateStoryIntroPresentation();
   updateAwakeningPresentation();
   updateTutorialPresentation();
@@ -566,12 +565,6 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   hudUpdateGate.reset();
   updateHud();
   loadingMask.classList.add('is-hidden');
-}
-
-function refillUnlimitedResources() {
-  if (!unlimitedResources || !actor) return;
-  actor.oxygen = actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
-  actor.energy = MAX_ENERGY;
 }
 
 async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
@@ -607,7 +600,6 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     awakeningState.awaitingTrigger = false;
     updateAwakeningPresentation();
     eventLog = [`地圖載入失敗：${error.message}`];
-    eventsList.innerHTML = `<li>${eventLog[0]}</li>`;
     loadingMask.classList.remove('is-hidden');
     loadingMask.textContent = '地圖載入失敗';
     console.error('Play map setup failed.', error);
@@ -630,7 +622,6 @@ function updateCamera() {
   camera.y = maxY <= topLimit ? (topLimit + bottomLimit - viewHeight) / 2 : clamp(desiredY, topLimit, maxY);
   camera.edgeX = camera.x <= leftLimit + 1 ? '左外緣鎖定' : camera.x >= maxX - 1 ? '右外緣鎖定' : '60% 錨點';
   camera.edgeY = camera.y <= topLimit + 1 ? '上外緣' : camera.y >= maxY - 1 ? '下外緣' : '滑動';
-  cameraReadout.textContent = `主角 60% 錨點 · ${camera.edgeX}`;
 }
 
 function updateVisibleRenderEntries(force = false) {
@@ -1151,7 +1142,7 @@ function drawAwakeningMask() {
 }
 
 function applyPlayEnemyDamage(amount, source, damageType = 'generic') {
-  if (!actor || unlimitedResources) return;
+  if (!actor) return;
   const result = applyDamage(actor, amount, source, damageType);
   if (result.applied > 0) eventLog.push(`受到 ${Math.round(result.applied)} 傷害 · ${source}`);
 }
@@ -1160,7 +1151,7 @@ function stepPlayerStatusEffects(dt) {
   if (!actor?.activeEffects) return;
   Object.entries(actor.activeEffects).forEach(([effectId, effectState]) => {
     const remaining = typeof effectState === 'number' ? effectState : Number(effectState?.remaining ?? 0);
-    if (effectId === 'venom' && remaining > 0 && !unlimitedResources) {
+    if (effectId === 'venom' && remaining > 0) {
       applyDamage(actor, getEnemyDamageToPlayer(4 * dt), '毒刺持續傷害', 'ranged');
     }
     const nextRemaining = Math.max(0, remaining - dt);
@@ -1935,11 +1926,6 @@ function updateHud() {
   });
   healthPointer.style.setProperty('--health-angle', `${180 + healthHud.ratio * 360}deg`);
   speedReadout.textContent = `速度 ${Math.round(Math.hypot(actor.vx, actor.vy))} m/s`;
-  const nextEventLogMarkup = eventLog.slice(-5).reverse().map((message) => `<li>${message}</li>`).join('');
-  if (nextEventLogMarkup !== eventLogMarkup) {
-    eventLogMarkup = nextEventLogMarkup;
-    eventsList.innerHTML = nextEventLogMarkup;
-  }
 }
 
 function updateHudIfDue(now) {
@@ -2255,12 +2241,11 @@ canvas.addEventListener('pointerdown', (event) => {
   updateHud();
 });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialLaunch(tutorialState); sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateTutorialPresentation(); updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } const result = launchActor(actor, aimPoint); if (result.launched) { if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialLaunch(tutorialState); sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateTutorialPresentation(); updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與篇章進度保留。'); updateCamera(); updateTutorialPresentation(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; resetActor.resourceCostReduction = resourceCostReduction; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與資源減免進度保留。'); updateCamera(); updateTutorialPresentation(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
-unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 damageReductionSelect.addEventListener('change', () => {
   const requestedReduction = Number(damageReductionSelect.value);
   playerDamageReduction = DAMAGE_REDUCTION_OPTIONS.has(requestedReduction) ? requestedReduction : DAMAGE_REDUCTION_DEFAULT;
@@ -2271,7 +2256,20 @@ damageReductionSelect.addEventListener('change', () => {
   eventLog.push(`玩家減傷已調整為 ${Math.round(playerDamageReduction * 100)}%。`);
   updateHud();
 });
-ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音（240 秒循環）：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
+resourceCostReductionSelect.addEventListener('change', () => {
+  const requestedReduction = Number(resourceCostReductionSelect.value);
+  resourceCostReduction = DAMAGE_REDUCTION_OPTIONS.has(requestedReduction) ? requestedReduction : RESOURCE_COST_REDUCTION_DEFAULT;
+  resourceCostReductionSelect.value = String(resourceCostReduction);
+  if (actor) {
+    actor.resourceCostReduction = resourceCostReduction;
+    syncPlayCombatBuild(combatState, actor);
+  }
+  try { localStorage.setItem(RESOURCE_COST_REDUCTION_STORAGE_KEY, String(resourceCostReduction)); } catch { /* Storage may be disabled; the current run still keeps the selection. */ }
+  sfxController.play('menuSelection');
+  eventLog.push(`氧氣與能量消耗減免已調整為 ${Math.round(resourceCostReduction * 100)}%。`);
+  updateHud();
+});
+ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
 levelInspect?.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel?.hidden ?? true); });
@@ -2423,7 +2421,6 @@ function simulate(elapsed, now = performance.now()) {
     accumulator += Math.min(.1, scaledElapsed);
     while (accumulator >= FIXED_STEP) {
       worldTime += FIXED_STEP;
-      refillUnlimitedResources();
       const previousPosition = { x: actor.x, y: actor.y };
       const physicsEvents = stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 });
       addEvents(physicsEvents);
@@ -2537,7 +2534,6 @@ function simulate(elapsed, now = performance.now()) {
           break;
         }
       }
-      refillUnlimitedResources();
       accumulator -= FIXED_STEP;
     }
     updateCamera();
@@ -2577,7 +2573,7 @@ window.render_game_to_text = () => {
       active: [...discoverySession.activeByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
       pending: [...discoverySession.pendingByGuideKey.values()].map((entry) => ({ id: entry.guideKey, title: entry.guide.title, category: entry.guide.categoryLabel })),
     },
-    unlimitedResources,
+    resourceCostReductionPercent: Math.round(resourceCostReduction * 100),
     damageReductionPercent: Math.round(playerDamageReduction * 100),
     paused,
     aiming: dragging,

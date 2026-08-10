@@ -117,13 +117,14 @@ export function createSfxController() {
   };
 }
 
-export function attachSfxVolumeControl(root, controller) {
-  const label = document.createElement('label');
-  label.className = 'settings-field';
-  label.innerHTML = '<span>音效音量</span><input type="range" min="0" max="1" step="0.01" aria-label="音效音量" />';
-  root.append(label);
-  const input = label.querySelector('input');
+export function attachSfxVolumeControl(root, controller, { labelText = '潛水環境音音量' } = {}) {
+  if (!root) return null;
+  const field = document.createElement('label');
+  field.className = 'settings-field';
+  field.innerHTML = `<span>${labelText}</span><input type="range" min="0" max="1" step="0.01" aria-label="${labelText}" />`;
+  root.append(field);
+  const input = field.querySelector('input');
   input.addEventListener('input', () => controller.setVolume(input.value));
   controller.subscribe(({ volume }) => { input.value = String(volume); });
-  return label;
+  return field;
 }

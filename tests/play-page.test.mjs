@@ -70,6 +70,22 @@ test('play settings expose a persistent player damage-reduction mode', () => {
   assert.match(page, /damageReductionPercent: Math\.round\(playerDamageReduction \* 100\)/);
 });
 
+test('play settings prioritize assistance, keep audio together, and remove diagnostic clutter', () => {
+  const difficultyIndex = html.indexOf('id="difficulty-settings-title"');
+  const toolsIndex = html.indexOf('id="play-tools-title"');
+  const musicIndex = html.indexOf('id="music-settings-title"');
+  const languageIndex = html.indexOf('id="language-settings-title"');
+  assert.ok(difficultyIndex < toolsIndex && toolsIndex < musicIndex && musicIndex < languageIndex);
+  assert.match(html, /id="play-resource-cost-reduction"/);
+  ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
+  assert.match(html, /id="play-ambient-card"/);
+  assert.match(html, /240 秒循環/);
+  assert.match(page, /attachSfxVolumeControl\(document\.querySelector\('#play-ambient-volume-control'\)/);
+  assert.doesNotMatch(html, /play-unlimited-resources|play-camera-readout|play-map-title|play-events|Camera Status|Test Log/);
+  assert.doesNotMatch(page, /unlimitedResources|refillUnlimitedResources|eventsList|cameraReadout|mapTitle/);
+  assert.match(page, /resourceCostReductionPercent: Math\.round\(resourceCostReduction \* 100\)/);
+});
+
 test('formal play renders and reports stationary experience orbs, projectiles, and upgrades', () => {
   assert.match(page, /drawExperienceOrbs\(\)/);
   assert.match(page, /drawCombatProjectiles\(\)/);
