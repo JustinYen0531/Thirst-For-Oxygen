@@ -455,27 +455,27 @@ export const ENEMY_DEFINITIONS = Object.freeze({
     attacks: [attack('mutantWingRam', '翼刃撞擊（強化）', 'contact', { damage: 28, radius: 36, cooldown: 1.1 }), attack('mutantArcTideBombardment', '弧潮投射（強化）', 'lobbed', { damage: 40, radius: 70, telegraph: 1.15, cooldown: 3.4, ignoresCover: true, locksTargetAtCast: true, aftermathDamage: 18, aftermathDelay: 1.8, aftermathRadius: 48 })],
   },
   prismCrabGuardian: {
-    id: 'prismCrabGuardian', name: '稜鏡巨蟹', tier: 'miniBoss', role: 'areaControl', maxHealth: 1200, moveSpeed: 38,
+    id: 'prismCrabGuardian', name: '稜鏡巨蟹', tier: 'miniBoss', role: 'areaControl', maxHealth: 600, moveSpeed: 38,
     passive: { id: 'deepSeaCarapace', name: '深海甲殼', damageTakenMultiplier: 0.75 },
     attacks: [attack('tidalGathering', '潮汐召集', 'summonResourceDrain', { damage: 12, cooldown: 7, summonCount: 3, energyDrain: 18, oxygenDrain: 12 }), attack('refractedLaser', '折射雷射', 'reflectedBeam', { damagePerSecond: 24, duration: 3, cooldown: 8, maxReflections: 4 }), attack('deepSeaGravityField', '深海重力場', 'gravityField', { damage: 20, radius: 150, duration: 2.5, cooldown: 7, stun: 0.8, gravityMultiplier: 2.5 })],
   },
   tideLawNautilus: {
-    id: 'tideLawNautilus', name: '潮律鸚鵡螺', tier: 'miniBoss', role: 'patternControl', maxHealth: 1350, moveSpeed: 42,
+    id: 'tideLawNautilus', name: '潮律鸚鵡螺', tier: 'miniBoss', role: 'patternControl', maxHealth: 675, moveSpeed: 42,
     passive: { id: 'tidalShield', name: '潮汐護盾', invulnerableDuration: 7, damageMultiplier: 1.3, phaseCount: 5 },
     attacks: [attack('deepSeaSummoning', '深海召令', 'summon', { damage: 18, cooldown: 9, summonCount: 4 }), attack('returningBuckshot', '迴潮散彈', 'boomerangSpread', { damage: 16, projectileCount: 7, projectileSpeed: 260, cooldown: 6.5, returnDelay: 1.4 }), attack('tidalLaw', '潮汐法則', 'ruleChange', { damage: 0, cooldown: 10, duration: 4, gravityModes: ['reverse', 'low', 'horizontal', 'currentShift'] })],
   },
   mutantPrismCrabGuardian: {
-    id: 'mutantPrismCrabGuardian', name: '變異稜鏡巨蟹', tier: 'mutatedMiniBoss', role: 'laserAftermathControl', maxHealth: 1700, moveSpeed: 42,
+    id: 'mutantPrismCrabGuardian', name: '變異稜鏡巨蟹', tier: 'mutatedMiniBoss', role: 'laserAftermathControl', maxHealth: 850, moveSpeed: 42,
     passive: { id: 'mutantDeepSeaCarapace', name: '深海甲殼（強化）', rangedDamageTakenMultiplier: 0.5, projectileReflectChance: 0.5, reflectedDamageRatio: 0.25 },
     attacks: [attack('mutantTidalGathering', '潮汐召集（強化）', 'summonWave', { damage: 16, cooldown: 6, summonCount: 5, summonSpeedMultiplier: 1.35, cooldownReductionIfLv1Alive: 1.5 }), attack('mutantRefractedLaser', '折射雷射（強化）', 'reflectedBeamSplit', { damagePerSecond: 28, duration: 3.5, cooldown: 7, maxReflections: 4, secondaryBeamCount: 2, secondaryMaxReflections: 2 }), attack('mutantGravityField', '深海重力場（強化）', 'destroyableGravityOrb', { damage: 24, radius: 170, cooldown: 8, stun: 1, orbInvulnerableDuration: 3, orbHealth: 240, gravityMultiplier: 3 })],
   },
   mutantTideLawNautilus: {
-    id: 'mutantTideLawNautilus', name: '變異潮律鸚鵡螺', tier: 'mutatedMiniBoss', role: 'shieldRuleControl', maxHealth: 1850, moveSpeed: 46,
+    id: 'mutantTideLawNautilus', name: '變異潮律鸚鵡螺', tier: 'mutatedMiniBoss', role: 'shieldRuleControl', maxHealth: 925, moveSpeed: 46,
     passive: { id: 'mutantTidalShield', name: '潮汐護盾（強化）', invulnerableDuration: 7, damageMultiplier: 1.3, damageToHealthRatio: 0.5, phaseCount: 5 },
     attacks: [attack('mutantDeepSeaSummoning', '深海召令（強化）', 'repeatSummon', { damage: 20, cooldown: 8, summonCount: 4, repeatWhenSummonsAlive: true, summonSpeedMultiplier: 1.3 }), attack('mutantReturningBuckshot', '迴潮散彈（強化）', 'shieldBoomerang', { damage: 18, projectileCount: 7, projectileSpeed: 285, cooldown: 6, returnDelay: 1.2, blocksPlayerProjectiles: true, shieldHealth: 260 }), attack('lawOverlap', '法則疊加', 'ruleCombination', { damage: 0, cooldown: 7, duration: 4.5, rerollInterval: 7, combinations: ['reverse+lowGravity', 'leftCurrent+highGravity', 'reverse+fastCurrent'] })],
   },
   abyssalSpermWhale: {
-    id: 'abyssalSpermWhale', name: '深淵抹香鯨', tier: 'finalBoss', role: 'battlefieldController', maxHealth: 5000, moveSpeed: 46,
+    id: 'abyssalSpermWhale', name: '深淵抹香鯨', tier: 'finalBoss', role: 'battlefieldController', maxHealth: 2000, moveSpeed: 46,
     passive: { id: 'abyssAwakening', name: '深淵覺醒', moveSpeedMultiplier: 1.2, projectileSpeedMultiplier: 1.2, cooldownMultiplier: 0.8, thornsDamage: 18 },
     attacks: [attack('abyssalSummoning', '深海召令', 'sacrificeSummon', { damage: 24, cooldown: 12, summonCount: 6, healRatioPerSacrifice: 0.025, damageStackPerSacrifice: 0.03 }), attack('ancientReconstruction', '遺跡重現', 'rebuildArena', { damage: 0, cooldown: 18, duration: 8, healPerSecondRatio: 0.02 }), attack('abyssEcho', '深淵化身', 'cloneBarrage', { damage: 18, projectileCount: 3, projectileSpeed: 170, cooldown: 8, cloneHealthRatio: 0.18 }), attack('miniatureForm', '深淵幼體', 'speedForm', { damageTakenMultiplier: 1.2, moveSpeedMultiplier: 1.7, cooldownMultiplier: 0.5, duration: 7, sludgeDuration: 8 }), attack('gravityDominion', '重力支配', 'gravityRule', { damage: 16, cooldown: 14, duration: 5, gravityLevelShift: 1 }), attack('corruptedOxygen', '氧氣侵蝕', 'corruptOxygen', { damage: 26, cooldown: 11, bubbleLifetime: 4, explosionRadius: 96, oxygenDrain: 35, oxygenZoneDuration: 10 })],
   },

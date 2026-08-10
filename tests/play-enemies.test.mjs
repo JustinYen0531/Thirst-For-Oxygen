@@ -131,6 +131,25 @@ function resolveAuthoredSkill(enemyId, skillId, actorOverrides = {}) {
   return { actor, damage: () => damage, enemies, enemy, now, onDamage, render: () => getPlayEnemyRenderState(enemies, now) };
 }
 
+test('all authored Boss health values use the reduced difficulty budget', () => {
+  assert.deepEqual(
+    Object.fromEntries([
+      'prismCrabGuardian',
+      'tideLawNautilus',
+      'mutantPrismCrabGuardian',
+      'mutantTideLawNautilus',
+      'abyssalSpermWhale',
+    ].map((enemyId) => [enemyId, ENEMY_DEFINITIONS[enemyId].maxHealth])),
+    {
+      prismCrabGuardian: 600,
+      tideLawNautilus: 675,
+      mutantPrismCrabGuardian: 850,
+      mutantTideLawNautilus: 925,
+      abyssalSpermWhale: 2000,
+    },
+  );
+});
+
 test('all descent map parts distribute the required population with sparse authored clusters', () => {
   assert.deepEqual(PLAY_ENEMY_TARGETS, { 1: 20, 2: 20, 3: 24 });
   const allEnemyIds = new Set();
@@ -885,7 +904,7 @@ test('tide-law nautilus models four Lv.2 summons, seven returning rounds, and an
 
 test('abyssal whale sacrifice summons resolve after thirty seconds using authored heal and damage stacks', () => {
   const result = resolveAuthoredSkill('abyssalSpermWhale', 'abyssalSummoning');
-  result.enemy.health = 3000;
+  result.enemy.health = ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth * 0.6;
   let render = getPlayEnemyRenderState(result.enemies, result.now);
   assert.equal(result.damage(), 0);
   assert.equal(result.enemies.length, 6);
@@ -896,16 +915,16 @@ test('abyssal whale sacrifice summons resolve after thirty seconds using authore
   render = getPlayEnemyRenderState(result.enemies, result.now + 30.1);
   assert.equal(render.summons[0].status, 'sacrificed');
   assert.equal(render.summons[0].sacrificedCount, 5);
-  assert.equal(result.enemy.health, 3625);
+  assert.equal(result.enemy.health, ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth * 0.725);
   assert.ok(Math.abs(result.enemy.damageStack - 0.15) < 1e-9);
 });
 
 test('abyssal whale reconstruction, echo barrage, and miniature form expose their complete authored state', () => {
   const reconstruction = resolveAuthoredSkill('abyssalSpermWhale', 'ancientReconstruction');
-  reconstruction.enemy.health = 3000;
+  reconstruction.enemy.health = ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth * 0.75;
   updatePlayEnemies(reconstruction.enemies, reconstruction.actor, 1, reconstruction.now + 1, reconstruction.onDamage);
   let render = getPlayEnemyRenderState(reconstruction.enemies, reconstruction.now + 1);
-  assert.equal(reconstruction.enemy.health, 3100);
+  assert.equal(reconstruction.enemy.health, ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth * 0.77);
   assert.ok(render.rules.some((rule) => rule.type === 'rebuildArena'
     && rule.healPerSecondRatio === 0.02
     && Math.abs(rule.remaining - 7) < 1e-9));
@@ -915,7 +934,7 @@ test('abyssal whale reconstruction, echo barrage, and miniature form expose thei
   assert.equal(echo.damage(), 0);
   assert.equal(render.projectiles.length, 3);
   assert.ok(render.projectiles.every((projectile) => projectile.speed === 42.5 && projectile.damage === 18 && projectile.cloneHealthRatio === 0.18));
-  assert.ok(render.summons.some((summon) => summon.kind === 'abyssEcho' && summon.count === 3 && summon.healthEach === 900));
+  assert.ok(render.summons.some((summon) => summon.kind === 'abyssEcho' && summon.count === 3 && summon.healthEach === 360));
 
   const miniature = resolveAuthoredSkill('abyssalSpermWhale', 'miniatureForm', { x: 160 });
   render = getPlayEnemyRenderState(miniature.enemies, miniature.now);
@@ -979,7 +998,7 @@ test('special-enemy passive state exposes carapace, shield phases, and abyss awa
   assert.equal(prism.passiveState.id, 'deepSeaCarapace');
   assert.equal(prism.damageTakenMultiplier, 0.75);
 
-  const tide = authoredEnemy('tideLawNautilus', { health: 1350 * 0.79 });
+  const tide = authoredEnemy('tideLawNautilus', { health: ENEMY_DEFINITIONS.tideLawNautilus.maxHealth * 0.79 });
   const tideEnemies = [tide];
   updatePlayEnemies(tideEnemies, prismActor, 1 / 60, 1 / 60);
   let render = getPlayEnemyRenderState(tideEnemies, 1 / 60);
@@ -991,7 +1010,10 @@ test('special-enemy passive state exposes carapace, shield phases, and abyss awa
   updatePlayEnemies(tideEnemies, prismActor, 0.1, 7.2);
   assert.equal(tide.damageTakenMultiplier, 1);
 
-  const whale = authoredEnemy('abyssalSpermWhale', { health: 2400, alerted: true });
+  const whale = authoredEnemy('abyssalSpermWhale', {
+    health: ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth * 0.4,
+    alerted: true,
+  });
   const whaleEnemies = [whale];
   const whaleActor = { x: 160, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, vx: 0, vy: 0 };
   ENEMY_DEFINITIONS.abyssalSpermWhale.attacks.forEach((skill) => { whale.cooldowns[skill.id] = 999; });

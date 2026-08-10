@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import './resonance.test.mjs';
-import { getEnemyDamageToPlayer } from '../src/game-data.js';
+import { ENEMY_DEFINITIONS, getEnemyDamageToPlayer } from '../src/game-data.js';
 import { createTestActor } from '../src/physics.js';
 import {
   KNIFE_DASH_MINIMUM_SPEED,
@@ -314,8 +314,7 @@ test('formal projectile weapons respect authored Boss damage reduction', () => {
 test('abyss-awakened whale thorns retaliate against a successful formal weapon hit', () => {
   const state = createPlayCombatState();
   const actor = createTestActor({ x: 100, y: 100 });
-  const whale = enemy('whale', 'abyssalSpermWhale', 140, 100, 2400);
-  whale.maxHealth = 5000;
+  const whale = enemy('whale', 'abyssalSpermWhale', 140, 100, ENEMY_DEFINITIONS.abyssalSpermWhale.maxHealth);
   whale.name = '深淵抹香鯨';
   whale.passiveState = { enraged: true };
   actor.x = 180;
