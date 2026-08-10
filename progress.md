@@ -4,7 +4,7 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 確認原本修正只覆蓋偏左的一條路，34–40 公尺中央仍有 blocked Cell 與 barrier／layerPortal／seaweed／coralCluster Edge。
 - 將 row 34–40、column 8–17 清成 10 欄寬水域並統一 T1，移除中央通道上的阻擋 Edge；保留最左側原有的 T2→T1 入口，不再要求玩家穿過隱形碰撞。
-- 新增整段寬通道與上下連續路徑測試；地圖測試 28/28、完整 check 375/375 與 build 已通過，接著提交並 push。依專案規則不執行瀏覽器／Playwright。
+- 新增整段寬通道與上下連續路徑測試；地圖測試 28/28、完整 check 375/375 與 build 已通過，修正已提交並 push。依專案規則不執行瀏覽器／Playwright。
 
 ## 2026-08-10 — 下沉篇完成後的 Ascent 原型提示
 
