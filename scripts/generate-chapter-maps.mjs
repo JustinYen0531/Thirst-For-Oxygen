@@ -1048,6 +1048,7 @@ function buildPart2() {
   const triggerCellKey = cellKeyFromColumn(10, 89);
   const entranceGateCellKeys = addBossRoomGateWall(map, 87, [9, 10, 11], 'entrance');
   const exitGateCellKeys = addBossRoomGateWall(map, 101, [9, 10, 11], 'exit');
+  const torricelliCellKey = addFreeObject(map, 'torricelli', 89, 14, used);
   map.metadata.bossRoom = {
     id: 'tide-law-sanctum',
     enemyId: 'tideLawNautilus',
@@ -1055,6 +1056,7 @@ function buildPart2() {
     triggerCellKey,
     entranceGateCellKeys,
     exitGateCellKeys,
+    torricelliCellKey,
     autoAdvancePart: 3,
     room: { rowStart: 88, rowEnd: 100, columnStart: 5, columnEnd: 15 },
   };
@@ -1109,6 +1111,7 @@ function buildPart3(source) {
     // single isolated pickup every few dozen rows.
     ['torricelli', 28, 22], ['torricelli', 61, 21],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
+  const torricelliCellKey = addFreeObject(map, 'torricelli', 109, 17, used);
   addEdgeSet(map, 'springJelly', [18, 46, 78, 108]);
   addEdgeSet(map, 'spike', [23, 57, 91, 104]);
   addEdgeSet(map, 'barrier', [37, 73, 99]);
@@ -1140,6 +1143,7 @@ function buildPart3(source) {
     triggerCellKey,
     entranceGateCellKeys,
     exitGateCellKeys,
+    torricelliCellKey,
     room: { rowStart: 108, rowEnd: 114, columnStart: 6, columnEnd: 18 },
   };
   setRuntimeExit(map, 116, 12);

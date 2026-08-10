@@ -23639,7 +23639,19 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 30,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
       "region": "tide-law-sanctum"
     },
@@ -28553,6 +28565,7 @@
         "-40,101",
         "-39,101"
       ],
+      "torricelliCellKey": "-30,89",
       "autoAdvancePart": 3,
       "room": {
         "rowStart": 88,

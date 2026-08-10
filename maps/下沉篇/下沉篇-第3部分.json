@@ -34570,7 +34570,19 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 30,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
       "region": "abyssal-throne"
     },
@@ -38300,6 +38312,7 @@
         "-46,115",
         "-45,115"
       ],
+      "torricelliCellKey": "-37,109",
       "room": {
         "rowStart": 108,
         "rowEnd": 114,

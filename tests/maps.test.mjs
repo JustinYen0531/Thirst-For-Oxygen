@@ -434,13 +434,13 @@ test('part 2 combines every advanced object and places its button before its gat
   assert.equal(part2.metadata.teachingSequence.length, 8);
 });
 
-test('part 2 provides four separated Torricelli return routes', () => {
+test('part 2 provides four separated Torricelli return routes plus one Boss-room rest space', () => {
   const part2 = loadMap('下沉篇-第2部分.json');
   const detours = part2.metadata.torricelliDetours;
   const torricelliObjects = freeObjectsOf(part2).filter(({ object }) => object.kind === 'torricelli');
   const { reachable } = reachableKeysAfterAvailableButtons(part2, { portals: false });
   assert.equal(detours.length, 4);
-  assert.equal(torricelliObjects.length, 4);
+  assert.equal(torricelliObjects.length, 5);
   detours.forEach((detour) => {
     const key = `${detour.objectColumn - Math.floor(detour.objectRow / 2)},${detour.objectRow}`;
     const cell = part2.cells[key];
@@ -509,12 +509,12 @@ test('part 3 keeps the 36-to-38 metre route free of hidden blocked Cells', () =>
   });
 });
 
-test('part 3 provides five Torricelli rest spaces through the bright L-1 pockets', () => {
+test('part 3 provides five bright L-1 Torricelli spaces plus one Boss-room rest space', () => {
   const part3 = loadMap('下沉篇-第3部分.json');
   const torricelli = freeObjectsOf(part3).filter(({ object }) => object.kind === 'torricelli');
   const expectedKeys = ['19,6', '8,28', '-22,49', '-9,61', '-20,84'];
 
-  assert.equal(torricelli.length, 5);
+  assert.equal(torricelli.length, 6);
   expectedKeys.forEach((key) => {
     const cell = part3.cells[key];
     assert.ok(cell, `${key} should contain an authored Torricelli space`);
@@ -572,6 +572,12 @@ test('part 2 ends in a Tide-Law Nautilus room that advances directly to Part 3',
   assert.equal(room.autoAdvancePart, 3);
   assert.equal(miniBosses.filter(({ actor }) => actor.enemyId === 'tideLawNautilus').length, 1);
   assert.equal(miniBosses.find(({ actor }) => actor.enemyId === 'tideLawNautilus').key, room.miniBossCellKey);
+  const torricelliCell = part2.cells[room.torricelliCellKey];
+  assert.equal(torricelliCell.region, 'tide-law-sanctum');
+  assert.equal(torricelliCell.terrain, 'water');
+  assert.equal(torricelliCell.r, room.room.rowStart + 1);
+  assert.equal(torricelliCell.q + Math.floor(torricelliCell.r / 2), room.room.columnEnd - 1);
+  assert.equal(torricelliCell.freeObjects.filter((object) => object.kind === 'torricelli').length, 1);
   assert.equal(part2.metadata.routeBeats.at(-1), '潮律鸚鵡螺封印房');
   assert.ok(part2.cells[part2.metadata.exitCellKey].r >= part2.layout.height - 4);
 
@@ -599,6 +605,12 @@ test('part 3 ends in a dedicated Abyssal Throne room for the Final Boss', () => 
   assert.equal(room.enemyId, 'abyssalSpermWhale');
   assert.equal(bosses.length, 1);
   assert.equal(bosses[0].key, room.bossCellKey);
+  const torricelliCell = part3.cells[room.torricelliCellKey];
+  assert.equal(torricelliCell.region, 'abyssal-throne');
+  assert.equal(torricelliCell.terrain, 'water');
+  assert.equal(torricelliCell.r, room.room.rowStart + 1);
+  assert.equal(torricelliCell.q + Math.floor(torricelliCell.r / 2), room.room.columnEnd - 1);
+  assert.equal(torricelliCell.freeObjects.filter((object) => object.kind === 'torricelli').length, 1);
   assert.ok(part3.cells[part3.metadata.exitCellKey].r > room.room.rowEnd, 'the runtime exit should sit beyond the final Boss room seal');
   assert.equal(part3.cells[room.triggerCellKey].terrain, 'water');
 
