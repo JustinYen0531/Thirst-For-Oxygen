@@ -37,8 +37,12 @@ test('tutorial map is Chapter 0 with a small authored room and two training enem
 
 test('tutorial advances only after each guided operation is actually observed', () => {
   const state = createPlayTutorialState();
-  assert.equal(getPlayTutorialRenderState(state).currentStep.id, 'launch');
-  assert.equal(getPlayTutorialRenderState(state).autoReady, false);
+  const initialRender = getPlayTutorialRenderState(state);
+  assert.equal(initialRender.currentStep.id, 'launch');
+  assert.equal(initialRender.autoReady, false);
+  assert.equal(initialRender.dialogue.speaker, '深淵導航員');
+  assert.equal(initialRender.dialogue.controlHint, TUTORIAL_GUIDED_STEPS[0].controlHint);
+  assert.ok(TUTORIAL_GUIDED_STEPS.every((step) => step.controlHint), 'every guided step must explain its control');
   recordPlayTutorialLaunch(state);
   recordPlayTutorialInteraction(state, { type: 'seaweed', attached: true });
   recordPlayTutorialInteraction(state, { type: 'seaweed', attached: false });
@@ -97,8 +101,11 @@ test('tutorial exit is locked before the guided steps are complete', () => {
 
 test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1', () => {
   assert.match(playHtml, /value="tutorial:0"/);
+  assert.match(playHtml, /id="play-tutorial-dialogue"/);
+  assert.match(playHtml, /id="play-tutorial-dialogue-control"/);
   assert.match(playHtml, /id="play-tutorial-skip-dialog"/);
   assert.match(playHtml, /Skip Tutorial\?/);
+  assert.match(playPageSource, /tutorialDialogueControl/);
   assert.match(playPageSource, /event\.code === 'Enter'/);
   assert.match(playPageSource, /window\.location\.href = '\/home\.html'/);
   assert.doesNotMatch(playPageSource, /mapArc === TUTORIAL_ROUTE && \(tutorialProgress\?\.readyToLeave \|\| stageExit\.arrived\)/);

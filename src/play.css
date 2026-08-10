@@ -87,6 +87,15 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-tutorial-object-list li.is-used { color: #bdffd3; text-shadow: 0 0 8px rgba(106, 255, 169, .3); }
 .play-tutorial-object-list li.is-current { color: #f7dc78; }
 .play-tutorial-exit-hint { margin-top: 10px !important; padding-top: 8px; border-top: 1px solid rgba(144, 235, 183, .18); color: #8cb8a2 !important; font-size: .56rem !important; }
+.play-tutorial-dialogue { position: absolute; bottom: clamp(88px, 14%, 122px); left: clamp(18px, 6vw, 90px); z-index: 9; display: grid; grid-template-columns: 31px minmax(0, 1fr); gap: 10px; width: min(500px, 44vw); max-height: min(27vh, 210px); overflow: auto; padding: 12px 14px; border: 1px solid rgba(119, 232, 255, .6); border-left: 3px solid var(--cyan); border-radius: 10px; color: #e8f5ff; background: linear-gradient(155deg, rgba(6, 29, 51, .95), rgba(4, 14, 29, .94)); box-shadow: 0 12px 34px rgba(0, 0, 0, .32), 0 0 25px rgba(119, 232, 255, .12), inset 0 0 20px rgba(119, 232, 255, .04); pointer-events: none; }
+.play-tutorial-dialogue[hidden] { display: none; }
+.play-tutorial-dialogue-avatar { display: grid; place-items: center; width: 31px; height: 31px; border: 1px solid rgba(119, 232, 255, .8); border-radius: 50%; color: var(--cyan); background: rgba(17, 83, 116, .5); box-shadow: 0 0 15px rgba(119, 232, 255, .3); font-size: 1rem; }
+.play-tutorial-dialogue-heading { display: flex; align-items: baseline; gap: 8px; }
+.play-tutorial-dialogue-heading .eyebrow { margin: 0; color: var(--cyan); font-size: .46rem; }
+.play-tutorial-dialogue-heading strong { color: #effaff; font-size: .65rem; letter-spacing: .08em; }
+.play-tutorial-dialogue h2 { margin: 5px 0 4px; color: #f7dc78; font-size: .84rem; letter-spacing: .04em; }
+.play-tutorial-dialogue p { margin: 0; color: #c5dceb; font-size: .65rem; line-height: 1.6; }
+.play-tutorial-dialogue-control { margin-top: 8px !important; padding: 6px 8px; border: 1px solid rgba(119, 232, 255, .24); border-radius: 5px; color: #e8fbff !important; background: rgba(61, 166, 207, .12); font-weight: 800; }
 .play-tutorial-skip-dialog { position: absolute; top: 50%; left: 50%; z-index: 20; width: min(390px, calc(100% - 34px)); padding: 21px 22px; border: 1px solid rgba(119, 232, 255, .58); border-radius: 10px; color: #e8f5ff; background: linear-gradient(155deg, rgba(7, 28, 49, .98), rgba(4, 14, 29, .98)); box-shadow: 0 20px 70px rgba(0, 0, 0, .5), 0 0 30px rgba(119, 232, 255, .12); transform: translate(-50%, -50%); pointer-events: auto; }
 .play-tutorial-skip-dialog[hidden] { display: none; }
 .play-tutorial-skip-dialog h2 { margin: 0 0 9px; color: #f7dc78; font-size: 1.05rem; letter-spacing: .08em; }
@@ -396,4 +405,6 @@ body { min-width: 0; }
   .play-tutorial-panel { top: 205px; right: 10px; left: 10px; width: auto; max-height: 31vh; padding: 10px 11px; }
   .play-tutorial-panel h3 { margin-top: 7px; }
   .play-tutorial-object-list { max-height: 54px; }
+  .play-tutorial-dialogue { right: 10px; bottom: 88px; left: 10px; width: auto; max-height: 22vh; padding: 10px 11px; }
+  .play-tutorial-dialogue p { font-size: .6rem; }
 }

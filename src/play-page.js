@@ -210,6 +210,11 @@ const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
 const tutorialSkipDialog = document.querySelector('#play-tutorial-skip-dialog');
 const tutorialSkipConfirm = document.querySelector('#play-tutorial-skip-confirm');
 const tutorialSkipCancel = document.querySelector('#play-tutorial-skip-cancel');
+const tutorialDialogue = document.querySelector('#play-tutorial-dialogue');
+const tutorialDialogueSpeaker = document.querySelector('#play-tutorial-dialogue-speaker');
+const tutorialDialogueTitle = document.querySelector('#play-tutorial-dialogue-title');
+const tutorialDialogueText = document.querySelector('#play-tutorial-dialogue-text');
+const tutorialDialogueControl = document.querySelector('#play-tutorial-dialogue-control');
 const upgradeOverlay = document.querySelector('#play-upgrade-overlay');
 const upgradeNote = document.querySelector('#play-upgrade-note');
 const upgradeCategories = document.querySelector('#play-upgrade-categories');
@@ -362,9 +367,10 @@ function getCurrentStageExitState() {
 }
 
 function updateTutorialPresentation() {
-  if (!tutorialPanel) return;
+  if (!tutorialPanel || !tutorialDialogue) return;
   const active = mapArc === TUTORIAL_ROUTE && Boolean(map && actor);
   tutorialPanel.hidden = !active;
+  tutorialDialogue.hidden = !active;
   if (!active) {
     tutorialUiSignature = '';
     return;
@@ -376,6 +382,7 @@ function updateTutorialPresentation() {
     objects: tutorial.objectUses.map((entry) => [entry.id, entry.used]),
     outcome: tutorial.outcome,
     note: tutorial.lastGuideNote,
+    dialogue: tutorial.dialogue,
   });
   if (signature === tutorialUiSignature) return;
   tutorialUiSignature = signature;
@@ -383,6 +390,10 @@ function updateTutorialPresentation() {
   tutorialStepTitle.textContent = translateGameplayText(tutorial.currentStep.title);
   tutorialStepBody.textContent = translateGameplayText(tutorial.currentStep.body);
   tutorialStepInstruction.textContent = translateGameplayText(tutorial.currentStep.instruction ?? '請依照導航員的提示操作。');
+  tutorialDialogueSpeaker.textContent = translateGameplayText(tutorial.dialogue.speaker);
+  tutorialDialogueTitle.textContent = translateGameplayText(tutorial.dialogue.title);
+  tutorialDialogueText.textContent = translateGameplayText(tutorial.dialogue.text);
+  tutorialDialogueControl.textContent = translateGameplayText(tutorial.dialogue.controlHint);
   tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
   tutorialExitHint.textContent = translateGameplayText(tutorial.lastGuideNote || tutorial.freeExit);
   tutorialObjectList.replaceChildren(...tutorial.objectUses.map((entry) => {

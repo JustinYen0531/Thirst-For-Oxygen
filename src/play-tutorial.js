@@ -37,26 +37,26 @@ export const TUTORIAL_OBJECT_GUIDES = Object.freeze([
 const TUTORIAL_GUIDE_NAME = '深淵導航員';
 
 export const TUTORIAL_GUIDED_STEPS = Object.freeze([
-  Object.freeze({ id: 'launch', title: '先學會彈射', body: '先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。', instruction: '請現在完成一次拉射。沒有真的放開彈射，導航員不會讓你進入下一步。', target: { column: 2, row: 2 }, targetLabel: '你的潛水夫' }),
-  Object.freeze({ id: 'seaweedAttach', title: '先學會停下來', body: '前方的水草是你的喘息點。靠近後按 E 附著，重力會暫停，能量也會恢復。', instruction: '請靠近水草並按 E 附著一次。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
-  Object.freeze({ id: 'seaweedRelease', title: '知道什麼時候離開', body: '水草不是終點。附著後再按一次 E，才會重新回到水中前進。', instruction: '請再按一次 E 離開水草。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
-  Object.freeze({ id: 'checkpoint', title: '記住你的退路', body: 'Checkpoint 會記住你的重生位置，並在重生時補滿生命、氧氣與能量。', instruction: '請碰到前方的 Checkpoint，讓導航員記住這個位置。', target: { column: 2, row: 4 }, targetLabel: 'Checkpoint' }),
-  Object.freeze({ id: 'oxygen', title: '用速度換氧氣', body: '氧氣礦石不是輕輕碰就會掉落。你要用足夠速度撞擊，才會釋放氧氣。', instruction: '請高速撞擊氧氣礦石，實際取得一次氧氣。', target: { column: 4, row: 6 }, targetLabel: '氧氣礦石' }),
-  Object.freeze({ id: 'oxygenBubble', title: '接觸式補氧', body: '清氧氣泡會在接觸時立即補氧，而且使用一次就會消失。', instruction: '請碰到清氧氣泡，使用一次補給。', target: { column: 6, row: 7 }, targetLabel: '清氧氣泡' }),
-  Object.freeze({ id: 'torricelli', title: '找到可以停留的空間', body: '托里切利空間會持續回復氧氣，適合在長距離路線中停下來整理資源。', instruction: '請進入托里切利空間並停留片刻。', target: { column: 2, row: 9 }, targetLabel: '托里切利空間' }),
-  Object.freeze({ id: 'bubble', title: '讓氣泡替你承受重力', body: '光合作用氣泡會補氧並暫時免疫重力，但作用期間不能立刻再次彈射。', instruction: '請碰到光合作用氣泡，實際取得它的效果。', target: { column: 5, row: 10 }, targetLabel: '光合作用氣泡' }),
-  Object.freeze({ id: 'weightStone', title: '分辨撞擊速度', body: '重石會把低速撞擊壓回；只有高速撞擊才會被擊碎。', instruction: '請用高速撞擊擊碎重石。', target: { column: 7, row: 12 }, targetLabel: '重石' }),
-  Object.freeze({ id: 'mine', title: '危險也要讀懂', body: '地雷會反彈並造成傷害。這一間房把傷害調低，但你仍要實際碰過它，知道它不是補給。', instruction: '請碰觸深海地雷一次。', target: { column: 3, row: 15 }, targetLabel: '深海地雷' }),
-  Object.freeze({ id: 'razor', title: '不要硬闖剃刀', body: '剃刀會強制把你推開。遇到它時要調整路線，不是一直往前撞。', instruction: '請碰觸剃刀一次，觀察它如何把你推開。', target: { column: 4, row: 17 }, targetLabel: '剃刀' }),
-  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', target: { column: 2, row: 15 }, targetLabel: '珊瑚群落' }),
-  Object.freeze({ id: 'button', title: '碰到按鈕才會開門', body: '按鈕會切換指定的條件通行門。先碰按鈕，再觀察前方的門。', instruction: '請碰到按鈕，打開教學房的通行門。', target: { column: 8, row: 18 }, targetLabel: '按鈕' }),
-  Object.freeze({ id: 'springJelly', title: '借力改變方向', body: '彈簧水母會依照入射角反射並加速，把一次撞擊轉成新的位移。', instruction: '請撞上彈簧水母一次，感受反射方向。', target: { column: 4, row: 6 }, targetLabel: '彈簧水母' }),
-  Object.freeze({ id: 'current', title: '讀懂洋流', body: '洋流會沿箭頭方向推動你，會改變下一次拉射的落點。', instruction: '請穿過洋流一次，觀察它如何改變你的漂移。', target: { column: 6, row: 9 }, targetLabel: '洋流' }),
-  Object.freeze({ id: 'spike', title: '尖刺會傷害你', body: '尖刺 Edge 會阻擋通路並造成接觸傷害。先看角度，再決定要不要繞路。', instruction: '請安全地碰到尖刺 Edge 一次，讀懂它的阻擋反應。', target: { column: 3, row: 13 }, targetLabel: '尖刺 Edge' }),
-  Object.freeze({ id: 'barrier', title: '障礙只是在說不行', body: '障礙 Edge 會阻擋通路，但不會造成傷害；你需要換一個角度。', instruction: '請碰到障礙 Edge 一次，確認它和尖刺不同。', target: { column: 9, row: 13 }, targetLabel: '障礙 Edge' }),
-  Object.freeze({ id: 'wallGillGate', title: '穿進牆裡也要記得氧氣', body: '潛壁鰓門需要按 E 進入與離開。牆內仍會消耗氧氣，而且不能使用武器。', instruction: '請按 E 進入牆體，再按一次 E 離開。', target: { column: 10, row: 18 }, targetLabel: '潛壁鰓門' }),
-  Object.freeze({ id: 'weapon', title: '讓移動也成為攻擊', body: '第一把武器會跟著你的移動運作。你不一定要追著敵人砍，先用拉射路徑擦過敵人。', instruction: '請用一次拉射路徑命中訓練敵人。', target: { column: 8, row: 15 }, targetLabel: '訓練敵人 A' }),
-  Object.freeze({ id: 'resonance', title: '敵人不一定要死', body: '靠近敵人並維持擦身距離，可以累積 Resonance。共鳴完成後，敵人會成為中立夥伴。', instruction: '請對另一隻訓練敵人完成一次 Resonance。只有真正中立化，導航員才會開放出口。', target: { column: 9, row: 17 }, targetLabel: '訓練敵人 B' }),
+  Object.freeze({ id: 'launch', title: '先學會彈射', body: '先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。', instruction: '請現在完成一次拉射。沒有真的放開彈射，導航員不會讓你進入下一步。', controlHint: '操作：按住滑鼠左鍵拖曳潛水夫，放開完成一次拉射。', target: { column: 2, row: 2 }, targetLabel: '你的潛水夫' }),
+  Object.freeze({ id: 'seaweedAttach', title: '先學會停下來', body: '前方的水草是你的喘息點。靠近後按 E 附著，重力會暫停，能量也會恢復。', instruction: '請靠近水草並按 E 附著一次。', controlHint: '操作：靠近水草後按 E，附著在水草上。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
+  Object.freeze({ id: 'seaweedRelease', title: '知道什麼時候離開', body: '水草不是終點。附著後再按一次 E，才會重新回到水中前進。', instruction: '請再按一次 E 離開水草。', controlHint: '操作：附著在水草上時再按 E，離開水草。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
+  Object.freeze({ id: 'checkpoint', title: '記住你的退路', body: 'Checkpoint 會記住你的重生位置，並在重生時補滿生命、氧氣與能量。', instruction: '請碰到前方的 Checkpoint，讓導航員記住這個位置。', controlHint: '操作：用潛水夫碰到 Checkpoint，更新重生點。', target: { column: 2, row: 4 }, targetLabel: 'Checkpoint' }),
+  Object.freeze({ id: 'oxygen', title: '用速度換氧氣', body: '氧氣礦石不是輕輕碰就會掉落。你要用足夠速度撞擊，才會釋放氧氣。', instruction: '請高速撞擊氧氣礦石，實際取得一次氧氣。', controlHint: '操作：拉射一段足夠長的距離，高速撞擊氧氣礦石。', target: { column: 4, row: 6 }, targetLabel: '氧氣礦石' }),
+  Object.freeze({ id: 'oxygenBubble', title: '接觸式補氧', body: '清氧氣泡會在接觸時立即補氧，而且使用一次就會消失。', instruction: '請碰到清氧氣泡，使用一次補給。', controlHint: '操作：移動潛水夫碰到清氧氣泡，接觸就會自動使用。', target: { column: 6, row: 7 }, targetLabel: '清氧氣泡' }),
+  Object.freeze({ id: 'torricelli', title: '找到可以停留的空間', body: '托里切利空間會持續回復氧氣，適合在長距離路線中停下來整理資源。', instruction: '請進入托里切利空間並停留片刻。', controlHint: '操作：把潛水夫移進托里切利空間，停留在裡面回復氧氣。', target: { column: 2, row: 9 }, targetLabel: '托里切利空間' }),
+  Object.freeze({ id: 'bubble', title: '讓氣泡替你承受重力', body: '光合作用氣泡會補氧並暫時免疫重力，但作用期間不能立刻再次彈射。', instruction: '請碰到光合作用氣泡，實際取得它的效果。', controlHint: '操作：用潛水夫碰到光合作用氣泡，接觸後效果會自動啟動。', target: { column: 5, row: 10 }, targetLabel: '光合作用氣泡' }),
+  Object.freeze({ id: 'weightStone', title: '分辨撞擊速度', body: '重石會把低速撞擊壓回；只有高速撞擊才會被擊碎。', instruction: '請用高速撞擊擊碎重石。', controlHint: '操作：拉射撞上重石；低速會被彈回，高速才會擊碎它。', target: { column: 7, row: 12 }, targetLabel: '重石' }),
+  Object.freeze({ id: 'mine', title: '危險也要讀懂', body: '地雷會反彈並造成傷害。這一間房把傷害調低，但你仍要實際碰過它，知道它不是補給。', instruction: '請碰觸深海地雷一次。', controlHint: '操作：用潛水夫碰觸深海地雷，感受它的反彈與傷害。', target: { column: 3, row: 15 }, targetLabel: '深海地雷' }),
+  Object.freeze({ id: 'razor', title: '不要硬闖剃刀', body: '剃刀會強制把你推開。遇到它時要調整路線，不是一直往前撞。', instruction: '請碰觸剃刀一次，觀察它如何把你推開。', controlHint: '操作：用潛水夫碰觸剃刀，觀察反彈後再調整下一次拉射。', target: { column: 4, row: 17 }, targetLabel: '剃刀' }),
+  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', controlHint: '操作：靠近珊瑚群落後按 E，啟動短暫隱形。', target: { column: 2, row: 15 }, targetLabel: '珊瑚群落' }),
+  Object.freeze({ id: 'button', title: '碰到按鈕才會開門', body: '按鈕會切換指定的條件通行門。先碰按鈕，再觀察前方的門。', instruction: '請碰到按鈕，打開教學房的通行門。', controlHint: '操作：用潛水夫碰到按鈕，條件通行門就會打開。', target: { column: 8, row: 18 }, targetLabel: '按鈕' }),
+  Object.freeze({ id: 'springJelly', title: '借力改變方向', body: '彈簧水母會依照入射角反射並加速，把一次撞擊轉成新的位移。', instruction: '請撞上彈簧水母一次，感受反射方向。', controlHint: '操作：用拉射撞上彈簧水母，觀察它把你反射到哪裡。', target: { column: 4, row: 6 }, targetLabel: '彈簧水母' }),
+  Object.freeze({ id: 'current', title: '讀懂洋流', body: '洋流會沿箭頭方向推動你，會改變下一次拉射的落點。', instruction: '請穿過洋流一次，觀察它如何改變你的漂移。', controlHint: '操作：讓潛水夫穿過洋流箭頭區域，觀察推力方向。', target: { column: 6, row: 9 }, targetLabel: '洋流' }),
+  Object.freeze({ id: 'spike', title: '尖刺會傷害你', body: '尖刺 Edge 會阻擋通路並造成接觸傷害。先看角度，再決定要不要繞路。', instruction: '請安全地碰到尖刺 Edge 一次，讀懂它的阻擋反應。', controlHint: '操作：用較安全的角度碰到尖刺 Edge，確認它會阻擋並造成傷害。', target: { column: 3, row: 13 }, targetLabel: '尖刺 Edge' }),
+  Object.freeze({ id: 'barrier', title: '障礙只是在說不行', body: '障礙 Edge 會阻擋通路，但不會造成傷害；你需要換一個角度。', instruction: '請碰到障礙 Edge 一次，確認它和尖刺不同。', controlHint: '操作：碰到障礙 Edge，確認它只阻擋、不造成傷害。', target: { column: 9, row: 13 }, targetLabel: '障礙 Edge' }),
+  Object.freeze({ id: 'wallGillGate', title: '穿進牆裡也要記得氧氣', body: '潛壁鰓門需要按 E 進入與離開。牆內仍會消耗氧氣，而且不能使用武器。', instruction: '請按 E 進入牆體，再按一次 E 離開。', controlHint: '操作：靠近潛壁鰓門按 E 進入，再按一次 E 離開。', target: { column: 10, row: 18 }, targetLabel: '潛壁鰓門' }),
+  Object.freeze({ id: 'weapon', title: '讓移動也成為攻擊', body: '第一把武器會跟著你的移動運作。你不一定要追著敵人砍，先用拉射路徑擦過敵人。', instruction: '請用一次拉射路徑命中訓練敵人。', controlHint: '操作：拖曳並放開拉射，讓路徑真正擦過訓練敵人 A。', target: { column: 8, row: 15 }, targetLabel: '訓練敵人 A' }),
+  Object.freeze({ id: 'resonance', title: '敵人不一定要死', body: '靠近敵人並維持擦身距離，可以累積 Resonance。共鳴完成後，敵人會成為中立夥伴。', instruction: '請對另一隻訓練敵人完成一次 Resonance。只有真正中立化，導航員才會開放出口。', controlHint: '操作：靠近訓練敵人 B，保持擦身距離直到 Resonance 完成；不必殺死它。', target: { column: 9, row: 17 }, targetLabel: '訓練敵人 B' }),
 ]);
 
 const EVENT_TO_OBJECT_ID = Object.freeze({
@@ -338,13 +338,19 @@ export function getPlayTutorialRenderState(state, enemies = []) {
   const safeState = state ?? createPlayTutorialState();
   const progress = stepPlayTutorial(safeState, { enemies });
   const currentStep = progress.readyToLeave
-    ? Object.freeze({ id: 'ready', title: '第零篇章完成', body: '你已經完成導航員的所有示範。這次教學不會把資源或進度帶入正式篇章；請前往出口離開。', instruction: '請前往出口離開第零篇章。', target: { column: 10, row: 21 }, targetLabel: 'EXIT' })
+    ? Object.freeze({ id: 'ready', title: '第零篇章完成', body: '你已經完成導航員的所有示範。這次教學不會把資源或進度帶入正式篇章；請前往出口離開。', instruction: '請前往出口離開第零篇章。', controlHint: '操作：依照 EXIT 標記前往房間底部的出口。', target: { column: 10, row: 21 }, targetLabel: 'EXIT' })
     : progress.currentStep ?? TUTORIAL_GUIDED_STEPS[0];
   const completedCoreSteps = TUTORIAL_GUIDED_STEPS.filter((step) => safeState.completed.has(step.id)).length;
   const targetCellKey = currentStep.target ? tutorialKey(currentStep.target.column, currentStep.target.row) : null;
   return {
     active: true,
     guideName: TUTORIAL_GUIDE_NAME,
+    dialogue: Object.freeze({
+      speaker: TUTORIAL_GUIDE_NAME,
+      title: currentStep.title,
+      text: progress.lastGuideNote || currentStep.body,
+      controlHint: currentStep.controlHint ?? currentStep.instruction ?? '',
+    }),
     currentStep,
     completedCoreSteps,
     totalCoreSteps: TUTORIAL_GUIDED_STEPS.length,
