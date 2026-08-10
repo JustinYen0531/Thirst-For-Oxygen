@@ -2150,7 +2150,7 @@ function drawInkVisibilityMask() {
   const centerY = (actor.y - camera.y) * SCALE;
   const radius = Math.max(36, (actor.inkVisionRange ?? 42) * SCALE);
   context.save();
-  context.fillStyle = 'rgba(2, 5, 16, .9)';
+  context.fillStyle = 'rgba(2, 5, 16, .58)';
   context.beginPath();
   context.rect(0, 0, canvas.width, canvas.height);
   context.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
