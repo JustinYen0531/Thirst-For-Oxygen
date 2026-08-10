@@ -15,16 +15,7 @@
           <p id="status-line" data-i18n="status.ready">Ready to create a map.</p>
         </div>
         <div class="topbar-actions">
-          <a class="topbar-nav" href="/home.html" data-i18n="nav.home">Control Room</a>
-          <a class="topbar-nav" href="/play.html?part=3" data-i18n="nav.play">Play</a>
-          <a class="topbar-nav" href="/enemy-encyclopedia.html" data-i18n="nav.encyclopedia">World Encyclopedia</a>
-          <a class="topbar-nav" href="/sandbox.html" data-i18n="nav.sandbox">Enemy Sandbox</a>
-          <button type="button" data-editor-language="en" data-i18n-aria-label="language.en" aria-pressed="true">EN</button>
-          <button type="button" data-editor-language="zh-Hant" data-i18n-aria-label="language.zh" aria-pressed="false">繁中</button>
-          <button id="editor-mode" class="is-active" data-i18n="mode.edit">Edit</button>
-          <button id="play-mode" data-i18n="mode.play">Physics Test</button>
-          <button id="reset-player" data-i18n="mode.reset">Reset Test Player (R)</button>
-          <button id="fullscreen" data-i18n="mode.fullscreen">Fullscreen (F)</button>
+          <a class="topbar-nav" href="/home.html" data-i18n="nav.back">Back</a>
         </div>
       </header>
 
@@ -128,6 +119,12 @@
                   </div>
                 </fieldset>
               </div>
+            </div>
+            <div class="editor-control-actions" aria-label="Editor controls" data-i18n-aria-label="mode.actionsAria">
+              <button id="editor-mode" class="is-active" type="button" data-i18n="mode.edit">Edit</button>
+              <button id="play-mode" type="button" data-i18n="mode.play">Physics Test</button>
+              <button id="reset-player" type="button" data-i18n="mode.reset">Reset Test Player (R)</button>
+              <button id="fullscreen" type="button" data-i18n="mode.fullscreen">Fullscreen (F)</button>
             </div>
             <div class="palette-tabs" role="tablist" aria-label="Asset categories" data-i18n-aria-label="palette.tabsAria">
               <button class="palette-tab is-active" role="tab" aria-selected="true" data-palette-tab="gravity" data-i18n="palette.tab.gravity">Water Gravity / Layer · Full Cell</button>

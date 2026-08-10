@@ -41,7 +41,15 @@ test('every static editor binding has English and Traditional Chinese copy', () 
   const visibleChinese = [...indexSource.matchAll(/>([^<]*[\u4e00-\u9fff][^<]*)</g)]
     .map((match) => match[1].trim())
     .filter(Boolean);
-  assert.deepEqual(visibleChinese, ['繁中'], 'only the self-identifying language button may remain literal');
+  assert.deepEqual(visibleChinese, [], 'editor shell should not duplicate the Settings language buttons');
+});
+
+test('editor topbar stays compact and mode controls live below the asset palette heading', () => {
+  const topbarSource = indexSource.slice(0, indexSource.indexOf('<section class="workspace">'));
+  assert.match(indexSource, /<a class="topbar-nav" href="\/home\.html" data-i18n="nav\.back">Back<\/a>/);
+  assert.doesNotMatch(indexSource, /data-editor-language/);
+  assert.match(indexSource, /<div class="palette-heading">[\s\S]*?<\/div>\s*<div class="editor-control-actions"[\s\S]*?id="fullscreen"/);
+  assert.doesNotMatch(topbarSource, /class="topbar-actions"[\s\S]*?id="editor-mode"/);
 });
 
 test('dynamic editor tools, Inspector, validation, and events translate without losing Chinese', () => {

@@ -57,6 +57,12 @@ test('tutorial advances only after each guided operation is actually observed', 
   const state = createPlayTutorialState();
   const initialRender = getPlayTutorialRenderState(state);
   assert.equal(initialRender.currentStep.id, 'launch');
+  assert.equal(initialRender.currentStep.title, '先認識生存系統');
+  assert.match(initialRender.currentStep.body, /O₂/);
+  assert.match(initialRender.currentStep.body, /Energy/);
+  assert.match(initialRender.currentStep.body, /Weapon/);
+  assert.match(initialRender.currentStep.body, /生命會自動回復/);
+  assert.match(initialRender.currentStep.body, /Checkpoint/);
   assert.equal(initialRender.autoReady, false);
   assert.equal(initialRender.totalCoreSteps, 20);
   assert.equal(initialRender.completionTarget, 10);
@@ -173,6 +179,9 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.doesNotMatch(playHtml, /id="play-tutorial-dialogue-navigation"/);
   assert.match(playHtml, /id="play-tutorial-step-progress">0 \/ 10</);
   assert.match(playHtml, /id="play-tutorial-task-progress">0 \/ 20</);
+  assert.match(playHtml, /Survival Systems First/);
+  assert.match(playHtml, /O₂ drains over time; Energy powers launches and your Weapon/);
+  assert.match(playHtml, /health regenerates/);
   const fixedEnglishSections = [...playHtml.matchAll(/data-gameplay-language="fixed-en"[\s\S]*?<\/section>/g)].map(([section]) => section).join('\n');
   assert.doesNotMatch(fixedEnglishSections, /[\u3400-\u9fff]/);
   assert.match(playHtml, /aria-label="First Breath tasks"/);

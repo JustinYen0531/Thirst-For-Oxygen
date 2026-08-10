@@ -38,7 +38,7 @@ export const TUTORIAL_OBJECT_GUIDES = Object.freeze([
 const TUTORIAL_GUIDE_NAME = '深淵導航員';
 
 export const TUTORIAL_GUIDED_STEPS = Object.freeze([
-  Object.freeze({ id: 'launch', title: '先學會彈射', body: '先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。', instruction: '請現在完成一次拉射。沒有真的放開彈射，導航員不會讓你進入下一步。', controlHint: '操作：按住滑鼠左鍵拖曳潛水夫，放開完成一次拉射。', target: { column: 2, row: 2 }, targetLabel: '你的潛水夫' }),
+  Object.freeze({ id: 'launch', title: '先認識生存系統', body: '先認識四件事：O₂ 會隨時間消耗；Energy 會用在彈射與 Weapon 上；你的 Weapon 會跟著移動與拉射路徑運作；當 O₂ 與 Energy 都夠高時，生命會自動回復，Checkpoint 會在死亡後補滿生命、O₂ 與 Energy。了解這些後，再完成一次拉射。', instruction: '請先讀懂 O₂、Energy、Weapon 與回血規則，再完成一次拉射。沒有真的放開彈射，導航員不會讓你進入下一步。', controlHint: '操作：按住滑鼠左鍵拖曳潛水夫，放開完成一次拉射。', target: { column: 2, row: 2 }, targetLabel: '你的潛水夫' }),
   Object.freeze({ id: 'seaweedAttach', title: '先學會停下來', body: '前方的水草是你的喘息點。靠近後按 E 附著，重力會暫停，能量也會恢復。', instruction: '請靠近水草並按 E 附著一次。', controlHint: '操作：靠近水草後按 E，附著在水草上。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
   Object.freeze({ id: 'seaweedRelease', title: '知道什麼時候離開', body: '水草不是終點。附著後再按一次 E，才會重新回到水中前進。', instruction: '請再按一次 E 離開水草。', controlHint: '操作：附著在水草上時再按 E，離開水草。', target: { column: 2, row: 3 }, targetLabel: '水草' }),
   Object.freeze({ id: 'checkpoint', title: '記住你的退路', body: 'Checkpoint 會記住你的重生位置，並在重生時補滿生命、氧氣與能量。', instruction: '請碰到前方的 Checkpoint，讓導航員記住這個位置。', controlHint: '操作：用潛水夫碰到 Checkpoint，更新重生點。', target: { column: 2, row: 4 }, targetLabel: 'Checkpoint' }),
@@ -62,7 +62,7 @@ export const TUTORIAL_GUIDED_STEPS = Object.freeze([
 ]);
 
 export const TUTORIAL_TASKS = Object.freeze([
-  Object.freeze({ id: 'launch', title: '先學會彈射', stepIds: Object.freeze(['launch']) }),
+  Object.freeze({ id: 'launch', title: '先認識生存系統', stepIds: Object.freeze(['launch']) }),
   Object.freeze({ id: 'seaweed', title: '附著與離開水草', stepIds: Object.freeze(['seaweedAttach', 'seaweedRelease']) }),
   Object.freeze({ id: 'checkpoint', title: '記住你的退路', stepIds: Object.freeze(['checkpoint']) }),
   Object.freeze({ id: 'oxygen', title: '用速度換氧氣', stepIds: Object.freeze(['oxygen']) }),

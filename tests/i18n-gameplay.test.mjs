@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { setLanguage } from '../src/i18n.js';
 import { installLiveLocalization, translateGameplayText } from '../src/i18n-gameplay.js';
-import { TUTORIAL_TASKS } from '../src/play-tutorial.js';
+import { TUTORIAL_GUIDED_STEPS, TUTORIAL_TASKS } from '../src/play-tutorial.js';
 
 const CJK_PATTERN = /[\u3400-\u9fff]/;
 
@@ -54,6 +54,19 @@ test('all First Breath task labels are translated in English', () => {
     assert.equal(CJK_PATTERN.test(english), false, `untranslated First Breath task: ${title}`);
     assert.notEqual(english, title, `missing First Breath task translation: ${title}`);
   });
+});
+
+test('Chapter 0 opening survival briefing is translated in English at runtime', () => {
+  const opening = TUTORIAL_GUIDED_STEPS[0];
+  [opening.title, opening.body, opening.instruction].forEach((source) => {
+    const english = translateGameplayText(source, 'en');
+    assert.equal(CJK_PATTERN.test(english), false, `untranslated opening briefing: ${source}`);
+    assert.notEqual(english, source, `missing opening briefing translation: ${source}`);
+  });
+  assert.match(translateGameplayText(opening.body, 'en'), /O₂/);
+  assert.match(translateGameplayText(opening.body, 'en'), /Energy/);
+  assert.match(translateGameplayText(opening.body, 'en'), /Weapon/);
+  assert.match(translateGameplayText(opening.body, 'en'), /health regenerates/);
 });
 
 test('dynamic First Breath navigation copy stays English for any task count', () => {
