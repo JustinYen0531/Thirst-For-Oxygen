@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="en" data-i18n-document-title="tutorial.documentTitle">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thirst for Oxygen｜完整遊玩教學</title>
+    <title>Thirst for Oxygen | Complete How to Play</title>
     <link rel="stylesheet" href="/src/tutorial.css" />
   </head>
   <body>
@@ -11,13 +11,20 @@
       <header class="tutorial-header">
         <div>
           <p class="tutorial-eyebrow">THIRST FOR OXYGEN / FIELD MANUAL</p>
-          <h1>完整遊玩教學</h1>
-          <p class="tutorial-lede">從第一次彈射、氧氣路線與 Build，到深淵核心真正代表的故事。</p>
+          <h1 data-i18n="tutorial.title">Complete How to Play</h1>
+          <p class="tutorial-lede" data-i18n="tutorial.lede">From your first launch and oxygen routes to Build choices and the story at the Abyssal Core.</p>
         </div>
-        <a class="tutorial-back" href="/home.html">Back</a>
+        <div class="tutorial-header-actions">
+          <div class="tutorial-language" aria-label="Guide language">
+            <span data-i18n="tutorial.languageLabel">Guide language</span>
+            <button type="button" data-tutorial-language="en" aria-pressed="true" data-i18n="tutorial.languageEnglish">English</button>
+            <button type="button" data-tutorial-language="zh-Hant" aria-pressed="false" data-i18n="tutorial.languageChinese">繁體中文</button>
+          </div>
+          <a class="tutorial-back" href="/home.html" data-i18n="tutorial.back">Back</a>
+        </div>
       </header>
 
-      <article id="tutorial-content" class="markdown-document" aria-label="完整遊玩教學內容"></article>
+      <article id="tutorial-content" class="markdown-document" aria-label="Complete How to Play guide"></article>
     </main>
     <script type="module" src="/src/tutorial-page.js"></script>
   </body>

@@ -73,6 +73,14 @@ const TRANSLATIONS = Object.freeze({
   'home.settings.selectEnglishAria': Object.freeze({ en: 'Switch language to English', 'zh-Hant': '切換語言為英文' }),
   'home.settings.selectTraditionalChineseAria': Object.freeze({ en: 'Switch language to Traditional Chinese', 'zh-Hant': '切換語言為繁體中文' }),
   'home.settings.currentLanguage': Object.freeze({ en: 'Current language: {language}', 'zh-Hant': '目前語言：{language}' }),
+  'tutorial.documentTitle': Object.freeze({ en: 'Thirst for Oxygen | Complete How to Play', 'zh-Hant': 'Thirst for Oxygen｜完整遊玩教學' }),
+  'tutorial.title': Object.freeze({ en: 'Complete How to Play', 'zh-Hant': '完整遊玩教學' }),
+  'tutorial.lede': Object.freeze({ en: 'From your first launch and oxygen routes to Build choices and the story at the Abyssal Core.', 'zh-Hant': '從第一次彈射、氧氣路線與 Build，到深淵核心真正代表的故事。' }),
+  'tutorial.back': Object.freeze({ en: 'Back', 'zh-Hant': '返回' }),
+  'tutorial.languageLabel': Object.freeze({ en: 'Guide language', 'zh-Hant': '教學語言' }),
+  'tutorial.languageEnglish': Object.freeze({ en: 'English', 'zh-Hant': '英文' }),
+  'tutorial.languageChinese': Object.freeze({ en: '繁體中文', 'zh-Hant': '繁體中文' }),
+  'tutorial.contentAria': Object.freeze({ en: 'Complete How to Play guide', 'zh-Hant': '完整遊玩教學內容' }),
 });
 
 const ATTRIBUTE_BINDINGS = Object.freeze([

@@ -1330,6 +1330,12 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 玩家讀完開場 briefing 後才會被要求完成第一次拉射；既有 20 個任務與完成任意 10 個解鎖 EXIT 的規則不變。
 - 已補上開場靜態英文內容、Traditional Chinese source 到 English 的動態翻譯，以及靜態測試契約；依專案規則不執行瀏覽器／Playwright。
 
+## 2026-08-10 — How to Play defaults to English with Chinese preserved
+
+- 完整 How to Play 頁面新增英文版長文，預設載入英文；原本的繁體中文 Markdown 保留為可切換版本。
+- 頁首新增 English／繁體中文切換，沿用全站語言儲存設定；沒有既有偏好時預設 English。
+- Tutorial page 靜態測試 8/8 與 Vite production build 通過；依專案規則未執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Descent Part 2 now ends in the Tide-Law Nautilus room
 
 - 下沉篇第二部分不再把終點當成泛用 `EXIT`：地圖末端新增潮律鸚鵡螺封印房、專用小 Boss、入口／出口三格封門與 T2 同層房間，入口抵達後直接進入 Boss 段落。
