@@ -151,6 +151,11 @@ const EXACT_ENGLISH = Object.freeze({
   '潛水環境音': 'Diving Ambience',
   '240 秒循環': '240s loop',
   '潛水環境音音量': 'Diving ambience volume',
+  '接觸後立即補充乾淨氧氣；Boss 房間會依時間重新生成。': 'Instantly restores clean oxygen on contact; respawns over time in Boss rooms.',
+  '接觸後會短暫隔絕水域重力，並在氣泡消失前鎖住彈射。': 'Temporarily ignores water gravity on contact and locks launching until the bubble is consumed.',
+  '靠近後按字母 E 固定在水草上；固定時不會下墜，可以休息並恢復能量。再次按 E 即可離開。': 'Press E nearby to attach to seaweed. Gravity pauses while attached, allowing rest and energy recovery; press E again to leave.',
+  '靠近後按字母 E，獲得 2.5 秒隱形；期間敵人看不見你。': 'Press E nearby to gain 2.5 seconds of invisibility; enemies cannot see you during it.',
+  '靠近後按字母 E 進入不可通行牆體；要離開時，也必須在潛壁鰓門旁按 E。': 'Press E nearby to enter blocked terrain; press E beside the Wall-Gill Gate again when you want to leave.',
   '◉ 潛水環境音：開': '◉ Diving Ambience: On',
   '○ 潛水環境音：關': '○ Diving Ambience: Off',
   '↩ 離開遊玩': '↩ Exit Play',
@@ -523,7 +528,7 @@ const TERM_ENGLISH = Object.freeze({
   '衝刺夾擊': 'Dash Clamp', '長螯刺擊': 'Long-Claw Stab', '投擲長矛／珊瑚刺': 'Spear / Coral Spine Throw',
   '毒刺直射': 'Venom Straight Shot', '棘刺散射': 'Spine Scatter', '墨影瞬移斬': 'Inkshadow Blink Slash',
   '墨槍狙擊': 'Ink-Gun Snipe', '裂殖衝撞': 'Splitting Rush', '死亡分裂': 'Death Split',
-  '生命連結': 'Life Link', '珊瑚脈衝': 'Coral Pulse', '拳甲蓄力／拳擊': 'Charged Gauntlet Punch',
+  '生命連結': 'Life Link', '珊瑚脈衝': 'Coral Pulse', '變異': 'Mutant', '拳甲蓄力／拳擊': 'Charged Gauntlet Punch',
   '震海重擊': 'Seaquake Smash', '信標突襲': 'Beacon Assault', '前方短距離刺擊': 'Short Forward Thrust',
   '迫擊珊瑚彈': 'Coral Mortar', '雙核魔彈': 'Dual-Core Bolt', '翼刃撞擊': 'Wing-Blade Ram',
   '弧潮投射': 'Arc-Tide Bombardment', '持續雙核魔彈': 'Sustained Dual-Core Volley',
@@ -667,7 +672,9 @@ export function translateGameplayText(value, language = getLanguage()) {
     if (pattern.test(source)) return replaceTerms(source.replace(pattern, replacement));
   }
   const translated = replaceTerms(source);
-  return CJK_PATTERN.test(translated) ? 'English copy pending review' : translated;
+  // Keep authored copy visible as a safe last resort. A generic placeholder
+  // hides the actual gameplay instruction and makes the interface look broken.
+  return CJK_PATTERN.test(translated) ? source : translated;
 }
 
 function walkTextNodes(root, visit) {

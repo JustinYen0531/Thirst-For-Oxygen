@@ -125,9 +125,9 @@ test('narrator typing translates the complete sentence before slicing progress',
   stepPlayStoryIntro(state, .25);
   const render = getPlayStoryIntroRenderState(state);
   const english = getPlayStoryIntroNarratorText(state, (value) => (
-    value === render.narrator ? 'The complete translated narration.' : 'English copy pending review'
+    value === render.narrator ? 'The complete translated narration.' : 'unexpected fallback'
   ));
-  assert.notEqual(english, 'English copy pending review');
+  assert.notEqual(english, 'unexpected fallback');
   assert.ok(english.length > 0);
   assert.ok(english.length < 'The complete translated narration.'.length);
 });

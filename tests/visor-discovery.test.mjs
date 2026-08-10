@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ENEMY_ORDER } from '../src/game-data.js';
 import { setLanguage } from '../src/i18n.js';
+import { translateGameplayText } from '../src/i18n-gameplay.js';
 import {
   DISCOVERY_COLORS,
   EDGE_DISCOVERY_GUIDES,
@@ -53,6 +55,41 @@ test('English discovery cards draw no CJK copy into the Canvas', () => {
 
   assert.ok(textDraws.length > 0);
   assert.equal(textDraws.some((value) => /[\u3400-\u9fff\uf900-\ufaff]/.test(value)), false, textDraws.join(' | '));
+});
+
+test('every discovery guide has complete English copy instead of the generic pending placeholder', () => {
+  const guides = [
+    ...Object.values(OBJECT_DISCOVERY_GUIDES),
+    ...Object.values(EDGE_DISCOVERY_GUIDES),
+    ...ENEMY_ORDER.map(getEnemyDiscoveryGuide),
+  ];
+  guides.forEach((guide) => {
+    ['categoryLabel', 'title', 'description'].forEach((field) => {
+      const translated = translateGameplayText(guide[field], 'en');
+      if (/[\u3400-\u9fff\uf900-\ufaff]/.test(guide[field])) assert.notEqual(translated, guide[field], `${field}: untranslated source`);
+      assert.equal(/[\u3400-\u9fff\uf900-\ufaff]/.test(translated), false, `${field}: ${guide[field]}`);
+    });
+  });
+});
+
+test('long enemy discovery copy wraps into a larger panel without ellipsis', () => {
+  setLanguage('en');
+  const textDraws = [];
+  const context = {
+    save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fill() {}, fillRect() {}, strokeRect() {},
+    fillText(text) { textDraws.push(String(text)); },
+    set lineWidth(_) {}, set strokeStyle(_) {}, set shadowColor(_) {}, set shadowBlur(_) {}, set fillStyle(_) {}, set font(_) {}, set textBaseline(_) {}, set textAlign(_) {},
+  };
+  const active = {
+    ...target('crab-1', 'enemy:crabGuard', getEnemyDiscoveryGuide('crabGuard')),
+    startedAt: 0,
+  };
+  const layout = getDiscoveryGuideLayout(active, 0, { x: 0, y: 0 }, { width: 240, height: 160 });
+  drawDiscoveryGuides(context, [active], { x: 0, y: 0 }, { width: 240, height: 160 }, 100);
+  assert.ok(layout.panelWidth > 66);
+  assert.ok(layout.panelHeight > 28);
+  assert.equal(textDraws.some((value) => value.includes('Primary actions:')), true, textDraws.join(' | '));
+  assert.equal(textDraws.some((value) => value.includes('…')), false, textDraws.join(' | '));
 });
 
 test('a first-contact guide disappears on exit and never repeats in the same session', () => {

@@ -7,19 +7,25 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function splitText(text, limit = 22) {
+const DISCOVERY_TITLE_LIMIT = 24;
+const DISCOVERY_DESCRIPTION_LIMIT = 30;
+const DISCOVERY_TITLE_LINE_HEIGHT = 4.2;
+const DISCOVERY_DESCRIPTION_LINE_HEIGHT = 4.1;
+
+function splitText(text, limit = DISCOVERY_DESCRIPTION_LIMIT) {
   if (!text) return [''];
   const lines = [];
-  let remaining = text;
-  while (remaining.length > limit && lines.length < 2) {
+  let remaining = String(text).trim();
+  while (remaining.length > limit) {
     let splitAt = limit;
-    const punctuation = ['。', '；', '，', '、'].map((mark) => remaining.lastIndexOf(mark, limit)).filter((index) => index > limit * .45);
+    const whitespace = remaining.lastIndexOf(' ', limit);
+    const punctuation = ['。', '；', '，', '、', '.', ';', ','].map((mark) => remaining.lastIndexOf(mark, limit)).filter((index) => index > limit * .45);
+    if (whitespace > limit * .55) splitAt = whitespace + 1;
     if (punctuation.length) splitAt = Math.max(...punctuation) + 1;
-    lines.push(remaining.slice(0, splitAt));
-    remaining = remaining.slice(splitAt);
+    lines.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
   }
-  if (lines.length < 2) lines.push(remaining);
-  else if (remaining) lines[1] = `${lines[1].slice(0, Math.max(0, limit - 1))}…`;
+  if (remaining) lines.push(remaining);
   return lines.filter(Boolean);
 }
 
@@ -39,8 +45,13 @@ function drawCornerReticle(context, x, y, half, cornerLength) {
 export function getDiscoveryGuideLayout(active, index, camera, viewport) {
   const half = Math.max(7, active.size * .58);
   const placeOnRight = active.x < camera.x + viewport.width * .56;
-  const panelWidth = 66;
-  const panelHeight = 28;
+  const titleLines = splitText(translateGameplayText(active?.guide?.title ?? ''), DISCOVERY_TITLE_LIMIT);
+  const descriptionLines = splitText(translateGameplayText(active?.guide?.description ?? ''), DISCOVERY_DESCRIPTION_LIMIT);
+  const panelWidth = 86;
+  const panelHeight = Math.max(
+    34,
+    16 + titleLines.length * DISCOVERY_TITLE_LINE_HEIGHT + descriptionLines.length * DISCOVERY_DESCRIPTION_LINE_HEIGHT,
+  );
   const rawPanelX = placeOnRight ? active.x + half + 8 : active.x - half - panelWidth - 8;
   const panelX = clamp(rawPanelX, camera.x + 3, camera.x + viewport.width - panelWidth - 3);
   const panelY = clamp(active.y - panelHeight * .5 + (index % 3) * 4, camera.y + 3, camera.y + viewport.height - panelHeight - 3);
@@ -73,9 +84,11 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, panel, ok } = getDiscoveryGuideLayout(active, 0, camera, viewport);
     const lineEndX = placeOnRight ? panelX : panelX + panelWidth;
     const typedDescription = getDiscoveryTypedDescription(active, timeSeconds, 24, translateGameplayText);
-    const descriptionLines = splitText(typedDescription);
+    const descriptionLines = splitText(typedDescription, DISCOVERY_DESCRIPTION_LIMIT);
     const categoryLabel = translateGameplayText(active.guide.categoryLabel);
     const title = translateGameplayText(active.guide.title);
+    const titleLines = splitText(title, DISCOVERY_TITLE_LIMIT);
+    const descriptionStartY = panelY + 11.4 + (titleLines.length - 1) * DISCOVERY_TITLE_LINE_HEIGHT;
 
     context.save();
     context.lineWidth = .75;
@@ -105,10 +118,10 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     context.fillText(categoryLabel, panelX + 4, panelY + 2.2);
     context.font = '700 3.4px system-ui, sans-serif';
     context.fillStyle = '#effff8';
-    context.fillText(title, panelX + 4, panelY + 6.2);
+    titleLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, panelY + 6.2 + lineIndex * DISCOVERY_TITLE_LINE_HEIGHT));
     context.font = '2.7px system-ui, sans-serif';
     context.fillStyle = '#bcefd5';
-    descriptionLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, panelY + 11.4 + lineIndex * 4.1));
+    descriptionLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, descriptionStartY + lineIndex * DISCOVERY_DESCRIPTION_LINE_HEIGHT));
 
     context.fillStyle = 'rgba(141, 255, 196, .14)';
     context.strokeStyle = VISOR_GREEN;

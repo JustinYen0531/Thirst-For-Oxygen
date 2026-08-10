@@ -981,10 +981,7 @@ function updateStoryIntroPresentation() {
   }
   if (storyIntroEyebrow) storyIntroEyebrow.textContent = story.eyebrow;
   if (storyIntroProgress) storyIntroProgress.textContent = `${String(story.slideNumber).padStart(2, '0')} / ${String(story.totalSlides).padStart(2, '0')}`;
-  const translateStoryText = (value) => {
-    const translated = translateGameplayText(value);
-    return translated === 'English copy pending review' ? String(value ?? '') : translated;
-  };
+  const translateStoryText = (value) => translateGameplayText(value);
   if (storyIntroTitle) storyIntroTitle.textContent = translateStoryText(story.title);
   if (storyIntroNarrator) {
     storyIntroNarrator.textContent = getPlayStoryIntroNarratorText(storyIntroState, translateStoryText);

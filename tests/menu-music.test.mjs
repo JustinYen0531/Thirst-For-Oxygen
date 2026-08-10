@@ -34,7 +34,9 @@ test('formal Play retries both chapter music and diving ambience after autoplay 
   assert.match(page, /window\.addEventListener\('pointerdown', unlockGameplayAudio, \{ capture: true \}\)/);
   assert.match(page, /window\.addEventListener\('keydown', unlockGameplayAudio, \{ capture: true \}\)/);
   assert.match(sfx, /underwater-loop\.mp3/);
-  assert.match(sfx, /underwaterLoop: 1\.23/);
-  assert.match(sfx, /scubaBubbles: 0\.36/);
+  assert.match(sfx, /underwaterLoop: 1\.845/);
+  assert.match(sfx, /scubaBubbles: 0\.54/);
   assert.match(sfx, /labelText = '潛水環境音音量'/);
+  assert.match(sfx, /max="1\.5"/);
+  assert.match(sfx, /createMediaElementSource\(audio\)/);
 });
