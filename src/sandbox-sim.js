@@ -37,7 +37,13 @@ import {
   setActiveWeapon,
 } from './progression.js';
 import { getKatanaWavePose } from './katana-visual.js';
-import { reduceEnemyResonanceOnDamage } from './resonance.js';
+import {
+  applyResonanceBuffsToStats,
+  createResonanceState,
+  getResonanceRenderState,
+  reduceEnemyResonanceOnDamage,
+  RESONANCE_BUFFS,
+} from './resonance.js';
 import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
 
 export const SANDBOX_WIDTH = 960;
@@ -258,8 +264,14 @@ function syncSandboxBuild(state) {
     passives: state.progression.passives.map((passive) => ({ ...passive })),
   };
   setPlayerLoadout(state.actor, state.build.passives, loadoutWeapon);
+  syncSandboxResonanceStats(state);
   if (previousWeaponId !== active?.id) state.actor.katanaEmpoweredNextSlash = false;
   return state.build;
+}
+
+function syncSandboxResonanceStats(state) {
+  state.actor.derivedStats = applyResonanceBuffsToStats(state.actor.derivedStats, state.resonance);
+  return state.actor.derivedStats;
 }
 
 function openUpgradeChoice(state) {
@@ -584,6 +596,7 @@ export function createSandboxState() {
     upgradeCategories: [],
     upgradeChoices: [],
     build: { weaponId: 'knife', weaponLevel: 1, weapons: [{ id: 'knife', level: 1 }], activeWeaponSlot: 0, passives: [] },
+    resonance: createResonanceState(),
     weaponBurst: null,
   };
   syncSandboxBuild(state);
@@ -692,6 +705,27 @@ export function setSandboxBuild(state, {
   state.actor.tridentStationaryTime = 0;
   state.weaponBurst = null;
   return state.build;
+}
+
+export function setSandboxResonanceStacks(state, entries = []) {
+  const resonance = createResonanceState();
+  for (const [enemyId, rawStacks] of entries) {
+    const definition = RESONANCE_BUFFS[enemyId];
+    if (!definition) continue;
+    const stacks = clamp(Math.round(Number(rawStacks) || 0), 0, definition.maxStacks);
+    if (stacks <= 0) continue;
+    resonance.unlockedEnemyIds.add(enemyId);
+    resonance.stacksByEnemyId.set(enemyId, stacks);
+  }
+  state.resonance = resonance;
+  syncSandboxBuild(state);
+  state.actor.oxygen = state.actor.derivedStats?.maxOxygen ?? MAX_OXYGEN;
+  state.actor.energy = MAX_ENERGY;
+  return getResonanceRenderState(state.resonance);
+}
+
+export function getSandboxResonanceRenderState(state) {
+  return getResonanceRenderState(state.resonance);
 }
 
 export function resetSandboxPlayer(state) {
@@ -1950,6 +1984,7 @@ export function stepSandbox(state, dt = SANDBOX_FIXED_STEP) {
     time: state.time,
     zeroGravity: state.zeroGravity,
   });
+  syncSandboxResonanceStats(state);
   if ((state.actor.stunnedUntil ?? 0) > state.time) {
     state.actor.vx = 0;
     state.actor.vy = 0;

@@ -28,6 +28,8 @@ import {
   releaseSandboxAim,
   resetSandboxPlayer,
   setSandboxBuild,
+  setSandboxResonanceStacks,
+  getSandboxResonanceRenderState,
   setSandboxActiveWeapon,
   spawnSandboxEnemy,
   stepSandbox,
@@ -40,6 +42,8 @@ import { getHealthHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-
 import { installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
 import { attachMenuMusic } from './music.js';
 import { getAimTimeScale } from './aim-slow-motion.js';
+import { RESONANCE_BUFFS } from './resonance.js';
+import { parseSandboxDevCommand } from './sandbox-devtools.js';
 
 attachMenuMusic(document);
 
@@ -68,6 +72,11 @@ const selectedEnemyName = document.querySelector('#selected-enemy-name');
 const selectedEnemyStats = document.querySelector('#selected-enemy-stats');
 const placedEnemyList = document.querySelector('#placed-enemy-list');
 const status = document.querySelector('#sandbox-status');
+const sandboxDevtools = document.querySelector('#sandbox-devtools');
+const sandboxDevtoolsClose = document.querySelector('#sandbox-devtools-close');
+const sandboxDevCommandForm = document.querySelector('#sandbox-dev-command-form');
+const sandboxDevCommand = document.querySelector('#sandbox-dev-command');
+const sandboxDevMessage = document.querySelector('#sandbox-dev-message');
 const resourceBars = {
   health: document.querySelector('#sandbox-health'),
   oxygen: document.querySelector('#sandbox-oxygen'),
@@ -90,6 +99,8 @@ let lastFrame = performance.now();
 const encyclopediaById = Object.fromEntries(ENEMY_ENCYCLOPEDIA.map((enemy) => [enemy.id, enemy]));
 const format = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
 const BUILD_SLOT_LABELS = Object.freeze(['主槽', '副槽', '副副槽']);
+const DEV_DEFAULT_WEAPONS = Object.freeze(Object.keys(WEAPONS).slice(0, 3));
+const DEV_DEFAULT_PASSIVES = Object.freeze(Object.keys(PASSIVE_ABILITIES).slice(0, 3));
 
 function createOption(value, label) {
   const option = document.createElement('option');
@@ -178,6 +189,106 @@ function renderBuildControls() {
     levelDataset: 'buildPassiveLevel',
     ariaLabel: '被動能力',
   });
+}
+
+function maxBuildEntries(definitions, currentEntries, defaults) {
+  const ids = [...new Set([
+    ...currentEntries.map((entry) => entry?.id).filter(Boolean),
+    ...defaults,
+  ])].filter((id) => definitions[id]);
+  return BUILD_SLOT_LEVEL_CAPS.map((slotCap, slot) => {
+    const id = ids[slot];
+    if (!id) return null;
+    return { id, level: Math.min(slotCap, definitions[id].maxLevel ?? slotCap) };
+  }).filter(Boolean);
+}
+
+function setSlotEntry(entries, slot, id, level) {
+  const next = [...entries];
+  while (next.length <= slot) next.push(null);
+  next[slot] = id ? { id, level } : null;
+  return next.filter(Boolean);
+}
+
+function applySandboxDevActions(actions) {
+  let weapons = state.build.weapons.map((entry) => ({ ...entry }));
+  let passives = state.build.passives.map((entry) => ({ ...entry }));
+  let resonance = new Map(state.resonance?.stacksByEnemyId ?? []);
+  let activeWeaponSlot = state.build.activeWeaponSlot ?? 0;
+  const applied = [];
+
+  actions.forEach((action) => {
+    if (action.type === 'maxWeapons') {
+      weapons = maxBuildEntries(WEAPONS, weapons, DEV_DEFAULT_WEAPONS);
+      applied.push('武器槽已拉滿');
+    } else if (action.type === 'maxPassives') {
+      passives = maxBuildEntries(PASSIVE_ABILITIES, passives, DEV_DEFAULT_PASSIVES);
+      applied.push('被動槽已拉滿');
+    } else if (action.type === 'resonance') {
+      const ids = action.id === 'all' ? Object.keys(RESONANCE_BUFFS) : action.id ? [action.id] : [];
+      ids.forEach((id) => {
+        const maxStacks = RESONANCE_BUFFS[id]?.maxStacks ?? 0;
+        const stacks = action.stacks === 'max' ? maxStacks : Math.min(maxStacks, action.stacks);
+        if (stacks > 0) resonance.set(id, stacks);
+        else resonance.delete(id);
+      });
+      applied.push(action.id === 'all' ? 'Resonance 已調整全部 Buff' : `Resonance ${action.id} 已調整`);
+    } else if (action.type === 'clearResonance') {
+      resonance.clear();
+      applied.push('Resonance 已清除');
+    } else if (action.type === 'clear') {
+      weapons = [];
+      passives = [];
+      resonance.clear();
+      activeWeaponSlot = 0;
+      applied.push('Build 與 Resonance 覆寫已清除');
+    } else if (action.type === 'weapon') {
+      weapons = setSlotEntry(weapons, action.slot, action.id, action.level);
+      activeWeaponSlot = Math.min(activeWeaponSlot, Math.max(0, weapons.length - 1));
+      applied.push(action.id ? `武器槽 ${action.slot + 1} = ${WEAPONS[action.id].name} Lv.${action.level}` : `武器槽 ${action.slot + 1} 已清空`);
+    } else if (action.type === 'passive') {
+      passives = setSlotEntry(passives, action.slot, action.id, action.level);
+      applied.push(action.id ? `被動槽 ${action.slot + 1} = ${PASSIVE_ABILITIES[action.id].name} Lv.${action.level}` : `被動槽 ${action.slot + 1} 已清空`);
+    }
+  });
+
+  setSandboxBuild(state, { weapons, activeWeaponSlot, passives, allowEmpty: true });
+  setSandboxResonanceStacks(state, resonance);
+  renderBuildControls();
+  render();
+  sandboxDevMessage.textContent = applied.join('；') || '沒有套用任何命令。';
+  status.textContent = sandboxDevMessage.textContent;
+}
+
+function setSandboxDevtoolsOpen(open) {
+  sandboxDevtools.hidden = !open;
+  if (open) {
+    sandboxDevCommand.focus();
+    sandboxDevCommand.select();
+  }
+}
+
+function toggleSandboxDevtools() {
+  setSandboxDevtoolsOpen(sandboxDevtools.hidden);
+}
+
+function submitSandboxDevCommand(input) {
+  const parsed = parseSandboxDevCommand(input, {
+    weaponIds: Object.keys(WEAPONS),
+    passiveIds: Object.keys(PASSIVE_ABILITIES),
+    resonanceIds: Object.keys(RESONANCE_BUFFS),
+  });
+  if (!parsed.ok) {
+    sandboxDevMessage.textContent = parsed.error;
+    status.textContent = parsed.error;
+    return;
+  }
+  if (parsed.actions.some((action) => action.type === 'help')) {
+    sandboxDevMessage.textContent = '格式：weapon 1 katana 3；passive 1 oxygenCirculator 3；resonance crabGuard 9。';
+    return;
+  }
+  applySandboxDevActions(parsed.actions);
+  sandboxDevCommand.value = '';
 }
 
 function populateControls() {
@@ -1333,12 +1444,49 @@ placedEnemyList.addEventListener('click', (event) => {
   status.textContent = result.ok ? `已施放 ${skillButton.textContent}。` : '技能目前仍在冷卻中。';
   render();
 });
+sandboxDevtoolsClose.addEventListener('click', () => setSandboxDevtoolsOpen(false));
+sandboxDevCommandForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  submitSandboxDevCommand(sandboxDevCommand.value);
+});
 canvas.addEventListener('pointerdown', selectOrPlace);
 canvas.addEventListener('pointermove', moveAim);
 canvas.addEventListener('pointerup', releaseAim);
 canvas.addEventListener('pointercancel', releaseAim);
 window.addEventListener('keydown', (event) => {
   const editingControl = event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName);
+  const devShortcut = event.ctrlKey && event.altKey && !event.shiftKey;
+  if (devShortcut && event.code === 'KeyD') {
+    event.preventDefault();
+    toggleSandboxDevtools();
+    return;
+  }
+  if (devShortcut && event.code === 'KeyW') {
+    event.preventDefault();
+    applySandboxDevActions([{ type: 'maxWeapons' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'KeyA') {
+    event.preventDefault();
+    applySandboxDevActions([{ type: 'maxPassives' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'KeyR') {
+    event.preventDefault();
+    applySandboxDevActions([{ type: 'resonance', id: 'all', stacks: 'max' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'Digit0') {
+    event.preventDefault();
+    applySandboxDevActions([{ type: 'clear' }]);
+    return;
+  }
+  if (event.key === 'Escape' && !sandboxDevtools.hidden) {
+    event.preventDefault();
+    setSandboxDevtoolsOpen(false);
+    return;
+  }
+  if (editingControl) return;
   if (!editingControl && /^[123]$/.test(event.key)) {
     const slot = Number(event.key) - 1;
     if (state.build.weapons[slot]) {
@@ -1363,6 +1511,7 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'sandbox canvas origin top-left; x right, y down',
   mode: 'sandbox',
   weaponMode: 'all-equipped',
+  resonance: getSandboxResonanceRenderState(state),
   player: { x: format(state.actor.x), y: format(state.actor.y), health: format(state.actor.health), oxygen: state.infiniteResources ? 'infinite' : format(state.actor.oxygen), oxygenSeconds: state.infiniteResources ? 'infinite' : format(getOxygenSecondsRemaining(state.actor)), energy: state.infiniteResources ? 'infinite' : format(state.actor.energy), facing: getPlayerFacingDirection(state.actor), animation: getPlayerAnimationState(state.actor), stunned: Math.max(0, (state.actor.stunnedUntil ?? 0) - state.time), launchLockedRemaining: format(state.actor.launchLockTimer), gravityImmuneRemaining: format(state.actor.gravityImmunity), inInk: Boolean(state.actor.inInk), katanaEmpoweredNextSlash: Boolean(state.actor.katanaEmpoweredNextSlash), tridentStationaryTime: format(state.actor.tridentStationaryTime), activeEffects: { ...(state.actor.activeEffects ?? {}) } },
   motion: { vx: format(state.actor.vx), vy: format(state.actor.vy), gravity: 'zero', aiming: state.aiming, timeScale: getAimTimeScale(state.aiming), launchMomentumTimer: format(state.actor.launchMomentumTimer) },
   weaponBurst: state.weaponBurst ? { id: state.weaponBurst.id, weapon: state.weaponBurst.weaponId, level: state.weaponBurst.weaponLevel, angle: format(state.weaponBurst.angle), nextShot: state.weaponBurst.nextShotIndex, shotCount: state.weaponBurst.shotCount, targetId: state.weaponBurst.targetId, remaining: format(Math.max(0, state.weaponBurst.finishAt - state.time)) } : null,
