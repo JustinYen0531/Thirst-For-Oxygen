@@ -9,6 +9,7 @@ import {
   createPlayTutorialState,
   createTutorialMap,
   getPlayTutorialExitState,
+  getPlayTutorialGuideKeyForSelectedTask,
   getPlayTutorialRenderState,
   recordPlayTutorialCombat,
   recordPlayTutorialEvents,
@@ -126,6 +127,14 @@ test('reading the matching Visor cards completes the read-information tasks', ()
   assert.deepEqual([...state.completed], completedBeforeUnknownGuide);
 });
 
+test('Read-information tasks expose their guide key again until OK completes them', () => {
+  const state = createPlayTutorialState();
+  state.selectedTaskIndex = TUTORIAL_TASKS.findIndex((task) => task.id === 'mine');
+  assert.equal(getPlayTutorialGuideKeyForSelectedTask(state), 'object:mine');
+  recordPlayTutorialGuideRead(state, 'object:mine');
+  assert.equal(getPlayTutorialGuideKeyForSelectedTask(state), null);
+});
+
 test('First Breath lets the player choose any task with the arrow keys', () => {
   const state = createPlayTutorialState();
   selectPlayTutorialTask(state, -1);
@@ -161,7 +170,7 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playHtml, /id="play-tutorial-dialogue"/);
   assert.match(playHtml, /id="play-tutorial-dialogue-control"/);
   assert.match(playHtml, /id="play-tutorial-task-list"/);
-  assert.match(playHtml, /id="play-tutorial-dialogue-navigation"/);
+  assert.doesNotMatch(playHtml, /id="play-tutorial-dialogue-navigation"/);
   assert.match(playHtml, /id="play-tutorial-step-progress">0 \/ 10</);
   assert.match(playHtml, /id="play-tutorial-task-progress">0 \/ 20</);
   const fixedEnglishSections = [...playHtml.matchAll(/data-gameplay-language="fixed-en"[\s\S]*?<\/section>/g)].map(([section]) => section).join('\n');
@@ -175,6 +184,8 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playPageSource, /event\.code === 'ArrowLeft'/);
   assert.match(playPageSource, /selectPlayTutorialTask/);
   assert.match(playPageSource, /recordPlayTutorialGuideRead/);
+  assert.match(playPageSource, /reopenSelectedTutorialGuide/);
+  assert.match(playPageSource, /getPlayTutorialGuideKeyForSelectedTask/);
   assert.match(playPageSource, /updateTutorialCardHover/);
   assert.match(playPageSource, /scrollTutorialTaskList/);
   assert.match(playPageSource, /window\.location\.href = '\/home\.html'/);

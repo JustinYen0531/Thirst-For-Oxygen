@@ -83,6 +83,7 @@ import {
   createPlayTutorialState,
   createTutorialMap,
   getPlayTutorialExitState,
+  getPlayTutorialGuideKeyForSelectedTask,
   getPlayTutorialRenderState,
   recordPlayTutorialCombat,
   recordPlayTutorialEvents,
@@ -115,6 +116,7 @@ import {
   getEdgeDiscoveryGuide,
   getEnemyDiscoveryGuide,
   getObjectDiscoveryGuide,
+  reopenDiscoveryGuide,
   updateDiscoverySession,
 } from './visor-discovery.js';
 import { drawDiscoveryGuides, hitTestDiscoveryAcknowledgement } from './visor-discovery-renderer.js';
@@ -208,7 +210,6 @@ const tutorialStepInstruction = document.querySelector('#play-tutorial-step-inst
 const tutorialStepProgress = document.querySelector('#play-tutorial-step-progress');
 const tutorialTaskProgress = document.querySelector('#play-tutorial-task-progress');
 const tutorialTaskList = document.querySelector('#play-tutorial-task-list');
-const tutorialDialogueNavigation = document.querySelector('#play-tutorial-dialogue-navigation');
 const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
 const tutorialSkipDialog = document.querySelector('#play-tutorial-skip-dialog');
 const tutorialSkipConfirm = document.querySelector('#play-tutorial-skip-confirm');
@@ -387,10 +388,6 @@ function updateTutorialPresentation() {
   tutorialDialogueControl.textContent = tutorial.autoReady
     ? tutorialEnglishText(tutorial.dialogue.controlHint)
     : `${tutorialEnglishText(tutorialControlHint)} ${tutorialEnglishText(tutorialNavigationHint)}`;
-  const navigationCopy = tutorial.autoReady
-    ? '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。'
-    : `操作：使用 ← / → 切換 ${tutorial.totalCoreSteps} 個任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
-  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = tutorialEnglishText(navigationCopy);
   const tutorialReady = tutorial.completedCoreSteps >= tutorial.completionTarget;
   tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.completionTarget}`;
   tutorialStepProgress.classList.toggle('is-ready', tutorialReady);
@@ -552,6 +549,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   activeCollisionSoundKeys.clear();
   discoverySession.activeByGuideKey.clear();
   discoverySession.pendingByGuideKey.clear();
+  discoverySession.forcedByGuideKey?.clear();
   discoveryAcknowledgementTargets = [];
   activeDiscoveryGuides = [];
   discoveryUpdateGate.reset();
@@ -1865,6 +1863,57 @@ function collectVisibleDiscoverables() {
   ));
 }
 
+function findTutorialGuideTarget(guideKey) {
+  if (!map || !guideKey) return null;
+  const [category, id] = String(guideKey).split(':');
+  const guide = category === 'object' ? getObjectDiscoveryGuide(id) : getEdgeDiscoveryGuide(id);
+  if (!guide) return null;
+  if (category === 'object') {
+    for (const [cellKey, cell] of Object.entries(map.cells ?? {})) {
+      const objects = [...(cell.objects ?? []), ...(cell.freeObjects ?? [])];
+      const object = objects.find((entry) => entry.kind === id);
+      if (!object) continue;
+      const center = cellCenter(cellKey);
+      const offset = object.offset ?? { x: 0, y: 0 };
+      return {
+        instanceId: `tutorial-guide:${guideKey}`,
+        guideKey,
+        guide,
+        x: center.x + Number(offset.x ?? 0),
+        y: center.y + Number(offset.y ?? 0),
+        size: getFreeObjectSetting(object, 'size'),
+      };
+    }
+    return null;
+  }
+  for (const edge of Object.values(map.edges ?? {})) {
+    if (edge.type !== id || !edge.cells?.[0] || !edge.cells?.[1]) continue;
+    const first = cellCenter(edge.cells[0]);
+    const second = cellCenter(edge.cells[1]);
+    return {
+      instanceId: `tutorial-guide:${guideKey}`,
+      guideKey,
+      guide,
+      x: (first.x + second.x) * .5,
+      y: (first.y + second.y) * .5,
+      size: getEdgeSetting(edge, 'size'),
+    };
+  }
+  return null;
+}
+
+function reopenSelectedTutorialGuide() {
+  if (mapArc !== TUTORIAL_ROUTE) return false;
+  const guideKey = getPlayTutorialGuideKeyForSelectedTask(tutorialState);
+  if (!guideKey) return false;
+  const target = collectVisibleDiscoverables().find((entry) => entry.guideKey === guideKey)
+    ?? findTutorialGuideTarget(guideKey);
+  if (!target || !reopenDiscoveryGuide(discoverySession, target, worldTime)) return false;
+  activeDiscoveryGuides = [...discoverySession.activeByGuideKey.values()];
+  discoveryAcknowledgementTargets = [];
+  return true;
+}
+
 function drawInkVisibilityMask() {
   if (!actor?.inInk) return;
   const centerX = (actor.x - camera.x) * SCALE;
@@ -2428,8 +2477,10 @@ window.addEventListener('keydown', (event) => {
   if (mapArc === TUTORIAL_ROUTE && (event.code === 'ArrowLeft' || event.code === 'ArrowRight')) {
     event.preventDefault();
     selectPlayTutorialTask(tutorialState, event.code === 'ArrowLeft' ? -1 : 1);
+    reopenSelectedTutorialGuide();
     sfxController.play('menuSelection', { volumeMultiplier: .65 });
     updateTutorialPresentation();
+    render();
     return;
   }
   if (mapArc === TUTORIAL_ROUTE && event.code === 'Enter') {

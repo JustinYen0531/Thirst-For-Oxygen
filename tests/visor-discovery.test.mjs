@@ -11,6 +11,7 @@ import {
   createDiscoverySession,
   getDiscoveryTypedDescription,
   getEnemyDiscoveryGuide,
+  reopenDiscoveryGuide,
   updateDiscoverySession,
 } from '../src/visor-discovery.js';
 import { drawDiscoveryGuides, getDiscoveryGuideLayout, hitTestDiscoveryAcknowledgement } from '../src/visor-discovery-renderer.js';
@@ -141,6 +142,18 @@ test('the OK control acknowledges a guide for the rest of the current session', 
   assert.equal(session.activeByGuideKey.size, 0);
   assert.equal(updateDiscoverySession(session, [mine], 2).length, 0);
   assert.equal(acknowledgeDiscoveryGuide(session, 'object:mine'), false);
+});
+
+test('an acknowledged guide can be reopened by a tutorial task without auto-reappearing after OK', () => {
+  const session = createDiscoverySession();
+  const mine = target('mine-1', 'object:mine', OBJECT_DISCOVERY_GUIDES.mine);
+  updateDiscoverySession(session, [mine], 1);
+  assert.equal(acknowledgeDiscoveryGuide(session, 'object:mine'), true);
+  assert.equal(reopenDiscoveryGuide(session, mine, 4), true);
+  assert.deepEqual([...session.activeByGuideKey.keys()], ['object:mine']);
+  assert.equal(updateDiscoverySession(session, [], 5).length, 1);
+  assert.equal(acknowledgeDiscoveryGuide(session, 'object:mine'), true);
+  assert.equal(updateDiscoverySession(session, [mine], 6).length, 0);
 });
 
 test('new discoveries queue and expose only one active card at a time', () => {

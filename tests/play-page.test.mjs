@@ -27,24 +27,6 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
   assert.doesNotMatch(page, /const PLAYER_LEVEL|const PLAYER_EXPERIENCE|PLAYER_HUD_LOADOUT/);
 });
 
-test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
-  assert.match(page, /const navigationCopy = tutorial\.autoReady/);
-  assert.match(page, /translateGameplayText\(navigationCopy\)/);
-  assert.match(page, /const tutorialControlHint = tutorial\.currentStep\.controlHint/);
-  assert.match(page, /tutorialDialogueControl\.textContent = tutorial\.autoReady/);
-  assert.match(page, /translateGameplayText\(tutorialNavigationHint\)/);
-  assert.match(page, /tutorialTaskProgress\.textContent = `\$\{tutorial\.completionTarget\} \/ \$\{tutorial\.totalCoreSteps\}`/);
-  assert.match(page, /updateTutorialCardHover/);
-  assert.match(page, /tutorialTaskList\.scrollTop \+= event\.deltaY/);
-  assert.match(css, /\.play-tutorial-panel[^\n]*pointer-events: none/);
-  assert.match(css, /\.play-tutorial-dialogue[^\n]*pointer-events: none/);
-  assert.match(css, /\.play-tutorial-task-list \{[^\n]*pointer-events: auto/);
-  assert.match(css, /\.play-tutorial-object-list \{[^\n]*grid-auto-rows: max-content[^\n]*height: 96px[^\n]*overflow-y: scroll/);
-  assert.match(css, /\.play-tutorial-task-list::-webkit-scrollbar-thumb/);
-  assert.match(css, /\.play-tutorial-panel\.is-pointer-over/);
-  assert.match(css, /\.play-tutorial-dialogue\.is-pointer-over/);
-});
-
 test('formal play exposes Resonance bars, neutral partners, permanent buffs, and descent-to-ascent carryover', () => {
   assert.match(page, /if \(enemy\.resonanceNeutral\) return;/);
   assert.match(page, /drawEnemyResonanceBar\(enemy/);
@@ -142,8 +124,8 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
 });
 
 test('Chapter 0 tutorial cards keep Canvas controls available and show honest English progress', () => {
-  assert.match(page, /const navigationCopy = tutorial\.autoReady/);
-  assert.match(page, /tutorialEnglishText\(navigationCopy\)/);
+  assert.doesNotMatch(page, /tutorialDialogueNavigation|navigationCopy/);
+  assert.doesNotMatch(html, /id="play-tutorial-dialogue-navigation"/);
   assert.match(page, /const tutorialControlHint = tutorial\.currentStep\.controlHint/);
   assert.match(page, /tutorialDialogueControl\.textContent = tutorial\.autoReady/);
   assert.match(page, /tutorialEnglishText\(tutorialNavigationHint\)/);
@@ -152,6 +134,10 @@ test('Chapter 0 tutorial cards keep Canvas controls available and show honest En
   assert.match(page, /tutorialStepProgress\.classList\.toggle\('is-ready'/);
   assert.match(page, /tutorialStepProgress\.classList\.toggle\('is-locked'/);
   assert.match(page, /const tutorialEnglishText =/);
+  assert.match(page, /getPlayTutorialGuideKeyForSelectedTask/);
+  assert.match(page, /reopenDiscoveryGuide/);
+  assert.match(page, /reopenSelectedTutorialGuide\(\)/);
+  assert.match(page, /selectPlayTutorialTask\(tutorialState, event\.code === 'ArrowLeft' \? -1 : 1\);\s*reopenSelectedTutorialGuide\(\)/);
   assert.match(html, /data-gameplay-language="fixed-en"/);
   assert.match(page, /updateTutorialCardHover/);
   assert.match(page, /tutorialTaskList\.scrollTop \+= event\.deltaY/);
@@ -162,6 +148,7 @@ test('Chapter 0 tutorial cards keep Canvas controls available and show honest En
   assert.match(css, /\.play-tutorial-task-list::-webkit-scrollbar-thumb/);
   assert.match(css, /\.play-tutorial-progress\.is-locked/);
   assert.match(css, /\.play-tutorial-progress\.is-ready/);
+  assert.doesNotMatch(css, /\.play-tutorial-dialogue-navigation/);
   assert.match(css, /\.play-tutorial-panel\.is-pointer-over/);
   assert.match(css, /\.play-tutorial-dialogue\.is-pointer-over/);
 });

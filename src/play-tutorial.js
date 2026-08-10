@@ -112,6 +112,12 @@ const TUTORIAL_GUIDE_READ_STEP_BY_KEY = Object.freeze({
   'edge:current': 'current',
 });
 
+const TUTORIAL_READ_GUIDE_KEY_BY_TASK = Object.freeze({
+  weightStone: 'object:weightStone',
+  mine: 'object:mine',
+  current: 'edge:current',
+});
+
 const WEAPON_EFFECT_TYPES = new Set([
   'knifePath',
   'knifeSidePath',
@@ -286,6 +292,12 @@ function refreshTutorialTaskProgress(state) {
 
 function getCurrentTask(state) {
   return getTaskByIndex(state?.selectedTaskIndex);
+}
+
+export function getPlayTutorialGuideKeyForSelectedTask(state) {
+  const task = getCurrentTask(state);
+  const guideKey = TUTORIAL_READ_GUIDE_KEY_BY_TASK[task?.id];
+  return guideKey && !isTutorialTaskComplete(state, task) ? guideKey : null;
 }
 
 function getCurrentGuidedStep(state) {

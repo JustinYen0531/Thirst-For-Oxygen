@@ -1242,3 +1242,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 右上進度改為 `completed / required`（例如 `16 / 10`）；未達門檻為紅色，達到 10 項後為綠色。
 - 下方任務列表改為真實進度 `completed / total`（例如 `16 / 20`）；Chapter 0 教學區固定完整英文，避免全域語言觀察器重新混入中文。
+
+## 2026-08-10 — First Breath can reopen read-information cards
+
+- 移除左下對話框中與上方控制提示重複的藍色導覽行。
+- Chapter 0 的 Read-information 任務可用左右鍵重新喚起對應的 Visor 資訊卡；即使先前誤按 OK 關閉，重新喚起後再次按 OK 才會完成該任務。
+- 聚焦 Play／Tutorial／Visor Discovery 測試 47/47 通過；依專案規則未執行瀏覽器或 Playwright。
