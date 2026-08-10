@@ -16,6 +16,7 @@ import {
   getPlayWorldAssetPaths,
 } from './play-world-visuals.js';
 import { PLAYER_ANIMATION_ASSETS } from './player-animation.js';
+import { getLanguage, subscribeLanguage, translateText } from './i18n.js';
 
 const TILE_SIZE = 24;
 const PREVIEW_WIDTH = 720;
@@ -55,18 +56,21 @@ export const HOME_PREVIEW_ROUTES = Object.freeze({
     Object.freeze({
       part: 1,
       label: '第一部分｜深海森林入口',
+      labelKey: 'home.map.partOne',
       path: '/maps/下沉篇/下沉篇-第1部分.json',
       url: DESCENT_MAP_URLS[1],
     }),
     Object.freeze({
       part: 2,
       label: '第二部分｜穿越熱泉',
+      labelKey: 'home.map.partTwo',
       path: '/maps/下沉篇/下沉篇-第2部分.json',
       url: DESCENT_MAP_URLS[2],
     }),
     Object.freeze({
       part: 3,
       label: '第三部分｜深淵遺跡',
+      labelKey: 'home.map.partThree',
       path: '/maps/下沉篇/下沉篇-第3部分.json',
       url: DESCENT_MAP_URLS[3],
     }),
@@ -75,18 +79,21 @@ export const HOME_PREVIEW_ROUTES = Object.freeze({
     Object.freeze({
       part: 1,
       label: '第一部分｜逆游深海遺跡',
+      labelKey: 'home.map.ascentPartOne',
       path: '/maps/上升篇/上升篇-第1部分.json',
       url: ASCENT_MAP_URLS[1],
     }),
     Object.freeze({
       part: 2,
       label: '第二部分｜逆穿熱泉',
+      labelKey: 'home.map.ascentPartTwo',
       path: '/maps/上升篇/上升篇-第2部分.json',
       url: ASCENT_MAP_URLS[2],
     }),
     Object.freeze({
       part: 3,
       label: '第三部分｜重返森林出口',
+      labelKey: 'home.map.ascentPartThree',
       path: '/maps/上升篇/上升篇-第3部分.json',
       url: ASCENT_MAP_URLS[3],
     }),
@@ -268,7 +275,7 @@ function drawMapEdge(context, images, map, edge, origin, cameraTop, viewWorldHei
     return;
   }
 
-  const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
+  const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal' || edge.type === 'wallGillGate';
   const isPlant = visual.anchoredPlant;
   const pointsIntoWater = edge.type === 'spike' || edge.type === 'barrier';
   const renderPoint = pointsIntoWater || edge.type === 'springJelly'
@@ -475,9 +482,14 @@ export async function attachHomeMapPreview(root) {
   let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let currentPartIndex = -1;
   let animationFrame = 0;
+  let language = getLanguage();
 
   pauseButton.setAttribute('aria-pressed', String(paused));
-  pauseButton.textContent = paused ? '▶ 繼續巡覽' : 'Ⅱ 暫停巡覽';
+  const localize = (key, values = {}) => Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+    translateText(key, language),
+  );
+  const getRouteLabel = (route) => translateText(route.labelKey ?? '', language) || route.label;
 
   const assetPaths = [
     ...Object.values(TILE_ASSETS),
@@ -500,10 +512,10 @@ export async function attachHomeMapPreview(root) {
       if (!route) return;
       if (currentPartIndex !== state.partIndex) {
         currentPartIndex = state.partIndex;
-        partLabel.textContent = route.label;
+        partLabel.textContent = getRouteLabel(route);
         directionLabel.textContent = state.partIndex === preparedRoutes.length - 1
-          ? '向深淵核心持續下沉'
-          : `自動下潛 · 下一段為第 ${state.partIndex + 2} 部分`;
+          ? localize('home.map.toCore')
+          : localize('home.map.nextPart', { part: state.partIndex + 2 });
         partMarkers.forEach((marker, index) => {
           marker.classList.toggle('is-active', index === state.partIndex);
           marker.setAttribute('aria-current', index === state.partIndex ? 'step' : 'false');
@@ -527,8 +539,17 @@ export async function attachHomeMapPreview(root) {
     pauseButton.addEventListener('click', () => {
       paused = !paused;
       pauseButton.setAttribute('aria-pressed', String(paused));
-      pauseButton.textContent = paused ? '▶ 繼續巡覽' : 'Ⅱ 暫停巡覽';
+      pauseButton.textContent = paused ? localize('home.map.resume') : localize('home.map.pauseTour');
     });
+
+    const updateLanguage = (nextLanguage) => {
+      language = nextLanguage;
+      currentPartIndex = -1;
+      renderCurrentFrame();
+      pauseButton.textContent = paused ? localize('home.map.resume') : localize('home.map.pauseTour');
+    };
+    const unsubscribeLanguage = subscribeLanguage(updateLanguage);
+    pauseButton.textContent = paused ? localize('home.map.resume') : localize('home.map.pauseTour');
 
     window.render_home_preview_to_text = () => JSON.stringify({
       arc: 'descent',
@@ -544,6 +565,7 @@ export async function attachHomeMapPreview(root) {
       elapsedSeconds += Math.max(0, Number(milliseconds) || 0) / 1000;
       renderCurrentFrame();
     };
+    window.addEventListener('pagehide', unsubscribeLanguage, { once: true });
 
     renderCurrentFrame();
     animationFrame = requestAnimationFrame(frame);

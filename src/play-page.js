@@ -530,7 +530,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   storyIntroLastSlide = -1;
   storyIntroLastTypedCharacters = 0;
   awakeningState = createPlayAwakeningState({
-    enabled: !storyIntroState.active && mapPart === 1 && !previousActor,
+    enabled: mapArc === 'descent' && !storyIntroState.active && mapPart === 1 && !previousActor,
     part: mapPart,
     reducedMotion,
   });
@@ -857,7 +857,7 @@ function drawObject(object, x, y) {
     drawButtonObject(object, x, y, size);
     return;
   }
-  if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(visual.label ?? objectGlyphs[object.kind] ?? '?', x, y); context.restore(); }
+  if (!drawImage(visual.assetPath, x, y, size, size, .95, 0, guide?.colour)) { context.save(); context.fillStyle = visual.color ?? '#f5d967'; context.strokeStyle = guide?.colour ?? '#081526'; context.lineWidth = 1; context.beginPath(); context.arc(x, y, size * .42, 0, Math.PI * 2); context.fill(); context.stroke(); context.fillStyle = '#071629'; context.font = `bold ${Math.max(7, size * .42)}px sans-serif`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(translateGameplayText(visual.label ?? objectGlyphs[object.kind] ?? '?'), x, y); context.restore(); }
 }
 
 function drawProgrammaticEdge(visual, geometry, edge, size) {
@@ -916,14 +916,15 @@ function drawEdges() {
     const visual = getPlayEdgeVisual(edge.type);
     const size = getEdgeSetting(edge, 'size');
     const color = visual.color ?? '#bcecff';
-    context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = .84; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
+    const breathingAlpha = edge.type === 'wallGillGate' ? .7 + Math.sin(performance.now() / 240) * .16 : .84;
+    context.save(); context.strokeStyle = color; context.lineWidth = (edge.type === 'multiPortal' ? 1.5 : 1.05) / SCALE; context.globalAlpha = breathingAlpha; context.setLineDash(edge.type === 'current' ? [3 / SCALE, 3 / SCALE] : []);
     context.beginPath(); context.moveTo(geometry.edgeStart.x, geometry.edgeStart.y); context.lineTo(geometry.edgeEnd.x, geometry.edgeEnd.y); context.stroke(); context.restore();
     const asset = visual.assetPath;
     if (!asset) {
       drawProgrammaticEdge(visual, geometry, edge, size);
       return;
     }
-    const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal';
+    const isPortal = edge.type === 'multiPortal' || edge.type === 'layerPortal' || edge.type === 'wallGillGate';
     const isAnchoredPlant = visual.anchoredPlant;
     const pointsIntoWater = edge.type === 'spike' || edge.type === 'barrier' || edge.type === 'current';
     const sitsInsideWall = pointsIntoWater || edge.type === 'springJelly';
@@ -954,7 +955,7 @@ function drawEdges() {
       : 1;
     const width = aspect >= 1 ? size : size * aspect;
     const height = aspect >= 1 ? size / aspect : size;
-    drawImage(asset, renderX, renderY, width, height, .92, rotation, getEdgeDiscoveryGuide(edge.type)?.colour);
+    drawImage(asset, renderX, renderY, width, height, edge.type === 'wallGillGate' ? breathingAlpha : .92, rotation, getEdgeDiscoveryGuide(edge.type)?.colour);
   });
 }
 
@@ -972,8 +973,8 @@ function updateStoryIntroPresentation() {
     return story;
   }
   if (storyIntroVideo) {
-    storyIntroVideo.poster = story.imagePath;
     storyIntroVideo.playbackRate = 0.5;
+    storyIntroVideo.poster = story.imagePath;
     if (!story.videoPath) {
       if (storyIntroVideo.getAttribute('src')) {
         storyIntroVideo.pause();
@@ -1001,7 +1002,9 @@ function updateStoryIntroPresentation() {
     return translated === 'English copy pending review' ? String(value ?? '') : translated;
   };
   if (storyIntroTitle) storyIntroTitle.textContent = translateStoryText(story.title);
-  if (storyIntroNarrator) storyIntroNarrator.textContent = getPlayStoryIntroNarratorText(storyIntroState, translateStoryText);
+  if (storyIntroNarrator) {
+    storyIntroNarrator.textContent = getPlayStoryIntroNarratorText(storyIntroState, translateStoryText);
+  }
   if (storyIntroHint) storyIntroHint.textContent = translateStoryText(story.textComplete
     ? (story.slideNumber === story.totalSlides ? '點擊或按 Space 開始遊戲' : '點擊或按 Space 下一頁')
     : '點擊或按 Space 顯示完整旁白');
@@ -1056,7 +1059,17 @@ function drawAwakeningShutterHalf(image, topHalf, openRatio) {
     openRatio,
   });
   if (image?.complete && image.naturalWidth > 0) {
-    context.drawImage(image, rect.sx, rect.sy, rect.sw, rect.sh, rect.dx, rect.dy, rect.dw, rect.dh);
+    context.drawImage(
+      image,
+      rect.sx,
+      rect.sy,
+      rect.sw,
+      rect.sh,
+      rect.dx,
+      rect.dy,
+      rect.dw,
+      rect.dh,
+    );
   } else {
     context.save();
     context.translate(rect.dx, rect.dy);
@@ -1117,11 +1130,11 @@ function drawAwakeningRouteLock(awakening) {
   context.shadowBlur = 13 * awakening.routeLightRatio;
   context.fillStyle = '#98efff';
   context.font = `800 ${Math.max(14, canvas.height * .023)}px "Orbitron", "Segoe UI", sans-serif`;
-  context.fillText(PLAY_DESCENT_ROUTE_STAGES[awakening.activeRouteIndex]?.chapterLabel ?? '下沉篇・第一部分', labelX, labelY);
+  context.fillText(translateGameplayText(activeStage.chapterLabel), labelX, labelY);
   context.shadowBlur = 7 * awakening.routeLightRatio;
   context.fillStyle = '#effcff';
   context.font = `700 ${Math.max(18, canvas.height * .033)}px "Noto Sans TC", "Segoe UI", sans-serif`;
-  context.fillText(activeStage.title, labelX, labelY + canvas.height * .052);
+  context.fillText(translateGameplayText(activeStage.title), labelX, labelY + canvas.height * .052);
   context.restore();
 }
 
@@ -1194,7 +1207,8 @@ function drawActor() {
   context.rotate(motion.rotation);
   context.scale(getPlayerSpriteScaleX(facing, motion.scaleX), motion.scaleY);
   if (imageReady) {
-    drawImageWithSilhouetteOutline(image, 0, 0, width, height, motion.alpha, .62, motion.glow === '#ffb7a1' ? 'rgba(255, 243, 239, 0.9)' : 'rgba(246, 252, 255, 0.88)');
+    const concealmentAlpha = actor.insideWall ? .38 : actor.invisibilityTimer > 0 ? .2 : 1;
+    drawImageWithSilhouetteOutline(image, 0, 0, width, height, motion.alpha * concealmentAlpha, .62, actor.insideWall ? 'rgba(112, 240, 228, 0.9)' : motion.glow === '#ffb7a1' ? 'rgba(255, 243, 239, 0.9)' : 'rgba(246, 252, 255, 0.88)');
   } else {
     // Keep a readable non-text fallback while the sprite is loading.
     context.fillStyle = '#090f18';
@@ -1226,6 +1240,18 @@ function drawActor() {
     context.fill();
   }
   context.restore();
+
+  if (actor.insideWall) {
+    const pulse = (time / 55) % 14;
+    context.save();
+    context.strokeStyle = 'rgba(112, 240, 228, 0.56)';
+    context.lineWidth = 0.8;
+    context.setLineDash([2.2, 2.6]);
+    context.beginPath();
+    context.arc(anchor.x, anchor.y, actor.radius + 4 + pulse, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+  }
 
   if (dragging && aimPoint) {
     context.save();

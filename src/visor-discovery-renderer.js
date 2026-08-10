@@ -1,4 +1,5 @@
 import { getDiscoveryTypedDescription } from './visor-discovery.js';
+import { translateGameplayText } from './i18n-gameplay.js';
 
 const VISOR_GREEN = '#8dffc4';
 
@@ -71,8 +72,10 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
   {
     const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, panel, ok } = getDiscoveryGuideLayout(active, 0, camera, viewport);
     const lineEndX = placeOnRight ? panelX : panelX + panelWidth;
-    const typedDescription = getDiscoveryTypedDescription(active, timeSeconds);
+    const typedDescription = getDiscoveryTypedDescription(active, timeSeconds, 24, translateGameplayText);
     const descriptionLines = splitText(typedDescription);
+    const categoryLabel = translateGameplayText(active.guide.categoryLabel);
+    const title = translateGameplayText(active.guide.title);
 
     context.save();
     context.lineWidth = .75;
@@ -99,10 +102,10 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     context.textAlign = 'left';
     context.font = '600 2.65px system-ui, sans-serif';
     context.fillStyle = active.guide.colour;
-    context.fillText(active.guide.categoryLabel, panelX + 4, panelY + 2.2);
+    context.fillText(categoryLabel, panelX + 4, panelY + 2.2);
     context.font = '700 3.4px system-ui, sans-serif';
     context.fillStyle = '#effff8';
-    context.fillText(active.guide.title, panelX + 4, panelY + 6.2);
+    context.fillText(title, panelX + 4, panelY + 6.2);
     context.font = '2.7px system-ui, sans-serif';
     context.fillStyle = '#bcefd5';
     descriptionLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, panelY + 11.4 + lineIndex * 4.1));

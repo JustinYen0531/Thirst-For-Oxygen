@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { setLanguage } from '../src/i18n.js';
 import {
   DISCOVERY_COLORS,
   EDGE_DISCOVERY_GUIDES,
@@ -10,7 +11,7 @@ import {
   getEnemyDiscoveryGuide,
   updateDiscoverySession,
 } from '../src/visor-discovery.js';
-import { getDiscoveryGuideLayout, hitTestDiscoveryAcknowledgement } from '../src/visor-discovery-renderer.js';
+import { drawDiscoveryGuides, getDiscoveryGuideLayout, hitTestDiscoveryAcknowledgement } from '../src/visor-discovery-renderer.js';
 
 function target(instanceId, guideKey, guide) {
   return { instanceId, guideKey, guide, x: 10, y: 20, size: 16 };
@@ -25,6 +26,33 @@ test('semantic outline colours match the authored visual language', () => {
   assert.equal(OBJECT_DISCOVERY_GUIDES.coralCluster.colour, DISCOVERY_COLORS.support);
   assert.equal(EDGE_DISCOVERY_GUIDES.spike.colour, DISCOVERY_COLORS.danger);
   assert.equal(getEnemyDiscoveryGuide('crabGuard').colour, DISCOVERY_COLORS.enemy);
+  assert.match(OBJECT_DISCOVERY_GUIDES.seaweed.description, /字母 E.*不會下墜/);
+  assert.match(OBJECT_DISCOVERY_GUIDES.coralCluster.description, /字母 E.*2\.5 秒隱形/);
+  assert.match(EDGE_DISCOVERY_GUIDES.wallGillGate.description, /字母 E.*進入.*按 E/);
+});
+
+test('English discovery cards draw no CJK copy into the Canvas', () => {
+  setLanguage('en');
+  const textDraws = [];
+  const context = {
+    save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fill() {}, fillRect() {}, strokeRect() {},
+    fillText(text) { textDraws.push(String(text)); },
+    set lineWidth(_) {}, set strokeStyle(_) {}, set shadowColor(_) {}, set shadowBlur(_) {}, set fillStyle(_) {}, set font(_) {}, set textBaseline(_) {}, set textAlign(_) {},
+  };
+  const session = createDiscoverySession();
+  const [active] = updateDiscoverySession(session, [{
+    instanceId: 'oxygen-1',
+    guideKey: 'object:oxygen',
+    guide: OBJECT_DISCOVERY_GUIDES.oxygen,
+    x: 40,
+    y: 30,
+    size: 16,
+  }], 0);
+
+  drawDiscoveryGuides(context, [{ ...active, startedAt: 0 }], { x: 0, y: 0 }, { width: 240, height: 160 }, 20);
+
+  assert.ok(textDraws.length > 0);
+  assert.equal(textDraws.some((value) => /[\u3400-\u9fff\uf900-\ufaff]/.test(value)), false, textDraws.join(' | '));
 });
 
 test('a first-contact guide disappears on exit and never repeats in the same session', () => {

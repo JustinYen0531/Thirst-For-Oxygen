@@ -12,7 +12,6 @@ const EXACT_ENGLISH = Object.freeze({
   '速度 0 m/s': 'SPEED 0 m/s',
   '主角水平錨點 60%': 'PLAYER HORIZONTAL ANCHOR 60%',
   'R 重設 · Space 暫停': 'R Reset · Space Pause',
-  'HUD 鏡片內的遊戲畫面': 'Gameplay view inside the HUD visor',
   'NARRATOR / 深海記錄': 'NARRATOR / Deep-Sea Record',
   '世界正在停止呼吸': 'The World Is Losing Its Breath',
   '海溝最深處的核心': 'The Core at the Deepest Trench',
@@ -37,6 +36,7 @@ const EXACT_ENGLISH = Object.freeze({
   '點擊或按 Space 下一頁': 'Click or press Space for the next slide',
   '點擊或按 Space 開始遊戲': 'Click or press Space to begin',
   '略過序章': 'Skip prologue',
+  'HUD 鏡片內的遊戲畫面': 'Gameplay view inside the HUD visor',
   '下沉篇地圖遊玩畫面': 'Descent map gameplay',
   '地圖章節': 'MAP CHAPTER',
   '選擇地圖部分': 'Select map part',
@@ -47,6 +47,9 @@ const EXACT_ENGLISH = Object.freeze({
   '下沉篇・第一部分': 'Descent · Part I',
   '下沉篇・第二部分': 'Descent · Part II',
   '下沉篇・第三部分': 'Descent · Part III',
+  '深海森林入口': 'Deep-Sea Forest Entrance',
+  '穿越熱泉': 'Crossing the Thermal Vents',
+  '深淵遺跡': 'Abyssal Ruins',
   '上升篇・第一部分': 'Ascent · Part I',
   '上升篇・第二部分': 'Ascent · Part II',
   '上升篇・第三部分': 'Ascent · Part III',
@@ -647,7 +650,7 @@ function walkTextNodes(root, visit) {
 export function installLiveLocalization(root = document) {
   const originalText = new WeakMap();
   const originalAttributes = new WeakMap();
-  const attributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt'];
+  const attributes = ['aria-label', 'aria-valuetext', 'title', 'placeholder', 'alt', 'label'];
   let applying = false;
   let scheduledFlush = null;
   const pendingMutations = [];

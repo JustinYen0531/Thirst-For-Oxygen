@@ -26,8 +26,8 @@ export const OBJECT_DISCOVERY_GUIDES = Object.freeze({
   checkpoint: guide('Checkpoint', 'mechanism', '機關', '啟動後記錄重生位置，並補滿玩家資源。'),
   weightStone: guide('重石', 'mechanism', '機關', '需要高速撞擊才能破壞，並打開原本封住的路。'),
   button: guide('一次性開門按鈕', 'mechanism', '機關', '觸發後會永久開啟與它連接的條件門。'),
-  seaweed: guide('水草', 'support', '支援補給', '附著後可暫停重力，並加快能量恢復。'),
-  coralCluster: guide('珊瑚群落', 'support', '支援補給', '靠近時會形成保護區，降低環境威脅。'),
+  seaweed: guide('水草', 'support', '支援補給', '靠近後按字母 E 固定在水草上；固定時不會下墜，可以休息並恢復能量。再次按 E 即可離開。'),
+  coralCluster: guide('珊瑚群落', 'support', '支援補給', '靠近後按字母 E，獲得 2.5 秒隱形；期間敵人看不見你。'),
 });
 
 export const EDGE_DISCOVERY_GUIDES = Object.freeze({
@@ -37,6 +37,7 @@ export const EDGE_DISCOVERY_GUIDES = Object.freeze({
   current: guide('潮流', 'mechanism', '機關', '持續把玩家推向標示方向。'),
   layerPortal: guide('層間轉接門', 'mechanism', '機關', '允許玩家穿越不同水域層級的交界。'),
   multiPortal: guide('多邊傳送門', 'mechanism', '機關', '進入後會被傳送到同組的另一個邊界。'),
+  wallGillGate: guide('潛壁鰓門', 'mechanism', '機關', '靠近後按字母 E 進入不可通行牆體；要離開時，也必須在潛壁鰓門旁按 E。'),
   seaweed: OBJECT_DISCOVERY_GUIDES.seaweed,
   coralCluster: OBJECT_DISCOVERY_GUIDES.coralCluster,
 });
@@ -104,8 +105,16 @@ export function acknowledgeDiscoveryGuide(session, guideKey) {
   return true;
 }
 
-export function getDiscoveryTypedDescription(activeGuide, timeSeconds, charactersPerSecond = 24) {
+export function getDiscoveryTypedDescription(
+  activeGuide,
+  timeSeconds,
+  charactersPerSecond = 24,
+  translate = (value) => value,
+) {
   const elapsed = Math.max(0, (Number.isFinite(timeSeconds) ? timeSeconds : 0) - activeGuide.startedAt);
+  const source = String(activeGuide?.guide?.description ?? '');
   const characterCount = Math.max(1, Math.floor(elapsed * charactersPerSecond));
-  return activeGuide.guide.description.slice(0, characterCount);
+  const translated = String(translate(source) ?? source);
+  const progress = Math.min(1, characterCount / Math.max(1, source.length));
+  return translated.slice(0, Math.max(1, Math.floor(translated.length * progress)));
 }

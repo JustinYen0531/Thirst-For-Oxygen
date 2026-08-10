@@ -1183,7 +1183,7 @@ function renderSprites() {
         sprites.append(fallback);
       }
       fallback.className = `sandbox-sprite-fallback${enemy.instanceId === state.selectedEnemyInstanceId ? ' selected' : ''}${enemy.defeated ? ' defeated' : ''}`;
-      fallback.textContent = ENEMY_DEFINITIONS[enemy.enemyId].name.slice(0, 4);
+      fallback.textContent = translateGameplayText(ENEMY_DEFINITIONS[enemy.enemyId].name).slice(0, 12);
       fallback.style.width = `${enemy.radius * 2.1}px`;
       fallback.style.height = `${enemy.radius * 2.1}px`;
       fallback.style.left = `${(enemy.x / SANDBOX_WIDTH) * 100}%`;
