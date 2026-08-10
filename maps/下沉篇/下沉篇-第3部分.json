@@ -33801,40 +33801,52 @@
       "q": -44,
       "r": 107,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "entrance"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-entrance-gate"
     },
     "-43,107": {
       "q": -43,
       "r": 107,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "entrance"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-entrance-gate"
     },
     "-42,107": {
       "q": -42,
       "r": 107,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "entrance"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-entrance-gate"
     },
     "-41,107": {
       "q": -41,
@@ -34073,7 +34085,7 @@
     "-48,108": {
       "q": -48,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34081,12 +34093,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,108": {
       "q": -47,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34094,7 +34106,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,108": {
       "q": -46,
@@ -34107,7 +34119,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,108": {
       "q": -45,
@@ -34120,7 +34132,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,108": {
       "q": -44,
@@ -34133,7 +34145,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,108": {
       "q": -43,
@@ -34146,7 +34158,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,108": {
       "q": -42,
@@ -34159,12 +34171,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,108": {
       "q": -41,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L2",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34172,12 +34184,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,108": {
       "q": -40,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34185,12 +34197,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,108": {
       "q": -39,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34198,12 +34210,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,108": {
       "q": -38,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34211,12 +34223,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-37,108": {
       "q": -37,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34224,12 +34236,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-36,108": {
       "q": -36,
       "r": 108,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34237,7 +34249,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-35,108": {
       "q": -35,
@@ -34385,7 +34397,7 @@
     "-48,109": {
       "q": -48,
       "r": 109,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34393,12 +34405,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,109": {
       "q": -47,
       "r": 109,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34406,7 +34418,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,109": {
       "q": -46,
@@ -34419,7 +34431,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,109": {
       "q": -45,
@@ -34432,7 +34444,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,109": {
       "q": -44,
@@ -34445,7 +34457,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,109": {
       "q": -43,
@@ -34458,13 +34470,91 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,109": {
       "q": -42,
       "r": 109,
       "terrain": "water",
       "gravityLevel": "L2",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-41,109": {
+      "q": -41,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L2",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-40,109": {
+      "q": -40,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L3",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-39,109": {
+      "q": -39,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L3",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-38,109": {
+      "q": -38,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L-1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-37,109": {
+      "q": -37,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L1",
+      "waterLayer": "T1",
+      "conditionalGate": null,
+      "overlays": [],
+      "objects": [],
+      "freeObjects": [],
+      "actors": [],
+      "region": "abyssal-throne"
+    },
+    "-36,109": {
+      "q": -36,
+      "r": 109,
+      "terrain": "water",
+      "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
       "overlays": [],
@@ -34483,85 +34573,7 @@
         }
       ],
       "actors": [],
-      "region": "default"
-    },
-    "-41,109": {
-      "q": -41,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L2",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
-    },
-    "-40,109": {
-      "q": -40,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L3",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
-    },
-    "-39,109": {
-      "q": -39,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L3",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
-    },
-    "-38,109": {
-      "q": -38,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L-1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
-    },
-    "-37,109": {
-      "q": -37,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L1",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
-    },
-    "-36,109": {
-      "q": -36,
-      "r": 109,
-      "terrain": "blocked",
-      "gravityLevel": "L0",
-      "waterLayer": "T1",
-      "conditionalGate": null,
-      "overlays": [],
-      "objects": [],
-      "freeObjects": [],
-      "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-35,109": {
       "q": -35,
@@ -34709,7 +34721,7 @@
     "-49,110": {
       "q": -49,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34717,12 +34729,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-48,110": {
       "q": -48,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34730,12 +34742,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,110": {
       "q": -47,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34743,7 +34755,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,110": {
       "q": -46,
@@ -34756,7 +34768,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,110": {
       "q": -45,
@@ -34769,7 +34781,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,110": {
       "q": -44,
@@ -34782,7 +34794,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,110": {
       "q": -43,
@@ -34795,7 +34807,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,110": {
       "q": -42,
@@ -34808,12 +34820,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,110": {
       "q": -41,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34821,12 +34833,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,110": {
       "q": -40,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34834,12 +34846,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,110": {
       "q": -39,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34847,12 +34859,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,110": {
       "q": -38,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34860,12 +34872,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-37,110": {
       "q": -37,
       "r": 110,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -34873,7 +34885,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-36,110": {
       "q": -36,
@@ -35021,7 +35033,7 @@
     "-49,111": {
       "q": -49,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35029,12 +35041,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-48,111": {
       "q": -48,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35042,12 +35054,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,111": {
       "q": -47,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35055,7 +35067,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,111": {
       "q": -46,
@@ -35068,7 +35080,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,111": {
       "q": -45,
@@ -35081,7 +35093,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,111": {
       "q": -44,
@@ -35094,7 +35106,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,111": {
       "q": -43,
@@ -35107,7 +35119,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,111": {
       "q": -42,
@@ -35120,12 +35132,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,111": {
       "q": -41,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35133,12 +35145,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,111": {
       "q": -40,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35146,12 +35158,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,111": {
       "q": -39,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35159,12 +35171,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,111": {
       "q": -38,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35172,12 +35184,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-37,111": {
       "q": -37,
       "r": 111,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35185,7 +35197,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-36,111": {
       "q": -36,
@@ -35333,7 +35345,7 @@
     "-50,112": {
       "q": -50,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35341,12 +35353,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-49,112": {
       "q": -49,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35354,12 +35366,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-48,112": {
       "q": -48,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35367,7 +35379,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,112": {
       "q": -47,
@@ -35380,7 +35392,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,112": {
       "q": -46,
@@ -35393,7 +35405,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,112": {
       "q": -45,
@@ -35406,7 +35418,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,112": {
       "q": -44,
@@ -35419,7 +35431,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,112": {
       "q": -43,
@@ -35432,7 +35444,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,112": {
       "q": -42,
@@ -35445,12 +35457,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,112": {
       "q": -41,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35458,12 +35470,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,112": {
       "q": -40,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35471,12 +35483,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,112": {
       "q": -39,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35484,12 +35496,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,112": {
       "q": -38,
       "r": 112,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35497,7 +35509,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-37,112": {
       "q": -37,
@@ -35666,7 +35678,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-49,113": {
       "q": -49,
@@ -35679,7 +35691,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-48,113": {
       "q": -48,
@@ -35692,7 +35704,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,113": {
       "q": -47,
@@ -35705,7 +35717,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,113": {
       "q": -46,
@@ -35718,7 +35730,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,113": {
       "q": -45,
@@ -35731,7 +35743,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,113": {
       "q": -44,
@@ -35744,7 +35756,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,113": {
       "q": -43,
@@ -35757,7 +35769,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,113": {
       "q": -42,
@@ -35770,12 +35782,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,113": {
       "q": -41,
       "r": 113,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L3",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35783,12 +35795,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,113": {
       "q": -40,
       "r": 113,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L-1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35796,12 +35808,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,113": {
       "q": -39,
       "r": 113,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35809,12 +35821,12 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,113": {
       "q": -38,
       "r": 113,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -35822,7 +35834,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-37,113": {
       "q": -37,
@@ -35978,7 +35990,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-50,114": {
       "q": -50,
@@ -35991,7 +36003,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-49,114": {
       "q": -49,
@@ -36004,7 +36016,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-48,114": {
       "q": -48,
@@ -36017,7 +36029,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-47,114": {
       "q": -47,
@@ -36030,7 +36042,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-46,114": {
       "q": -46,
@@ -36043,7 +36055,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-45,114": {
       "q": -45,
@@ -36061,7 +36073,7 @@
           "enemyId": "abyssalSpermWhale"
         }
       ],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-44,114": {
       "q": -44,
@@ -36074,7 +36086,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-43,114": {
       "q": -43,
@@ -36087,7 +36099,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-42,114": {
       "q": -42,
@@ -36100,7 +36112,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-41,114": {
       "q": -41,
@@ -36113,7 +36125,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-40,114": {
       "q": -40,
@@ -36126,7 +36138,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-39,114": {
       "q": -39,
@@ -36139,7 +36151,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne"
     },
     "-38,114": {
       "q": -38,
@@ -36334,46 +36346,58 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne-exit"
     },
     "-47,115": {
       "q": -47,
       "r": 115,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "exit"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-exit-gate"
     },
     "-46,115": {
       "q": -46,
       "r": 115,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "exit"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-exit-gate"
     },
     "-45,115": {
       "q": -45,
       "r": 115,
       "terrain": "water",
-      "gravityLevel": "L2",
+      "gravityLevel": "L1",
       "waterLayer": "T1",
-      "conditionalGate": null,
+      "conditionalGate": {
+        "opened": true,
+        "bossRoomGate": true,
+        "role": "exit"
+      },
       "overlays": [],
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "boss-room-exit-gate"
     },
     "-44,115": {
       "q": -44,
@@ -36386,7 +36410,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne-exit"
     },
     "-43,115": {
       "q": -43,
@@ -36399,7 +36423,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne-exit"
     },
     "-42,115": {
       "q": -42,
@@ -36412,7 +36436,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "default"
+      "region": "abyssal-throne-exit"
     },
     "-41,115": {
       "q": -41,
@@ -37677,10 +37701,10 @@
         "bounceMultiplier": 1.08
       }
     },
-    "-41,108|-42,108": {
+    "-35,108|-36,108": {
       "cells": [
-        "-42,108",
-        "-41,108"
+        "-36,108",
+        "-35,108"
       ],
       "type": "springJelly",
       "blocksPassage": true,
@@ -37819,10 +37843,10 @@
       "size": 30,
       "params": {}
     },
-    "-41,112|-42,112": {
+    "-37,112|-38,112": {
       "cells": [
-        "-42,112",
-        "-41,112"
+        "-38,112",
+        "-37,112"
       ],
       "type": "current",
       "blocksPassage": false,
@@ -38095,10 +38119,10 @@
       "size": 30,
       "params": {}
     },
-    "-41,112|-42,113": {
+    "-37,112|-38,113": {
       "cells": [
-        "-41,112",
-        "-42,113"
+        "-37,112",
+        "-38,113"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -38237,6 +38261,28 @@
     "endGoal": "完成玩家原始遺跡路線、擊敗深淵抹香鯨，並抵達末段出口。",
     "source": "範本map.json（玩家原始第三部分）",
     "spawnPoints": "已配置",
+    "bossRoom": {
+      "id": "abyssal-throne",
+      "enemyId": "abyssalSpermWhale",
+      "bossCellKey": "-45,114",
+      "triggerCellKey": "-42,109",
+      "entranceGateCellKeys": [
+        "-44,107",
+        "-43,107",
+        "-42,107"
+      ],
+      "exitGateCellKeys": [
+        "-47,115",
+        "-46,115",
+        "-45,115"
+      ],
+      "room": {
+        "rowStart": 108,
+        "rowEnd": 114,
+        "columnStart": 6,
+        "columnEnd": 18
+      }
+    },
     "exitCellKey": "-46,116"
   }
 }

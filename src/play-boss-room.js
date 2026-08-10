@@ -43,7 +43,7 @@ function getDefinitionCenter(map, definition, origin) {
       && cell.terrain === 'water'
     ))
     : [];
-  const anchorKey = definition?.miniBossCellKey ?? definition?.triggerCellKey;
+  const anchorKey = definition?.bossCellKey ?? definition?.miniBossCellKey ?? definition?.triggerCellKey;
   const anchor = anchorKey ? getActiveCell(map, anchorKey, 'chapter1') : null;
   const candidates = roomCells.length ? roomCells : anchor ? [anchor] : [];
   if (!candidates.length) return { x: 0, y: 0 };
@@ -357,6 +357,7 @@ export function getPlayBossRoomRenderState(state, map) {
     activated: state.activated,
     completed: state.completed,
     sealCount: state.sealCount,
+    bossCellKey: definition?.bossCellKey ?? definition?.miniBossCellKey ?? null,
     triggerCellKey: definition?.triggerCellKey ?? null,
     entranceGateCellKeys: [...(definition?.entranceGateCellKeys ?? [])],
     exitGateCellKeys: [...(definition?.exitGateCellKeys ?? [])],

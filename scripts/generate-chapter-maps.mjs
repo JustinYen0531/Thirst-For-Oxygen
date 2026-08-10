@@ -596,6 +596,25 @@ function carveRoom(map, {
   }
 }
 
+function carveRoomKeepingSourcePhysics(map, options) {
+  const {
+    rowStart,
+    rowEnd,
+    columnStart,
+    columnEnd,
+    region,
+    gravityLevel = 'L1',
+    waterLayer = 'T1',
+  } = options;
+  for (let row = rowStart; row <= rowEnd; row += 1) {
+    for (let column = columnStart; column <= columnEnd; column += 1) {
+      const key = cellKeyFromColumn(column, row);
+      const sourceCell = map.cells[key];
+      carveWaterCell(map, row, column, region, sourceCell?.gravityLevel ?? gravityLevel, sourceCell?.waterLayer ?? waterLayer);
+    }
+  }
+}
+
 // Torricelli detours are intentionally split into two readable gravity beats:
 // the long return climb is L-1 (hard against the descent arc), while the small
 // terminal room around the oxygen space is L1 so the player can naturally
@@ -1067,10 +1086,18 @@ function buildPart3(source) {
   removeInvalidButtons(map);
   repairPart3PortalRoute(map);
   deduplicateCellObjectKind(map, 'torricelli');
+  // Part 3 ends with its own Abyssal Throne room. Keep the authored Final
+  // Boss spawn, but give the last encounter the same broad room and two-sided
+  // seal contract already used by the first two descent parts.
+  carveRoomKeepingSourcePhysics(map, { rowStart: 108, rowEnd: 114, columnStart: 6, columnEnd: 18, region: 'abyssal-throne' });
+  carveRoomKeepingSourcePhysics(map, { rowStart: 115, rowEnd: 115, columnStart: 9, columnEnd: 15, region: 'abyssal-throne-exit' });
   addActor(map, 'playerStart', 3, 12);
   [[20, 5], [35, 18], [52, 7], [70, 19], [88, 5], [104, 18]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
   addActor(map, 'miniBossSpawn', 92, 12, { enemyId: 'tideLawNautilus' });
-  addActor(map, 'bossSpawn', 114, 12, { enemyId: 'abyssalSpermWhale' });
+  const bossCellKey = addActor(map, 'bossSpawn', 114, 12, { enemyId: 'abyssalSpermWhale' });
+  const triggerCellKey = cellKeyFromColumn(12, 109);
+  const entranceGateCellKeys = addBossRoomGateWall(map, 107, [9, 10, 11], 'entrance');
+  const exitGateCellKeys = addBossRoomGateWall(map, 115, [10, 11, 12], 'exit');
   const used = new Set(Object.entries(map.cells).filter(([, cell]) => cell.freeObjects.length).map(([key]) => key));
   [
     ['oxygen', 15, 3], ['bubble', 24, 18], ['mine', 33, 8],
@@ -1103,6 +1130,15 @@ function buildPart3(source) {
   addReachableSupportSet(map, 'seaweed', [10, 18, 36, 45, 55, 70, 82, 100, 114]);
   addReachableSupportSet(map, 'coralCluster', [14, 24, 34, 52, 62, 86, 104, 112, 116]);
   addWallGillRoutes(map, [28, 70, 106], 'descent-part3-wall-gill');
+  map.metadata.bossRoom = {
+    id: 'abyssal-throne',
+    enemyId: 'abyssalSpermWhale',
+    bossCellKey,
+    triggerCellKey,
+    entranceGateCellKeys,
+    exitGateCellKeys,
+    room: { rowStart: 108, rowEnd: 114, columnStart: 6, columnEnd: 18 },
+  };
   setRuntimeExit(map, 116, 12);
   return map;
 }

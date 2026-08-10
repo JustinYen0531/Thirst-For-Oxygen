@@ -131,6 +131,12 @@ test('Part 2 Boss room replaces the generic Exit marker and advances directly to
   assert.match(page, /loadMap\(nextPart, \{ preserveRun: true, arc: mapArc \}\)/);
 });
 
+test('every authored Boss room switches to its Boss track and resets for the next part', () => {
+  assert.match(page, /function setGameplayMusicMode\(mode\)/);
+  assert.match(page, /if \(bossRoomResult\.events\.some\(\(event\) => event\.type === 'bossRoomSealed'\)\) setGameplayMusicMode\('boss'\)/);
+  assert.match(page, /mapPart = nextPart;\s*setGameplayMusicMode\('normal'\)/);
+});
+
 test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
   assert.doesNotMatch(page, /tutorialDialogueNavigation|navigationCopy/);
   assert.doesNotMatch(html, /id="play-tutorial-dialogue-navigation"/);

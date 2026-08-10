@@ -457,13 +457,20 @@ test('part 2 provides four separated Torricelli return routes', () => {
   });
 });
 
-test('part 3 preserves the player-authored template geometry as the final exam', () => {
+test('part 3 preserves the player-authored template geometry outside the final Boss room', () => {
   const source = JSON.parse(readFileSync(join(process.cwd(), '範本map.json'), 'utf8'));
   const part3 = loadMap('下沉篇-第3部分.json');
+  const finalBossRoom = part3.metadata.bossRoom.room;
   assert.deepEqual(part3.layout, source.layout);
   Object.entries(source.cells).forEach(([key, sourceCell]) => {
     const generated = part3.cells[key];
-    assert.equal(generated.terrain, sourceCell.terrain, `${key} terrain should stay player-authored`);
+    const sourceColumn = sourceCell.q + Math.floor(sourceCell.r / 2);
+    const isFinalBossRoomCell = sourceCell.r >= finalBossRoom.rowStart
+      && sourceCell.r <= finalBossRoom.rowEnd
+      && sourceColumn >= finalBossRoom.columnStart
+      && sourceColumn <= finalBossRoom.columnEnd;
+    // The final Boss room is an intentional authored carve-out; all geometry outside it stays untouched.
+    if (!isFinalBossRoomCell) assert.equal(generated.terrain, sourceCell.terrain, `${key} terrain should stay player-authored`);
     assert.equal(generated.gravityLevel, sourceCell.gravityLevel, `${key} gravity should stay player-authored`);
     assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
   });
@@ -556,6 +563,33 @@ test('part 2 ends in a Tide-Law Nautilus room that advances directly to Part 3',
     const roomCells = Object.values(part2.cells).filter((cell) => cell.r === row && cell.region === 'tide-law-sanctum');
     assert.ok(roomCells.length >= 7, `Tide-Law room row ${row} should remain broad`);
     assert.ok(roomCells.every((cell) => cell.waterLayer === 'T2'), `Tide-Law room row ${row} must stay on the upstream layer`);
+  }
+});
+
+test('part 3 ends in a dedicated Abyssal Throne room for the Final Boss', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const room = part3.metadata.bossRoom;
+  const bosses = actorsOf(part3, 'bossSpawn').filter(({ actor }) => actor.enemyId === 'abyssalSpermWhale');
+
+  assert.equal(room.id, 'abyssal-throne');
+  assert.equal(room.enemyId, 'abyssalSpermWhale');
+  assert.equal(bosses.length, 1);
+  assert.equal(bosses[0].key, room.bossCellKey);
+  assert.ok(part3.cells[part3.metadata.exitCellKey].r > room.room.rowEnd, 'the runtime exit should sit beyond the final Boss room seal');
+  assert.equal(part3.cells[room.triggerCellKey].terrain, 'water');
+
+  [...room.entranceGateCellKeys, ...room.exitGateCellKeys].forEach((key) => {
+    assert.equal(part3.cells[key].terrain, 'water');
+    assert.deepEqual(part3.cells[key].conditionalGate, {
+      opened: true,
+      bossRoomGate: true,
+      role: room.entranceGateCellKeys.includes(key) ? 'entrance' : 'exit',
+    });
+  });
+  for (let row = room.room.rowStart; row <= room.room.rowEnd; row += 1) {
+    const roomCells = Object.values(part3.cells).filter((cell) => cell.r === row && cell.region === 'abyssal-throne');
+    assert.ok(roomCells.length >= 7, `Abyssal Throne row ${row} should remain broad`);
+    assert.ok(roomCells.every((cell) => cell.waterLayer === 'T1'), `Abyssal Throne row ${row} must stay on the authored layer`);
   }
 });
 

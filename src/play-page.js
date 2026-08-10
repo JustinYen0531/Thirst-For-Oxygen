@@ -2509,6 +2509,11 @@ function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
 
+function setGameplayMusicMode(mode) {
+  musicModeSelect.value = mode === 'boss' ? 'boss' : 'normal';
+  syncMusicTrack();
+}
+
 function beginStageTransition(nextPart) {
   if (transitioning || !getMapDefinition(mapArc, nextPart)) return;
   transitioning = true;
@@ -2517,7 +2522,7 @@ function beginStageTransition(nextPart) {
   loadingMask.textContent = `前往${getMapDefinition(mapArc, nextPart).label}…`;
   mapSelect.value = mapSelectionValue(mapArc, nextPart);
   mapPart = nextPart;
-  syncMusicTrack();
+  setGameplayMusicMode('normal');
   loadMap(nextPart, { preserveRun: true, arc: mapArc })
     .then(() => { eventLog.push('跨段完成：生命與能量已回滿；氧氣、經驗與 Build 已保留。'); })
     .finally(() => { transitioning = false; });
@@ -2750,6 +2755,7 @@ function simulate(elapsed, now = performance.now()) {
       const bossRoomResult = stepPlayBossRoom(bossRoomState, { map, actor, enemies, origin, chapter: 'chapter1', time: worldTime });
       if (bossRoomResult.changed) visibleRenderKey = '';
       addEvents(bossRoomResult.events);
+      if (bossRoomResult.events.some((event) => event.type === 'bossRoomSealed')) setGameplayMusicMode('boss');
       const autoAdvancePart = Number(map?.metadata?.bossRoom?.autoAdvancePart);
       if (bossRoomResult.events.some((event) => event.type === 'bossRoomCleared') && Number.isInteger(autoAdvancePart)) {
         beginStageTransition(autoAdvancePart);
