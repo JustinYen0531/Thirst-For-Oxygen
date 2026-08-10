@@ -180,7 +180,7 @@ const musicArcSelect = document.querySelector('#play-music-arc');
 const musicModeSelect = document.querySelector('#play-music-mode');
 const damageReductionSelect = document.querySelector('#play-damage-reduction');
 const resourceCostReductionSelect = document.querySelector('#play-resource-cost-reduction');
-const musicController = createMusicController(getMusicTrack({ part: 1, arc: 'descent', mode: 'normal' }));
+const musicController = createMusicController(getMusicTrack({ part: TUTORIAL_PART, arc: TUTORIAL_ROUTE }));
 attachMusicControls(document.querySelector('#play-music-control'), musicController);
 const sfxController = createSfxController();
 attachSfxVolumeControl(document.querySelector('#play-ambient-volume-control'), sfxController);
@@ -2506,7 +2506,8 @@ exitButton.addEventListener('click', () => {
 tutorialSkipConfirm?.addEventListener('click', () => { sfxController.play('button'); leaveTutorial('skipped'); });
 tutorialSkipCancel?.addEventListener('click', () => { sfxController.play('button'); closeTutorialSkipPrompt(); });
 function syncMusicTrack() {
-  musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
+  const gameplayMusicArc = mapArc === TUTORIAL_ROUTE ? TUTORIAL_ROUTE : musicArcSelect.value;
+  musicController.setTrack(getMusicTrack({ part: mapPart, arc: gameplayMusicArc, mode: musicModeSelect.value }));
 }
 
 function setGameplayMusicMode(mode) {

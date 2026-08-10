@@ -1,4 +1,5 @@
 import mainMenuSource from './assets/audio/music/main-menu.mp3';
+import tutorialSource from './assets/audio/music/tutorial.mp3';
 import phase1BossSource from './assets/audio/music/phase-1-boss.mp3';
 import phase1BossAscentSource from './assets/audio/music/phase-1-boss-2.0.mp3';
 import phase1NormalSource from './assets/audio/music/phase-1-normal.mp3';
@@ -23,6 +24,7 @@ function phaseTrack(label, source) {
 
 export const MUSIC_TRACKS = Object.freeze({
   mainMenu: phaseTrack('Main Menu', mainMenuSource),
+  tutorial: phaseTrack('Tutorial', tutorialSource),
   descent: Object.freeze({
     1: Object.freeze({
       normal: phaseTrack('Phase 1 / Normal', phase1NormalSource),
@@ -54,6 +56,7 @@ export const MUSIC_TRACKS = Object.freeze({
 });
 
 export function getMusicTrack({ arc = 'descent', part = 3, mode = 'normal' } = {}) {
+  if (arc === 'tutorial') return MUSIC_TRACKS.tutorial;
   const trackGroup = arc === 'ascent20' ? MUSIC_TRACKS.ascent20 : MUSIC_TRACKS.descent;
   return trackGroup[Number(part)]?.[mode] ?? null;
 }

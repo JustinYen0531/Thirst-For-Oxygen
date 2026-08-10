@@ -1,5 +1,11 @@
 Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一個要做的是地圖編輯器,因為那也是我製作地圖的方式。請參閱相關的文件。 如果我還沒有生成一個圖片的話,那就使用placeholder的圖案就好了,完全不要花心思在一開始的介面上,能用就行了。 那些效果都要做出來,也就是像什麼重力的邏輯啦,還是什麼物件,都要有相對應的互動邏輯。 另外一般的那種彈射邏輯也要讓我可以測試出來。
 
+## 2026-08-10 — Chapter 0 Tutorial 專用音樂
+
+- 將使用者新增的 `GDD/Tutorial.mp3` 整理至 `src/assets/audio/music/tutorial.mp3`，並接入共享音樂曲目表。
+- 正式 Play 的 `tutorial:0` 路徑現在固定播放 Tutorial 曲目；下沉篇／上升篇的音樂選單仍只影響正式篇章，不會覆蓋第零章節。
+- 相關靜態測試、完整 check 與 build 待完成；依專案規則不執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Final Boss room and automatic Boss music
 
 - 下沉篇第三部分新增 `abyssal-throne` 最終 Boss 房，保留原本的 `abyssalSpermWhale` 出生點，補上寬房間、入口／出口三格封門與 Boss 房 metadata；生成器仍是正式地圖的來源。

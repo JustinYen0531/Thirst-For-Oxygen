@@ -124,6 +124,16 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('Chapter 0 Tutorial uses its dedicated Tutorial music', () => {
+  const music = read('../src/music.js');
+  assert.match(music, /import tutorialSource from ['"]\.\/assets\/audio\/music\/tutorial\.mp3['"];/);
+  assert.match(music, /tutorial: phaseTrack\('Tutorial', tutorialSource\)/);
+  assert.match(music, /if \(arc === 'tutorial'\) return MUSIC_TRACKS\.tutorial;/);
+  assert.match(page, /createMusicController\(getMusicTrack\(\{ part: TUTORIAL_PART, arc: TUTORIAL_ROUTE \}\)\)/);
+  assert.match(page, /const gameplayMusicArc = mapArc === TUTORIAL_ROUTE \? TUTORIAL_ROUTE : musicArcSelect\.value;/);
+  assert.match(page, /getMusicTrack\(\{ part: mapPart, arc: gameplayMusicArc, mode: musicModeSelect\.value \}\)/);
+});
+
 test('Part 2 Boss room replaces the generic Exit marker and advances directly to Part 3', () => {
   assert.match(page, /if \(map\?\.metadata\?\.bossRoom\?\.autoAdvancePart && !bossRoomState\.completed\) return;/);
   assert.match(page, /bossRoomResult\.events\.some\(\(event\) => event\.type === 'bossRoomCleared'\)/);
