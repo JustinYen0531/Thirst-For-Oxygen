@@ -30,8 +30,8 @@
               <span class="chapter-picker-label">地圖章節</span>
               <span class="sr-only">選擇地圖部分</span>
               <select id="play-map-select" aria-label="選擇地圖部分">
-                <optgroup label="第零篇章／新手引導">
-                  <option value="tutorial:0">第零篇章・第一次呼吸</option>
+                <optgroup label="Tutorial">
+                  <option value="tutorial:0">Tutorial</option>
                 </optgroup>
                 <optgroup label="下沉篇">
                   <option value="descent:1" selected>下沉篇・第一部分</option>
@@ -50,7 +50,7 @@
             <section class="resonance-panel" id="play-resonance-panel" aria-labelledby="play-resonance-title" hidden><header><div><p class="eyebrow">LEVEL / RESONANCE</p><h2 id="play-resonance-title">永久共鳴 Buff</h2></div><button type="button" id="play-resonance-close" aria-label="關閉 Resonance Buff">×</button></header><p class="resonance-panel-note">共鳴敵人不會提供 EXP；同物種 Buff 只疊加到標示上限。</p><div class="resonance-buff-list" id="play-resonance-buffs"><p class="resonance-empty">尚未取得 Resonance Buff。</p></div></section>
             <p class="play-attempts" id="play-attempts" aria-label="剩餘嘗試次數 3，共 3 次">ATTEMPT 3/3</p>
             <section class="play-tutorial-panel" id="play-tutorial-panel" data-gameplay-language="fixed-en" hidden aria-labelledby="play-tutorial-title">
-              <div class="play-tutorial-heading"><div><p class="eyebrow">CHAPTER 0 / FIRST BREATH</p><h2 id="play-tutorial-title">Chapter 0 · First Breath</h2></div><span class="play-tutorial-progress is-locked" id="play-tutorial-step-progress">0 / 10</span></div>
+              <div class="play-tutorial-heading"><div><p class="eyebrow">TUTORIAL</p><h2 id="play-tutorial-title">Tutorial</h2></div><span class="play-tutorial-progress is-locked" id="play-tutorial-step-progress">0 / 10</span></div>
               <p class="play-tutorial-guide-line"><span id="play-tutorial-guide-name">Abyss Navigator</span> is guiding you</p>
               <h3 id="play-tutorial-step-title">Learn to Launch First</h3>
               <p id="play-tutorial-step-body">Do not head for the exit yet. Place the cursor on the diver, drag for direction and distance, then release to complete one launch.</p>
@@ -167,9 +167,6 @@
             </select>
           </label>
           <p class="settings-help">套用於敵人、投射物、毒素與環境造成的生命傷害；選擇會儲存在本機。</p>
-        </section>
-        <section class="settings-section" aria-labelledby="play-tools-title">
-          <h3 id="play-tools-title">測試工具</h3>
           <label class="settings-field" for="play-resource-cost-reduction"><span>氧氣／能量消耗減免</span>
             <select id="play-resource-cost-reduction">
               <option value="0">標準（減免 0%）</option>
