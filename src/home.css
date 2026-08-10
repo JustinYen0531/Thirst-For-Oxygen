@@ -554,7 +554,7 @@ body::before {
 .home-logo-viewport img {
   position: absolute;
   left: 50%;
-  top: 59%;
+  top: calc(59% + 30px);
   width: 88%;
   height: 88%;
   object-fit: contain;

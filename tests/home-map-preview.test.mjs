@@ -76,7 +76,7 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-logo-viewport[\s\S]*radial-gradient\(circle at 50% 45%/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\)::before\s*{\s*opacity: 0/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\) \.home-helmet-stage[\s\S]*drop-shadow\(0 0 3px rgba\(255, 255, 255, 0\.92\)\)[\s\S]*drop-shadow\(0 0 46px/);
-  assert.match(css, /\.home-logo-viewport img[\s\S]*top: 59%/);
+  assert.match(css, /\.home-logo-viewport img[\s\S]*top: calc\(59% \+ 30px\)/);
   assert.match(css, /\.home-intro\.is-side \.home-logo-viewport[\s\S]*background: transparent/);
   assert.match(css, /@keyframes home-helmet-breathe-front[\s\S]*scale\(0\.898\)/);
   assert.match(css, /@keyframes home-helmet-breathe-side[\s\S]*scale\(0\.723\)/);
