@@ -124,6 +124,13 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('Part 2 Boss room replaces the generic Exit marker and advances directly to Part 3', () => {
+  assert.match(page, /if \(map\?\.metadata\?\.bossRoom\?\.autoAdvancePart && !bossRoomState\.completed\) return;/);
+  assert.match(page, /bossRoomResult\.events\.some\(\(event\) => event\.type === 'bossRoomCleared'\)/);
+  assert.match(page, /beginStageTransition\(autoAdvancePart\)/);
+  assert.match(page, /loadMap\(nextPart, \{ preserveRun: true, arc: mapArc \}\)/);
+});
+
 test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
   assert.doesNotMatch(page, /tutorialDialogueNavigation|navigationCopy/);
   assert.doesNotMatch(html, /id="play-tutorial-dialogue-navigation"/);

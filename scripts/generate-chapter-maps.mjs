@@ -964,11 +964,11 @@ const PART2_TORRICELLI_DETOURS = Object.freeze([
 function buildPart2() {
   const map = createAuthoredMap({
     width: 20,
-    height: 88,
+    height: 106,
     metadata: {
       chapter: '下沉篇', part: 2, title: '下沉篇・第二部分｜穿越熱泉', difficulty: 'medium',
       designIntent: '完全獨立的熱泉路線：左右熱泉室交替，以四條偏軸托里切利回返洞提供高風險但穩定的氧氣，再穿越 L3 脈衝與可選傳送捷徑。',
-      routeBeats: ['暖流入口', '左右熱泉分流', '四條托里切利回返洞', '開門支路', '壓力閘門', '傳送捷徑', '熱泉出口'],
+      routeBeats: ['暖流入口', '左右熱泉分流', '四條托里切利回返洞', '開門支路', '壓力閘門', '傳送捷徑', '潮律鸚鵡螺封印房'],
       torricelliDetours: PART2_TORRICELLI_DETOURS.map((detour) => ({
         side: detour.side,
         region: detour.region,
@@ -993,7 +993,7 @@ function buildPart2() {
         '氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。',
         '多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。',
       ],
-      endGoal: '開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。',
+      endGoal: '穿越熱泉後直接進入潮律鸚鵡螺封印房，解除封印後前往下沉篇第三部分。',
     },
   });
   paintPart2Terrain(map);
@@ -1019,7 +1019,27 @@ function buildPart2() {
   addLayerPortal(map, 21);
   addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
   addWallGillRoutes(map, [29, 64], 'descent-part2-wall-gill');
-  setRuntimeExit(map, 85, 12);
+  // Part 2 ends at a dedicated Tide-Law Nautilus room. There is no visible
+  // EXIT marker at the approach: entering the room seals its three-cell
+  // throat, and clearing the encounter advances directly to Part 3.
+  carveRoom(map, { rowStart: 88, rowEnd: 100, columnStart: 5, columnEnd: 15, region: 'tide-law-sanctum', gravityLevel: 'L0', waterLayer: 'T2' });
+  carveRoom(map, { rowStart: 101, rowEnd: 101, columnStart: 8, columnEnd: 12, region: 'tide-law-sanctum-exit', gravityLevel: 'L0', waterLayer: 'T2' });
+  carveRoom(map, { rowStart: 102, rowEnd: 105, columnStart: 8, columnEnd: 12, region: 'tide-law-sanctum-transition', gravityLevel: 'L0', waterLayer: 'T2' });
+  const miniBossCellKey = addActor(map, 'miniBossSpawn', 95, 10, { enemyId: 'tideLawNautilus' });
+  const triggerCellKey = cellKeyFromColumn(10, 89);
+  const entranceGateCellKeys = addBossRoomGateWall(map, 87, [9, 10, 11], 'entrance');
+  const exitGateCellKeys = addBossRoomGateWall(map, 101, [9, 10, 11], 'exit');
+  map.metadata.bossRoom = {
+    id: 'tide-law-sanctum',
+    enemyId: 'tideLawNautilus',
+    miniBossCellKey,
+    triggerCellKey,
+    entranceGateCellKeys,
+    exitGateCellKeys,
+    autoAdvancePart: 3,
+    room: { rowStart: 88, rowEnd: 100, columnStart: 5, columnEnd: 15 },
+  };
+  setRuntimeExit(map, 104, 10);
   return map;
 }
 

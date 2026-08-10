@@ -1305,3 +1305,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - First Breath 的第一個引導先用英文對話說明 O₂ 會隨時間消耗、Energy 如何支援彈射與 Weapon、Weapon 如何跟著移動／拉射路徑運作，以及 O₂ 與 Energy 維持高位時的自動回血與 Checkpoint 死亡後補滿資源規則。
 - 玩家讀完開場 briefing 後才會被要求完成第一次拉射；既有 20 個任務與完成任意 10 個解鎖 EXIT 的規則不變。
 - 已補上開場靜態英文內容、Traditional Chinese source 到 English 的動態翻譯，以及靜態測試契約；依專案規則不執行瀏覽器／Playwright。
+
+## 2026-08-10 — Descent Part 2 now ends in the Tide-Law Nautilus room
+
+- 下沉篇第二部分不再把終點當成泛用 `EXIT`：地圖末端新增潮律鸚鵡螺封印房、專用小 Boss、入口／出口三格封門與 T2 同層房間，入口抵達後直接進入 Boss 段落。
+- Boss 清除後由 Play runtime 直接載入下沉篇第三部分，不顯示或等待一般出口互動；一般 Exit 標記在這個 Boss 房間完成前會隱藏。
+- 修正房間與上游路線的水層一致性，避免 T2→T1 的假性斷路；地圖與流程測試 38/38 通過，未執行瀏覽器／Playwright。

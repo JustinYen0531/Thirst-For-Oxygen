@@ -363,7 +363,7 @@ test('coral invisibility makes enemies stop targeting and damaging the player', 
 test('special map markers instantiate the documented Mini Bosses and Boss without reducing regular populations', () => {
   const expectedSpecials = [
     [['miniBossSpawn', 'prismCrabGuardian']],
-    [],
+    [['miniBossSpawn', 'tideLawNautilus']],
     [['miniBossSpawn', 'tideLawNautilus'], ['bossSpawn', 'abyssalSpermWhale']],
   ];
   PART_MAP_PATHS.forEach((relativePath, index) => {

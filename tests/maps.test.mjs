@@ -512,6 +512,34 @@ test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
   }
 });
 
+test('part 2 ends in a Tide-Law Nautilus room that advances directly to Part 3', () => {
+  const part2 = loadMap('下沉篇-第2部分.json');
+  const room = part2.metadata.bossRoom;
+  const miniBosses = actorsOf(part2, 'miniBossSpawn');
+
+  assert.equal(room.id, 'tide-law-sanctum');
+  assert.equal(room.enemyId, 'tideLawNautilus');
+  assert.equal(room.autoAdvancePart, 3);
+  assert.equal(miniBosses.filter(({ actor }) => actor.enemyId === 'tideLawNautilus').length, 1);
+  assert.equal(miniBosses.find(({ actor }) => actor.enemyId === 'tideLawNautilus').key, room.miniBossCellKey);
+  assert.equal(part2.metadata.routeBeats.at(-1), '潮律鸚鵡螺封印房');
+  assert.ok(part2.cells[part2.metadata.exitCellKey].r >= part2.layout.height - 4);
+
+  [...room.entranceGateCellKeys, ...room.exitGateCellKeys].forEach((key) => {
+    assert.equal(part2.cells[key].terrain, 'water');
+    assert.deepEqual(part2.cells[key].conditionalGate, {
+      opened: true,
+      bossRoomGate: true,
+      role: room.entranceGateCellKeys.includes(key) ? 'entrance' : 'exit',
+    });
+  });
+  for (let row = room.room.rowStart; row <= room.room.rowEnd; row += 1) {
+    const roomCells = Object.values(part2.cells).filter((cell) => cell.r === row && cell.region === 'tide-law-sanctum');
+    assert.ok(roomCells.length >= 7, `Tide-Law room row ${row} should remain broad`);
+    assert.ok(roomCells.every((cell) => cell.waterLayer === 'T2'), `Tide-Law room row ${row} must stay on the upstream layer`);
+  }
+});
+
 
 test('all generated multi-edge portals touch a blocked hex', () => {
   mapNames.forEach((name) => {

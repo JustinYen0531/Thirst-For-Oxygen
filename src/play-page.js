@@ -1390,6 +1390,7 @@ function drawCombatEffects() {
 }
 
 function drawStageExit() {
+  if (map?.metadata?.bossRoom?.autoAdvancePart && !bossRoomState.completed) return;
   const stageExit = getCurrentStageExitState();
   if (!stageExit.exit) return;
   const { x, y } = stageExit.exit;
@@ -2595,6 +2596,12 @@ function simulate(elapsed, now = performance.now()) {
       const bossRoomResult = stepPlayBossRoom(bossRoomState, { map, actor, enemies, origin, chapter: 'chapter1', time: worldTime });
       if (bossRoomResult.changed) visibleRenderKey = '';
       addEvents(bossRoomResult.events);
+      const autoAdvancePart = Number(map?.metadata?.bossRoom?.autoAdvancePart);
+      if (bossRoomResult.events.some((event) => event.type === 'bossRoomCleared') && Number.isInteger(autoAdvancePart)) {
+        beginStageTransition(autoAdvancePart);
+        accumulator = 0;
+        break;
+      }
       enemies.forEach((enemy) => {
         enemy.hitFlash = Math.max(0, (enemy.hitFlash ?? 0) - FIXED_STEP);
       });
