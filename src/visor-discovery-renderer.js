@@ -113,13 +113,13 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
 
     context.textBaseline = 'top';
     context.textAlign = 'left';
-    context.font = '600 2.65px system-ui, sans-serif';
+    context.font = '600 2.65px "IBM Plex Sans TC", system-ui, sans-serif';
     context.fillStyle = active.guide.colour;
     context.fillText(categoryLabel, panelX + 4, panelY + 2.2);
-    context.font = '700 3.4px system-ui, sans-serif';
+    context.font = '700 3.4px "IBM Plex Sans TC", system-ui, sans-serif';
     context.fillStyle = '#effff8';
     titleLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, panelY + 6.2 + lineIndex * DISCOVERY_TITLE_LINE_HEIGHT));
-    context.font = '2.7px system-ui, sans-serif';
+    context.font = '2.7px "IBM Plex Sans TC", system-ui, sans-serif';
     context.fillStyle = '#bcefd5';
     descriptionLines.forEach((line, lineIndex) => context.fillText(line, panelX + 4, descriptionStartY + lineIndex * DISCOVERY_DESCRIPTION_LINE_HEIGHT));
 
@@ -128,7 +128,7 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
     context.lineWidth = .45;
     context.fillRect(ok.x, ok.y, ok.width, ok.height);
     context.strokeRect(ok.x, ok.y, ok.width, ok.height);
-    context.font = '700 2.7px system-ui, sans-serif';
+    context.font = '700 2.7px "IBM Plex Sans TC", system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillStyle = '#effff8';
