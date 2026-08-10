@@ -40,6 +40,7 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   assert.match(html, /href="\/enemy-encyclopedia\.html"/);
   assert.match(html, /href="\/sandbox\.html"/);
   assert.match(html, /href="\/"/);
+  assert.match(html, /href="\/tutorial\.html"/);
   assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control/);
 });
 

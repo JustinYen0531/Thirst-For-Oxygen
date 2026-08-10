@@ -1,0 +1,67 @@
+@import './ibm-plex-sans-tc.css';
+
+:root {
+  color-scheme: dark;
+  font-family: "IBM Plex Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e7f5ff;
+  background: #071422;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  min-width: 0;
+  margin: 0;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(18, 71, 102, .7), transparent 40rem),
+    linear-gradient(180deg, #071422 0%, #06101b 55%, #030a12 100%);
+}
+
+a { color: #9beeff; }
+a:hover { color: #ffffff; }
+.tutorial-shell { width: min(1100px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 72px; }
+.tutorial-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid rgba(120, 218, 239, .32); }
+.tutorial-eyebrow { margin: 0 0 8px; color: #67d6e5; font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; }
+.tutorial-header h1 { margin: 0; color: #f0fcff; font-size: clamp(30px, 5vw, 52px); letter-spacing: .05em; }
+.tutorial-lede { max-width: 690px; margin: 10px 0 0; color: #abc3d8; font-size: 16px; line-height: 1.7; }
+.tutorial-back { min-width: 72px; padding: 10px 16px; border: 1px solid #4e7598; border-radius: 5px; color: #d9f4ff; background: #102945; text-align: center; text-decoration: none; font-weight: 700; }
+.tutorial-back:hover, .tutorial-back:focus-visible { border-color: #8feeff; color: #fff; background: #1b5075; outline: none; }
+.markdown-document { padding-top: 28px; color: #c5d8e3; font-size: 16px; line-height: 1.8; }
+.markdown-document > :first-child { margin-top: 0; }
+.markdown-document h1, .markdown-document h2, .markdown-document h3, .markdown-document h4 { color: #effcff; line-height: 1.3; letter-spacing: .03em; scroll-margin-top: 20px; }
+.markdown-document h1 { margin: 42px 0 14px; font-size: clamp(28px, 4vw, 40px); }
+.markdown-document h2 { margin: 42px 0 13px; padding-top: 17px; border-top: 1px solid rgba(82, 159, 184, .28); font-size: clamp(23px, 3vw, 32px); }
+.markdown-document h3 { margin: 28px 0 10px; color: #a8f2f0; font-size: 22px; }
+.markdown-document h4 { margin: 22px 0 8px; color: #9bd3e6; font-size: 18px; }
+.markdown-document p { margin: 0 0 16px; }
+.markdown-document strong { color: #efffff; font-weight: 700; }
+.markdown-document em { color: #d8f2f7; }
+.markdown-document code { padding: 2px 5px; border: 1px solid rgba(103, 214, 229, .2); border-radius: 4px; color: #b8fff6; background: rgba(4, 34, 48, .86); font: .9em ui-monospace, SFMono-Regular, Menlo, monospace; }
+.markdown-document pre { margin: 18px 0 22px; overflow-x: auto; padding: 16px 18px; border: 1px solid #24516b; border-radius: 7px; color: #c6f5ff; background: rgba(2, 14, 25, .9); box-shadow: inset 0 1px rgba(126, 232, 255, .06); }
+.markdown-document pre code { padding: 0; border: 0; color: inherit; background: transparent; font-size: 14px; line-height: 1.65; }
+.markdown-document blockquote { margin: 20px 0; padding: 13px 18px; border-left: 3px solid #67d6e5; color: #dcfaff; background: rgba(14, 67, 86, .3); }
+.markdown-document blockquote p { margin: 0; }
+.markdown-document blockquote p + p { margin-top: 8px; }
+.markdown-document hr { margin: 32px 0; border: 0; border-top: 1px solid rgba(120, 218, 239, .32); }
+.markdown-document ul, .markdown-document ol { margin: 0 0 20px; padding-left: 28px; }
+.markdown-document li { margin: 5px 0; padding-left: 5px; }
+.markdown-document li::marker { color: #69d5e7; }
+.markdown-table-wrap { margin: 18px 0 24px; overflow-x: auto; border: 1px solid #294d6e; border-radius: 7px; background: rgba(7, 27, 43, .8); }
+.markdown-document table { width: 100%; min-width: 620px; border-collapse: collapse; line-height: 1.6; }
+.markdown-document th, .markdown-document td { padding: 11px 13px; border-bottom: 1px solid rgba(67, 125, 149, .3); vertical-align: top; text-align: left; }
+.markdown-document th { color: #9ff2ef; background: rgba(26, 83, 101, .42); font-size: 14px; letter-spacing: .04em; }
+.markdown-document td { color: #c3d8e4; font-size: 15px; }
+.markdown-document tr:last-child td { border-bottom: 0; }
+.markdown-document tbody tr:nth-child(even) { background: rgba(11, 49, 67, .22); }
+
+@media (max-width: 700px) {
+  .tutorial-shell { width: min(100% - 22px, 1100px); padding-top: 20px; }
+  .tutorial-header { align-items: start; flex-direction: column; gap: 16px; }
+  .tutorial-back { order: -1; }
+  .markdown-document { font-size: 16px; }
+  .markdown-document th, .markdown-document td { padding: 9px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

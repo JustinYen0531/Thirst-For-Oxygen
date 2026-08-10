@@ -85,7 +85,7 @@ test('document language application touches only explicitly marked text and attr
   assert.equal(untouched.textContent, 'HP 42');
 });
 
-test('home starts in English and exposes a bilingual fifth Settings item', () => {
+test('home starts in English and exposes a bilingual tutorial item above sixth Settings item', () => {
   const html = read('../home.html');
   const page = read('../src/home-page.js');
   const css = read('../src/settings.css');
@@ -93,7 +93,8 @@ test('home starts in English and exposes a bilingual fifth Settings item', () =>
 
   assert.match(html, /<html lang="en"/);
   assert.match(html, /href="\/src\/settings\.css"/);
-  assert.match(html, /id="home-settings-open"[\s\S]*?<span>05<\/span>[\s\S]*?>Settings<\/strong>/);
+  assert.match(html, /href="\/tutorial\.html"[\s\S]*?<span>05<\/span>[\s\S]*?data-i18n="home\.menu\.tutorial"/);
+  assert.match(html, /id="home-settings-open"[\s\S]*?<span>06<\/span>[\s\S]*?>Settings<\/strong>/);
   assert.match(html, /id="home-settings-panel"[\s\S]*?role="dialog"[\s\S]*?hidden/);
   assert.match(html, /data-language-option="en"/);
   assert.match(html, /data-language-option="zh-Hant"/);

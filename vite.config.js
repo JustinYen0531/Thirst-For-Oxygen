@@ -12,6 +12,7 @@ export default defineConfig({
         play: resolve(process.cwd(), 'play.html'),
         encyclopedia: resolve(process.cwd(), 'enemy-encyclopedia.html'),
         sandbox: resolve(process.cwd(), 'sandbox.html'),
+        tutorial: resolve(process.cwd(), 'tutorial.html'),
       },
     },
   },

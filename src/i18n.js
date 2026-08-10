@@ -32,6 +32,7 @@ const TRANSLATIONS = Object.freeze({
   'home.menu.encyclopedia': Object.freeze({ en: 'World Encyclopedia', 'zh-Hant': '世界圖鑑' }),
   'home.menu.sandbox': Object.freeze({ en: 'Enemy Sandbox', 'zh-Hant': '敵人沙盒' }),
   'home.menu.editor': Object.freeze({ en: 'Map Editor', 'zh-Hant': '地圖編輯器' }),
+  'home.menu.tutorial': Object.freeze({ en: 'How to Play', 'zh-Hant': '完整遊玩教學' }),
   'home.menu.settings': Object.freeze({ en: 'Settings', 'zh-Hant': '設定' }),
   'home.loading.eyebrow': Object.freeze({ en: 'PREPARING DESCENT', 'zh-Hant': '準備下潛' }),
   'home.loading.assets': Object.freeze({ en: 'Loading game assets', 'zh-Hant': '正在載入遊戲素材' }),
