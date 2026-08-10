@@ -36,11 +36,11 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   assert.match(html, /id="home-no-signal"/);
   assert.match(html, /id="home-helmet-signal-trigger"/);
   assert.match(html, /Tap anywhere to begin/);
-  assert.match(html, /href="\/play\.html"/);
-  assert.match(html, /href="\/enemy-encyclopedia\.html"/);
-  assert.match(html, /href="\/sandbox\.html"/);
-  assert.match(html, /href="\/"/);
-  assert.match(html, /href="\/tutorial\.html"/);
+  assert.match(html, /href="\.\/play\.html"/);
+  assert.match(html, /href="\.\/enemy-encyclopedia\.html"/);
+  assert.match(html, /href="\.\/sandbox\.html"/);
+  assert.match(html, /href="\.\/index\.html"/);
+  assert.match(html, /href="\.\/tutorial\.html"/);
   assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status/);
 });
 
@@ -76,10 +76,19 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-logo-viewport[\s\S]*radial-gradient\(circle at 50% 45%/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\)::before\s*{\s*opacity: 0/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\) \.home-helmet-stage[\s\S]*drop-shadow\(0 0 3px rgba\(255, 255, 255, 0\.92\)\)[\s\S]*drop-shadow\(0 0 46px/);
-  assert.match(css, /\.home-logo-viewport img[\s\S]*top: calc\(59% \+ 30px\)/);
   assert.match(css, /\.home-intro\.is-side \.home-logo-viewport[\s\S]*background: transparent/);
   assert.match(css, /@keyframes home-helmet-breathe-front[\s\S]*scale\(0\.898\)/);
   assert.match(css, /@keyframes home-helmet-breathe-side[\s\S]*scale\(0\.723\)/);
+});
+
+test('home logo stays centred inside the visor and breathes within its safe area', () => {
+  const css = read('../src/home.css');
+
+  assert.match(css, /\.home-logo-viewport img\s*{[\s\S]*left: 50%;[\s\S]*top: 50%;[\s\S]*width: 82%;[\s\S]*height: 82%;/);
+  assert.doesNotMatch(css, /\.home-logo-viewport img\s*{[^}]*top: calc\(/);
+  assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\) \.home-logo-viewport img\s*{\s*animation: home-logo-breathe 4\.8s ease-in-out infinite;/);
+  assert.match(css, /@keyframes home-logo-breathe[\s\S]*scale\(0\.975\)[\s\S]*scale\(1\.015\)/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.home-logo-viewport img[\s\S]*animation-name: none;/);
 });
 
 test('helmet map preview uses all three authored descent maps', () => {

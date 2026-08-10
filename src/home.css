@@ -554,13 +554,19 @@ body::before {
 .home-logo-viewport img {
   position: absolute;
   left: 50%;
-  top: calc(59% + 30px);
-  width: 88%;
-  height: 88%;
+  top: 50%;
+  width: 82%;
+  height: 82%;
   object-fit: contain;
   filter: drop-shadow(0 0 18px rgba(94, 226, 255, 0.68));
   transform: translate(-50%, -50%);
+  transform-origin: 50% 50%;
   transition: top 900ms ease, width 900ms ease, height 900ms ease, filter 900ms ease;
+  will-change: transform, filter, opacity;
+}
+
+.home-intro:not(.is-turning):not(.is-side) .home-logo-viewport img {
+  animation: home-logo-breathe 4.8s ease-in-out infinite;
 }
 
 .home-main-menu {
@@ -802,6 +808,19 @@ body::before {
   50% { opacity: 1; }
 }
 
+@keyframes home-logo-breathe {
+  0%, 100% {
+    opacity: 0.92;
+    filter: drop-shadow(0 0 14px rgba(94, 226, 255, 0.52));
+    transform: translate(-50%, -50%) scale(0.975);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 24px rgba(112, 235, 255, 0.82));
+    transform: translate(-50%, -50%) scale(1.015);
+  }
+}
+
 @keyframes home-no-signal-static {
   from { transform: translate3d(-2%, -1%, 0) scale(1.03); }
   to { transform: translate3d(2%, 1%, 0) scale(1.06); }
@@ -852,7 +871,8 @@ body::before {
   }
 
   .home-intro:not(.is-turning):not(.is-side) .home-helmet-stage,
-  .home-intro.is-side .home-helmet-stage {
+  .home-intro.is-side .home-helmet-stage,
+  .home-intro:not(.is-turning):not(.is-side) .home-logo-viewport img {
     animation-name: none;
   }
 
