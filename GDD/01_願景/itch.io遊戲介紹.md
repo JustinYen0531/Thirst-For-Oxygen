@@ -47,6 +47,22 @@ When the descent becomes the ascent, your weapons do not define what remains. Th
 - Familiar environments transformed by ecological collapse rather than simple numerical difficulty.
 - Boss encounters that control the battlefield through summons, terrain, gravity, oxygen, and chain reactions.
 
+## How to Play
+
+The current prototype is designed to be played with the mouse.
+
+1. **Click and hold the diver.**
+2. **Drag to aim.** The direction sets your launch direction, and the drag distance sets your launch strength.
+3. **Release to launch.** Water gravity, currents, collisions, and special areas will take over your movement.
+4. **Watch your oxygen and energy.** Find oxygen sources, plan your route, and avoid spending more resources than the next safe passage allows.
+5. **Fight or move around enemies.** Your movement is also part of your attack, but not every creature has to die.
+6. **Choose Resonance when you want a different relationship.** Move close to a living enemy, learn its rhythm, and neutralize it instead of killing it to earn a permanent buff for the current run.
+7. **Reach the next route exit.** Descend to retrieve the Abyss Core, then survive the altered world on the way back up.
+
+The most important rhythm is simple: **pull, release, read the water, find oxygen, then decide whether the danger is worth it.**
+
+For more details, open **How to Play** from the game's main page. You can also learn the core controls and systems through the **Tutorial** when you begin the game.
+
 **The ocean is full of water. You are still thirsty for oxygen.**
 
 **The real way to save the ocean is not to carry oxygen down to it, but to pull out the heart that made it forget how to breathe.**
