@@ -234,6 +234,11 @@ const upgradeNote = document.querySelector('#play-upgrade-note');
 const upgradeCategories = document.querySelector('#play-upgrade-categories');
 const upgradeChoices = document.querySelector('#play-upgrade-choices');
 const completionOverlay = document.querySelector('#play-completion-overlay');
+const prototypeOverlay = document.querySelector('#play-prototype-overlay');
+const prototypeMissionPhase = document.querySelector('#play-prototype-mission-phase');
+const prototypeNoticePhase = document.querySelector('#play-prototype-notice-phase');
+const prototypeContinueButton = document.querySelector('#play-prototype-continue');
+const prototypeMenuButton = document.querySelector('#play-prototype-menu');
 const settingsToggle = document.querySelector('#play-settings-toggle');
 const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
@@ -319,6 +324,8 @@ let katanaState = createPlayKatanaState(1);
 let bossRoomState = createPlayBossRoomState(null);
 let transitioning = false;
 let runCompleted = false;
+const PROTOTYPE_MISSION_HOLD_MS = 2200;
+let prototypeMissionTimer = null;
 let awakeningState = createPlayAwakeningState({ enabled: false });
 let storyIntroState = createPlayStoryIntroState({ enabled: false });
 let storyIntroCoverMode = 'none';
@@ -764,6 +771,7 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     combatState = createPlayCombatState();
     runCompleted = false;
     completionOverlay.hidden = true;
+    resetDescentPrototypeNotice();
   }
   mapArc = MAP_ROUTES[arc] ? arc : 'descent';
   const fallbackPart = mapArc === TUTORIAL_ROUTE ? TUTORIAL_PART : 1;
@@ -1610,6 +1618,45 @@ function drawStageExit() {
   context.restore();
 
 }
+
+function resetDescentPrototypeNotice() {
+  if (prototypeMissionTimer !== null) {
+    window.clearTimeout(prototypeMissionTimer);
+    prototypeMissionTimer = null;
+  }
+  prototypeOverlay.hidden = true;
+  prototypeMissionPhase.hidden = false;
+  prototypeNoticePhase.hidden = true;
+}
+
+function showDescentPrototypeNotice() {
+  resetDescentPrototypeNotice();
+  runCompleted = true;
+  prototypeOverlay.hidden = false;
+  prototypeMissionTimer = window.setTimeout(() => {
+    if (prototypeOverlay.hidden) return;
+    prototypeMissionPhase.hidden = true;
+    prototypeNoticePhase.hidden = false;
+    prototypeMissionTimer = null;
+    prototypeContinueButton.focus({ preventScroll: true });
+  }, PROTOTYPE_MISSION_HOLD_MS);
+}
+
+function continuePrototypeAscent() {
+  if (prototypeOverlay.hidden) return;
+  sfxController.play('button');
+  resetDescentPrototypeNotice();
+  runCompleted = false;
+  beginArcTransition('ascent', 1);
+}
+
+prototypeContinueButton?.addEventListener('click', continuePrototypeAscent);
+prototypeMenuButton?.addEventListener('click', () => {
+  if (prototypeOverlay.hidden) return;
+  sfxController.play('button');
+  resetDescentPrototypeNotice();
+  window.location.href = '/home.html';
+});
 
 function drawTutorialGuideMarker() {
   if (mapArc !== TUTORIAL_ROUTE || !map) return;
@@ -2865,8 +2912,8 @@ function simulate(elapsed, now = performance.now()) {
         }
         if (stageExit.completed) {
           if (mapArc === 'descent') {
-            eventLog.push('下沉篇完成：正在把 Resonance 永久能力帶入上升篇。');
-            beginArcTransition('ascent', 1);
+            eventLog.push('下沉篇完成：等待玩家選擇是否進入上升篇原型。');
+            showDescentPrototypeNotice();
             accumulator = 0;
             break;
           }
@@ -2916,6 +2963,10 @@ window.render_game_to_text = () => {
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
     stageExit,
+    prototypeCompletion: {
+      active: !prototypeOverlay.hidden,
+      phase: prototypeOverlay.hidden ? 'hidden' : prototypeNoticePhase.hidden ? 'mission' : 'notice',
+    },
     tutorial,
     bossRoom: getPlayBossRoomRenderState(bossRoomState, map),
     runCompleted,

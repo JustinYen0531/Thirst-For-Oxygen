@@ -179,6 +179,27 @@
                 <a class="action-primary" href="/home.html">回到水下主控台</a>
               </div>
             </section>
+            <section class="play-prototype-overlay" id="play-prototype-overlay" hidden aria-labelledby="play-prototype-mission-title">
+              <div class="play-prototype-panel">
+                <div class="play-prototype-phase" id="play-prototype-mission-phase" data-prototype-phase="mission" aria-live="polite">
+                  <p class="eyebrow">MISSION COMPLETE</p>
+                  <h2 id="play-prototype-mission-title">The Core has been retrieved.</h2>
+                  <p class="play-prototype-lead">The ascent has begun...</p>
+                </div>
+                <div class="play-prototype-phase" id="play-prototype-notice-phase" data-prototype-phase="notice" hidden aria-labelledby="play-prototype-notice-title">
+                  <p class="eyebrow">THIRST FOR OXYGEN / JOURNEY STATUS</p>
+                  <h2 id="play-prototype-notice-title">Prototype Notice</h2>
+                  <p>The Descent Chapter is fully playable.</p>
+                  <p>The Ascent Chapter has been designed,<br>implemented in structure,<br>but has not yet been fully balanced<br>or verified within the Game Jam time limit.</p>
+                  <p>You may continue at your own risk,<br>or end your journey here.</p>
+                  <p>Thank you for diving.</p>
+                  <div class="play-prototype-actions">
+                    <button class="action-primary" id="play-prototype-continue" type="button">Continue Prototype</button>
+                    <button class="action-secondary" id="play-prototype-menu" type="button">Return to Main Menu</button>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </section>

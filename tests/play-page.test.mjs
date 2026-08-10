@@ -124,6 +124,25 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('descent completion pauses on Mission Complete before showing the Ascent prototype notice', () => {
+  assert.match(html, /id="play-prototype-overlay"/);
+  assert.match(html, /MISSION COMPLETE/);
+  assert.match(html, /The Core has been retrieved\./);
+  assert.match(html, /The ascent has begun\.\.\./);
+  assert.match(html, /Prototype Notice/);
+  assert.match(html, /The Descent Chapter is fully playable\./);
+  assert.match(html, /The Ascent Chapter has been designed,/);
+  assert.match(html, /Continue Prototype/);
+  assert.match(html, /Return to Main Menu/);
+  assert.match(css, /@keyframes play-prototype-blackout/);
+  assert.match(page, /const PROTOTYPE_MISSION_HOLD_MS = 2200/);
+  assert.match(page, /prototypeMissionTimer = window\.setTimeout/);
+  assert.match(page, /showDescentPrototypeNotice\(\)/);
+  assert.match(page, /resetDescentPrototypeNotice\(\);\s*runCompleted = false;\s*beginArcTransition\('ascent', 1\)/);
+  assert.match(page, /prototypeMenuButton\?\.addEventListener\('click'/);
+  assert.match(page, /window\.location\.href = '\/home\.html'/);
+});
+
 test('formal developer panel teleports to an authored safe depth instead of changing only the HUD label', () => {
   assert.match(html, /id="play-dev-depth-form"/);
   assert.match(html, /id="play-dev-depth"[^>]*type="number"[^>]*min="0"/);

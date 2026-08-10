@@ -1,5 +1,11 @@
 Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一個要做的是地圖編輯器,因為那也是我製作地圖的方式。請參閱相關的文件。 如果我還沒有生成一個圖片的話,那就使用placeholder的圖案就好了,完全不要花心思在一開始的介面上,能用就行了。 那些效果都要做出來,也就是像什麼重力的邏輯啦,還是什麼物件,都要有相對應的互動邏輯。 另外一般的那種彈射邏輯也要讓我可以測試出來。
 
+## 2026-08-10 — 下沉篇完成後的 Ascent 原型提示
+
+- 第三部分出口完成後不再直接切入上升篇；先以深海風格黑幕顯示 `MISSION COMPLETE` 與 `The Core has been retrieved.`，短暫停頓後顯示 `Prototype Notice`。
+- 提示提供 `Continue Prototype`（保留既有 Build／Resonance 並進入上升篇第一部分）與 `Return to Main Menu` 兩個選項。
+- 目標流程測試 34/34、完整 check 374/374 與 build 已通過；依專案規則不執行瀏覽器／Playwright。
+
 ## 2026-08-10 — Boss 2／Boss 3 房內角落托里切利空間
 
 - Boss 2 `tide-law-sanctum` 在 row 89、右上側 column 14（`-30,89`）放置 1 個托里切利空間，避開入口封門、Boss 與出口封門。
