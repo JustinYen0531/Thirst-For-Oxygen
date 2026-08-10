@@ -33,9 +33,12 @@ test('Start Game owns a cinematic loading layer with real progress semantics', (
   assert.match(html, /id="home-start-game" href="\/play\.html"/);
   assert.match(html, /id="home-start-loading-video"[\s\S]*start-game-descent-loading\.mp4/);
   assert.match(html, /id="home-start-loading-progress" role="progressbar"[\s\S]*aria-valuenow="0"/);
+  assert.match(html, /id="home-submission-badge"[\s\S]*Submission to Ultimate AI-Powered Game Jam #2[\s\S]*Topic: Dive &amp; Buddy/);
+  assert.match(html, /id="home-creator-badge"[\s\S]*Made By Ratio &amp; AIs/);
   assert.match(css, /\.home-intro\.is-starting-game \.home-menu-panel[\s\S]*opacity: 0;[\s\S]*translateX\(-48px\)/);
   assert.match(css, /\.home-intro\.is-starting-game \.home-menu-panel[\s\S]*z-index: 8;[\s\S]*home-menu-start-exit 900ms/);
   assert.match(css, /\.home-intro\.is-starting-game \.home-start-loading[\s\S]*opacity: 1/);
+  assert.match(css, /\.home-intro\.is-starting-game \.home-submission-badge[\s\S]*opacity: 1/);
   assert.match(page, /attachHomeStartLoading\(homeRoot/);
 });
 
