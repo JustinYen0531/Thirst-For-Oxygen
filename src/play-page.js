@@ -65,7 +65,7 @@ import { KATANA_SPRITE, getKatanaSwingFrames, getKatanaWavePose } from './katana
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudSlotLabel, getPlayerHudSlots } from './visor-hud.js';
 import { getAimTimeScale, scaleSimulationDelta } from './aim-slow-motion.js';
 import { createStoryTypingSound } from './story-typing-sound.js';
-import { WEAPONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
+import { PASSIVE_ABILITIES, WEAPONS, getEnemyDamageToPlayer, getWeaponStats } from './game-data.js';
 import {
   choosePlayUpgrade,
   choosePlayUpgradeCategory,
@@ -75,7 +75,12 @@ import {
   recordPlayEnemyDefeats,
   stepPlayCombat,
   syncPlayCombatBuild,
+  restorePlayCombatBuild,
+  restorePlayCombatResonance,
 } from './play-combat.js';
+import { BUILD_SLOT_LEVEL_CAPS } from './progression.js';
+import { RESONANCE_BUFFS } from './resonance.js';
+import { parseSandboxDevCommand } from './sandbox-devtools.js';
 import { getPlayStageExitState } from './play-flow.js';
 import {
   TUTORIAL_ROUTE,
@@ -227,6 +232,11 @@ const completionOverlay = document.querySelector('#play-completion-overlay');
 const settingsToggle = document.querySelector('#play-settings-toggle');
 const settingsPanel = document.querySelector('#play-settings');
 const settingsClose = document.querySelector('#play-settings-close');
+const playDevtools = document.querySelector('#play-devtools');
+const playDevtoolsClose = document.querySelector('#play-devtools-close');
+const playDevCommandForm = document.querySelector('#play-dev-command-form');
+const playDevCommand = document.querySelector('#play-dev-command');
+const playDevMessage = document.querySelector('#play-dev-message');
 const exitButton = document.querySelector('#play-exit');
 const resourceBars = { health: document.querySelector('#play-health'), oxygen: document.querySelector('#play-oxygen'), energy: document.querySelector('#play-energy') };
 const resourceValues = { health: document.querySelector('#play-health-value'), oxygen: document.querySelector('#play-oxygen-value'), energy: document.querySelector('#play-energy-value') };
@@ -490,6 +500,111 @@ function chooseSpawn(nextMap) {
 
 function equippedWeapon(weaponId) {
   return combatState.build.weapons.find((entry) => entry.id === weaponId) ?? null;
+}
+
+const PLAY_DEV_DEFAULT_WEAPONS = Object.freeze(Object.keys(WEAPONS).slice(0, 3));
+const PLAY_DEV_DEFAULT_PASSIVES = Object.freeze(Object.keys(PASSIVE_ABILITIES).slice(0, 3));
+
+function maxPlayBuildEntries(definitions, currentEntries, defaults) {
+  const ids = [...new Set([
+    ...currentEntries.map((entry) => entry?.id).filter(Boolean),
+    ...defaults,
+  ])].filter((id) => definitions[id]);
+  return BUILD_SLOT_LEVEL_CAPS.map((slotCap, slot) => {
+    const id = ids[slot];
+    if (!id) return null;
+    return { id, level: Math.min(slotCap, definitions[id].maxLevel ?? slotCap) };
+  }).filter(Boolean);
+}
+
+function setPlayBuildSlot(entries, slot, id, level) {
+  const next = [...entries];
+  while (next.length <= slot) next.push(null);
+  next[slot] = id ? { id, level } : null;
+  return next.filter(Boolean);
+}
+
+function applyPlayDevActions(actions) {
+  let weapons = combatState.build.weapons.map((entry) => ({ ...entry }));
+  let passives = combatState.build.passives.map((entry) => ({ ...entry }));
+  let resonance = new Map(combatState.resonance?.stacksByEnemyId ?? []);
+  let ensureKnife = false;
+  const applied = [];
+
+  actions.forEach((action) => {
+    if (action.type === 'maxWeapons') {
+      weapons = maxPlayBuildEntries(WEAPONS, weapons, PLAY_DEV_DEFAULT_WEAPONS);
+      applied.push('武器槽已拉滿');
+    } else if (action.type === 'maxPassives') {
+      passives = maxPlayBuildEntries(PASSIVE_ABILITIES, passives, PLAY_DEV_DEFAULT_PASSIVES);
+      applied.push('被動槽已拉滿');
+    } else if (action.type === 'resonance') {
+      const ids = action.id === 'all' ? Object.keys(RESONANCE_BUFFS) : action.id ? [action.id] : [];
+      ids.forEach((id) => {
+        const maxStacks = RESONANCE_BUFFS[id]?.maxStacks ?? 0;
+        const stacks = action.stacks === 'max' ? maxStacks : Math.min(maxStacks, action.stacks);
+        if (stacks > 0) resonance.set(id, stacks);
+        else resonance.delete(id);
+      });
+      applied.push(action.id === 'all' ? 'Resonance 已調整全部 Buff' : `Resonance ${action.id} 已調整`);
+    } else if (action.type === 'clearResonance') {
+      resonance.clear();
+      applied.push('Resonance 已清除');
+    } else if (action.type === 'clear') {
+      weapons = [];
+      passives = [];
+      resonance.clear();
+      ensureKnife = true;
+      applied.push('Build 與 Resonance 覆寫已清除');
+    } else if (action.type === 'weapon') {
+      ensureKnife = false;
+      weapons = setPlayBuildSlot(weapons, action.slot, action.id, action.level);
+      applied.push(action.id ? `武器槽 ${action.slot + 1} = ${WEAPONS[action.id].name} Lv.${action.level}` : `武器槽 ${action.slot + 1} 已清空`);
+    } else if (action.type === 'passive') {
+      passives = setPlayBuildSlot(passives, action.slot, action.id, action.level);
+      applied.push(action.id ? `被動槽 ${action.slot + 1} = ${PASSIVE_ABILITIES[action.id].name} Lv.${action.level}` : `被動槽 ${action.slot + 1} 已清空`);
+    }
+  });
+
+  restorePlayCombatBuild(combatState, { weapons, passives, ensureKnife }, actor);
+  restorePlayCombatResonance(combatState, resonance, actor);
+  syncKatanaState();
+  updateHud();
+  render();
+  playDevMessage.textContent = applied.join('；') || '沒有套用任何命令。';
+  eventLog.push(`開發者工具：${playDevMessage.textContent}`);
+}
+
+function setPlayDevtoolsOpen(open) {
+  if (!playDevtools) return;
+  playDevtools.hidden = !open;
+  if (open) {
+    playDevCommand?.focus();
+    playDevCommand?.select();
+  }
+}
+
+function togglePlayDevtools() {
+  setPlayDevtoolsOpen(playDevtools?.hidden ?? true);
+}
+
+function submitPlayDevCommand(input) {
+  const parsed = parseSandboxDevCommand(input, {
+    weaponIds: Object.keys(WEAPONS),
+    passiveIds: Object.keys(PASSIVE_ABILITIES),
+    resonanceIds: Object.keys(RESONANCE_BUFFS),
+  });
+  if (!parsed.ok) {
+    playDevMessage.textContent = parsed.error;
+    eventLog.push(`開發者工具：${parsed.error}`);
+    return;
+  }
+  if (parsed.actions.some((action) => action.type === 'help')) {
+    playDevMessage.textContent = '格式：weapon 2 katana 3；passive 1 oxygenCirculator 3；resonance crabGuard 9。正式遊戲第 1 槽預設保留小刀。';
+    return;
+  }
+  applyPlayDevActions(parsed.actions);
+  playDevCommand.value = '';
 }
 
 function syncKatanaState() {
@@ -2464,7 +2579,44 @@ upgradeChoices.addEventListener('click', (event) => {
 });
 musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
+playDevtoolsClose?.addEventListener('click', () => setPlayDevtoolsOpen(false));
+playDevCommandForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  submitPlayDevCommand(playDevCommand.value);
+});
 window.addEventListener('keydown', (event) => {
+  const editingControl = event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName);
+  const devShortcut = event.ctrlKey && event.altKey && !event.shiftKey;
+  if (devShortcut && event.code === 'KeyD') {
+    event.preventDefault();
+    togglePlayDevtools();
+    return;
+  }
+  if (devShortcut && event.code === 'KeyW') {
+    event.preventDefault();
+    applyPlayDevActions([{ type: 'maxWeapons' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'KeyA') {
+    event.preventDefault();
+    applyPlayDevActions([{ type: 'maxPassives' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'KeyR') {
+    event.preventDefault();
+    applyPlayDevActions([{ type: 'resonance', id: 'all', stacks: 'max' }]);
+    return;
+  }
+  if (devShortcut && event.code === 'Digit0') {
+    event.preventDefault();
+    applyPlayDevActions([{ type: 'clear' }]);
+    return;
+  }
+  if (event.key === 'Escape' && playDevtools && !playDevtools.hidden) {
+    event.preventDefault();
+    setPlayDevtoolsOpen(false);
+    return;
+  }
   if (mapArc === TUTORIAL_ROUTE && tutorialSkipPromptOpen) {
     if (event.code === 'Enter') {
       event.preventDefault();
@@ -2497,6 +2649,7 @@ window.addEventListener('keydown', (event) => {
     }
     return;
   }
+  if (editingControl) return;
   if (event.key.toLowerCase() === 'r') resetButton.click();
   if (event.key.toLowerCase() === 'e' && map && actor && !actor.gameOver) {
     const result = activateNearbyInteraction(actor, map, 'chapter1', origin);
@@ -2699,6 +2852,7 @@ window.render_game_to_text = () => {
     paused,
     aiming: dragging,
     timeScale: getAimTimeScale(dragging),
+    developerToolsOpen: Boolean(playDevtools && !playDevtools.hidden),
   });
 };
 window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Math.max(0, milliseconds) / (1000 / 60))); for (let index = 0; index < steps; index += 1) simulate(FIXED_STEP, performance.now()); render(); };

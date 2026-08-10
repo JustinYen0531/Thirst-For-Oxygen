@@ -11,6 +11,7 @@ import {
   getPlayCombatRenderState,
   recordPlayEnemyDefeats,
   restorePlayCombatBuild,
+  restorePlayCombatResonance,
   syncPlayCombatBuild,
   stepPlayCombat,
 } from '../src/play-combat.js';
@@ -68,6 +69,22 @@ test('neutral Resonance partners cannot be targeted or damaged by player weapons
   partner.defeated = true;
   assert.deepEqual(recordPlayEnemyDefeats(state, [partner], actor), []);
   assert.equal(state.experienceOrbs.length, 0, 'a resonated enemy never pays EXP even if another system later marks it defeated');
+});
+
+test('formal developer overrides can replace the starter Build and set Resonance stacks', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 100, y: 100 });
+  restorePlayCombatBuild(state, {
+    weapons: [{ id: 'katana', level: 3 }],
+    passives: [{ id: 'abyssalAmplifier', level: 3 }],
+    ensureKnife: false,
+  }, actor);
+  const buildDamageMultiplier = actor.derivedStats.currentDamageMultiplier;
+  const resonance = restorePlayCombatResonance(state, [['abyssalSpermWhale', 3]], actor);
+  assert.deepEqual(state.build.weapons, [{ id: 'katana', level: 3 }]);
+  assert.deepEqual(state.build.passives, [{ id: 'abyssalAmplifier', level: 3 }]);
+  assert.equal(resonance.buffs[0].stacks, 3);
+  assert.ok(actor.derivedStats.currentDamageMultiplier > buildDamageMultiplier);
 });
 
 test('the tutorial Resonance fish stays invulnerable while the kill fish remains damageable', () => {

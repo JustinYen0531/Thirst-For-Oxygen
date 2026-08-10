@@ -27,6 +27,7 @@ import {
   createResonanceState,
   getResonanceRenderState,
   reduceEnemyResonanceOnDamage,
+  RESONANCE_BUFFS,
 } from './resonance.js';
 
 export const PLAY_COMBAT_FIXED_STEP = 1 / 60;
@@ -152,8 +153,8 @@ export function syncPlayCombatBuild(state, actor = null) {
 // Save restoration and focused Node tests can hydrate an authored build through
 // the same 3/2/1 caps. The formal new-run path does not call this and therefore
 // always begins with only the Lv.1 knife.
-export function restorePlayCombatBuild(state, { weapons = [], passives = [] } = {}, actor = null) {
-  state.progression.weapons = normalizeRestoredEntries(weapons, WEAPONS, 3, true);
+export function restorePlayCombatBuild(state, { weapons = [], passives = [], ensureKnife = true } = {}, actor = null) {
+  state.progression.weapons = normalizeRestoredEntries(weapons, WEAPONS, 3, ensureKnife);
   state.progression.passives = normalizeRestoredEntries(passives, PASSIVE_ABILITIES, 3, false);
   state.progression.activeWeaponSlot = 0;
   state.weaponBurst = null;
@@ -161,6 +162,21 @@ export function restorePlayCombatBuild(state, { weapons = [], passives = [] } = 
   state.tridentStationaryTime = 0;
   state.tridentReady = false;
   return syncPlayCombatBuild(state, actor);
+}
+
+export function restorePlayCombatResonance(state, entries = [], actor = null) {
+  const resonance = createResonanceState();
+  for (const [enemyId, rawStacks] of entries) {
+    const definition = RESONANCE_BUFFS[enemyId];
+    if (!definition) continue;
+    const stacks = clamp(Math.round(Number(rawStacks) || 0), 0, definition.maxStacks);
+    if (stacks <= 0) continue;
+    resonance.unlockedEnemyIds.add(enemyId);
+    resonance.stacksByEnemyId.set(enemyId, stacks);
+  }
+  state.resonance = resonance;
+  syncPlayCombatBuild(state, actor);
+  return getResonanceRenderState(state.resonance);
 }
 
 export function choosePlayUpgradeCategory(state, category) {

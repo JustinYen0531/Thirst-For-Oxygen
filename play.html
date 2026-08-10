@@ -19,6 +19,33 @@
         </div>
       </header>
 
+      <section id="play-devtools" class="play-devtools" hidden aria-label="正式遊戲開發者快捷鍵">
+        <div class="play-devtools-card">
+          <div class="play-devtools-heading">
+            <div>
+              <span class="eyebrow">FORMAL PLAY / DEV SHORTCUTS</span>
+              <h2>開發者快捷鍵</h2>
+            </div>
+            <button id="play-devtools-close" type="button" class="action-secondary">關閉</button>
+          </div>
+          <p class="play-devtools-copy">只覆寫目前正式遊戲記憶體中的 Build 與 Resonance，不修改地圖檔案。</p>
+          <dl class="play-devtools-shortcuts">
+            <div><dt>開／關此視窗</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd></dd></div>
+            <div><dt>武器槽拉滿</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd></dd></div>
+            <div><dt>被動槽拉滿</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>A</kbd></dd></div>
+            <div><dt>Resonance 拉滿</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>R</kbd></dd></div>
+            <div><dt>清除覆寫</dt><dd><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>0</kbd></dd></div>
+          </dl>
+          <form id="play-dev-command-form" class="play-dev-command-form">
+            <label for="play-dev-command">指定命令（Enter 套用，Esc 關閉）</label>
+            <input id="play-dev-command" type="text" autocomplete="off" spellcheck="false" placeholder="weapon 2 katana 3; resonance crabGuard 9" />
+            <button type="submit" class="action-secondary">套用命令</button>
+          </form>
+          <p id="play-dev-message" class="play-dev-message" aria-live="polite">可用：weapon、passive、resonance、max weapons、max passives、max resonance、clear。</p>
+          <p class="play-dev-ids">武器：knife、katana、trident、lightMachineGun<br />被動：oxygenCirculator、pressureStabilizer、ecologicalCarapace、abyssalAmplifier<br />Resonance：使用敵人 ID，例如 crabGuard、abyssalSpermWhale。正式遊戲第 1 槽預設保留小刀。</p>
+        </div>
+      </section>
+
       <section class="play-layout" aria-label="地圖遊玩測試">
         <section class="play-stage-wrap">
           <div class="stage-meta"><span id="play-speed">速度 0 m/s</span><span>主角水平錨點 60%</span><span>R 重設 · Space 暫停</span></div>

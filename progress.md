@@ -1311,3 +1311,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 下沉篇第二部分不再把終點當成泛用 `EXIT`：地圖末端新增潮律鸚鵡螺封印房、專用小 Boss、入口／出口三格封門與 T2 同層房間，入口抵達後直接進入 Boss 段落。
 - Boss 清除後由 Play runtime 直接載入下沉篇第三部分，不顯示或等待一般出口互動；一般 Exit 標記在這個 Boss 房間完成前會隱藏。
 - 修正房間與上游路線的水層一致性，避免 T2→T1 的假性斷路；地圖與流程測試 38/38 通過，未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Formal play developer shortcut overrides
+
+- 正式遊戲 `play.html` 現在可用 `Ctrl + Alt + D` 開啟開發者面板；`Ctrl + Alt + W/A/R/0` 分別拉滿武器、被動、Resonance，或清除目前覆寫。
+- 正式遊戲支援與沙盒相同的命令輸入，可直接指定武器、被動能力與 Resonance 層數；開發者 Build 覆寫可暫時替換固定起始小刀，清除後恢復小刀。
+- 新增正式戰鬥 Build／Resonance 覆寫 API 與回歸測試；聚焦 40/40 通過，依專案規則未執行瀏覽器／Playwright。
