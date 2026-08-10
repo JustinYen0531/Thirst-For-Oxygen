@@ -43995,6 +43995,34 @@
       "size": 30,
       "params": {}
     },
+    "-70,165|-70,166": {
+      "cells": [
+        "-70,165",
+        "-70,166"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part1-wall-gill-1",
+      "wallGillSlot": 0
+    },
+    "-69,164|-70,165": {
+      "cells": [
+        "-70,165",
+        "-69,164"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part1-wall-gill-1",
+      "wallGillSlot": 1
+    },
     "-2,18|-3,19": {
       "cells": [
         "-2,18",
@@ -44188,9 +44216,9 @@
     "arc": "ascent",
     "mirroredFrom": "下沉篇-第1部分.json",
     "mirrorAxis": "hex-safe-180",
-    "enemyTargetCount": 48,
+    "enemyTargetCount": 24,
     "ascentChallenge": {
-      "enemyTargetCount": 48,
+      "enemyTargetCount": 24,
       "oxygenSupply": 4,
       "torricelliSupply": 3,
       "checkpoints": 3,

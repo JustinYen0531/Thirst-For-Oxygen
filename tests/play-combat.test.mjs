@@ -38,6 +38,23 @@ test('formal combat starts with only the permanent level-one knife', () => {
   assert.deepEqual(getPlayCombatRenderState(state).build.weapons, [{ id: 'knife', level: 1 }]);
 });
 
+test('player weapons are suppressed while the diver is inside a wall', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 100, y: 100 });
+  const target = enemy('wall-target', 'crabGuard', 130, 100, 200);
+  actor.insideWall = true;
+  actor.vx = KNIFE_DASH_MINIMUM_SPEED + 20;
+  const result = stepPlayCombat(state, {
+    actor,
+    enemies: [target],
+    previousPosition: { x: 70, y: 100 },
+    dt: 1 / 60,
+  });
+  assert.equal(result.suppressed, 'insideWall');
+  assert.equal(target.health, 200);
+  assert.equal(state.effects.some((effect) => effect.type === 'knifePath'), false);
+});
+
 test('neutral Resonance partners cannot be targeted or damaged by player weapons', () => {
   const state = createPlayCombatState();
   const actor = createTestActor({ x: 0, y: 0 });

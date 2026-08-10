@@ -90,12 +90,12 @@ test('barrier and spike stay visually and semantically distinct', () => {
 });
 
 test('lookup API returns frozen contracts and reports unknown ids', () => {
-  assert.equal(getPlayWorldVisual('object', 'oxygenBubble'), PLAY_OBJECT_VISUALS.oxygenBubble);
   assert.equal(getPlayWorldVisual('object', 'oxygen'), PLAY_OBJECT_VISUALS.oxygen);
+  assert.equal(getPlayWorldVisual('object', 'oxygenBubble'), PLAY_OBJECT_VISUALS.oxygenBubble);
   assert.equal(getPlayWorldVisual('overlay', 'ink'), PLAY_OVERLAY_VISUALS.ink);
   assert.equal(getPlayWorldVisual('edge', 'current'), PLAY_EDGE_VISUALS.current);
   assert.equal(Object.isFrozen(PLAY_EDGE_VISUALS.current), true);
   assert.throws(() => getPlayWorldVisual('edge', 'none'), /Unknown edge visual/);
   assert.throws(() => getPlayWorldVisual('terrain', 'water'), /Unknown play world visual category/);
-  assert.equal(getPlayWorldAssetPaths().length, 15);
+  assert.equal(getPlayWorldAssetPaths().length, 16);
 });

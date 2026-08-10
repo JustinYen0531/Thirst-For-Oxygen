@@ -144,7 +144,6 @@ const EXACT_ENGLISH = Object.freeze({
   '上升篇 2.0（待驗收）': 'Ascent 2.0 (Awaiting Review)',
   '音樂情境': 'Music Context',
   'Boss 戰': 'Boss Battle',
-  '測試工具': 'Test Tools',
   '↻ 重設主角': '↻ Reset Player',
   'Ⅱ 暫停': 'Ⅱ Pause',
   '▶ 繼續': '▶ Resume',

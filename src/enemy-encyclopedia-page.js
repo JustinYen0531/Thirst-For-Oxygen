@@ -29,7 +29,6 @@ document.querySelectorAll('[data-i18n-aria]').forEach((element) => {
   const value = ui[element.dataset.i18nAria];
   if (typeof value === 'string') element.setAttribute('aria-label', value);
 });
-
 const sectionFilters = document.querySelector('#section-filters');
 const tierFilters = document.querySelector('#tier-filters');
 const sectionSummary = document.querySelector('#section-summary');

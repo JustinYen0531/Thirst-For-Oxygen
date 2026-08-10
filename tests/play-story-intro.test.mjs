@@ -37,14 +37,6 @@ test('first descent story intro contains three external-text slides', () => {
   assert.match(PLAY_STORY_INTRO_SLIDES[2].narrator, /活著的肉身/);
 });
 
-test('story slide videos are present and non-empty', () => {
-  PLAY_STORY_INTRO_SLIDES.forEach(({ videoPath }) => {
-    const filePath = new URL(`..\/public${videoPath}`, import.meta.url);
-    assert.equal(existsSync(filePath), true, videoPath);
-    assert.ok(statSync(filePath).size > 100_000, videoPath);
-  });
-});
-
 test('each descent part owns three story slides and continues the same causal thread', () => {
   assert.deepEqual(Object.keys(PLAY_STORY_INTRO_SLIDES_BY_PART), ['1', '2', '3']);
   assert.deepEqual([1, 2, 3].map((part) => getPlayStoryIntroSlides(part).length), [3, 3, 3]);

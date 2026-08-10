@@ -45,7 +45,7 @@ import {
   resetTestActor,
   startTestRun,
   stepPhysics,
-  toggleSeaweedAttachment,
+  activateNearbyInteraction,
 } from './physics.js';
 import {
   MAP_OBJECT_SIZE,
@@ -189,6 +189,7 @@ const edgeImagePaths = {
   seaweed: '/assets/editor/objects/sea-grass.png',
   coralCluster: '/assets/editor/objects/coral-cluster.png',
   multiPortal: '/assets/editor/edges/multi-portal.png',
+  wallGillGate: '/assets/editor/edges/wall-gill-gate.png',
 };
 const actorImagePaths = {
   playerStart: PLAYER_ANIMATION_ASSETS.swim[0],
@@ -201,7 +202,7 @@ const paletteImagePaths = { ...waterTilePaths, conditionalGate: conditionalGateP
 const paletteLabelKeys = new Set([
   'water', 'blocked', ...GRAVITY_ORDER, ...WATER_LAYERS, 'ink', 'coralCluster', 'mine', 'weightStone', 'seaweed', 'oxygen',
   'checkpoint', 'bubble', 'torricelli', 'razor', 'button', 'conditionalGate', 'noGate', 'buttonGate', 'once', 'toggle',
-  'playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn', 'none', 'springJelly', 'spike', 'barrier', 'current', 'layerPortal', 'multiPortal',
+  'playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn', 'none', 'springJelly', 'spike', 'barrier', 'current', 'layerPortal', 'multiPortal', 'wallGillGate',
 ]);
 const paletteLabels = new Proxy({}, {
   get(_target, property) {
@@ -645,8 +646,9 @@ function getPaletteDescription(tool, value) {
   if (tool === 'edge' && value === 'current') return '邊緣沾黏：固定在兩格中間的六角邊，依左側設定的方向與強度推動角色。';
   if (tool === 'edge' && value === 'layerPortal') return '層間轉接門：只能放在 T1 與 T2 相鄰的共享邊；玩家通過後即可進入另一個水域層。';
   if (tool === 'edge' && value === 'multiPortal') return '多邊傳送門：按住滑鼠拖過貼著黑色不可通行六角形的連續邊，可畫出一整端；再畫另一端，從右側 Inspector 開始拖曳連線，畫面只顯示一條大範圍總線，兩端仍會逐段一對一傳送。';
+  if (tool === 'edge' && value === 'wallGillGate') return '潛壁鰓門：放在水域與不可通行牆面的交界。靠近後按 E 進入牆內，也必須在鰓門旁按 E 離開。';
   if (tool === 'edge' && value === 'seaweed') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。物理測試按 E 可附著或離開。';
-  if (tool === 'edge' && value === 'coralCluster') return '邊緣沾黏：以底座貼在六角邊，優先朝可通行水域一側伸出。';
+  if (tool === 'edge' && value === 'coralCluster') return '邊緣珊瑚：靠近後按 E，可獲得 2.5 秒隱形。';
   return getPaletteNote(tool, value);
 }
 
@@ -1507,6 +1509,7 @@ function drawEdges() {
     if (edge.type === 'seaweed' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('≈', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#8ff4d4' });
     if (edge.type === 'coralCluster' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('✿', midpoint.x, midpoint.y, { font: 'bold 10px system-ui', fill: '#ffbbd5' });
     if (edge.type === MULTI_PORTAL_EDGE_TYPE && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('⟷', midpoint.x, midpoint.y, { font: 'bold 9px system-ui', fill: '#d4a8ff' });
+    if (edge.type === 'wallGillGate' && !(edgeImage?.complete && edgeImage.naturalWidth > 0)) drawText('◖◗', midpoint.x, midpoint.y, { font: 'bold 8px system-ui', fill: '#70f0e4' });
     if (edge.type === 'current') drawArrow(midpoint, getDirectionVector(edge.currentDirection), '#ebff6b', size / MAP_OBJECT_SIZE);
   });
 }
@@ -1593,6 +1596,10 @@ function isEdgePlacementValid(edgeTarget) {
   }
   if (brushValue.value === MULTI_PORTAL_EDGE_TYPE) {
     return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
+  }
+  if (brushValue.value === 'wallGillGate') {
+    return [cellA?.terrain, cellB?.terrain].includes('water')
+      && [cellA?.terrain, cellB?.terrain].includes('blocked');
   }
   return cellA?.terrain === 'blocked' || cellB?.terrain === 'blocked';
 }
@@ -1766,10 +1773,13 @@ function drawOutlinedEdgeImage(image, midpoint, angle, width, height, type, rece
   ctx.rotate(angle);
   // The silhouette follows only opaque pixels, so Edge art never gets a
   // rectangular bitmap frame. Active help is slightly thicker, still white.
+  const breathingAlpha = type === 'wallGillGate'
+    ? 0.78 + Math.sin(state.animationTime * 4.2) * 0.12
+    : 0.96;
   drawImageWithSilhouetteOutline(image, imageX, imageY, width, height, {
     colour: 'rgba(247, 252, 255, 0.94)',
     radius: receivesHelp ? 0.9 : 0.68,
-    alpha: 0.96,
+    alpha: breathingAlpha,
   });
   ctx.restore();
 }
@@ -1786,7 +1796,20 @@ function drawTestActor() {
   drawPlayerDiver({ x: actor.x, y: actor.y }, actor.radius * 2.8, {
     gameplay: true,
     attached: actor.attached,
+    actor,
+    alpha: actor.insideWall ? 0.38 : actor.invisibilityTimer > 0 ? 0.2 : undefined,
   });
+  if (actor.insideWall) {
+    const pulse = (state.animationTime * 18) % 14;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(112, 240, 228, 0.56)';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([2.2, 2.6]);
+    ctx.beginPath();
+    ctx.arc(actor.x, actor.y, actor.radius + 4 + pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function drawInkMask() {
@@ -2590,7 +2613,9 @@ function applyEdgeTool(edgeTarget) {
     if (!isEdgePlacementValid(edgeTarget)) {
       setStatus(value === 'layerPortal'
         ? '層間轉接門只能放在 T1 與 T2 相鄰的共享六角邊。'
-        : '邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
+        : value === 'wallGillGate'
+          ? '潛壁鰓門只能放在水域與不可通行牆面的交界。'
+          : '邊緣沾黏素材只能放在至少一側是不可通行障礙的六角邊。');
       return;
     }
     if (value === MULTI_PORTAL_EDGE_TYPE) {
@@ -3007,8 +3032,8 @@ window.addEventListener('keydown', (event) => {
     recordEvents([{ type: 'reset', message: '測試玩家已重設。' }]);
   }
   if (event.key.toLowerCase() === 'e' && state.mode === 'play') {
-    const result = toggleSeaweedAttachment(state.actor, state.map, state.chapter, state.origin);
-    recordEvents([{ type: 'seaweed', message: result.message }]);
+    const result = activateNearbyInteraction(state.actor, state.map, state.chapter, state.origin);
+    recordEvents([{ type: result.type, message: result.message }]);
   }
   if (event.key === ' ' && state.mode === 'play') {
     event.preventDefault();
@@ -3047,6 +3072,8 @@ window.render_game_to_text = () => {
       facing: getPlayerFacingDirection(state.actor),
       gravityImmuneFor: formatNumber(state.actor.gravityImmunity),
       launchLockedFor: formatNumber(state.actor.launchLockTimer),
+      insideWall: Boolean(state.actor.insideWall),
+      invisibleFor: formatNumber(state.actor.invisibilityTimer),
       timeScale: getAimTimeScale(Boolean(state.dragging)),
     },
     map: { cells: Object.keys(state.map.cells).length, configuredEdges, dirty: state.dirty },

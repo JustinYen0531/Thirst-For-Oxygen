@@ -38,7 +38,7 @@ export const CELL_OBJECT_TYPES = Object.freeze([
 ]);
 // seaweed/coralCluster remain accepted in CELL_OBJECT_TYPES for existing saved
 // maps, but new authoring always places them as Edge attachments.
-export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster', 'layerPortal', 'multiPortal']);
+export const EDGE_TYPES = Object.freeze(['none', 'springJelly', 'spike', 'barrier', 'current', 'seaweed', 'coralCluster', 'layerPortal', 'multiPortal', 'wallGillGate']);
 export const ACTOR_TYPES = Object.freeze(['playerStart', 'enemySpawn', 'miniBossSpawn', 'bossSpawn']);
 
 export function cellKey(q, r) {
@@ -430,6 +430,12 @@ export function validateMap(map) {
       if (!Number.isInteger(edge.portalSlot) || edge.portalSlot < 0) results.push({ level: 'error', message: `${key} 的多邊傳送門缺少有效順序。` });
       if (edge.portalTargetKey && !map.edges[edge.portalTargetKey]) results.push({ level: 'error', message: `${key} 的多邊傳送門指定了不存在的對應 Edge。` });
       if (edge.portalTargetKey && map.edges[edge.portalTargetKey]?.type !== 'multiPortal') results.push({ level: 'error', message: `${key} 的多邊傳送門目標不是多邊傳送門。` });
+    }
+    if (edge.type === 'wallGillGate' && map.cells[a] && map.cells[b]) {
+      const terrains = [map.cells[a].terrain, map.cells[b].terrain];
+      if (!(terrains.includes('water') && terrains.includes('blocked'))) {
+        results.push({ level: 'error', message: `${key} 的潛壁鰓門必須位於水域與不可通行牆面的交界。` });
+      }
     }
   });
 

@@ -36,7 +36,8 @@ export const PLAY_ENEMY_POOLS = Object.freeze({
   3: Object.freeze([...DESCENT_CORE_ENEMIES, ...DESCENT_ELITE_ENEMIES]),
 });
 
-export const PLAY_ENEMY_TARGETS = Object.freeze({ 1: 40, 2: 40, 3: 48 });
+export const PLAY_ENEMY_TARGETS = Object.freeze({ 1: 20, 2: 20, 3: 24 });
+export const PLAY_BOSS_SUMMON_CAP = 5;
 export const PLAY_ENEMY_RENDER_SCALE = 2;
 export const PLAY_ENEMY_SPAWN_SAFE_RADIUS = HEX_SIZE * 18;
 export const PLAY_ENEMY_ACTIVATION_RADIUS = HEX_SIZE * 22;
@@ -248,13 +249,17 @@ function cellColumn(cell) {
   return cell.q + Math.floor(cell.r / 2);
 }
 
-function encounterEnemyId(mapPart, encounterIndex, encounterCount, localIndex, globalIndex) {
+function encounterEnemyId(mapPart, encounterIndex, encounterCount, localIndex, globalIndex, totalCount) {
   const progress = encounterCount <= 1 ? 1 : encounterIndex / (encounterCount - 1);
   if (mapPart === 1) {
     if (progress < 0.34) return DESCENT_LV1_ENEMIES[globalIndex % DESCENT_LV1_ENEMIES.length];
     return DESCENT_CORE_ENEMIES[(globalIndex + encounterIndex) % DESCENT_CORE_ENEMIES.length];
   }
   if (mapPart === 2) {
+    const eliteIntroductionStart = Math.max(0, totalCount - DESCENT_ELITE_ENEMIES.length);
+    if (globalIndex >= eliteIntroductionStart) {
+      return DESCENT_ELITE_ENEMIES[globalIndex - eliteIntroductionStart];
+    }
     if (progress >= 0.5 && localIndex % 5 === 4) {
       return DESCENT_ELITE_ENEMIES[(encounterIndex + Math.floor(localIndex / 5)) % DESCENT_ELITE_ENEMIES.length];
     }
@@ -540,12 +545,12 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       const configuredEnemyId = encounterEnemyId(part, encounterIndex, markers.length, localIndex, globalIndex, spawnCells.length);
       const enemyId = isDescentEnemy(marker.marker.enemyId) ? marker.marker.enemyId : configuredEnemyId;
       return createInstance({
-        marker: marker.marker,
         enemyId,
         spawn,
         anchorCellKey: marker.cellKey,
         instanceId: `map-part-${part}-enemy-${spawn.cellKey}-${globalIndex}`,
         markerKind: 'enemySpawn',
+        marker: marker.marker,
       });
   });
 
@@ -964,7 +969,7 @@ function canUsePlaySkill(enemy, skill, distance, actorRadius = 6) {
 }
 
 function playEnemyDamage(actor, amount, source, onDamage, damageType = 'generic') {
-  if (!amount || actor.dead || actor.invulnerability > 0) return;
+  if (!amount || actor.dead || actor.insideWall || actor.invisibilityTimer > 0 || actor.invulnerability > 0) return;
   const scaledDamage = getEnemyDamageToPlayer(amount, damageType);
   if (typeof onDamage === 'function') onDamage(scaledDamage, source, damageType);
   else actor.health = Math.max(0, actor.health - scaledDamage);
@@ -1056,7 +1061,7 @@ function updatePlayEnemyProjectiles(runtime, enemies, actor, dt, onDamage, world
     }
     if (distanceToSegment(actor, previous, projectile) <= (actor.radius ?? 0) + projectile.radius) {
       playEnemyDamage(actor, projectile.damage, `${projectile.enemyId}・${projectile.skillName}`, onDamage, 'projectile');
-      if (projectile.applies) {
+      if (projectile.applies && !actor.insideWall && !(actor.invisibilityTimer > 0)) {
         actor.activeEffects ??= {};
         actor.activeEffects[projectile.applies] = {
           remaining: projectile.effectDuration,
@@ -1095,7 +1100,7 @@ function updatePlayEnemyZones(runtime, actor, dt, onDamage) {
       if (zone.phase === 'bubble') {
         if (distanceBetween(zone, actor) <= zone.radius + (actor.radius ?? 0)) {
           playEnemyDamage(actor, zone.damage, zone.source, onDamage, 'ranged');
-          actor.oxygen = Math.max(0, (actor.oxygen ?? 0) - zone.oxygenDrain);
+          if (!actor.insideWall && !(actor.invisibilityTimer > 0)) actor.oxygen = Math.max(0, (actor.oxygen ?? 0) - zone.oxygenDrain);
         }
         zone.phase = 'oxygenZone';
         zone.remaining = zone.oxygenZoneDuration;
@@ -1262,8 +1267,20 @@ function summonJuvenileHelp(runtime, enemies, enemy, skill, bounds) {
   });
 }
 
+export function getBossSummonAllowance(enemies, summoner, requestedCount) {
+  const activeSummons = enemies.filter((candidate) => (
+    candidate.summonedBy === summoner.instanceId
+    && !candidate.defeated
+    && Number(candidate.health ?? 1) > 0
+  )).length;
+  const requested = clampValue(Math.round(requestedCount ?? 0), 0, 8);
+  return Math.max(0, Math.min(requested, PLAY_BOSS_SUMMON_CAP - activeSummons));
+}
+
 function summonSpecialWave(runtime, enemies, enemy, skill, pool, bounds, sacrificeDelay = null) {
-  const count = clampValue(Math.round(skill.summonCount ?? 1), 1, 8);
+  const requestedCount = clampValue(Math.round(skill.summonCount ?? 1), 1, 8);
+  const count = getBossSummonAllowance(enemies, enemy, requestedCount);
+  if (count <= 0) return null;
   const spawnedIds = [];
   for (let index = 0; index < count; index += 1) {
     const angle = Math.PI * 2 * index / count;
@@ -1707,6 +1724,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
   if (!actor) return;
   const elapsed = Math.max(0, Number(dt) || 0);
   const runtime = getPlayEnemyRuntime(enemies);
+  const playerHidden = Boolean(actor.insideWall || actor.invisibilityTimer > 0);
   runtime.time = Number.isFinite(time) ? time : runtime.time + elapsed;
   enemies.forEach((enemy) => {
     const activationRadius = playEnemyActivationRadius(enemy);
@@ -1762,6 +1780,16 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       enemy.pendingSkill = null;
       enemy.suicideCharge = null;
       enemy.state = 'idle';
+      return;
+    }
+    if (playerHidden) {
+      enemy.alerted = false;
+      enemy.pendingSkill = null;
+      enemy.suicideCharge = null;
+      enemy.movementGoal = null;
+      enemy.vx = 0;
+      enemy.vy = 0;
+      enemy.state = 'searching';
       return;
     }
     if ((enemy.stunnedUntil ?? 0) > runtime.time) {

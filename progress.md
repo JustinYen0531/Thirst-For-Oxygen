@@ -1167,12 +1167,46 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 正式 Play 的一般敵人警戒半徑由 168 提升到 264 世界單位，Mini Boss／Boss 使用 408；戰鬥漂移目標會隨玩家每約 24 世界單位的位置變化重新計算，不再沿用最多 5.2 秒前的舊目標。
 - 原始資料中移速為 0 的求援幼年海馬、珊瑚背海馬與變異鸚鵡螺祭司保留支援／定點職能，但加入 12–16 的低速自然漂浮；近戰怪技能冷卻期間也會在玩家周圍重新選位，不再原地等待。
 - Mini Boss／Boss 的控制型技能納入持續重新定位；每次 Boss 技能結束後保留 0.85 秒移動窗口，避免多招連續施放讓 Boss 全程停在 casting。Lv.1／2／3／4 的顯示尺寸固定為 28／34／40／46，Mini Boss 68、變異 Mini Boss 78、最終 Boss 96，碰撞半徑同步分級。
-- 敵人聚焦測試 36/36、完整 `npm run check` 311/311、Vite production build 與 scoped `git diff --check` 全部通過；涵蓋零移速怪自然漂浮、三個特殊 Boss 隨玩家換位、Boss 技能間移動窗口與完整尺寸階級。依專案規則未執行瀏覽器或 Playwright。
+- 敵人聚焦測試 37/37、完整 `npm run check` 312/312、Vite production build 與 scoped `git diff --check` 全部通過；涵蓋零移速怪自然漂浮、三個特殊 Boss 隨玩家換位、Boss 技能間移動窗口與完整尺寸階級。依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 135 complete
+
+- 新增「潛壁鰓門」Edge 素材、編輯器工具與牆內通行規則；下沉篇第一部分的第一組門位於第 17～19 列，開場不久即可看到與測試。
+- 水草、珊瑚與潛壁鰓門統一改為靠近後按字母 E 互動：水草固定玩家、停止下墜並恢復能量；珊瑚提供 2.5 秒隱形；潛壁鰓門必須按 E 才能進入或離開牆體。
+- 珊瑚不再是被動安全區。隱形期間玩家半透明，敵人停止鎖定、追逐與施放技能，既有攻擊也不會造成傷害或負面效果。
+- 首次發現提示、編輯器說明與中英文世界圖鑑均明寫 E 鍵和完整效果；正式 Play 與編輯器物理測試共用同一互動邏輯。
+- 乾淨功能分支的聚焦測試 128/128、完整 `npm run check` 308/308、Vite production build 與 `git diff --check` 均通過；依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 137 complete
+
+- 六個正式篇章的一般敵人總量全部減半：下沉篇第一／二／三部分為 20／20／24，上升篇第一／二／三部分為 24／28／32。
+- 每一隻正式 Boss 各自最多只能同時保有 5 隻自己召喚、仍存活的小怪；召喚數已滿時不會繼續堆怪，小怪死亡後才會補足空出的名額。
+- 下沉篇第二部分雖然敵人減半，仍保留四種主要敵人與三種進階敵人，避免因為縮量而讓某個敵人種類完全消失。
+- 新增敵人總量、上升篇地圖資料與 Boss 召喚上限的回歸測試；敵人與地圖聚焦測試 58/58、完整 `npm run check` 314/314、Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 138 complete
+
+- 使用 ImageGen 依現有潛水面罩材質生成 1672×941 的閉合深海壓力閘門：上下兩片在畫面中央以凹凸輪廓咬合，中央保留三枚暗色航程節點與連接導軌，不把文字烙進圖片。
+- 下沉篇第一部分進場改為「閘門閉合 → 第一節點亮起並顯示下沉篇・第一部分／深海森林入口 → 上下閘門滑開」；原橢圓三次眨眼遮罩已被取代，演出期間仍會鎖住遊戲模擬。
+- 三個節點名稱以可重用資料保存：深海森林入口、穿越熱泉、深淵遺跡；燈號與中英文文字由 Canvas 即時繪製，未來不必為第二、第三部分重新生成整張圖片。
+- 進場動畫、素材存在性、遊玩頁與中英文案聚焦測試 31/31；乾淨功能分支完整 `npm run check` 309/309，目前整合工作目錄完整檢查 315/315，兩邊的 Vite production build 與 scoped `git diff --check` 均通過。依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 139 complete
+
+- 修正閘門開啟時錯把兩張完整圖片上下移動的裁切錯誤：上門永遠只取原圖 0%～50%，下門永遠只取原圖 50%～100%，動畫只改變兩塊半圖的目的位置。
+- 新增純資料裁切函式與回歸測試，使用實際 1672×941 素材驗證上、下來源高度各為 470.5 px，開門途中來源座標不會漂移。
+- 閘門與遊玩頁聚焦測試 21/21、乾淨功能分支完整 `npm run check`、Vite production build 與 `git diff --check` 均通過。依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Step 140 complete
+
+- 下沉篇第一部分不再於載入後自動播放閘門：初始畫面保持閘門全開，地圖與完整 HUD 立即可見，並等待玩家第一次點擊遊戲區域。
+- 第一次點擊只觸發「上下閘門閉合 → 第一枚藍色航程燈亮起，顯示下沉篇・第一部分／深海森林入口 → 閘門重新打開」；HUD 在整段演出中維持顯示，演出結束後才解鎖遊戲模擬。
+- 閘門與遊玩頁聚焦測試 21/21、乾淨功能分支完整 `npm run check` 310/310、Vite production build 與 `git diff --check` 均通過。依專案規則未執行瀏覽器或 Playwright。
 
 ## 2026-08-10 — Step 141 complete
 
 - 下沉篇第一部分新增三張 ImageGen 深海序章示意圖：氧氣設施衰敗、Abyss Core 生命循環與機械拒絕、肉身潛水員與核心共鳴；圖片不烙任何文字，保留 Narrator UI 的可讀性與語言切換空間。
-- 正式 Play 在既有閘門演出之前新增三頁故事入口；三張投影片與完整 HUD 同時存在於同一遊戲畫面，旁白逐字出現，首次點擊先補完文字，第二次才換頁；右下可略過序章，但不會略過後續閘門演出。
+- 正式 Play 在既有閘門演出之前新增三頁故事入口；三張投影片與完整 HUD 同時存在於同一遊戲畫面，旁白逐字出現，首次點擊先補完文字，第二次才換頁；Space 同樣推進，右下可略過序章，但不會略過後續閘門演出。
 - 序章期間物理、戰鬥、氧氣倒數與敵人行為全部暫停；完成或略過後立即進入既有「閘門關閉 → 航程節點 → 閘門重新開啟」，閘門再次打開後才解鎖遊戲模擬。減少動態偏好僅關閉背景慢推鏡，不刪除文字與投影片。
 - 既有 GDD 的主控台、願景核心摘要、玩家體驗、體驗核心摘要與設計決策同步記錄三頁內容、互動規則與未定義邊界。
 - 聚焦 Node 測試 31/31、Vite production build 與 `git diff --check` 通過；完整 `npm run check` 在工作區其他未完成地圖／敵人平行修改上仍有 2 個既有失敗，未把那些無關修改混入本次修正；依專案規則未執行瀏覽器／Playwright。
@@ -1189,25 +1223,26 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 教學房正式改為獨立的「第零篇章・第一次呼吸」（Part 0），由「深淵導航員」逐步給出標題、說明、當前操作與 Canvas GUIDE 目標標記；未完成當前知識點時，出口保持鎖定。
 - 引導流程要求玩家實際完成 20 個操作：拉射、附著／離開水草、Checkpoint、氧氣與能量資源、各種物件與 Edge、潛壁鰓門、武器命中，最後必須以真正的 Resonance 中立化另一隻敵人；單純擊殺不會被算成 Resonance，失敗的低速撞擊也不會通過。
 - 按 Enter 會開啟 Skip Tutorial? 確認；確認後只回到水下主控台，不會進入或把教學資源／進度繼承到正式篇章。完成教學後抵達 EXIT 也只回主控台。
+- `tests/play-tutorial.test.mjs` 新增第零篇章、逐步 Gate、擊殺不等於 Resonance、Enter Skip 靜態回歸測試；聚焦測試 26/26，完整 `npm run check` 328/328，Vite production build 與 `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。
 
 ## 2026-08-10 — 下沉篇第二部分四條托里切利回返洞
 
 - 下沉篇第二部分由兩個普通托里切利物件補成四條偏軸高風險回返洞，分布在 row 8、24、46、68；每條三格寬，與主路保留岩牆，必須先下沉到下方接點再逆著重力回返。
 - detour metadata 同時保存上行終點、接點、shaft 寬度、分隔牆與 T1/T2 水層；T2 熱泉支路不會被錯刻成 T1，並同步保留上升篇的地形鏡像。
 - 地圖專項測試 22/22、完整 `npm run check` 328/328、Vite production build 與 `git diff --check` 通過；依專案規則未執行瀏覽器／Playwright。
-- `tests/play-tutorial.test.mjs` 新增第零篇章、逐步 Gate、擊殺不等於 Resonance、Enter Skip 靜態回歸測試；聚焦測試 26/26，完整 `npm run check` 328/328，Vite production build 與 `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。
 
-## 2026-08-10 ? Chapter 0 navigator dialogue in progress
+## 2026-08-10 — Chapter 0 navigator dialogue in progress
 
-- ????????????????????? Canvas GUIDE ???????????????????????????????????????????
-- 20 ?????????? EXIT ???????????????????????????????????????????????
-- ?? Node????? 27/27??? JavaScript ?? `node --check` ? `git diff --check` ????????????????Playwright?
+- 第零篇章新增獨立的導航員對話框，不再只依賴 Canvas GUIDE 標記或右側進度清單；對話框會顯示說話者、當前知識點、文字解釋與「操作：……」控制提示。
+- 20 個引導步驟與完成後的 EXIT 狀態都補上可翻譯的操控文字；失敗的操作提醒也會由對話框顯示，讓玩家知道為什麼還不能進入下一步。
+- 聚焦 Node／靜態測試 27/27、四個 JavaScript 檔案 `node --check` 與 `git diff --check` 通過；依專案規則尚未執行瀏覽器／Playwright。
 
-## 2026-08-10 ? New Game now enters Chapter 0
+## 2026-08-10 — New Game now enters Chapter 0
 
-- ???? `/play.html` ???? `thirst-for-oxygen-tutorial-exit` localStorage ??????????????????????????????????????????
-- `?route=descent`?`?route=ascent` ??? route ?????????????? Skip ???????????????????????????
-- ?? Play?Chapter 0 ???? 24/24??? JavaScript `node --check` ? `git diff --check` ????????????????Playwright?
+- 修正普通 `/play.html` 會因舊有 `thirst-for-oxygen-tutorial-exit` localStorage 紀錄而直接進入下沉篇的問題；現在每次從主選單開啟新遊戲都先載入第零篇章・第一次呼吸。
+- `?route=descent`、`?route=ascent` 等明確 route 仍可供正式篇章測試；移除教學 Skip 紀錄對下一次新遊戲的繼承，避免玩家以為教學被永久跳過。
+- 聚焦 Play／Chapter 0 回歸測試 24/24、相關 JavaScript `node --check` 與 `git diff --check` 通過；依專案規則尚未執行瀏覽器／Playwright。
+
 ## 2026-08-10 — First Breath becomes a 10-task guided room
 
 - First Breath 改為 10 個可選任務：玩家可用 ←／→ 在 Guidance 與右側 FIRST BREATH 任務列表間切換，任務內仍要求實際完成拉射、資源管理、物件／Edge、擊殺或 Resonance；Enter 仍開啟 Skip Tutorial 確認。
@@ -1248,3 +1283,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 移除左下對話框中與上方控制提示重複的藍色導覽行。
 - Chapter 0 的 Read-information 任務可用左右鍵重新喚起對應的 Visor 資訊卡；即使先前誤按 OK 關閉，重新喚起後再次按 OK 才會完成該任務。
 - 聚焦 Play／Tutorial／Visor Discovery 測試 47/47 通過；依專案規則未執行瀏覽器或 Playwright。
+
+## 2026-08-10 — Tutorial completion enters Descent Part 1 story
+
+- 章節選單與教學標題改用 `Tutorial`，不再顯示 `Chapter 0 · First Breath` 作為章節名稱。
+- 完成 Tutorial 出口後改走 `beginArcTransition('descent', 1)`，直接載入下沉篇第一部分並播放既有三張故事投影片；只有使用 Skip Tutorial 才仍返回主頁。
+- 聚焦 Play／故事投影片靜態測試 42/42、完整 `npm run check` 346/346、Vite production build 與 `git diff --check` 通過；依專案規則未執行瀏覽器／Playwright。

@@ -215,6 +215,47 @@ function addEdgeSet(map, type, rows) {
   });
 }
 
+function addWallGillRoutes(map, rowHints, prefix) {
+  const usedCenters = new Set();
+  const reachable = reachableWaterKeys(map);
+  rowHints.forEach((rowHint, routeIndex) => {
+    const candidate = Object.values(map.cells)
+      .filter((cell) => cell.terrain === 'blocked' && !cell.conditionalGate && !usedCenters.has(cellKey(cell)))
+      .map((cell) => {
+        const centerKey = cellKey(cell);
+        const edges = DIRECTIONS.map((_, direction) => {
+          const neighbour = neighborKey(centerKey, direction);
+          if (map.cells[neighbour]?.terrain !== 'water' || !reachable.has(neighbour)) return null;
+          const key = edgeKey(centerKey, neighbour);
+          if (map.edges[key]?.type && map.edges[key].type !== 'none') return null;
+          return { key, a: centerKey, b: neighbour, direction };
+        }).filter(Boolean);
+        return { cell, edges, distance: Math.abs(cell.r - rowHint) };
+      })
+      .filter((entry) => entry.edges.length >= 2)
+      .sort((left, right) => left.distance - right.distance || cellKey(left.cell).localeCompare(cellKey(right.cell)))[0];
+    if (!candidate) throw new Error(`${prefix}-${routeIndex + 1} 找不到可配置潛壁鰓門的牆體`);
+    usedCenters.add(cellKey(candidate.cell));
+
+    let pair = [candidate.edges[0], candidate.edges[1]];
+    let separation = -1;
+    for (let first = 0; first < candidate.edges.length; first += 1) {
+      for (let second = first + 1; second < candidate.edges.length; second += 1) {
+        const difference = Math.abs(candidate.edges[first].direction - candidate.edges[second].direction);
+        const circularSeparation = Math.min(difference, DIRECTIONS.length - difference);
+        if (circularSeparation > separation) {
+          separation = circularSeparation;
+          pair = [candidate.edges[first], candidate.edges[second]];
+        }
+      }
+    }
+    pair.forEach((entry, slot) => addEdge(map, entry, 'wallGillGate', {
+      wallGillRouteId: `${prefix}-${routeIndex + 1}`,
+      wallGillSlot: slot,
+    }));
+  });
+}
+
 function reachableWaterKeys(map) {
   const start = Object.entries(map.cells).find(([, cell]) => (
     cell.actors?.some((actor) => actor.kind === 'playerStart')
@@ -568,6 +609,7 @@ function carveTorricelliDetour(map, {
   columnEnd,
   region,
   terminalRestRows = TORRICELLI_TERMINAL_REST_ROWS,
+  waterLayer = 'T1',
 }) {
   const safeAscentEndRow = Math.max(objectRow, ascentEndRow);
   const terminalEndRow = Math.min(safeAscentEndRow, objectRow + Math.max(1, terminalRestRows) - 1);
@@ -578,6 +620,7 @@ function carveTorricelliDetour(map, {
     columnEnd,
     region,
     gravityLevel: 'L1',
+    waterLayer,
   });
   if (terminalEndRow < safeAscentEndRow) {
     carveRoom(map, {
@@ -587,6 +630,7 @@ function carveTorricelliDetour(map, {
       columnEnd,
       region,
       gravityLevel: 'L-1',
+      waterLayer,
     });
   }
 }
@@ -609,7 +653,6 @@ function carveBroadRoute(map, points, region, gravityLevel = 'L1', radius = 2) {
         gravityLevel,
       });
     }
-  waterLayer = 'T1',
   }
 }
 
@@ -620,7 +663,6 @@ function paintPart1Terrain(map) {
 
   // Loop 1: two broad routes around the first forest monolith. Both are easy
   // to steer through, but they contain different optional rewards.
-    waterLayer,
   carveBroadRoute(map, [
     { column: 9, row: 8 }, { column: 9, row: 23 }, { column: 4, row: 29 }, { column: 9, row: 36 },
   ], 'monolith-west-route');
@@ -630,7 +672,6 @@ function paintPart1Terrain(map) {
   // The first Torricelli cavern replaces the old shallow upper grotto. Its
   // sealed cap is separated from the entry route by two rock columns, so the
   // player must first descend to the row-23 junction and then swim back up.
-      waterLayer,
   carveTorricelliDetour(map, {
     objectRow: 12,
     ascentEndRow: 22,
@@ -796,6 +837,7 @@ function buildPart1() {
   addEdgeNear(map, 'spike', 105, 2);
   addEdgeSet(map, 'seaweed', [14, 22, 26, 34, 42, 50, 55, 64, 72, 82, 90, 100, 110, 120, 126, 136, 144, 150, 156, 158]);
   addEdgeSet(map, 'coralCluster', [8, 12, 18, 20, 28, 34, 42, 50, 58, 64, 68, 76, 84, 92, 98, 106, 114, 122, 134, 140, 146, 152, 156, 158]);
+  addWallGillRoutes(map, [18], 'descent-part1-wall-gill');
   setRuntimeExit(map, 183, 9);
   return map;
 }
@@ -825,62 +867,6 @@ function paintPart2Terrain(map) {
       makeRock(cell, outsideRoute ? 'thermal-crust' : ventRock ? 'thermal-vent-rock' : 'thermal-bank');
     }
   });
-}
-
-function buildPart2() {
-  const map = createAuthoredMap({
-    width: 20,
-    height: 88,
-    metadata: {
-      chapter: '下沉篇', part: 2, title: '下沉篇・第二部分｜穿越熱泉', difficulty: 'medium',
-      designIntent: '完全獨立的熱泉路線：左右熱泉室交替，以四條偏軸托里切利回返洞提供高風險但穩定的氧氣，再穿越 L3 脈衝與可選傳送捷徑。',
-      routeBeats: ['暖流入口', '左右熱泉分流', '四條托里切利回返洞', '開門支路', '壓力閘門', '傳送捷徑', '熱泉出口'],
-      torricelliDetours: PART2_TORRICELLI_DETOURS.map((detour) => ({
-        side: detour.side,
-        region: detour.region,
-        objectRow: detour.objectRow,
-        objectColumn: detour.objectColumn,
-        ascentEndRow: detour.ascentEndRow,
-        junctionRow: detour.junctionRow,
-        junctionColumn: detour.junctionColumn,
-        ascentRows: detour.ascentEndRow - detour.objectRow + 1,
-        terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS,
-        shaftWidth: detour.shaftWidth,
-        separationWallWidth: detour.separationWallWidth,
-        waterLayer: detour.waterLayer,
-      })),
-      teachingSequence: [
-        '層間轉接門：第一次從 T1 進入 T2，入口沒有其他危險。',
-        '珊瑚＋地雷：先在保護範圍理解反彈，再遇到無保護地雷。',
-        '墨水＋潮流：視野縮小後，用既有的潮流判讀維持方向。',
-        '重石＋彈簧水母：借助反彈速度擊碎擋路重石。',
-        '支路按鈕＋封印閘門：離開主路取得開門權，再回到中軸。',
-        '氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。',
-        '多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。',
-      ],
-      endGoal: '開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。',
-    },
-  });
-  paintPart2Terrain(map);
-  const gateKeys = addConditionalGateWall(map, 44, [9, 10]);
-  addActor(map, 'playerStart', 3, 8);
-  [[18, 13], [38, 5], [59, 14], [78, 6]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
-  const used = new Set();
-  [
-    ['oxygen', 6, 7], ['bubble', 11, 12],
-    ...PART2_TORRICELLI_DETOURS.map((detour) => ['torricelli', detour.objectRow, detour.objectColumn]),
-    ['checkpoint', 22, 11], ['mine', 27, 15], ['button', 31, 4],
-    ['mine', 35, 14], ['oxygen', 40, 7], ['weightStone', 42, 13],
-    ['checkpoint', 48, 5], ['ink', 52, 14], ['bubble', 58, 7],
-    ['razor', 63, 13], ['oxygen', 68, 5], ['weightStone', 71, 14],
-    ['ink', 74, 4], ['razor', 78, 14], ['checkpoint', 82, 8],
-  ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used, kind === 'button' ? { targetGates: gateKeys } : {}));
-  addEdgeSet(map, 'current', [8, 28, 52, 73]);
-  addEdgeSet(map, 'springJelly', [14, 37, 60, 80]);
-  addEdgeSet(map, 'spike', [33, 67]);
-  addEdgeSet(map, 'barrier', [41, 76]);
-  addEdgeSet(map, 'seaweed', [14, 20, 32, 44, 56, 68, 76, 84]);
-  addEdgeSet(map, 'coralCluster', [9, 18, 27, 36, 45, 54, 63, 72, 78, 81, 83, 86]);
 
   // Part 2 needs four reliable oxygen decisions, not four objects placed on
   // the center line. Each shaft is separated from the main thermal route by
@@ -898,8 +884,8 @@ function buildPart2() {
       waterLayer: detour.waterLayer,
     });
   });
-  addLayerPortal(map, 21);
-  addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
+}
+
 const PART2_TORRICELLI_DETOURS = Object.freeze([
   Object.freeze({
     side: 'right',
@@ -975,6 +961,64 @@ const PART2_TORRICELLI_DETOURS = Object.freeze([
   }),
 ]);
 
+function buildPart2() {
+  const map = createAuthoredMap({
+    width: 20,
+    height: 88,
+    metadata: {
+      chapter: '下沉篇', part: 2, title: '下沉篇・第二部分｜穿越熱泉', difficulty: 'medium',
+      designIntent: '完全獨立的熱泉路線：左右熱泉室交替，以四條偏軸托里切利回返洞提供高風險但穩定的氧氣，再穿越 L3 脈衝與可選傳送捷徑。',
+      routeBeats: ['暖流入口', '左右熱泉分流', '四條托里切利回返洞', '開門支路', '壓力閘門', '傳送捷徑', '熱泉出口'],
+      torricelliDetours: PART2_TORRICELLI_DETOURS.map((detour) => ({
+        side: detour.side,
+        region: detour.region,
+        objectRow: detour.objectRow,
+        objectColumn: detour.objectColumn,
+        ascentEndRow: detour.ascentEndRow,
+        junctionRow: detour.junctionRow,
+        junctionColumn: detour.junctionColumn,
+        ascentRows: detour.ascentEndRow - detour.objectRow + 1,
+        terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS,
+        shaftWidth: detour.shaftWidth,
+        separationWallWidth: detour.separationWallWidth,
+        waterLayer: detour.waterLayer,
+      })),
+      teachingSequence: [
+        '層間轉接門：第一次從 T1 進入 T2，入口沒有其他危險。',
+        '珊瑚＋地雷：先在保護範圍理解反彈，再遇到無保護地雷。',
+        '墨水＋潮流：視野縮小後，用既有的潮流判讀維持方向。',
+        '重石＋彈簧水母：借助反彈速度擊碎擋路重石。',
+        '支路按鈕＋封印閘門：離開主路取得開門權，再回到中軸。',
+        '四條托里切利回返洞：先走偏軸高風險支路，下沉到接點後逆著重力回返，換取穩定氧氣。',
+        '氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。',
+        '多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。',
+      ],
+      endGoal: '開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。',
+    },
+  });
+  paintPart2Terrain(map);
+  const gateKeys = addConditionalGateWall(map, 44, [9, 10]);
+  addActor(map, 'playerStart', 3, 8);
+  [[18, 13], [38, 5], [59, 14], [78, 6]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
+  const used = new Set();
+  [
+    ['oxygen', 6, 7], ['bubble', 11, 12],
+    ...PART2_TORRICELLI_DETOURS.map((detour) => ['torricelli', detour.objectRow, detour.objectColumn]),
+    ['checkpoint', 22, 11], ['mine', 27, 15], ['button', 31, 4],
+    ['mine', 35, 14], ['oxygen', 40, 7], ['weightStone', 42, 13],
+    ['checkpoint', 48, 5], ['ink', 52, 14], ['bubble', 58, 7],
+    ['razor', 63, 13], ['oxygen', 68, 5], ['weightStone', 71, 14],
+    ['ink', 74, 4], ['razor', 78, 14], ['checkpoint', 82, 8],
+  ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used, kind === 'button' ? { targetGates: gateKeys } : {}));
+  addEdgeSet(map, 'current', [8, 28, 52, 73]);
+  addEdgeSet(map, 'springJelly', [14, 37, 60, 80]);
+  addEdgeSet(map, 'spike', [33, 67]);
+  addEdgeSet(map, 'barrier', [41, 76]);
+  addEdgeSet(map, 'seaweed', [14, 20, 32, 44, 56, 68, 76, 84]);
+  addEdgeSet(map, 'coralCluster', [9, 18, 27, 36, 45, 54, 63, 72, 78, 81, 83, 86]);
+  addLayerPortal(map, 21);
+  addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
+  addWallGillRoutes(map, [29, 64], 'descent-part2-wall-gill');
   setRuntimeExit(map, 85, 12);
   return map;
 }
@@ -989,7 +1033,6 @@ function removeInvalidButtons(map) {
 
 function buildPart3(source) {
   const map = preparePlayerFinaleMap(source, {
-        '四條托里切利回返洞：先走偏軸高風險支路，下沉到接點後逆著重力回返，換取穩定氧氣。',
     chapter: '下沉篇', part: 3, title: '下沉篇・第三部分｜深淵遺跡', difficulty: 'hard',
     designIntent: '完整保留玩家設計的第三部分地形與傳送結構，把前兩部分教過的所有物件改成不提示的複合考題。',
     routeBeats: ['原始遺跡入口', '重力與層間門考題', '環境傷害混合區', '多邊傳送迷陣', 'Boss 前補給', '深淵收束'],
@@ -1039,14 +1082,15 @@ function buildPart3(source) {
   ].forEach(([fromKey, toKey]) => moveExistingEdge(map, fromKey, toKey));
   addReachableSupportSet(map, 'seaweed', [10, 18, 36, 45, 55, 70, 82, 100, 114]);
   addReachableSupportSet(map, 'coralCluster', [14, 24, 34, 52, 62, 86, 104, 112, 116]);
+  addWallGillRoutes(map, [28, 70, 106], 'descent-part3-wall-gill');
   setRuntimeExit(map, 116, 12);
   return map;
 }
 
 const ASCENT_CHALLENGE = Object.freeze({
-  1: Object.freeze({ enemyTargetCount: 48, oxygen: 4, torricelli: 3, checkpoints: 3, ink: 2, spikeRows: [18, 39, 61, 83, 105, 127, 149], currentRows: [52, 118], barrierRows: [73, 139], extraEnemyAnchors: 3 }),
-  2: Object.freeze({ enemyTargetCount: 56, oxygen: 2, torricelli: 1, checkpoints: 2, ink: 5, spikeRows: [9, 19, 29, 39, 49, 59, 69, 79], currentRows: [15, 36, 57, 78], barrierRows: [25, 65], extraEnemyAnchors: 4 }),
-  3: Object.freeze({ enemyTargetCount: 64, oxygen: 1, torricelli: 1, checkpoints: 1, ink: 8, spikeRows: [8, 18, 28, 38, 48, 58, 68, 78, 88, 98], currentRows: [14, 34, 54, 74, 94, 112], barrierRows: [24, 64, 104], extraEnemyAnchors: 5 }),
+  1: Object.freeze({ enemyTargetCount: 24, oxygen: 4, torricelli: 3, checkpoints: 3, ink: 2, spikeRows: [18, 39, 61, 83, 105, 127, 149], currentRows: [52, 118], barrierRows: [73, 139], extraEnemyAnchors: 3 }),
+  2: Object.freeze({ enemyTargetCount: 28, oxygen: 2, torricelli: 1, checkpoints: 2, ink: 5, spikeRows: [9, 19, 29, 39, 49, 59, 69, 79], currentRows: [15, 36, 57, 78], barrierRows: [25, 65], extraEnemyAnchors: 4 }),
+  3: Object.freeze({ enemyTargetCount: 32, oxygen: 1, torricelli: 1, checkpoints: 1, ink: 8, spikeRows: [8, 18, 28, 38, 48, 58, 68, 78, 88, 98], currentRows: [14, 34, 54, 74, 94, 112], barrierRows: [24, 64, 104], extraEnemyAnchors: 5 }),
 });
 
 function mirroredCellKey(map, sourceKey) {

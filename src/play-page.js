@@ -144,7 +144,7 @@ import {
 
 const MAP_ROUTES = Object.freeze({
   [TUTORIAL_ROUTE]: Object.freeze({
-    [TUTORIAL_PART]: Object.freeze({ createMap: createTutorialMap, label: '第零篇章・第一次呼吸' }),
+    [TUTORIAL_PART]: Object.freeze({ createMap: createTutorialMap, label: 'Tutorial' }),
   }),
   descent: Object.freeze({
     1: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[1], label: '下沉篇・第一部分' }),
@@ -157,7 +157,7 @@ const MAP_ROUTES = Object.freeze({
     3: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[3], label: '上升篇・第三部分' }),
   }),
 });
-const ARC_LABELS = Object.freeze({ tutorial: '第零篇章', descent: '下沉篇', ascent: '上升篇' });
+const ARC_LABELS = Object.freeze({ tutorial: 'Tutorial', descent: '下沉篇', ascent: '上升篇' });
 // A 4x world scale intentionally shows only about 60% of the reference map's
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
@@ -332,9 +332,13 @@ function closeTutorialSkipPrompt() {
   if (tutorialSkipDialog) tutorialSkipDialog.hidden = true;
 }
 
-function leaveTutorial() {
+function leaveTutorial(reason = 'skipped') {
   if (mapArc !== TUTORIAL_ROUTE) return;
   closeTutorialSkipPrompt();
+  if (reason === 'completed') {
+    beginArcTransition('descent', 1);
+    return;
+  }
   window.location.href = '/home.html';
 }
 
@@ -557,7 +561,7 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   const mapDefinition = getMapDefinition();
   eventLog = mapArc === TUTORIAL_ROUTE
     ? [
-      '這裡是第零篇章：深淵導航員會逐步帶你完成每一個操作。',
+      '這裡是 Tutorial：深淵導航員會逐步帶你完成每一個操作。',
       `${mapDefinition.label} 已載入。`,
       '出口在所有示範完成前會鎖定；想離開請按 Enter，確認 Skip Tutorial。',
     ]
@@ -2617,8 +2621,8 @@ function simulate(elapsed, now = performance.now()) {
       const stageExit = getCurrentStageExitState();
       if (!actor.dead && mapArc === TUTORIAL_ROUTE && stageExit.arrived) {
         eventLog.push(tutorialProgress?.outcome === 'resonance'
-          ? '第零篇章完成：你用 Resonance 讓敵人中立；返回水下主控台。'
-          : '第零篇章完成：導航員已確認你的操作；返回水下主控台。');
+          ? 'Tutorial 完成：你用 Resonance 讓敵人中立；前往下沉篇第一部分。'
+          : 'Tutorial 完成：導航員已確認你的操作；前往下沉篇第一部分。');
         leaveTutorial('completed');
         accumulator = 0;
         break;

@@ -38118,6 +38118,90 @@
       "currentStrength": 0,
       "size": 30,
       "params": {}
+    },
+    "-10,28|-9,27": {
+      "cells": [
+        "-10,28",
+        "-9,27"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-1",
+      "wallGillSlot": 0
+    },
+    "-10,28|-11,29": {
+      "cells": [
+        "-10,28",
+        "-11,29"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-1",
+      "wallGillSlot": 1
+    },
+    "-28,70|-29,70": {
+      "cells": [
+        "-29,70",
+        "-28,70"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-2",
+      "wallGillSlot": 0
+    },
+    "-29,70|-30,71": {
+      "cells": [
+        "-29,70",
+        "-30,71"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-2",
+      "wallGillSlot": 1
+    },
+    "-33,105|-33,106": {
+      "cells": [
+        "-33,106",
+        "-33,105"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-3",
+      "wallGillSlot": 0
+    },
+    "-33,106|-34,106": {
+      "cells": [
+        "-33,106",
+        "-34,106"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-3",
+      "wallGillSlot": 1
     }
   },
   "chapterStates": {

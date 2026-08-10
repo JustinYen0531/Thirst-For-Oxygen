@@ -23675,6 +23675,62 @@
       "portalGroupId": "part2-thermal-shortcut-b",
       "portalSlot": 2,
       "portalTargetKey": "-3,16|-3,17"
+    },
+    "-10,29|-9,29": {
+      "cells": [
+        "-10,29",
+        "-9,29"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part2-wall-gill-1",
+      "wallGillSlot": 0
+    },
+    "-10,29|-11,29": {
+      "cells": [
+        "-10,29",
+        "-11,29"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part2-wall-gill-1",
+      "wallGillSlot": 1
+    },
+    "-17,63|-17,64": {
+      "cells": [
+        "-17,64",
+        "-17,63"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part2-wall-gill-2",
+      "wallGillSlot": 0
+    },
+    "-17,64|-18,65": {
+      "cells": [
+        "-17,64",
+        "-18,65"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part2-wall-gill-2",
+      "wallGillSlot": 1
     }
   },
   "chapterStates": {
@@ -23696,27 +23752,12 @@
     "routeBeats": [
       "暖流入口",
       "左右熱泉分流",
+      "四條托里切利回返洞",
       "開門支路",
       "壓力閘門",
       "傳送捷徑",
       "熱泉出口"
     ],
-    "teachingSequence": [
-      "層間轉接門：第一次從 T1 進入 T2，入口沒有其他危險。",
-      "珊瑚＋地雷：先在保護範圍理解反彈，再遇到無保護地雷。",
-      "墨水＋潮流：視野縮小後，用既有的潮流判讀維持方向。",
-      "重石＋彈簧水母：借助反彈速度擊碎擋路重石。",
-      "支路按鈕＋封印閘門：離開主路取得開門權，再回到中軸。",
-      "氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。",
-      "多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。"
-    ],
-    "endGoal": "開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。",
-    "source": "獨立路線設計（scripts/generate-chapter-maps.mjs）",
-    "spawnPoints": "已配置",
-    "exitCellKey": "-30,85"
-  }
-}
-      "四條托里切利回返洞",
     "torricelliDetours": [
       {
         "side": "right",
@@ -23775,4 +23816,19 @@
         "waterLayer": "T2"
       }
     ],
+    "teachingSequence": [
+      "層間轉接門：第一次從 T1 進入 T2，入口沒有其他危險。",
+      "珊瑚＋地雷：先在保護範圍理解反彈，再遇到無保護地雷。",
+      "墨水＋潮流：視野縮小後，用既有的潮流判讀維持方向。",
+      "重石＋彈簧水母：借助反彈速度擊碎擋路重石。",
+      "支路按鈕＋封印閘門：離開主路取得開門權，再回到中軸。",
       "四條托里切利回返洞：先走偏軸高風險支路，下沉到接點後逆著重力回返，換取穩定氧氣。",
+      "氣泡＋L3 脈衝＋剃刀：最後把重力免疫、路線控制與傷害迴避合併考核。",
+      "多邊傳送捷徑：高手可冒險跳過閘門後半，失敗則走穩定主路。"
+    ],
+    "endGoal": "開啟壓力閘門，或承擔風險使用傳送捷徑，抵達遺跡入口。",
+    "source": "獨立路線設計（scripts/generate-chapter-maps.mjs）",
+    "spawnPoints": "已配置",
+    "exitCellKey": "-30,85"
+  }
+}

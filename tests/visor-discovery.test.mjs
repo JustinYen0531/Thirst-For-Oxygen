@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ENEMY_ORDER } from '../src/game-data.js';
 import { setLanguage } from '../src/i18n.js';
+import { ENEMY_ORDER } from '../src/game-data.js';
 import { translateGameplayText } from '../src/i18n-gameplay.js';
 import {
   DISCOVERY_COLORS,

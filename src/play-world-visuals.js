@@ -73,6 +73,7 @@ export const PLAY_EDGE_VISUALS = Object.freeze({
   coralCluster: visual('coralCluster', { assetPath: `${OBJECT_ROOT}/coral-cluster.png`, color: '#f1a0ff', shape: 'anchored-coral', label: '珊瑚群落', edgeAttached: true, anchoredPlant: true }),
   layerPortal: visual('layerPortal', { assetPath: `${EDGE_ROOT}/layer-portal-stair.png`, color: '#52aaff', shape: 'layer-portal', label: '層間轉接門', edgeAttached: true }),
   multiPortal: visual('multiPortal', { assetPath: `${EDGE_ROOT}/multi-portal.png`, color: '#52aaff', shape: 'multi-portal', label: '多邊傳送門', edgeAttached: true }),
+  wallGillGate: visual('wallGillGate', { assetPath: `${EDGE_ROOT}/wall-gill-gate.png`, color: '#70f0e4', shape: 'wall-gill-gate', label: '潛壁鰓門', edgeAttached: true }),
 });
 
 function requireVisual(collection, kind, category) {

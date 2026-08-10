@@ -43,8 +43,8 @@ test('English encyclopedia exhaustively localizes all authored content without C
   const english = getLocalizedEncyclopedia('en');
   assert.equal(english.locale, 'en');
   assert.equal(english.enemies.length, 19);
-  assert.equal(english.mapEntries.length, 30);
-  assert.equal(new Set(english.mapEntries.map(({ placementId }) => placementId)).size, 30);
+  assert.equal(english.mapEntries.length, 31);
+  assert.equal(new Set(english.mapEntries.map(({ placementId }) => placementId)).size, 31);
   assert.equal(english.weapons.length, 4);
   assert.equal(english.passives.length, 4);
   assert.equal(english.sections.length, 5);

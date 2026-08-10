@@ -109,6 +109,9 @@ export const EDGE_SETTING_FIELDS = Object.freeze({
   multiPortal: freezeFields([
     fixedSizeField('傳送門大小'),
   ]),
+  wallGillGate: freezeFields([
+    fixedSizeField('鰓門大小'),
+  ]),
 });
 
 function setting(fields, key) {

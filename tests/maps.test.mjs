@@ -88,6 +88,36 @@ test('beginner-friendly coral and seaweed support edges are distributed at four 
   });
 });
 
+test('wall-gill routes stay sparse, paired, and attached to one traversable wall cell', () => {
+  const expectedGateCounts = [2, 4, 6];
+  [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map, index) => {
+    const gates = Object.values(map.edges).filter((edge) => edge.type === 'wallGillGate');
+    assert.equal(gates.length, expectedGateCounts[index % 3], `${map.metadata.title} should keep sparse wall-gill routes`);
+    const routes = new Map();
+    gates.forEach((edge) => routes.set(edge.wallGillRouteId, [...(routes.get(edge.wallGillRouteId) ?? []), edge]));
+    routes.forEach((route, routeId) => {
+      assert.equal(route.length, 2, `${routeId} should have one entrance and one exit`);
+      assert.deepEqual(route.map((edge) => edge.wallGillSlot).sort(), [0, 1]);
+      const blockedKeys = route.map((edge) => edge.cells.find((key) => map.cells[key]?.terrain === 'blocked'));
+      assert.equal(new Set(blockedKeys).size, 1, `${routeId} should cross one connected wall cell`);
+      route.forEach((edge) => {
+        const terrains = edge.cells.map((key) => map.cells[key]?.terrain).sort();
+        assert.deepEqual(terrains, ['blocked', 'water']);
+      });
+    });
+  });
+});
+
+test('descent part 1 teaches the first wall-gill route near the opening', () => {
+  const map = loadMap(mapNames[0]);
+  const gates = Object.values(map.edges).filter((edge) => edge.type === 'wallGillGate');
+  const blockedRows = gates.map((edge) => edge.cells
+    .map((key) => map.cells[key])
+    .find((cell) => cell?.terrain === 'blocked')?.r);
+  assert.equal(gates.length, 2);
+  assert.ok(blockedRows.every((row) => Number.isFinite(row) && row <= 24), 'the first route must appear soon enough to test during the opening');
+});
+
 test('ascent trilogy is a playable bottom-to-top vertical mirror of descent', () => {
   ascentMapNames.forEach((name, index) => {
     const ascent = loadAscentMap(name);
@@ -125,7 +155,7 @@ test('ascent difficulty rises through denser hazards and scarcer oxygen', () => 
   const descentMaps = mapNames.map(loadMap);
   const countObjects = (map, kind) => freeObjectsOf(map).filter(({ object }) => object.kind === kind).length;
   const countEdges = (map, type) => Object.values(map.edges).filter((edge) => edge.type === type).length;
-  assert.deepEqual(ascentMaps.map((map) => map.metadata.enemyTargetCount), [48, 56, 64]);
+  assert.deepEqual(ascentMaps.map((map) => map.metadata.enemyTargetCount), [24, 28, 32]);
   assert.deepEqual(ascentMaps.map((map) => countObjects(map, 'ink')), [2, 5, 8]);
   ascentMaps.forEach((map, index) => {
     const challenge = map.metadata.ascentChallenge;
@@ -448,6 +478,7 @@ test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
   const part2 = loadMap('下沉篇-第2部分.json');
   const room = part1.metadata.bossRoom;
   const miniBosses = actorsOf(part1, 'miniBossSpawn');
+
   assert.equal(miniBosses.length, 1);
   assert.equal(miniBosses[0].actor.enemyId, 'prismCrabGuardian');
   assert.equal(miniBosses[0].key, room.miniBossCellKey);
@@ -455,6 +486,7 @@ test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
   assert.ok(room.room.rowStart > 159, 'the fixed encounter room should extend below the former Part 1 ending');
   assert.ok(part1.cells[part1.metadata.exitCellKey].r > room.room.rowEnd, 'the runtime exit should sit beyond the lower seal');
   assert.equal(part1.cells[room.triggerCellKey].terrain, 'water');
+
   const entranceRows = new Set(room.entranceGateCellKeys.map((key) => part1.cells[key].r));
   const exitRows = new Set(room.exitGateCellKeys.map((key) => part1.cells[key].r));
   assert.equal(entranceRows.size, 1);
@@ -469,6 +501,7 @@ test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
       role: room.entranceGateCellKeys.includes(key) ? 'entrance' : 'exit',
     });
   });
+
   for (let row = room.room.rowStart; row <= room.room.rowEnd; row += 1) {
     const waterColumns = Object.values(part1.cells)
       .filter((cell) => cell.r === row && cell.terrain === 'water')
@@ -478,6 +511,7 @@ test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
     assert.equal(Math.max(...waterColumns) < part1.layout.width - 1, true);
   }
 });
+
 
 test('all generated multi-edge portals touch a blocked hex', () => {
   mapNames.forEach((name) => {

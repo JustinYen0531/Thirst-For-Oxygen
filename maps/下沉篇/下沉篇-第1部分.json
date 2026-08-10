@@ -44066,6 +44066,34 @@
       "currentStrength": 0,
       "size": 30,
       "params": {}
+    },
+    "-4,17|-4,18": {
+      "cells": [
+        "-4,18",
+        "-4,17"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part1-wall-gill-1",
+      "wallGillSlot": 0
+    },
+    "-4,18|-5,19": {
+      "cells": [
+        "-4,18",
+        "-5,19"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part1-wall-gill-1",
+      "wallGillSlot": 1
     }
   },
   "chapterStates": {

@@ -38,6 +38,7 @@ test('formal play exposes Resonance bars, neutral partners, permanent buffs, and
   assert.match(page, /enemyResult\?\.resonanceEvents\?\.length/);
   assert.match(page, /beginArcTransition\('ascent', 1\)/);
   assert.match(page, /下沉→上升：生命與能量已回滿；氧氣、Build 與 Resonance 永久 Buff 保留/);
+  assert.match(page, /生命與能量已回滿；氧氣、Build 與 Resonance 永久 Buff 保留/);
   assert.match(page, /neutral: Boolean\(enemy\.resonanceNeutral\)/);
   assert.match(html, /id="play-level-inspect"/);
   assert.match(html, /class="experience-track" id="play-experience-track"/);
@@ -72,10 +73,10 @@ test('play settings expose a persistent player damage-reduction mode', () => {
 
 test('play settings prioritize assistance, keep audio together, and remove diagnostic clutter', () => {
   const difficultyIndex = html.indexOf('id="difficulty-settings-title"');
-  const toolsIndex = html.indexOf('id="play-tools-title"');
   const musicIndex = html.indexOf('id="music-settings-title"');
   const languageIndex = html.indexOf('id="language-settings-title"');
-  assert.ok(difficultyIndex < toolsIndex && toolsIndex < musicIndex && musicIndex < languageIndex);
+  assert.ok(difficultyIndex < musicIndex && musicIndex < languageIndex);
+  assert.doesNotMatch(html, /id="play-tools-title"|>測試工具</);
   assert.match(html, /id="play-resource-cost-reduction"/);
   ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
   assert.match(html, /id="play-ambient-card"/);
@@ -123,7 +124,7 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
-test('Chapter 0 tutorial cards keep Canvas controls available and show honest English progress', () => {
+test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
   assert.doesNotMatch(page, /tutorialDialogueNavigation|navigationCopy/);
   assert.doesNotMatch(html, /id="play-tutorial-dialogue-navigation"/);
   assert.match(page, /const tutorialControlHint = tutorial\.currentStep\.controlHint/);
@@ -168,9 +169,10 @@ test('formal play uses honest programmatic fallbacks instead of broken or wrong 
   assert.match(page, /drawProgrammaticEdge/);
 });
 
-test('formal play preserves permanent game over and exposes the authored seaweed interaction', () => {
+test('formal play preserves permanent game over and exposes the shared E interaction', () => {
   assert.match(page, /if \(!actor \|\| actor\.gameOver\) return/);
-  assert.match(page, /toggleSeaweedAttachment\(actor, map, 'chapter1', origin\)/);
+  assert.match(page, /activateNearbyInteraction\(actor, map, 'chapter1', origin\)/);
+  assert.match(page, /invisibleRemaining/);
 });
 
 test('formal play consumes rotating razor, button state, and authored current direction visuals', () => {
@@ -204,9 +206,13 @@ test('formal play draws deterministic static frames selected by runtime skill st
 test('Part 1 presents Attempt separately from HP and preserves the authored awakening mask', () => {
   assert.match(html, /id="play-attempts"[^>]*>ATTEMPT 3\/3</);
   assert.doesNotMatch(html, /Attempts 3\/3/);
-  assert.match(page, /enabled: !storyIntroState\.active && mapPart === 1 && !previousActor/);
   assert.match(page, /stepPlayAwakening\(awakeningState, scaledElapsed\)/);
   assert.match(page, /if \(paused \|\| storyIntroState\.active \|\| awakeningState\.awaitingTrigger \|\| awakeningState\.active \|\| actor\.dead/);
+  assert.match(page, /enabled: [^\n]*mapPart === 1 && !previousActor/);
+  assert.match(page, /stageFrame\.addEventListener\('pointerdown',[\s\S]*beginPlayAwakening\(awakeningState\)[\s\S]*\{ capture: true \}\)/);
+  assert.match(page, /if \(awakeningState\.awaitingTrigger \|\| awakeningState\.active\)/);
+  assert.match(page, /stepPlayAwakening\(awakeningState, scaledElapsed\)/);
+  assert.match(page, /if \(paused \|\| [^\n]*awakeningState\.awaitingTrigger \|\| awakeningState\.active \|\| actor\.dead/);
   assert.match(page, /context\.ellipse\(/);
   assert.match(page, /mapPart === 1 && !preserveRun \? '' : mapArc === 'ascent' \? '正在逆游上升…' : '正在潛入水域…'/);
   assert.match(page, /attemptsReadout\.textContent = attempt\.label/);
@@ -214,21 +220,26 @@ test('Part 1 presents Attempt separately from HP and preserves the authored awak
   assert.doesNotMatch(page, /失去 1 條命/);
 });
 
-test('Part 1 presents the three-slide narrator before the existing awakening', () => {
+test('Part 1 presents the three-slide narrator before the existing shutter awakening', () => {
   assert.match(html, /id="play-story-intro"/);
   assert.match(html, /id="play-story-video"[^>]*muted[^>]*playsinline/);
   assert.doesNotMatch(html, /id="play-story-video"[^>]*loop/);
   assert.match(html, /id="play-story-narrator"/);
   assert.match(html, /id="play-story-skip"/);
+  assert.match(page, /createPlayStoryIntroState/);
   assert.match(page, /advancePlayStoryIntro/);
   assert.match(page, /advancePlayStoryIntroAfterVideo/);
   assert.match(page, /getPlayStoryIntroNarratorText\(storyIntroState, translateStoryText\)/);
   assert.match(page, /stepPlayStoryIntro/);
-  assert.match(page, /storyIntroState\.active/);
+  assert.match(page, /storyIntroState.active/);
   assert.match(page, /finishStoryIntro/);
   assert.match(page, /storyIntro:\s*\{\s*\.\.\.getPlayStoryIntroRenderState\(storyIntroState\)/);
+  assert.match(page, /if \(awakeningState\.awaitingTrigger\) beginPlayAwakening\(awakeningState\)/);
   assert.match(page, /stageWrap\?\.classList\.toggle\('is-story-intro', visible\)/);
   assert.match(page, /createStoryTypingSound/);
+  assert.match(page, /storyIntroVideo\.playbackRate = 0\.5/);
+  assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
+  assert.match(page, /storyIntroOverlay\.dataset\.storyFraming = story\.mediaFraming/);
   assert.match(page, /storyIntroCoverMode/);
   assert.match(page, /route-lock/);
   assert.match(page, /'complete'\]\.includes\(awakening\.phase\)/);
@@ -239,11 +250,12 @@ test('Part 1 presents the three-slide narrator before the existing awakening', (
   assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
   assert.match(page, /storyIntroOverlay\.dataset\.storyFraming = story\.mediaFraming/);
   assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
-  assert.match(css, /\.play-story-intro-overlay/);
-  assert.match(css, /z-index: 1/);
+  assert.match(css, /\.play-story-intro-overlay \{[^}]*z-index: 1/);
   assert.match(css, /\.play-stage-wrap\.is-story-intro \.stage-meta/);
   assert.match(css, /\.play-story-narrator \{[^}]*padding:/);
   assert.match(css, /\.play-story-footer button \{[^}]*border: 0/);
+  assert.doesNotMatch(css, /\.play-stage-frame\.is-story-intro[\s\S]*\.play-resource-hud \{ opacity: 0/);
+  assert.match(css, /\.play-story-intro-overlay/);
   assert.match(css, /play-story-breathe/);
   assert.match(css, /data-story-framing="suit-free-right"/);
   assert.match(css, /data-story-framing="suit-free-left"/);
@@ -253,4 +265,13 @@ test('chapter transitions refill health and energy while preserving the run', ()
   assert.match(page, /actor\.health = MAX_HEALTH/);
   assert.match(page, /actor\.energy = MAX_ENERGY/);
   assert.match(page, /生命與能量已回滿；氧氣、經驗與 Build 已保留/);
+});
+
+test('completing Tutorial enters the Descent Part 1 story slides instead of home', () => {
+  assert.match(html, /<optgroup label="Tutorial">\s*<option value="tutorial:0">Tutorial<\/option>/);
+  assert.match(html, /<p class="eyebrow">TUTORIAL<\/p><h2 id="play-tutorial-title">Tutorial<\/h2>/);
+  assert.match(page, /const MAP_ROUTES = Object\.freeze\([\s\S]*label: 'Tutorial'/);
+  assert.match(page, /function leaveTutorial\(reason = 'skipped'\)[\s\S]*if \(reason === 'completed'\) \{\s*beginArcTransition\('descent', 1\);/);
+  assert.match(page, /Tutorial 完成：[^\n]*前往下沉篇第一部分/);
+  assert.doesNotMatch(page, /Tutorial 完成：[^\n]*返回水下主控台/);
 });

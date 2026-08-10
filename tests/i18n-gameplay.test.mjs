@@ -25,7 +25,7 @@ test('play and sandbox static copy has a meaningful English translation', () => 
     visibleChineseCopy(html).forEach((source) => {
       const english = translateGameplayText(source, 'en');
       assert.equal(CJK_PATTERN.test(english), false, `${file}: untranslated CJK in ${source}`);
-      assert.notEqual(english, source, `${file}: untranslated source`);
+      assert.notEqual(english, source, `${file}: untranslated source for ${source}`);
     });
   }
 });

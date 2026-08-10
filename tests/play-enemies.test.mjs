@@ -14,6 +14,7 @@ import {
   PLAY_ENEMY_ACTIVATION_RADIUS,
   PLAY_BOSS_ACTIVATION_RADIUS,
   PLAY_BOSS_REPOSITION_RECOVERY,
+  PLAY_BOSS_SUMMON_CAP,
   PLAY_ENEMY_SPAWN_SAFE_RADIUS,
   PLAY_ENEMY_TARGETS,
   PLAY_ENEMY_ACTION_VISUAL_HOLD,
@@ -31,6 +32,7 @@ import {
   getPlayEnemyRenderState,
   getPlayEnemyPose,
   getPlayEnemyVisualState,
+  getBossSummonAllowance,
   isPlayEnemyVisible,
   updatePlayEnemies,
 } from '../src/play-enemies.js';
@@ -130,6 +132,7 @@ function resolveAuthoredSkill(enemyId, skillId, actorOverrides = {}) {
 }
 
 test('all descent map parts distribute the required population with sparse authored clusters', () => {
+  assert.deepEqual(PLAY_ENEMY_TARGETS, { 1: 20, 2: 20, 3: 24 });
   const allEnemyIds = new Set();
   PART_MAP_PATHS.forEach((relativePath, index) => {
     const part = index + 1;
@@ -153,7 +156,25 @@ test('ascent maps use their authored buffed enemy populations', () => {
     assert.equal(new Set(enemies.map((enemy) => enemy.spawnCellKey)).size, enemies.length);
     return enemies.length;
   });
-  assert.deepEqual(populations, [48, 56, 64]);
+  assert.deepEqual(populations, [24, 28, 32]);
+});
+
+test('every Boss can keep at most five active summoned enemies', () => {
+  const boss = { instanceId: 'boss-owner' };
+  const activeSummons = Array.from({ length: 4 }, (_, index) => ({
+    instanceId: `active-${index}`,
+    summonedBy: boss.instanceId,
+    health: 10,
+    defeated: false,
+  }));
+  const ignored = [
+    { instanceId: 'defeated', summonedBy: boss.instanceId, health: 0, defeated: true },
+    { instanceId: 'other-owner', summonedBy: 'another-boss', health: 10, defeated: false },
+  ];
+  assert.equal(PLAY_BOSS_SUMMON_CAP, 5);
+  assert.equal(getBossSummonAllowance([...activeSummons, ...ignored], boss, 3), 1);
+  assert.equal(getBossSummonAllowance([...activeSummons, { ...activeSummons[0], instanceId: 'active-5' }], boss, 4), 0);
+  assert.equal(getBossSummonAllowance([], boss, 6), 5);
 });
 
 test('enemy instance IDs remain unique when combat state survives a map-part transition', () => {
@@ -327,6 +348,16 @@ test('a skill animation starts with its cast, survives resolution, then returns 
   const idleVisual = getPlayEnemyVisualState(enemy, 0.5 + PLAY_ENEMY_ACTION_VISUAL_HOLD + 0.01);
   assert.equal(idleVisual.mode, 'idle');
   assert.equal(idleVisual.path, PLAY_ENEMY_VISUAL_SETS.crabGuard.idle);
+});
+
+test('coral invisibility makes enemies stop targeting and damaging the player', () => {
+  const enemy = authoredEnemy('crabGuard', { alerted: true });
+  const actor = { x: 0, y: 0, radius: 6, health: 100, dead: false, invulnerability: 0, invisibilityTimer: 2.5, vx: 0, vy: 0 };
+  updatePlayEnemies([enemy], actor, 0.5, 0.5);
+  assert.equal(enemy.alerted, false);
+  assert.equal(enemy.state, 'searching');
+  assert.equal(enemy.pendingSkill, null);
+  assert.equal(actor.health, 100);
 });
 
 test('special map markers instantiate the documented Mini Bosses and Boss without reducing regular populations', () => {
@@ -857,16 +888,16 @@ test('abyssal whale sacrifice summons resolve after thirty seconds using authore
   result.enemy.health = 3000;
   let render = getPlayEnemyRenderState(result.enemies, result.now);
   assert.equal(result.damage(), 0);
-  assert.equal(result.enemies.length, 7);
-  assert.equal(render.summons[0].count, 6);
+  assert.equal(result.enemies.length, 6);
+  assert.equal(render.summons[0].count, 5);
   assert.ok(result.enemies.slice(1).every((enemy) => DESCENT_ENEMY_ROSTER.includes(enemy.enemyId)));
   result.actor.x = 1000;
   updatePlayEnemies(result.enemies, result.actor, 30.1, result.now + 30.1, result.onDamage);
   render = getPlayEnemyRenderState(result.enemies, result.now + 30.1);
   assert.equal(render.summons[0].status, 'sacrificed');
-  assert.equal(render.summons[0].sacrificedCount, 6);
-  assert.equal(result.enemy.health, 3750);
-  assert.ok(Math.abs(result.enemy.damageStack - 0.18) < 1e-9);
+  assert.equal(render.summons[0].sacrificedCount, 5);
+  assert.equal(result.enemy.health, 3625);
+  assert.ok(Math.abs(result.enemy.damageStack - 0.15) < 1e-9);
 });
 
 test('abyssal whale reconstruction, echo barrage, and miniature form expose their complete authored state', () => {

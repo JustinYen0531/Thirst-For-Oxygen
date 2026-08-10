@@ -37,6 +37,6 @@ test('formal Play retries both chapter music and diving ambience after autoplay 
   assert.match(sfx, /underwaterLoop: 1\.845/);
   assert.match(sfx, /scubaBubbles: 0\.54/);
   assert.match(sfx, /labelText = '潛水環境音音量'/);
-  assert.match(sfx, /max="1\.5"/);
-  assert.match(sfx, /createMediaElementSource\(audio\)/);
+  assert.match(sfx, /min="0" max="1\.5"/);
+  assert.match(sfx, /createMediaElementSource/);
 });

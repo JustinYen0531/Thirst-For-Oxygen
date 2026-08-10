@@ -358,8 +358,8 @@ const MAP_ENTRY_DETAILS = Object.freeze({
   coralCluster: {
     group: 'Cell／Edge 物件',
     name: '珊瑚群落',
-    description: '深海生態留下的石質珊瑚群落；在安全區配置中可以成為低壓避難點，讓小 Boss 以下敵人停止追擊。',
-    details: [['放置層級', '舊地圖可作 Cell 物件；新配置優先作 Edge 附著'], ['玩法作用', '建立安全區與視覺地標；大小可調，尚未拆成獨立戰鬥數值']],
+    description: '深海生態留下的石質珊瑚群落；靠近後按 E，可讓敵人在 2.5 秒內看不見玩家。',
+    details: [['放置層級', '舊地圖可作 Cell 物件；新配置優先作 Edge 附著'], ['玩法作用', '手動啟動的短暫隱形休息點']],
   },
   mine: {
     group: 'Cell 物件',
@@ -456,6 +456,12 @@ const MAP_ENTRY_DETAILS = Object.freeze({
     name: '多邊傳送門',
     description: '沿著不可通行六邊形的一整端連續繪製，完成另一端連線後逐段一對一傳送。',
     details: [['放置層級', '貼著不可通行 Cell 的連續 Edge'], ['玩法作用', '把兩端路線綁成大範圍傳送關係，必須先完成配對才啟用']],
+  },
+  wallGillGate: {
+    group: 'Edge 互動',
+    name: '潛壁鰓門',
+    description: '附著在水域與岩壁交界的生物機關。靠近後按 E 進入牆體；離開時也必須在鰓門旁按 E。',
+    details: [['放置層級', '水域／不可通行交界 Edge'], ['玩法作用', '建立稀少的穿牆捷徑；牆內持續耗氧、可以彈射，但不能攻擊']],
   },
 });
 

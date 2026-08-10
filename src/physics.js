@@ -41,6 +41,8 @@ export const MAX_ENERGY = RESOURCE_LIMITS.energy;
 export const MAX_LIVES = RESOURCE_LIMITS.lives;
 export const MAX_PLAYER_DAMAGE_REDUCTION = 0.9;
 export const EDGE_ATTACHMENT_HELP_RADIUS = 18;
+export const CORAL_INVISIBILITY_SECONDS = 2.5;
+const EDGE_INTERACTION_DISTANCE = 42;
 const LAUNCH_SPEED_PER_PIXEL = 2.9 * SIMULATION_SPEED_SCALE;
 const LAUNCH_MOMENTUM_DURATION = 0.75;
 const LAUNCH_LINEAR_DISTANCE = 90;
@@ -338,6 +340,9 @@ export function createTestActor(position = { x: 180, y: 180 }) {
     shieldTimer: 0,
     shieldCooldown: 0,
     attached: false,
+    insideWall: false,
+    wallEntryEdgeKey: null,
+    invisibilityTimer: 0,
     blockedResting: false,
     gravityImmunity: 0,
     launchLockTimer: 0,
@@ -463,6 +468,9 @@ export function respawnActor(actor, spawn) {
   actor.derivedStats = getPlayerDerivedStats(actor.abilities, actor.oxygen, actor.resourceCostReduction);
   actor.oxygen = actor.derivedStats.maxOxygen;
   actor.dead = false;
+  actor.insideWall = false;
+  actor.wallEntryEdgeKey = null;
+  actor.invisibilityTimer = 0;
   actor.blockedResting = false;
   actor.hurtTimer = 0;
   actor.deathAnimation = deathAnimation;
@@ -604,6 +612,89 @@ function processBoundary(actor, bounds, events) {
   if (collided) addEvent(events, 'wall', '碰到測試區邊界：速度已反彈。', { collisionKey: collisionSides.join('+') || 'wall' });
 }
 
+function findNearbyEdgeInteraction(actor, map, chapter, origin, type) {
+  const currentKey = findCellContainingPoint(map, actor, chapter, origin)?.key;
+  if (!currentKey) return null;
+  let nearest = null;
+  allMapEdges(map).forEach(({ key, a, b }) => {
+    if (a !== currentKey && b !== currentKey) return;
+    const edge = getEdgeBetween(map, a, b, chapter);
+    if (edge.type !== type) return;
+    const centerA = getHexCenter(getActiveCell(map, a, chapter), origin);
+    const centerB = getHexCenter(getActiveCell(map, b, chapter), origin);
+    const midpoint = { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 };
+    const distance = Math.hypot(actor.x - midpoint.x, actor.y - midpoint.y);
+    if (distance > EDGE_INTERACTION_DISTANCE || (nearest && nearest.distance <= distance)) return;
+    nearest = { key, a, b, edge, midpoint, distance };
+  });
+  return nearest;
+}
+
+function isNearLegacyCellObject(actor, map, chapter, origin, kind) {
+  return Object.entries(map.cells).some(([key]) => {
+    const cell = getActiveCell(map, key, chapter);
+    if (!cell?.objects?.some((object) => object.kind === kind)) return false;
+    const position = getHexCenter(cell, origin);
+    return Math.hypot(actor.x - position.x, actor.y - position.y) <= EDGE_INTERACTION_DISTANCE;
+  });
+}
+
+function toggleWallGillGate(actor, map, chapter, origin) {
+  const gate = findNearbyEdgeInteraction(actor, map, chapter, origin, 'wallGillGate');
+  if (!gate) return null;
+  const waterKey = [gate.a, gate.b].find((key) => getActiveCell(map, key, chapter)?.terrain === 'water');
+  const blockedKey = [gate.a, gate.b].find((key) => getActiveCell(map, key, chapter)?.terrain === 'blocked');
+  const targetKey = actor.insideWall ? waterKey : blockedKey;
+  const targetCell = targetKey ? getActiveCell(map, targetKey, chapter) : null;
+  if (!targetCell) return null;
+  const target = getHexCenter(targetCell, origin);
+  actor.x = target.x;
+  actor.y = target.y;
+  actor.vx = 0;
+  actor.vy = 0;
+  actor.attached = false;
+  actor.insideWall = !actor.insideWall;
+  actor.wallEntryEdgeKey = actor.insideWall ? gate.key : null;
+  actor.blockedResting = false;
+  return {
+    changed: true,
+    type: actor.insideWall ? 'wallGillEnter' : 'wallGillExit',
+    message: actor.insideWall
+      ? '已按 E 進入潛壁鰓門：牆內仍會消耗氧氣，且無法攻擊。'
+      : '已按 E 離開潛壁鰓門，回到可通行水域。',
+  };
+}
+
+export function activateNearbyInteraction(actor, map, chapter, origin) {
+  if (actor.attached) {
+    const result = toggleSeaweedAttachment(actor, map, chapter, origin);
+    return { ...result, type: 'seaweed' };
+  }
+
+  const wallGillResult = toggleWallGillGate(actor, map, chapter, origin);
+  if (wallGillResult) return wallGillResult;
+
+  const nearCoral = Boolean(findNearbyEdgeInteraction(actor, map, chapter, origin, 'coralCluster'))
+    || isNearLegacyCellObject(actor, map, chapter, origin, 'coralCluster');
+  if (nearCoral) {
+    actor.invisibilityTimer = CORAL_INVISIBILITY_SECONDS;
+    return {
+      changed: true,
+      type: 'coralInvisibility',
+      message: `已按 E 啟動珊瑚隱形：敵人有 ${CORAL_INVISIBILITY_SECONDS} 秒看不見你。`,
+    };
+  }
+
+  const nearSeaweed = Boolean(findNearbyEdgeInteraction(actor, map, chapter, origin, 'seaweed'))
+    || isNearLegacyCellObject(actor, map, chapter, origin, 'seaweed');
+  if (nearSeaweed) {
+    const result = toggleSeaweedAttachment(actor, map, chapter, origin);
+    return { ...result, type: 'seaweed' };
+  }
+
+  return { changed: false, type: 'none', message: '附近沒有可按 E 互動的水草、珊瑚或潛壁鰓門。' };
+}
+
 function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events, previousPosition = null) {
   if (!fromKey || !toKey || fromKey === toKey) return;
   const edge = getEdgeBetween(map, fromKey, toKey, chapter);
@@ -612,6 +703,7 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events,
   const fromLayer = fromCell?.waterLayer ?? 'T1';
   const toLayer = toCell?.waterLayer ?? 'T1';
   const entersBlockedTerrain = fromCell?.terrain === 'water' && toCell?.terrain === 'blocked';
+  const exitsBlockedTerrain = fromCell?.terrain === 'blocked' && toCell?.terrain === 'water';
   const crossesWaterLayer = fromCell?.terrain === 'water'
     && toCell?.terrain === 'water'
     && fromLayer !== toLayer;
@@ -653,6 +745,32 @@ function processCrossedEdge(map, actor, fromKey, toKey, chapter, origin, events,
     actor.x = (targetFromCenter.x + targetToCenter.x) / 2 + Math.cos(targetAngle) * 8;
     actor.y = (targetFromCenter.y + targetToCenter.y) / 2 + Math.sin(targetAngle) * 8;
     addEvent(events, 'multiPortal', `多邊傳送門：已傳送至另一端 Edge（${portalTarget.key}）。`);
+    return;
+  }
+  if (edge.type === 'wallGillGate' && (entersBlockedTerrain || exitsBlockedTerrain)) {
+    const from = getHexCenter(fromCell, origin);
+    const to = getHexCenter(toCell, origin);
+    const normal = unitVector(from, to);
+    const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.45);
+    actor.vx = reflected.x;
+    actor.vy = reflected.y;
+    actor.x = previousPosition?.x ?? from.x;
+    actor.y = previousPosition?.y ?? from.y;
+    actor.blockedResting = true;
+    addEvent(events, 'wallGillPrompt', '潛壁鰓門不會自動開啟：靠近後按 E 進入或離開。');
+    return;
+  }
+  if (actor.insideWall && exitsBlockedTerrain) {
+    const from = getHexCenter(fromCell, origin);
+    const to = getHexCenter(toCell, origin);
+    const normal = unitVector(from, to);
+    const reflected = reflectWithoutUpwardLift({ x: actor.vx, y: actor.vy }, normal, 0.52);
+    actor.vx = reflected.x;
+    actor.vy = reflected.y;
+    actor.blockedResting = true;
+    actor.x = previousPosition?.x ?? (from.x + normal.x * 8);
+    actor.y = previousPosition?.y ?? (from.y + normal.y * 8);
+    addEvent(events, 'wallGillSealed', '牆體內側封閉：必須找到潛壁鰓門才能回到水域。');
     return;
   }
   if (entersBlockedTerrain && edge.type === 'none') {
@@ -811,11 +929,8 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
   const current = findCellContainingPoint(map, actor, chapter, origin);
   if (!current) return;
   const cell = current.cell;
-  const coralClusterSafe = isActorNearEdgeAttachment(actor, map, chapter, origin, 'coralCluster');
-  actor.safe = coralClusterSafe;
   actor.inInk = cell.overlays.includes('ink');
   if (actor.inInk) actor.inkVisionRange = getFreeObjectSetting({ kind: 'ink' }, 'visibilityRadius');
-  if (coralClusterSafe) addEvent(events, 'coralCluster', '邊緣珊瑚群落：玩家處於保護範圍。');
   const contactObjects = getContactObjects(map, chapter, origin);
 
   const activeToggleButtons = new Set();
@@ -972,6 +1087,7 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
     actor.cooldowns[key] = Math.max(0, actor.cooldowns[key] - dt);
   });
   actor.gravityImmunity = Math.max(0, actor.gravityImmunity - dt);
+  actor.invisibilityTimer = Math.max(0, (actor.invisibilityTimer ?? 0) - dt);
   actor.launchLockTimer = Math.max(0, (actor.launchLockTimer ?? 0) - dt);
   actor.launchMomentumTimer = Math.max(0, (actor.launchMomentumTimer ?? 0) - dt);
   const nextEnergyRecoveryDelay = Math.max(0, (actor.energyRecoveryDelay ?? 0) - dt);
@@ -993,13 +1109,14 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
 
   const before = findCellContainingPoint(map, actor, chapter, origin);
   const activeCell = before?.cell;
-  const zoneGravity = zeroGravity
+  const wallPhase = Boolean(actor.insideWall);
+  const zoneGravity = zeroGravity || wallPhase
     ? 0
     : actor.gravityImmunity > 0
     ? 0
     : (GRAVITY_LEVELS[activeCell?.gravityLevel] ?? 0) * GAME_GRAVITY * getGravityDirection(map, gravityDirection);
-  const current = zeroGravity ? { x: 0, y: 0 } : applyCurrentAcceleration(map, before?.key, chapter);
-  const microflow = zeroGravity ? { x: 0, y: 0 } : getMicroflowAcceleration({
+  const current = zeroGravity || wallPhase ? { x: 0, y: 0 } : applyCurrentAcceleration(map, before?.key, chapter);
+  const microflow = zeroGravity || wallPhase ? { x: 0, y: 0 } : getMicroflowAcceleration({
     map,
     cellKey: before?.key,
     position: actor,
@@ -1027,7 +1144,12 @@ export function stepPhysics({ map, chapter = 'chapter1', actor, dt = FIXED_STEP,
   const terrainContact = processTerrainContact(map, actor, before?.key, chapter, origin, events, previousPosition);
   if (!terrainContact) processCrossedEdge(map, actor, before?.key, after?.key, chapter, origin, events, previousPosition);
   updateFacingFromVelocity(actor);
-  processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
+  if (actor.insideWall) {
+    actor.safe = false;
+    actor.inInk = false;
+  } else {
+    processCellObjects(map, actor, chapter, origin, events, mutateMap, dt);
+  }
   if (actor.energyRecoveryDelay <= 0) {
     actor.energy = Math.min(MAX_ENERGY, actor.energy + IDLE_ENERGY_RECOVERY_PER_SECOND * dt);
   }

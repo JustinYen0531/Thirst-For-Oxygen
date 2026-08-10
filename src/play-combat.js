@@ -521,6 +521,19 @@ export function stepPlayCombat(state, {
   Object.keys(state.weaponCooldowns).forEach((key) => {
     state.weaponCooldowns[key] = Math.max(0, state.weaponCooldowns[key] - elapsed);
   });
+  if (actor.insideWall) {
+    state.weaponBurst = null;
+    state.tridentStationaryTime = 0;
+    state.tridentReady = false;
+    updateProjectiles(state, actor, enemies, elapsed);
+    const dropped = recordPlayEnemyDefeats(state, enemies, actor);
+    const collected = collectPlayCombatExperience(state, actor);
+    state.effects = state.effects.filter((effect) => {
+      effect.elapsed += elapsed;
+      return effect.elapsed < effect.duration;
+    });
+    return { ok: true, suppressed: 'insideWall', dropped, collected, state };
+  }
   updateMachineGunBurst(state, actor);
   updateProjectiles(state, actor, enemies, elapsed);
   processKnifePath(state, actor, enemies, previousPosition);

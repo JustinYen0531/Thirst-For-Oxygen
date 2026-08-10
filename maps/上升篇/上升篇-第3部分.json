@@ -38151,6 +38151,90 @@
       "size": 30,
       "params": {}
     },
+    "-40,88|-40,89": {
+      "cells": [
+        "-40,88",
+        "-40,89"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-1",
+      "wallGillSlot": 0
+    },
+    "-40,87|-40,88": {
+      "cells": [
+        "-40,88",
+        "-40,87"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-1",
+      "wallGillSlot": 1
+    },
+    "-16,46|-17,46": {
+      "cells": [
+        "-17,46",
+        "-16,46"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-2",
+      "wallGillSlot": 0
+    },
+    "-17,45|-17,46": {
+      "cells": [
+        "-17,46",
+        "-17,45"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-2",
+      "wallGillSlot": 1
+    },
+    "14,11|15,10": {
+      "cells": [
+        "15,10",
+        "14,11"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-3",
+      "wallGillSlot": 0
+    },
+    "14,10|15,10": {
+      "cells": [
+        "15,10",
+        "14,10"
+      ],
+      "type": "wallGillGate",
+      "blocksPassage": false,
+      "currentDirection": 0,
+      "currentStrength": 0,
+      "size": 30,
+      "params": {},
+      "wallGillRouteId": "descent-part3-wall-gill-3",
+      "wallGillSlot": 1
+    },
     "-3,8|-4,8": {
       "cells": [
         "-4,8",
@@ -38440,9 +38524,9 @@
     "arc": "ascent",
     "mirroredFrom": "下沉篇-第3部分.json",
     "mirrorAxis": "vertical",
-    "enemyTargetCount": 64,
+    "enemyTargetCount": 32,
     "ascentChallenge": {
-      "enemyTargetCount": 64,
+      "enemyTargetCount": 32,
       "oxygenSupply": 1,
       "torricelliSupply": 1,
       "checkpoints": 1,

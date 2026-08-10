@@ -32,6 +32,7 @@ import {
   OXYGEN_DRAIN_PER_SECOND,
   OXYGEN_COST_PER_DISTANCE,
   OXYGEN_STARVATION_DAMAGE_PER_SECOND,
+  CORAL_INVISIBILITY_SECONDS,
   SIMULATION_SPEED_SCALE,
   createTestActor,
   drainAimEnergy,
@@ -51,6 +52,7 @@ import {
   respawnActor,
   setPlayerDamageReduction,
   stepPhysics,
+  activateNearbyInteraction,
   toggleSeaweedAttachment,
 } from '../src/physics.js';
 import {
@@ -552,6 +554,7 @@ test('free-object parameters drive oxygen, mine damage, and Torricelli recovery'
   stepPhysics({ map: cleanBubbleMap, actor: cleanBubbleActor, origin: ORIGIN });
   assert.equal(cleanBubbleActor.oxygen, 25, 'a clean oxygen bubble should restore its configured oxygen amount');
   assert.equal(getActiveCell(cleanBubbleMap, '0,0').freeObjects.length, 0, 'a clean oxygen bubble should be consumed on contact');
+
   const torricelliMap = createEmptyMap({ width: 1, height: 1 });
   patchCell(torricelliMap, '0,0', {
     gravityLevel: 'L0',
@@ -609,17 +612,20 @@ test('custom edge parameters control spring force and spike damage', () => {
   assert.equal(spikeActor.health, MAX_HEALTH - 46);
 });
 
-test('edge-attached coral cluster protects a nearby player', () => {
+test('edge-attached coral grants 2.5 seconds of invisibility only after pressing E', () => {
   const map = createEmptyMap({ width: 2, height: 1 });
-  patchCell(map, '0,0', { gravityLevel: 'L0', objects: [{ kind: 'mine' }] });
+  patchCell(map, '0,0', { gravityLevel: 'L0' });
   patchCell(map, '1,0', { gravityLevel: 'L0' });
   patchEdge(map, '0,0', '1,0', { type: 'coralCluster', blocksPassage: false });
   const actor = actorIn(map, '0,0');
-  actor.vx = 100;
-  const events = stepPhysics({ map, actor, origin: ORIGIN });
-  assert.ok(events.some((event) => event.type === 'coralCluster'));
-  assert.equal(actor.safe, true);
-  assert.equal(actor.health, MAX_HEALTH);
+  stepPhysics({ map, actor, origin: ORIGIN });
+  assert.equal(actor.safe, false, 'coral should no longer be a passive safety field');
+  assert.equal(actor.invisibilityTimer, 0);
+  const result = activateNearbyInteraction(actor, map, 'chapter1', ORIGIN);
+  assert.equal(result.type, 'coralInvisibility');
+  assert.equal(actor.invisibilityTimer, CORAL_INVISIBILITY_SECONDS);
+  stepPhysics({ map, actor, origin: ORIGIN, dt: 1 });
+  assert.equal(actor.invisibilityTimer, CORAL_INVISIBILITY_SECONDS - 1);
 });
 
 test('high-speed impact breaks a weight stone and checkpoint restores resources', () => {
@@ -733,6 +739,59 @@ test('blocked terrain reflects a player instead of becoming passable', () => {
   assert.ok(actor.x < getHexCenter(getActiveCell(map, '1,0'), ORIGIN).x - actor.radius);
   assert.ok(actor.x > before);
   assert.ok(actor.vx < 0, 'blocked terrain should reflect horizontal velocity');
+});
+
+test('wall-gill gates require E to enter and leave blocked terrain', () => {
+  const map = createEmptyMap({ width: 3, height: 1 });
+  patchCell(map, '0,0', { gravityLevel: 'L0' });
+  patchCell(map, '1,0', { terrain: 'blocked', gravityLevel: 'L3' });
+  patchCell(map, '2,0', { gravityLevel: 'L0' });
+  patchEdge(map, '0,0', '1,0', { type: 'wallGillGate', blocksPassage: false });
+  patchEdge(map, '1,0', '2,0', { type: 'wallGillGate', blocksPassage: false });
+  assert.equal(validateMap(map).some((result) => result.level === 'error'), false);
+
+  const actor = actorIn(map, '0,0');
+  actor.vx = 140;
+  const events = [];
+  for (let index = 0; index < 60 && !events.some((event) => event.type === 'wallGillPrompt'); index += 1) {
+    events.push(...stepPhysics({ map, actor, origin: ORIGIN }));
+  }
+  assert.ok(events.some((event) => event.type === 'wallGillPrompt'));
+  assert.equal(actor.insideWall, false);
+  assert.equal(findCellContainingPoint(map, actor, 'chapter1', ORIGIN)?.key, '0,0');
+
+  const entered = activateNearbyInteraction(actor, map, 'chapter1', ORIGIN);
+  assert.equal(entered.type, 'wallGillEnter');
+  assert.equal(actor.insideWall, true);
+  assert.equal(findCellContainingPoint(map, actor, 'chapter1', ORIGIN)?.key, '1,0');
+
+  const blockedCenter = getHexCenter(getActiveCell(map, '1,0'), ORIGIN);
+  const exitCenter = getHexCenter(getActiveCell(map, '2,0'), ORIGIN);
+  const exitDistance = Math.hypot(exitCenter.x - blockedCenter.x, exitCenter.y - blockedCenter.y);
+  actor.x = blockedCenter.x + ((exitCenter.x - blockedCenter.x) / exitDistance) * 5;
+  actor.y = blockedCenter.y + ((exitCenter.y - blockedCenter.y) / exitDistance) * 5;
+  const exited = activateNearbyInteraction(actor, map, 'chapter1', ORIGIN);
+  assert.equal(exited.type, 'wallGillExit');
+  assert.equal(actor.insideWall, false);
+  assert.equal(findCellContainingPoint(map, actor, 'chapter1', ORIGIN)?.key, '2,0');
+
+  patchEdge(map, '1,0', '2,0', { type: 'none', blocksPassage: false });
+  const sealedActor = actorIn(map, '1,0');
+  sealedActor.insideWall = true;
+  sealedActor.vx = 140;
+  const sealedEvents = [];
+  for (let index = 0; index < 30 && !sealedEvents.some((event) => event.type === 'wallGillSealed'); index += 1) {
+    sealedEvents.push(...stepPhysics({ map, actor: sealedActor, origin: ORIGIN }));
+  }
+  assert.ok(sealedEvents.some((event) => event.type === 'wallGillSealed'));
+  assert.equal(sealedActor.insideWall, true);
+  assert.equal(findCellContainingPoint(map, sealedActor, 'chapter1', ORIGIN)?.key, '1,0');
+});
+
+test('wall-gill gates reject water-to-water placement', () => {
+  const map = createEmptyMap({ width: 2, height: 1 });
+  patchEdge(map, '0,0', '1,0', { type: 'wallGillGate', blocksPassage: false });
+  assert.ok(validateMap(map).some((result) => result.level === 'error' && result.message.includes('潛壁鰓門')));
 });
 
 test('blocked terrain cannot turn downward motion into hidden upward lift', () => {
