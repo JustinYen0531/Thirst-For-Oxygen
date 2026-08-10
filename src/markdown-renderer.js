@@ -5,8 +5,17 @@ const escapeHtml = (value) => String(value)
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#039;');
 
+export function slugifyHeading(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .trim()
+    .replace(/\s+/g, '-') || 'section';
+}
+
 function safeHref(value) {
   const href = String(value).trim();
+  if (href.startsWith('#')) return `#${slugifyHeading(href.slice(1))}`;
   if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || href.startsWith('https://')) return href;
   return '#';
 }
@@ -89,11 +98,7 @@ export function renderMarkdown(markdown) {
     if (heading) {
       const level = heading[1].length;
       const rawHeading = heading[2].trim();
-      const id = rawHeading
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s-]/gu, '')
-        .trim()
-        .replace(/\s+/g, '-');
+      const id = slugifyHeading(rawHeading);
       html.push(`<h${level} id="${escapeHtml(id)}">${renderInline(rawHeading)}</h${level}>`);
       index += 1;
       continue;
