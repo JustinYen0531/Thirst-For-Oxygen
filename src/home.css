@@ -517,7 +517,7 @@ body::before {
 .home-menu-panel {
   position: absolute;
   left: 50%;
-  top: 55.5%;
+  top: calc(55.5% + 70px);
   z-index: 4;
   width: min(27vw, 335px);
   pointer-events: none;

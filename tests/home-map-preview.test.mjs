@@ -71,7 +71,7 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /\.home-intro\.is-side \.home-helmet-stage[\s\S]*translate3d\(27vw, 20vh, 0\) scale\(0\.72\)/);
   assert.match(css, /\.home-helmet-frame[\s\S]*brightness\(0\.5\)[\s\S]*saturate\(0\.55\)/);
   assert.match(css, /#home-map-preview[\s\S]*brightness\(0\.48\)[\s\S]*saturate\(0\.56\)/);
-  assert.match(css, /\.home-menu-panel[\s\S]*top: 55\.5%/);
+  assert.match(css, /\.home-menu-panel[\s\S]*top: calc\(55\.5% \+ 70px\)/);
   assert.doesNotMatch(css, /\.home-logo-viewport\s*{[^}]*repeating-linear-gradient/);
   assert.match(css, /\.home-logo-viewport[\s\S]*radial-gradient\(circle at 50% 45%/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\)::before\s*{\s*opacity: 0/);
@@ -81,11 +81,11 @@ test('home brightens the abyss video and shrinks the helmet from front to side',
   assert.match(css, /@keyframes home-helmet-breathe-side[\s\S]*scale\(0\.723\)/);
 });
 
-test('home logo stays centred inside the visor and breathes within its safe area', () => {
+test('home logo viewport moves seventy pixels down while the logo stays centered and breathing', () => {
   const css = read('../src/home.css');
 
+  assert.match(css, /\.home-menu-panel\s*{[\s\S]*left: 50%;[\s\S]*top: calc\(55\.5% \+ 70px\);/);
   assert.match(css, /\.home-logo-viewport img\s*{[\s\S]*left: 50%;[\s\S]*top: 50%;[\s\S]*width: 82%;[\s\S]*height: 82%;/);
-  assert.doesNotMatch(css, /\.home-logo-viewport img\s*{[^}]*top: calc\(/);
   assert.match(css, /\.home-intro:not\(\.is-turning\):not\(\.is-side\) \.home-logo-viewport img\s*{\s*animation: home-logo-breathe 4\.8s ease-in-out infinite;/);
   assert.match(css, /@keyframes home-logo-breathe[\s\S]*scale\(0\.975\)[\s\S]*scale\(1\.015\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.home-logo-viewport img[\s\S]*animation-name: none;/);
