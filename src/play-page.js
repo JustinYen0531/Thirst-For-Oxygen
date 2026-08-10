@@ -25,7 +25,7 @@ import {
   respawnActor,
   setPlayerDamageReduction,
   stepPhysics,
-  toggleSeaweedAttachment,
+  activateNearbyInteraction,
 } from './physics.js';
 import { drawLaunchGuide, getLaunchGuideGeometry } from './launch-guide.js';
 import { getEdgeAttachmentGeometry } from './edge-attachment.js';
@@ -77,6 +77,19 @@ import {
   syncPlayCombatBuild,
 } from './play-combat.js';
 import { getPlayStageExitState } from './play-flow.js';
+import {
+  TUTORIAL_ROUTE,
+  TUTORIAL_STORAGE_KEY,
+  createPlayTutorialState,
+  createTutorialMap,
+  getPlayTutorialExitState,
+  getPlayTutorialRenderState,
+  recordPlayTutorialCombat,
+  recordPlayTutorialEvents,
+  recordPlayTutorialInteraction,
+  recordPlayTutorialLaunch,
+  stepPlayTutorial,
+} from './play-tutorial.js';
 import { createPlayBossRoomState, getPlayBossRoomRenderState, stepPlayBossRoom } from './play-boss-room.js';
 import {
   getPlayEdgeVisual,
@@ -126,6 +139,9 @@ import {
 } from './play-performance.js';
 
 const MAP_ROUTES = Object.freeze({
+  [TUTORIAL_ROUTE]: Object.freeze({
+    1: Object.freeze({ createMap: createTutorialMap, label: '新手教學房・第一次呼吸' }),
+  }),
   descent: Object.freeze({
     1: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[1], label: '下沉篇・第一部分' }),
     2: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[2], label: '下沉篇・第二部分' }),
@@ -137,7 +153,7 @@ const MAP_ROUTES = Object.freeze({
     3: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[3], label: '上升篇・第三部分' }),
   }),
 });
-const ARC_LABELS = Object.freeze({ descent: '下沉篇', ascent: '上升篇' });
+const ARC_LABELS = Object.freeze({ tutorial: '新手教學房', descent: '下沉篇', ascent: '上升篇' });
 // A 4x world scale intentionally shows only about 60% of the reference map's
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
@@ -185,6 +201,12 @@ const storyIntroTitle = document.querySelector('#play-story-title');
 const storyIntroNarrator = document.querySelector('#play-story-narrator');
 const storyIntroHint = document.querySelector('#play-story-hint');
 const storyIntroSkip = document.querySelector('#play-story-skip');
+const tutorialPanel = document.querySelector('#play-tutorial-panel');
+const tutorialStepTitle = document.querySelector('#play-tutorial-step-title');
+const tutorialStepBody = document.querySelector('#play-tutorial-step-body');
+const tutorialStepProgress = document.querySelector('#play-tutorial-step-progress');
+const tutorialObjectList = document.querySelector('#play-tutorial-object-list');
+const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
 const upgradeOverlay = document.querySelector('#play-upgrade-overlay');
 const upgradeNote = document.querySelector('#play-upgrade-note');
 const upgradeCategories = document.querySelector('#play-upgrade-categories');
@@ -216,6 +238,7 @@ ensureImageAssets(PLAY_BASE_IMAGE_ASSET_PATHS);
 let map = null;
 let mapArc = 'descent';
 let mapPart = 1;
+let tutorialState = createPlayTutorialState();
 let origin = { x: 40, y: 40 };
 let mapBounds = null;
 let physicsBounds = null;
@@ -273,12 +296,29 @@ let backgroundLayer = null;
 let renderClock = 0;
 let hudSlotSignature = '';
 let eventLogMarkup = '';
+let tutorialUiSignature = '';
 const hudUpdateGate = createPlayUpdateGate(50);
 const discoveryUpdateGate = createPlayUpdateGate(120);
 let activeDiscoveryGuides = [];
 
 function getMapDefinition(arc = mapArc, part = mapPart) {
   return MAP_ROUTES[arc]?.[part] ?? null;
+}
+
+function hasTutorialExitPreference() {
+  try {
+    return Boolean(localStorage.getItem(TUTORIAL_STORAGE_KEY));
+  } catch {
+    return false;
+  }
+}
+
+function rememberTutorialExit(reason) {
+  try {
+    localStorage.setItem(TUTORIAL_STORAGE_KEY, reason || 'skipped');
+  } catch {
+    // The current run can still continue when storage is unavailable.
+  }
 }
 
 function mapSelectionValue(arc = mapArc, part = mapPart) {
@@ -288,7 +328,42 @@ function mapSelectionValue(arc = mapArc, part = mapPart) {
 function parseMapSelection(value) {
   const [arc, rawPart] = String(value).split(':');
   const part = Number(rawPart);
-  return MAP_ROUTES[arc]?.[part] ? { arc, part } : { arc: 'descent', part: 1 };
+  return MAP_ROUTES[arc]?.[part] ? { arc, part } : { arc: TUTORIAL_ROUTE, part: 1 };
+}
+
+function getCurrentStageExitState() {
+  if (mapArc === TUTORIAL_ROUTE) return getPlayTutorialExitState({ map, actor, origin });
+  return getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+}
+
+function updateTutorialPresentation() {
+  if (!tutorialPanel) return;
+  const active = mapArc === TUTORIAL_ROUTE && Boolean(map && actor);
+  tutorialPanel.hidden = !active;
+  if (!active) {
+    tutorialUiSignature = '';
+    return;
+  }
+  const tutorial = getPlayTutorialRenderState(tutorialState, enemies);
+  const signature = JSON.stringify({
+    step: tutorial.currentStep.id,
+    completed: tutorial.completedCoreSteps,
+    objects: tutorial.objectUses.map((entry) => [entry.id, entry.used]),
+    outcome: tutorial.outcome,
+  });
+  if (signature === tutorialUiSignature) return;
+  tutorialUiSignature = signature;
+  tutorialStepTitle.textContent = translateGameplayText(tutorial.currentStep.title);
+  tutorialStepBody.textContent = translateGameplayText(tutorial.currentStep.body);
+  tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
+  tutorialExitHint.textContent = translateGameplayText(tutorial.freeExit);
+  tutorialObjectList.replaceChildren(...tutorial.objectUses.map((entry) => {
+    const item = document.createElement('li');
+    item.className = entry.used ? 'is-used' : '';
+    item.textContent = `${entry.used ? '✓' : '○'} ${translateGameplayText(entry.label)}`;
+    item.title = translateGameplayText(entry.description);
+    return item;
+  }));
 }
 
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
@@ -392,6 +467,7 @@ function syncKatanaState() {
 
 function setupWorld(nextMap, { previousActor = null } = {}) {
   map = nextMap;
+  tutorialState = createPlayTutorialState();
   origin = { x: 36, y: 36 };
   renderIndex = createPlayRenderIndex(map, origin);
   visibleRenderKey = '';
@@ -440,15 +516,22 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   discoveryUpdateGate.reset();
   const encounterGroupCount = new Set(enemies.map((enemy) => enemy.anchorCellKey)).size;
   const mapDefinition = getMapDefinition();
-  eventLog = [
-    '拖曳潛水夫，放開即可彈射。',
-    `${mapDefinition.label} 已載入。`,
-    `已生成 ${enemies.length} 名敵人（${encounterGroupCount} 個遭遇群）。`,
-    `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
-  ];
+  eventLog = mapArc === TUTORIAL_ROUTE
+    ? [
+      '這裡是第一次呼吸：照著提示操作，也可以直接前往 EXIT 離開。',
+      `${mapDefinition.label} 已載入。`,
+      '敵人可以被擊殺，也可以透過共鳴變成中立夥伴。',
+    ]
+    : [
+      '拖曳潛水夫，放開即可彈射。',
+      `${mapDefinition.label} 已載入。`,
+      `已生成 ${enemies.length} 名敵人（${encounterGroupCount} 個遭遇群）。`,
+      `目前 Build：${combatState.build.weapons.map((entry) => `${WEAPONS[entry.id]?.name ?? entry.id} Lv.${entry.level}`).join('、')}。`,
+    ];
   mapTitle.textContent = `${mapDefinition.label} · ${map.layout.width} × ${map.layout.height}`;
   updateStoryIntroPresentation();
   updateAwakeningPresentation();
+  updateTutorialPresentation();
   updateCamera();
   updateVisibleRenderEntries(true);
   hudUpdateGate.reset();
@@ -473,11 +556,19 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
   mapPart = MAP_ROUTES[mapArc]?.[Number(part)] ? Number(part) : 1;
   mapSelect.value = mapSelectionValue();
   loadingMask.classList.remove('is-hidden');
-  loadingMask.textContent = mapPart === 1 && !preserveRun ? '' : mapArc === 'ascent' ? '正在逆游上升…' : '正在潛入水域…';
+  loadingMask.textContent = mapArc === TUTORIAL_ROUTE
+    ? '正在準備第一次呼吸…'
+    : mapPart === 1 && !preserveRun ? '' : mapArc === 'ascent' ? '正在逆游上升…' : '正在潛入水域…';
   try {
-    const response = await fetch(getMapDefinition().path);
-    if (!response.ok) throw new Error(`map ${response.status}`);
-    setupWorld(await response.json(), { previousActor });
+    const definition = getMapDefinition();
+    const nextMap = definition?.createMap
+      ? definition.createMap()
+      : await (async () => {
+        const response = await fetch(definition.path);
+        if (!response.ok) throw new Error(`map ${response.status}`);
+        return response.json();
+      })();
+    setupWorld(await nextMap, { previousActor });
   } catch (error) {
     storyIntroState.active = false;
     storyIntroCoverMode = 'none';
@@ -1245,7 +1336,7 @@ function drawCombatEffects() {
 }
 
 function drawStageExit() {
-  const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+  const stageExit = getCurrentStageExitState();
   if (!stageExit.exit) return;
   const { x, y } = stageExit.exit;
   const colour = stageExit.unlocked ? '#7cf2ff' : '#ff9d78';
@@ -1264,8 +1355,9 @@ function drawStageExit() {
   context.font = 'bold 5px system-ui';
   context.textAlign = 'center';
   context.fillStyle = colour;
-  context.fillText(stageExit.unlocked ? 'EXIT' : 'BOSS', x, y + 1.8);
+  context.fillText(stageExit.unlocked ? (mapArc === TUTORIAL_ROUTE ? 'NEXT' : 'EXIT') : 'BOSS', x, y + 1.8);
   context.restore();
+
 }
 
 function drawKatanaBlade(effect, angle, alpha) {
@@ -1706,6 +1798,7 @@ function render() {
 
 function updateHud() {
   if (!actor) return;
+  updateTutorialPresentation();
   updateHudIconSlots();
   updateUpgradeOverlay();
   const combatRenderState = getPlayCombatHudState(combatState);
@@ -2072,10 +2165,10 @@ canvas.addEventListener('pointerdown', (event) => {
   updateHud();
 });
 canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
-canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateHud(); });
+canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } refillUnlimitedResources(); const result = launchActor(actor, aimPoint); if (result.launched) { if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialLaunch(tutorialState); sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateTutorialPresentation(); updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
-resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與篇章進度保留。'); updateCamera(); updateHud(); });
+resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) return; sfxController.play('button'); activeCollisionSoundKeys.clear(); const resetActor = createTestActor(actor.spawn ?? spawn); resetActor.lives = actor.lives; resetActor.maxLives = actor.maxLives; setPlayerDamageReduction(resetActor, playerDamageReduction); Object.assign(actor, resetActor, { activeEffects: {}, stunnedUntil: 0 }); syncPlayCombatBuild(combatState, actor); syncKatanaState(); eventLog.push('主角已回到最近的安全水域；Build、減傷與篇章進度保留。'); updateCamera(); updateTutorialPresentation(); updateHud(); });
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 unlimitedResourcesButton.addEventListener('click', () => { sfxController.play('button'); unlimitedResources = !unlimitedResources; unlimitedResourcesButton.classList.toggle('is-active', unlimitedResources); unlimitedResourcesButton.setAttribute('aria-pressed', String(unlimitedResources)); unlimitedResourcesButton.textContent = unlimitedResources ? '∞ 無限氧氣／能量：開' : '∞ 無限氧氣／能量：關'; refillUnlimitedResources(); updateHud(); });
 damageReductionSelect.addEventListener('change', () => {
@@ -2129,6 +2222,7 @@ function beginArcTransition(nextArc, nextPart = 1) {
 }
 mapSelect.addEventListener('change', () => {
   sfxController.play('menuSelection');
+  if (mapArc === TUTORIAL_ROUTE) rememberTutorialExit('skipped');
   const selection = parseMapSelection(mapSelect.value);
   mapArc = selection.arc;
   mapPart = selection.part;
@@ -2174,8 +2268,10 @@ window.addEventListener('keydown', (event) => {
   }
   if (event.key.toLowerCase() === 'r') resetButton.click();
   if (event.key.toLowerCase() === 'e' && map && actor && !actor.gameOver) {
-    const result = toggleSeaweedAttachment(actor, map, 'chapter1', origin);
+    const result = activateNearbyInteraction(actor, map, 'chapter1', origin);
+    if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialInteraction(tutorialState, result);
     eventLog.push(result.message);
+    updateTutorialPresentation();
     updateHud();
   }
   if (event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
@@ -2211,7 +2307,9 @@ function simulate(elapsed, now = performance.now()) {
       worldTime += FIXED_STEP;
       refillUnlimitedResources();
       const previousPosition = { x: actor.x, y: actor.y };
-      addEvents(stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 }));
+      const physicsEvents = stepPhysics({ map, chapter: 'chapter1', actor, dt: FIXED_STEP, origin, bounds: physicsBounds, mutateMap: true, time: now / 1000 });
+      addEvents(physicsEvents);
+      if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialEvents(tutorialState, physicsEvents);
       if (actor.launchLockTimer > 0 && dragging) {
         dragging = false;
         aimPoint = null;
@@ -2260,6 +2358,7 @@ function simulate(elapsed, now = performance.now()) {
         dt: FIXED_STEP,
         aiming: dragging,
       });
+      if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialCombat(tutorialState, combatState);
       if (combatResult.ok && combatResult.collected.collected.length) {
         const gained = combatResult.collected.collected.reduce((total, orb) => total + (orb.value ?? 0), 0);
         eventLog.push(`拾取 ${gained} EXP${combatResult.collected.levelUps ? `，提升 ${combatResult.collected.levelUps} 級` : ''}。`);
@@ -2283,8 +2382,23 @@ function simulate(elapsed, now = performance.now()) {
           eventLog.push(`${cause}：${getPlayAttemptState(actor).label}，已回到最近啟用的 Checkpoint。`);
         }
       }
-      const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
-      if (!actor.dead && stageExit.arrived) {
+      const tutorialProgress = mapArc === TUTORIAL_ROUTE
+        ? stepPlayTutorial(tutorialState, { enemies })
+        : null;
+      const stageExit = getCurrentStageExitState();
+      if (!actor.dead && mapArc === TUTORIAL_ROUTE && (tutorialProgress?.readyToLeave || stageExit.arrived)) {
+        const reason = tutorialProgress?.readyToLeave ? tutorialProgress.outcome : 'skipped';
+        rememberTutorialExit(reason);
+        eventLog.push(reason === 'resonance'
+          ? '教學完成：你用 Resonance 讓敵人中立；正在進入下沉篇。'
+          : reason === 'defeat'
+            ? '教學完成：你用武器解決敵人；正在進入下沉篇。'
+            : '你選擇離開教學房；不需要完成所有示範，正在進入下沉篇。');
+        beginArcTransition('descent', 1);
+        accumulator = 0;
+        break;
+      }
+      if (!actor.dead && mapArc !== TUTORIAL_ROUTE && stageExit.arrived) {
         if (stageExit.nextPart) {
           beginStageTransition(stageExit.nextPart);
           accumulator = 0;
@@ -2319,14 +2433,15 @@ function simulate(elapsed, now = performance.now()) {
 
 window.render_game_to_text = () => {
   const combat = getPlayCombatRenderState(combatState);
-  const stageExit = getPlayStageExitState({ map, mapPart, actor, enemies, origin });
+  const stageExit = getCurrentStageExitState();
+  const tutorial = mapArc === TUTORIAL_ROUTE ? getPlayTutorialRenderState(tutorialState, enemies) : null;
   return JSON.stringify({
     coordinateSystem: 'world origin is top-left; x right, y down',
     map: getMapDefinition()?.label ?? 'loading',
     mapArc,
     mapPart,
     camera: { x: Math.round(camera.x), y: Math.round(camera.y), horizontal: camera.edgeX },
-    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
+    player: actor ? { x: Math.round(actor.x), y: Math.round(actor.y), vx: Math.round(actor.vx), vy: Math.round(actor.vy), health: Math.round(actor.health), oxygen: Math.round(actor.oxygen), energy: Math.round(actor.energy), animation: getPlayerAnimationState(actor), facing: getPlayerFacingDirection(actor), dragging, weapon: actor.activeWeapon, insideWall: Boolean(actor.insideWall), invisibleRemaining: Math.max(0, actor.invisibilityTimer ?? 0), stunnedRemaining: Math.max(0, (actor.stunnedUntil ?? 0) - worldTime), launchLockedRemaining: Math.max(0, actor.launchLockTimer ?? 0), gravityImmuneRemaining: Math.max(0, actor.gravityImmunity ?? 0), activeEffects: actor.activeEffects ?? {} } : null,
     attempt: actor ? getPlayAttemptState(actor) : null,
     storyIntro: { ...getPlayStoryIntroRenderState(storyIntroState), coverMode: storyIntroCoverMode },
     awakening: getPlayAwakeningRenderState(awakeningState),
@@ -2339,6 +2454,7 @@ window.render_game_to_text = () => {
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,
     stageExit,
+    tutorial,
     bossRoom: getPlayBossRoomRenderState(bossRoomState, map),
     runCompleted,
     transitioning,
@@ -2359,6 +2475,7 @@ window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Ma
 function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }
 
 if (MAP_ROUTES[requestedRoute]) mapArc = requestedRoute;
+else if (!hasTutorialExitPreference()) mapArc = TUTORIAL_ROUTE;
 if (requestedPart && MAP_ROUTES[mapArc]?.[requestedPart]) mapPart = Number(requestedPart);
 mapSelect.value = mapSelectionValue();
 const requestedArc = new URLSearchParams(window.location.search).get('arc');
