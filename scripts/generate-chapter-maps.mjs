@@ -517,6 +517,30 @@ function clearPart3AirWallCorridor(map) {
   removableEdges.forEach((key) => delete map.edges[key]);
 }
 
+function removePart3StairAt34m(map) {
+  // The stair was the only T2 -> T1 bridge for this authored pocket. Flatten
+  // that pocket to T1 so removing the unstable bridge does not strand route
+  // objects or create a new invisible layer boundary.
+  Object.values(map.cells).forEach((cell) => {
+    if (cell.r >= 29 && cell.r <= 40 && cell.waterLayer === 'T2') {
+      cell.waterLayer = 'T1';
+    }
+  });
+
+  const removableEdges = new Set();
+  Object.entries(map.edges).forEach(([key, edge]) => {
+    if (edge.type !== 'layerPortal') return;
+    const touches34m = edge.cells.some((cellKey) => {
+      const cell = map.cells[cellKey];
+      return cell && cell.r >= 34 && cell.r <= 35;
+    });
+    if (!touches34m) return;
+    removableEdges.add(key);
+    if (edge.portalTargetKey) removableEdges.add(edge.portalTargetKey);
+  });
+  removableEdges.forEach((key) => delete map.edges[key]);
+}
+
 function repairPart3PortalRoute(map) {
   // The player-authored ruin uses three visible portal rings. The template
   // preserved their geometry, but most individual Edge targets were null.
@@ -1171,6 +1195,9 @@ function buildPart3(source) {
   // old source geometry mixed blocked Cells and non-visual blocking Edges here,
   // which felt like an invisible wall even when the player was on the route.
   clearPart3AirWallCorridor(map);
+  // The remaining authored layer-portal stair at 34m is a recurring source of
+  // route and collision bugs; Part 3 no longer uses that stair.
+  removePart3StairAt34m(map);
   map.metadata.bossRoom = {
     id: 'abyssal-throne',
     enemyId: 'abyssalSpermWhale',

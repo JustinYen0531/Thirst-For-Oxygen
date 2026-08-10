@@ -473,10 +473,13 @@ test('part 3 preserves the player-authored template geometry outside the final B
       && sourceCell.r <= 40
       && sourceColumn >= 8
       && sourceColumn <= 17;
+    const isPart3LayerCorrectionCell = sourceCell.r >= 29
+      && sourceCell.r <= 40
+      && sourceCell.waterLayer === 'T2';
     // The final Boss room and the explicit 34-40m air-wall correction are intentional carve-outs.
     if (!isFinalBossRoomCell && !isAirWallCorrectionCell) assert.equal(generated.terrain, sourceCell.terrain, `${key} terrain should stay player-authored`);
     assert.equal(generated.gravityLevel, sourceCell.gravityLevel, `${key} gravity should stay player-authored`);
-    if (!isFinalBossRoomCell && !isAirWallCorrectionCell) assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
+    if (!isFinalBossRoomCell && !isAirWallCorrectionCell && !isPart3LayerCorrectionCell) assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
   });
   assert.equal(part3.metadata.source, '範本map.json（玩家原始第三部分）');
   assert.equal(Object.values(part3.edges).filter((edge) => edge.type === 'multiPortal').length, 38);
@@ -532,6 +535,19 @@ test('part 3 clears the 34-to-40 metre central corridor of walls and mechanisms'
   verticalRoute.slice(0, -1).forEach((key, index) => {
     assert.equal(canTraverse(part3, key, verticalRoute[index + 1]), true, `${key} -> ${verticalRoute[index + 1]} must stay open`);
   });
+});
+
+test('part 3 removes the authored 34-metre stair layer portal', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const stairsAt34m = Object.values(part3.edges).filter((edge) => (
+    edge.type === 'layerPortal'
+    && edge.cells.some((key) => part3.cells[key]?.r >= 34 && part3.cells[key]?.r <= 35)
+  ));
+  assert.equal(stairsAt34m.length, 0, 'the unstable 34m stair must not be generated in Part 3');
+  const strandedT2Cells = Object.values(part3.cells).filter((cell) => (
+    cell.r >= 29 && cell.r <= 40 && cell.waterLayer === 'T2'
+  ));
+  assert.equal(strandedT2Cells.length, 0, 'the removed stair pocket must not retain a hidden T2 boundary');
 });
 
 test('part 3 provides five bright L-1 Torricelli spaces plus one Boss-room rest space', () => {
