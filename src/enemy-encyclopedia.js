@@ -385,6 +385,12 @@ const MAP_ENTRY_DETAILS = Object.freeze({
     description: '藏著有限氧氣的深色礦石，必須用高速撞擊打開，補給通常放在危險位置。',
     details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '把氧氣取得與玩家肉身撞擊風險綁在一起']],
   },
+  oxygenBubble: {
+    group: 'Cell 物件',
+    name: '清氧氣泡',
+    description: '接觸後立即補充乾淨氧氣；Boss 房間會依時間重新生成，讓戰鬥保留可控的喘息窗口。',
+    details: [['放置層級', 'Cell 物件，可 Free Snap 或置中'], ['玩法作用', '一次性補充 25 O₂；Boss 遭遇中會週期重生']],
+  },
   checkpoint: {
     group: 'Cell 物件',
     name: 'Checkpoint 檢查點',

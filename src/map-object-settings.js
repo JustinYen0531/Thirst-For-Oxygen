@@ -7,6 +7,7 @@ const FREE_OBJECT_COLLISION_DIAMETERS = Object.freeze({
   button: 24,
   weightStone: 17,
   oxygen: 17,
+  oxygenBubble: 17,
   bubble: 17,
   torricelli: 17,
   checkpoint: 17,
@@ -56,9 +57,13 @@ export const FREE_OBJECT_SETTING_FIELDS = Object.freeze({
     { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 100 },
     { key: 'activationSpeed', label: '釋放所需速度', unit: 'm/s', min: 0, max: 140, step: 1, defaultValue: 110 },
   ]),
+  oxygenBubble: freezeFields([
+    fixedSizeField(),
+    { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 25 },
+  ]),
   bubble: freezeFields([
     fixedSizeField(),
-    { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 20 },
+    { key: 'oxygenAmount', label: '提供氧氣', unit: 'O₂', min: 0, max: 100, step: 1, defaultValue: 50 },
     { key: 'gravityImmunitySeconds', label: '免疫重力時間', unit: '秒', min: 0, max: 12, step: 0.1, defaultValue: 2.5 },
     { key: 'launchLockSeconds', label: '禁止彈射時間', unit: '秒', min: 0, max: 6, step: 0.1, defaultValue: 1.5 },
   ]),

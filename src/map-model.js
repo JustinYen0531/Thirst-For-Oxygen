@@ -29,6 +29,7 @@ export const CELL_OBJECT_TYPES = Object.freeze([
   'weightStone',
   'seaweed',
   'oxygen',
+  'oxygenBubble',
   'checkpoint',
   'bubble',
   'torricelli',

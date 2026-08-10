@@ -14,8 +14,11 @@ const SFX_VOLUME_KEY = 'thirst-for-oxygen:sfx-volume';
 const DEFAULT_SFX_VOLUME = 0.75;
 
 export const AMBIENT_AUDIO_MIX = Object.freeze({
-  underwaterLoop: 0.82,
-  scubaBubbles: 0.24,
+  // The default master volume remains 0.75, so these 1.5x values produce a
+  // real 50% lift over the previous effective diving mix without changing
+  // the user's saved SFX slider preference.
+  underwaterLoop: 1.23,
+  scubaBubbles: 0.36,
 });
 
 const SFX_SOURCES = Object.freeze({

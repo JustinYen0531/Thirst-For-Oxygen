@@ -64,6 +64,14 @@ test('every authored oxygen ore requires a high-speed 110 m/s impact', () => {
   });
 });
 
+test('all authored photosynthesis bubbles restore the new half-tank oxygen amount', () => {
+  [...mapNames.map(loadMap), ...ascentMapNames.map(loadAscentMap)].forEach((map) => {
+    freeObjectsOf(map)
+      .filter(({ object }) => object.kind === 'bubble')
+      .forEach(({ object }) => assert.equal(object.params?.oxygenAmount, 50, 'photosynthesis bubbles should restore 50 O₂'));
+  });
+});
+
 test('beginner-friendly coral and seaweed support edges are distributed at four times the old count', () => {
   const expected = [
     { coralCluster: 24, seaweed: 20 },

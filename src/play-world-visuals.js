@@ -39,6 +39,7 @@ export const PLAY_OBJECT_VISUALS = Object.freeze({
   weightStone: visual('weightStone', { assetPath: `${OBJECT_ROOT}/heavy-stone.png`, color: '#52aaff', shape: 'weight-stone', label: '重石' }),
   seaweed: visual('seaweed', { assetPath: `${OBJECT_ROOT}/sea-grass.png`, color: '#65e6ba', shape: 'seaweed', label: '水草' }),
   oxygen: visual('oxygen', { assetPath: `${OBJECT_ROOT}/oxygen-ore.png`, color: '#71e88f', shape: 'oxygen-ore', label: '含氧礦石' }),
+  oxygenBubble: visual('oxygenBubble', { assetPath: `${OBJECT_ROOT}/photosynthesis-bubble.png`, color: '#71e8ff', shape: 'oxygen-bubble', label: '清氧氣泡' }),
   checkpoint: visual('checkpoint', { assetPath: `${OBJECT_ROOT}/checkpoint.png`, color: '#52aaff', shape: 'checkpoint', label: 'Checkpoint' }),
   bubble: visual('bubble', { assetPath: `${OBJECT_ROOT}/photosynthesis-bubble.png`, color: '#71e88f', shape: 'bubble', label: '光合作用氣泡' }),
   torricelli: visual('torricelli', { assetPath: `${OBJECT_ROOT}/torricelli-space.png`, color: '#71e88f', shape: 'torricelli-space', label: '托里切利空間' }),

@@ -62,11 +62,11 @@ test('all Mini Boss and Final Boss attacks have authored skill animations', () =
   });
 });
 
-test('map encyclopedia distinguishes 29 placements from 27 unique element ids', () => {
-  assert.equal(MAP_PLACEMENT_COUNT, 29);
-  assert.equal(MAP_ENCYCLOPEDIA.length, 29);
-  assert.equal(MAP_UNIQUE_ELEMENT_COUNT, 27);
-  assert.equal(new Set(MAP_ENCYCLOPEDIA.map(({ placementId }) => placementId)).size, 29);
+test('map encyclopedia distinguishes 30 placements from 28 unique element ids', () => {
+  assert.equal(MAP_PLACEMENT_COUNT, 30);
+  assert.equal(MAP_ENCYCLOPEDIA.length, 30);
+  assert.equal(MAP_UNIQUE_ELEMENT_COUNT, 28);
+  assert.equal(new Set(MAP_ENCYCLOPEDIA.map(({ placementId }) => placementId)).size, 30);
 
   for (const id of ['seaweed', 'coralCluster']) {
     const placements = MAP_ENCYCLOPEDIA.filter((entry) => entry.id === id);

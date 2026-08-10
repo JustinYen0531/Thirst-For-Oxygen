@@ -898,6 +898,11 @@ function processCellObjects(map, actor, chapter, origin, events, mutateMap, dt) 
           addEvent(events, 'oxygen', `氧氣礦石：需要 ${Math.round(requiredSpeed)} m/s 撞擊才會釋放氧氣。`);
         }
       }
+      if (object.kind === 'oxygenBubble') {
+        const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenAmount'), 'oxygenBubble');
+        if (mutateMap) removeContactObject(map, { key, ownerKey, object, free, index }, chapter);
+        addEvent(events, 'oxygenBubble', `清氧氣泡：+${Math.round(oxygen.recovered)} O₂；氣泡已消失。`);
+      }
       if (object.kind === 'torricelli') {
         const oxygen = recoverPlayerResource(actor, 'oxygen', getFreeObjectSetting(object, 'oxygenRecoveryPerSecond') * dt, 'torricelli');
         if (oxygen.recovered > 0 && !isOnCooldown(actor, `torricelli:${key}`)) {

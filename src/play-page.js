@@ -144,7 +144,7 @@ const SCALE = 4;
 const TILE_SIZE = 24;
 const PLAYER_ASSET = PLAYER_ANIMATION_ASSETS.swim[0];
 const TILE_ASSETS = PLAY_TILE_ASSETS;
-const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱' };
+const objectGlyphs = { mine: '✹', weightStone: '●', oxygen: 'O₂', oxygenBubble: '◌', checkpoint: '◎', bubble: '○', torricelli: 'T', razor: '╱' };
 
 const canvas = document.querySelector('#play-canvas');
 const context = canvas.getContext('2d');
@@ -2264,7 +2264,7 @@ function simulate(elapsed, now = performance.now()) {
         const gained = combatResult.collected.collected.reduce((total, orb) => total + (orb.value ?? 0), 0);
         eventLog.push(`拾取 ${gained} EXP${combatResult.collected.levelUps ? `，提升 ${combatResult.collected.levelUps} 級` : ''}。`);
       }
-      const bossRoomResult = stepPlayBossRoom(bossRoomState, { map, actor, enemies, origin, chapter: 'chapter1' });
+      const bossRoomResult = stepPlayBossRoom(bossRoomState, { map, actor, enemies, origin, chapter: 'chapter1', time: worldTime });
       if (bossRoomResult.changed) visibleRenderKey = '';
       addEvents(bossRoomResult.events);
       enemies.forEach((enemy) => {

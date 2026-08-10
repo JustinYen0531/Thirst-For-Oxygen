@@ -25,6 +25,20 @@ const cellKey = (cell) => `${cell.q},${cell.r}`;
 const columnOf = (cell) => cell.q + Math.floor(cell.r / 2);
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
+function migratePhotosynthesisBubbleDefault(map) {
+  const oxygenAmount = getOfficialFreeObjectState('bubble').params.oxygenAmount;
+  Object.values(map.cells).forEach((cell) => {
+    (cell.freeObjects ?? []).forEach((object) => {
+      // Preserve intentional inspector overrides while upgrading the old
+      // authored default from 20 O₂ to the new half-tank 50 O₂ contract.
+      if (object.kind === 'bubble' && object.params?.oxygenAmount === 20) {
+        object.params = { ...object.params, oxygenAmount };
+      }
+    });
+  });
+  return map;
+}
+
 function createAuthoredMap({ width, height, metadata }) {
   const map = createEmptyMap({ width, height });
   map.version = 2;
@@ -1111,10 +1125,10 @@ const descentOutputs = [
   ['下沉篇-第1部分.json', buildPart1()],
   ['下沉篇-第2部分.json', buildPart2()],
   ['下沉篇-第3部分.json', buildPart3(JSON.parse(readFileSync(sourcePath, 'utf8')))],
-].map(([name, map]) => [name, normalizeMapObjectSizes(map)]);
+].map(([name, map]) => [name, migratePhotosynthesisBubbleDefault(normalizeMapObjectSizes(map))]);
 const ascentOutputs = descentOutputs.map(([name, map], index) => [
   name.replace('下沉篇', '上升篇'),
-  buildAscentPart(map, index + 1),
+  migratePhotosynthesisBubbleDefault(buildAscentPart(map, index + 1)),
 ]);
 descentOutputs.forEach(([name, map]) => writeFileSync(join(descentOutputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));
 ascentOutputs.forEach(([name, map]) => writeFileSync(join(ascentOutputDir, name), `${JSON.stringify(map, null, 2)}\n`, 'utf8'));

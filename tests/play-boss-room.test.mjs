@@ -89,3 +89,33 @@ test('maps without a boss-room contract remain inert and JSON-safe', () => {
   assert.equal(getPlayBossRoomRenderState(state, map), null);
   assert.deepEqual(JSON.parse(JSON.stringify(state)), state);
 });
+
+test('every active Boss encounter receives a persistent source and timed oxygen bubbles', () => {
+  const map = createEmptyMap({ width: 12, height: 12 });
+  const bossCell = map.cells[cellKeyFromColumn(6, 6)];
+  const bossPosition = getHexCenter(bossCell, origin);
+  const state = createPlayBossRoomState(map);
+  const actor = { x: bossPosition.x, y: bossPosition.y };
+  const boss = {
+    instanceId: 'final-boss-test',
+    enemyId: 'abyssalSpermWhale',
+    tier: 'finalBoss',
+    health: 1000,
+    x: bossPosition.x,
+    y: bossPosition.y,
+  };
+
+  const initial = stepPlayBossRoom(state, { map, actor, enemies: [boss], origin, time: 0 });
+  assert.equal(initial.changed, true);
+  assert.equal(Object.values(map.cells).flatMap((cell) => cell.freeObjects).filter((object) => object.kind === 'torricelli').length, 1);
+
+  const oxygenSpawn = stepPlayBossRoom(state, { map, actor, enemies: [boss], origin, time: 12.1 });
+  assert.equal(oxygenSpawn.events.some((event) => event.type === 'bossRoomOxygenBubbleSpawned'), true);
+  assert.equal(Object.values(map.cells).flatMap((cell) => cell.freeObjects).filter((object) => object.kind === 'oxygenBubble').length, 1);
+
+  const photosynthesisSpawn = stepPlayBossRoom(state, { map, actor, enemies: [boss], origin, time: 18.1 });
+  assert.equal(photosynthesisSpawn.events.some((event) => event.type === 'bossRoomPhotosynthesisBubbleSpawned'), true);
+  const photosynthesis = Object.values(map.cells).flatMap((cell) => cell.freeObjects).find((object) => object.kind === 'bubble');
+  assert.equal(photosynthesis.params.oxygenAmount, 50);
+  assert.equal(getPlayBossRoomRenderState(state, map).resources[0].sourcePresent, true);
+});

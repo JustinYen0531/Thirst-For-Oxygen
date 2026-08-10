@@ -491,6 +491,8 @@ test('official object and Edge settings stay explicit and resettable', () => {
   assert.deepEqual(getOfficialFreeObjectState('button'), { size: 30, params: {} });
   assert.deepEqual(getOfficialFreeObjectState('weightStone'), { size: 30, params: { breakSpeed: 31, weight: 4 } });
   assert.deepEqual(getOfficialFreeObjectState('oxygen'), { size: 30, params: { oxygenAmount: 100, activationSpeed: 110 } });
+  assert.deepEqual(getOfficialFreeObjectState('oxygenBubble'), { size: 30, params: { oxygenAmount: 25 } });
+  assert.deepEqual(getOfficialFreeObjectState('bubble'), { size: 30, params: { oxygenAmount: 50, gravityImmunitySeconds: 2.5, launchLockSeconds: 1.5 } });
   assert.deepEqual(getOfficialEdgeState('springJelly'), { size: 30, params: { bounceMultiplier: 1.08 } });
   assert.equal(getFreeObjectSetting({ kind: 'mine', size: 17 }, 'size'), 30);
   assert.equal(getEdgeSetting({ type: 'spike', size: 1 }, 'size'), 30);
@@ -540,6 +542,16 @@ test('free-object parameters drive oxygen, mine damage, and Torricelli recovery'
   assert.ok(oxygenActor.oxygen >= 34, 'custom oxygen amount should be granted after the configured impact speed');
   assert.equal(getActiveCell(oxygenMap, '0,0').freeObjects.length, 0, 'spent oxygen ore should be removed');
 
+  const cleanBubbleMap = createEmptyMap({ width: 1, height: 1 });
+  patchCell(cleanBubbleMap, '0,0', {
+    gravityLevel: 'L0',
+    freeObjects: [{ kind: 'oxygenBubble', offset: { x: 0, y: 0 }, size: 20, params: { oxygenAmount: 25 } }],
+  });
+  const cleanBubbleActor = actorIn(cleanBubbleMap, '0,0');
+  cleanBubbleActor.oxygen = 0;
+  stepPhysics({ map: cleanBubbleMap, actor: cleanBubbleActor, origin: ORIGIN });
+  assert.equal(cleanBubbleActor.oxygen, 25, 'a clean oxygen bubble should restore its configured oxygen amount');
+  assert.equal(getActiveCell(cleanBubbleMap, '0,0').freeObjects.length, 0, 'a clean oxygen bubble should be consumed on contact');
   const torricelliMap = createEmptyMap({ width: 1, height: 1 });
   patchCell(torricelliMap, '0,0', {
     gravityLevel: 'L0',
@@ -644,9 +656,11 @@ test('bubble grants gravity immunity and seaweed suspends gravity', () => {
   patchCell(map, '1,0', { gravityLevel: 'L3' });
   patchEdge(map, '0,0', '1,0', { type: 'seaweed', blocksPassage: false });
   const bubbleActor = actorIn(map, '0,0');
+  bubbleActor.oxygen = 0;
   stepPhysics({ map, actor: bubbleActor, origin: ORIGIN });
   const afterContact = bubbleActor.vy;
   assert.equal(map.cells['0,0'].objects.some((object) => object.kind === 'bubble'), false, 'a photosynthesis bubble is consumed on contact');
+  assert.equal(bubbleActor.oxygen, 50, 'the default photosynthesis bubble should restore about half a full oxygen tank');
   assert.equal(bubbleActor.launchLockTimer, 1.5);
   assert.deepEqual(launchActor(bubbleActor, { x: bubbleActor.x + 80, y: bubbleActor.y }), { launched: false, reason: 'bubbleLock' });
   stepPhysics({ map, actor: bubbleActor, origin: ORIGIN });

@@ -7823,7 +7823,7 @@
           },
           "size": 30,
           "params": {
-            "oxygenAmount": 20,
+            "oxygenAmount": 50,
             "gravityImmunitySeconds": 2.5,
             "launchLockSeconds": 1.5
           }
@@ -20127,7 +20127,7 @@
           },
           "size": 30,
           "params": {
-            "oxygenAmount": 20,
+            "oxygenAmount": 50,
             "gravityImmunitySeconds": 2.5,
             "launchLockSeconds": 1.5
           }
