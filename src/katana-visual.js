@@ -1,4 +1,4 @@
-export const KATANA_SPRITE = '/assets/editor/weapons/abyssal-katana.png';
+export const KATANA_SPRITE = './assets/editor/weapons/abyssal-katana.png';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const toRadians = (degrees) => (degrees * Math.PI) / 180;

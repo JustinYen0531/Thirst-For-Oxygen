@@ -50,6 +50,10 @@ const ASCENT_MAP_PATHS = [
   '../maps/上升篇/上升篇-第3部分.json',
 ];
 
+function publicAssetUrl(assetPath) {
+  return new URL(`../public/${assetPath.replace(/^\.?\//, '')}`, import.meta.url);
+}
+
 function readMap(relativePath) {
   return JSON.parse(readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8'));
 }
@@ -264,7 +268,7 @@ test('all regular descent visuals exist and numeric tiers map directly to increa
   DESCENT_ENEMY_ROSTER.forEach((enemyId) => {
     const source = PLAY_ENEMY_VISUALS[enemyId];
     assert.ok(source, `${enemyId} should have a play visual`);
-    const assetPath = fileURLToPath(new URL(`../public${source}`, import.meta.url));
+    const assetPath = fileURLToPath(publicAssetUrl(source));
     assert.equal(existsSync(assetPath), true, `${enemyId} visual should exist at ${source}`);
   });
   assert.deepEqual(new Set(Object.keys(PLAY_ENEMY_VISUALS)), new Set([...DESCENT_ENEMY_ROSTER, ...PLAY_SPECIAL_ENEMY_IDS]));
@@ -302,12 +306,12 @@ test('movement loops idle art and each authored skill selects its exact attack a
     assert.ok(visualSet?.idle, `${enemyId} should expose a natural-floating loop`);
     assert.equal(PLAY_ENEMY_VISUALS[enemyId], visualSet.idle);
     assert.equal(PLAY_ENEMY_ANIMATED_ASSET_PATHS.includes(visualSet.idle), true);
-    assert.equal(existsSync(fileURLToPath(new URL(`../public${visualSet.idle}`, import.meta.url))), true);
+    assert.equal(existsSync(fileURLToPath(publicAssetUrl(visualSet.idle))), true);
     ENEMY_DEFINITIONS[enemyId].attacks.forEach((skill) => {
       const actionPath = visualSet.actions[skill.id];
       assert.ok(actionPath, `${enemyId}.${skill.id} should select its own animation`);
       assert.equal(PLAY_ENEMY_ANIMATED_ASSET_PATHS.includes(actionPath), true);
-      assert.equal(existsSync(fileURLToPath(new URL(`../public${actionPath}`, import.meta.url))), true);
+      assert.equal(existsSync(fileURLToPath(publicAssetUrl(actionPath))), true);
     });
   });
 
@@ -327,7 +331,7 @@ test('formal rendering advances six distinct static frames instead of trusting a
     const framePaths = getPlayEnemyFramePaths(animatedPath);
     assert.equal(framePaths.length, PLAY_ENEMY_FRAME_COUNT);
     const hashes = framePaths.map((framePath) => {
-      const absolutePath = fileURLToPath(new URL(`../public${framePath}`, import.meta.url));
+      const absolutePath = fileURLToPath(publicAssetUrl(framePath));
       assert.equal(existsSync(absolutePath), true, `${framePath} should be a real runtime frame`);
       return createHash('sha256').update(readFileSync(absolutePath)).digest('hex');
     });
@@ -399,13 +403,13 @@ test('special map markers instantiate the documented Mini Bosses and Boss withou
         getPlayEnemySize(enemy.tier),
       );
       if (enemy.visual) {
-        assert.equal(existsSync(fileURLToPath(new URL(`../public${enemy.visual}`, import.meta.url))), true);
+        assert.equal(existsSync(fileURLToPath(publicAssetUrl(enemy.visual))), true);
       }
     });
   });
   assert.equal(
     PLAY_ENEMY_VISUALS.abyssalSpermWhale,
-    '/assets/enemies-afterimage/abyssalSpermWhale/reconstructed-preview__base-float-move.webp',
+    './assets/enemies-afterimage/abyssalSpermWhale/reconstructed-preview__base-float-move.webp',
     'the Final Boss should use its own authored idle art instead of borrowing another enemy asset',
   );
   assert.ok(PLAY_BOSS_ACTIVATION_RADIUS > PLAY_ENEMY_ACTIVATION_RADIUS);

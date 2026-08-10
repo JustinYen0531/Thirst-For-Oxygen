@@ -79,7 +79,7 @@ const UPGRADE_LEVEL_SUMMARIES = Object.freeze({
 
 function getUpgradeIconPath(category, id, level) {
   const family = category === 'weapon' ? 'weapons' : 'passives';
-  return `/assets/editor/icons/${family}/${id}/lv${level}.png`;
+  return `./assets/editor/icons/${family}/${id}/lv${level}.png`;
 }
 
 function createUpgradeCandidate(category, action, definition, level) {

@@ -24,13 +24,14 @@ import {
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
+const publicAssetPath = (assetPath) => `${ROOT}\\public\\${decodeURIComponent(assetPath).replace(/^\.?\//, '').replaceAll('/', '\\')}`;
 
 test('Start Game owns a cinematic loading layer with real progress semantics', () => {
   const html = read('../home.html');
   const css = read('../src/home.css');
   const page = read('../src/home-page.js');
 
-  assert.match(html, /id="home-start-game" href="\/play\.html"/);
+  assert.match(html, /id="home-start-game" href="\.\/play\.html"/);
   assert.match(html, /id="home-start-loading-video"[\s\S]*start-game-descent-loading\.mp4/);
   assert.match(html, /id="home-start-loading-progress" role="progressbar"[\s\S]*aria-valuenow="0"/);
   assert.match(html, /id="home-submission-badge"[\s\S]*Submission to Ultimate AI-Powered Game Jam #2[\s\S]*Topic: Dive &amp; Buddy/);
@@ -92,7 +93,7 @@ test('formal Play knows every runtime image while homepage startup warms only th
   assert.equal(PLAY_STARTUP_ASSET_PATHS.filter((path) => path.includes('/actors/player/swim/')).length, 6);
   Object.values(PLAY_TILE_ASSETS).forEach((path) => assert.ok(PLAY_IMAGE_ASSET_PATHS.includes(path), path));
   PLAY_IMAGE_ASSET_PATHS.forEach((path) => {
-    assert.equal(existsSync(`${ROOT}\\public${decodeURIComponent(path).replaceAll('/', '\\')}`), true, path);
+    assert.equal(existsSync(publicAssetPath(path)), true, path);
   });
   assert.equal(existsSync(fileURLToPath(PLAY_MAP_ASSET_URLS.descent[1])), true);
 });
@@ -160,7 +161,7 @@ test('Start Game waits for both the movie and asset work before navigating', asy
     pause() { this.pauseCount += 1; }
   }
 
-  const startLink = new FakeElement({ href: '/play.html' });
+  const startLink = new FakeElement({ href: './play.html' });
   const loadingLayer = new FakeElement();
   const loadingVideo = new FakeElement();
   const progress = new FakeElement();
@@ -204,7 +205,7 @@ test('Start Game waits for both the movie and asset work before navigating', asy
   assert.equal(progress.getAttribute('aria-valuenow'), '100');
   assert.equal(progressFill.style.width, '100%');
   assert.equal(percentage.textContent, '100%');
-  assert.deepEqual(navigation, ['/play.html']);
+  assert.deepEqual(navigation, ['./play.html']);
   assert.equal(loadingVideo.pauseCount, 1);
   assert.deepEqual(controller.getState(), {
     active: true,

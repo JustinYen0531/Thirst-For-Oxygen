@@ -46,7 +46,7 @@ test('every static editor binding has English and Traditional Chinese copy', () 
 
 test('editor topbar stays compact and mode controls live below the asset palette heading', () => {
   const topbarSource = indexSource.slice(0, indexSource.indexOf('<section class="workspace">'));
-  assert.match(indexSource, /<a class="topbar-nav" href="\/home\.html" data-i18n="nav\.back">Back<\/a>/);
+  assert.match(indexSource, /<a class="topbar-nav" href="\.\/home\.html" data-i18n="nav\.back">Back<\/a>/);
   assert.doesNotMatch(indexSource, /data-editor-language/);
   assert.match(indexSource, /<div class="palette-heading">[\s\S]*?<\/div>\s*<div class="editor-control-actions"[\s\S]*?id="fullscreen"/);
   assert.doesNotMatch(topbarSource, /class="topbar-actions"[\s\S]*?id="editor-mode"/);

@@ -534,7 +534,7 @@ test('trident can be preview-fired without a target and carries its authored vis
   assert.equal(state.projectiles.length, 1);
   assert.equal(state.projectiles[0].weaponId, 'trident');
   assert.equal(state.projectiles[0].weaponLevel, 1);
-  assert.equal(state.projectiles[0].visual.sprite, '/assets/editor/weapons/trident.png');
+  assert.equal(state.projectiles[0].visual.sprite, './assets/editor/weapons/trident.png');
 });
 
 test('stationary trident waits one second before auto-firing and resets its charge timer', () => {

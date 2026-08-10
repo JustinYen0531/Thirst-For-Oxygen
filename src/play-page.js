@@ -1656,7 +1656,7 @@ prototypeMenuButton?.addEventListener('click', () => {
   if (prototypeOverlay.hidden) return;
   sfxController.play('button');
   resetDescentPrototypeNotice();
-  window.location.href = '/home.html';
+  window.location.href = './home.html';
 });
 
 function drawTutorialGuideMarker() {
@@ -2609,7 +2609,7 @@ exitButton.addEventListener('click', () => {
     openTutorialSkipPrompt();
     return;
   }
-  window.location.href = '/home.html';
+  window.location.href = './home.html';
 });
 tutorialSkipConfirm?.addEventListener('click', () => { sfxController.play('button'); leaveTutorial('skipped'); });
 tutorialSkipCancel?.addEventListener('click', () => { sfxController.play('button'); closeTutorialSkipPrompt(); });

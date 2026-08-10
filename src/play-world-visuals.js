@@ -4,8 +4,8 @@ import {
   OVERLAY_TYPES,
 } from './map-model.js';
 
-const OBJECT_ROOT = '/assets/editor/objects';
-const EDGE_ROOT = '/assets/editor/edges';
+const OBJECT_ROOT = './assets/editor/objects';
+const EDGE_ROOT = './assets/editor/edges';
 
 const visual = (id, {
   assetPath = null,

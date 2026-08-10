@@ -107,11 +107,11 @@ export const PLAY_ENEMY_ANIMATED_ASSET_PATHS = Object.freeze([...new Set(
 )]);
 
 export function getPlayEnemyFramePaths(animatedPath) {
-  const match = String(animatedPath ?? '').match(/^\/assets\/enemies-afterimage\/([^/]+)\/reconstructed-preview__(.+)\.webp$/i);
+  const match = String(animatedPath ?? '').match(/^(?:\.\/|\/)assets\/enemies-afterimage\/([^/]+)\/reconstructed-preview__(.+)\.webp$/i);
   if (!match) return Object.freeze([]);
   const [, enemyId, animationSlug] = match;
   return Object.freeze(Array.from({ length: PLAY_ENEMY_FRAME_COUNT }, (_, index) => (
-    `/assets/enemy-frames/${enemyId}/${animationSlug}/${String(index + 1).padStart(2, '0')}.png`
+    `./assets/enemy-frames/${enemyId}/${animationSlug}/${String(index + 1).padStart(2, '0')}.png`
   )));
 }
 

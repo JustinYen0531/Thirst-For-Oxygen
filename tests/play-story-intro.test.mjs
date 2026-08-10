@@ -19,17 +19,17 @@ test('first descent story intro contains three external-text slides', () => {
   assert.deepEqual(
     PLAY_STORY_INTRO_SLIDES.map(({ videoPath }) => videoPath),
     [
-      '/assets/story/descent-part1/ZH1-1.mp4',
-      '/assets/story/descent-part1/ZH1-2.mp4',
-      '/assets/story/descent-part1/ZH1-3.mp4',
+      './assets/story/descent-part1/ZH1-1.mp4',
+      './assets/story/descent-part1/ZH1-2.mp4',
+      './assets/story/descent-part1/ZH1-3.mp4',
     ],
   );
   assert.deepEqual(
     PLAY_STORY_INTRO_SLIDES.map(({ imagePath }) => imagePath),
     [
-      '/assets/story/descent-part1/slide-01-oxygen-collapse.png',
-      '/assets/story/descent-part1/slide-02-abyss-core.png',
-      '/assets/story/descent-part1/slide-03-flesh-diver.png',
+      './assets/story/descent-part1/slide-01-oxygen-collapse.png',
+      './assets/story/descent-part1/slide-02-abyss-core.png',
+      './assets/story/descent-part1/slide-03-flesh-diver.png',
     ],
   );
   assert.match(PLAY_STORY_INTRO_SLIDES[0].narrator, /氧氣正在消失/);
@@ -48,7 +48,7 @@ test('each descent part owns three story slides and continues the same causal th
 
 test('story slide raster assets are present and non-empty', () => {
   Object.values(PLAY_STORY_INTRO_SLIDES_BY_PART).flat().forEach(({ imagePath }) => {
-    const filePath = new URL(`..\/public${imagePath}`, import.meta.url);
+    const filePath = new URL(`../public/${imagePath.replace(/^\.?\//, '')}`, import.meta.url);
     assert.equal(existsSync(filePath), true, imagePath);
     assert.ok(statSync(filePath).size > 100_000, imagePath);
   });
@@ -58,29 +58,29 @@ test('story state selects the matching descent part without mixing its slides', 
   const partTwo = getPlayStoryIntroRenderState(createPlayStoryIntroState({ part: 2, reducedMotion: true }));
   const partThree = getPlayStoryIntroRenderState(createPlayStoryIntroState({ part: 3, reducedMotion: true }));
   assert.equal(partTwo.part, 2);
-  assert.equal(partTwo.imagePath, '/assets/story/descent-part2/slide-01-forgotten-breath.png');
+  assert.equal(partTwo.imagePath, './assets/story/descent-part2/slide-01-forgotten-breath.png');
   assert.equal(partThree.part, 3);
-  assert.equal(partThree.imagePath, '/assets/story/descent-part3/slide-01-ruins-remember.png');
+  assert.equal(partThree.imagePath, './assets/story/descent-part3/slide-01-ruins-remember.png');
 });
 
 test('all three descent parts use their authored chapter videos', () => {
   const expectedVideoPaths = [
-    '/assets/story/descent-part1/ZH1-1.mp4',
-    '/assets/story/descent-part1/ZH1-2.mp4',
-    '/assets/story/descent-part1/ZH1-3.mp4',
-    '/assets/story/descent-part2/CH2-1.mp4',
-    '/assets/story/descent-part2/CH2-2.mp4',
-    '/assets/story/descent-part2/CH2-3.mp4',
-    '/assets/story/descent-part3/CH3-1.mp4',
-    '/assets/story/descent-part3/CH3-2.mp4',
-    '/assets/story/descent-part3/CH3-3.mp4',
+    './assets/story/descent-part1/ZH1-1.mp4',
+    './assets/story/descent-part1/ZH1-2.mp4',
+    './assets/story/descent-part1/ZH1-3.mp4',
+    './assets/story/descent-part2/CH2-1.mp4',
+    './assets/story/descent-part2/CH2-2.mp4',
+    './assets/story/descent-part2/CH2-3.mp4',
+    './assets/story/descent-part3/CH3-1.mp4',
+    './assets/story/descent-part3/CH3-2.mp4',
+    './assets/story/descent-part3/CH3-3.mp4',
   ];
   const actualVideoPaths = Object.values(PLAY_STORY_INTRO_SLIDES_BY_PART)
     .flat()
     .map(({ videoPath }) => videoPath);
   assert.deepEqual(actualVideoPaths, expectedVideoPaths);
   actualVideoPaths.forEach((videoPath) => {
-    const filePath = new URL(`..\/public${videoPath}`, import.meta.url);
+    const filePath = new URL(`../public/${videoPath.replace(/^\.?\//, '')}`, import.meta.url);
     assert.equal(existsSync(filePath), true, videoPath);
     assert.ok(statSync(filePath).size > 100_000, videoPath);
   });

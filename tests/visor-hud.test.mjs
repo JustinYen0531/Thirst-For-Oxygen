@@ -4,12 +4,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { getEnergyHud, getHealthHud, getOxygenHud, getPlayerHudIconPath, getPlayerHudSlotLabel, getPlayerHudSlots } from '../src/visor-hud.js';
 
 test('player HUD maps the starter knife to the first weapon slot', () => {
-  assert.equal(getPlayerHudIconPath('weapon', 'knife', 1), '/assets/editor/icons/weapons/knife/lv1.png');
+  assert.equal(getPlayerHudIconPath('weapon', 'knife', 1), './assets/editor/icons/weapons/knife/lv1.png');
   const slots = getPlayerHudSlots({ weapons: [{ id: 'knife', level: 1 }], passives: [] });
   assert.equal(slots.length, 6);
   assert.deepEqual(slots[0], {
     key: 'weapon-0', kind: 'weapon', index: 0, id: 'knife', level: 1, name: '小刀',
-    path: '/assets/editor/icons/weapons/knife/lv1.png',
+    path: './assets/editor/icons/weapons/knife/lv1.png',
   });
   assert.equal(slots[1].path, null);
   assert.equal(slots[3].path, null);
@@ -22,10 +22,10 @@ test('player HUD maps equipped sandbox weapons and passives to their own sides',
     weapons: [{ id: 'knife', level: 1 }, { id: 'trident', level: 2 }],
     passives: [{ id: 'abyssalAmplifier', level: 3 }],
   });
-  assert.equal(slots[0].path, '/assets/editor/icons/weapons/knife/lv1.png');
-  assert.equal(slots[1].path, '/assets/editor/icons/weapons/trident/lv2.png');
+  assert.equal(slots[0].path, './assets/editor/icons/weapons/knife/lv1.png');
+  assert.equal(slots[1].path, './assets/editor/icons/weapons/trident/lv2.png');
   assert.equal(slots[2].path, null);
-  assert.equal(slots[3].path, '/assets/editor/icons/passives/abyssalAmplifier/lv3.png');
+  assert.equal(slots[3].path, './assets/editor/icons/passives/abyssalAmplifier/lv3.png');
   assert.equal(slots[4].path, null);
   assert.equal(slots[5].path, null);
 });

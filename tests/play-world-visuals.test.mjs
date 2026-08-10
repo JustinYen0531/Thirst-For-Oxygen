@@ -21,7 +21,7 @@ import {
 } from '../src/play-world-visuals.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const publicPath = (url) => path.join(ROOT, 'public', url.replace(/^\//, ''));
+const publicPath = (url) => path.join(ROOT, 'public', url.replace(/^\.?\//, ''));
 const entries = (collection) => Object.values(collection);
 
 test('formal play visual contract covers every Cell object, overlay, and non-erase Edge', () => {
@@ -45,8 +45,8 @@ test('every declared bitmap exists and every available world bitmap is reused', 
   });
 
   const availablePaths = [
-    ...readdirSync(path.join(ROOT, 'public/assets/editor/objects')).map((name) => `/assets/editor/objects/${name}`),
-    ...readdirSync(path.join(ROOT, 'public/assets/editor/edges')).map((name) => `/assets/editor/edges/${name}`),
+    ...readdirSync(path.join(ROOT, 'public/assets/editor/objects')).map((name) => `./assets/editor/objects/${name}`),
+    ...readdirSync(path.join(ROOT, 'public/assets/editor/edges')).map((name) => `./assets/editor/edges/${name}`),
   ];
   assert.deepEqual([...declaredPaths].sort(), availablePaths.sort());
 });

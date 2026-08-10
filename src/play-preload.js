@@ -9,15 +9,15 @@ import {
 } from './visor-hud.js';
 
 export const PLAY_TILE_ASSETS = Object.freeze({
-  'L-1': '/assets/editor/water/L-1.png',
-  L0: '/assets/editor/water/L0.png',
-  L1: '/assets/editor/water/L1.png',
-  L2: '/assets/editor/water/L2.png',
-  L3: '/assets/editor/water/L3.png',
-  blocked: '/assets/editor/terrain/blocked-dark-stone.png',
+  'L-1': './assets/editor/water/L-1.png',
+  L0: './assets/editor/water/L0.png',
+  L1: './assets/editor/water/L1.png',
+  L2: './assets/editor/water/L2.png',
+  L3: './assets/editor/water/L3.png',
+  blocked: './assets/editor/terrain/blocked-dark-stone.png',
 });
 
-export const PLAY_AWAKENING_SHUTTER_ASSET = '/assets/editor/hud/awakening-pressure-shutter.png';
+export const PLAY_AWAKENING_SHUTTER_ASSET = './assets/editor/hud/awakening-pressure-shutter.png';
 
 export const PLAY_WEAPON_ASSET_PATHS = Object.freeze([...new Set(
   Object.values(WEAPONS).flatMap((weapon) => (
@@ -28,8 +28,8 @@ export const PLAY_WEAPON_ASSET_PATHS = Object.freeze([...new Set(
 export const PLAY_HUD_ASSET_PATHS = Object.freeze([
   VISOR_HUD_ASSET,
   PLAY_AWAKENING_SHUTTER_ASSET,
-  '/assets/editor/hud/visor-surround-balanced.png',
-  '/assets/editor/hud/slot-locked-octagon.png',
+  './assets/editor/hud/visor-surround-balanced.png',
+  './assets/editor/hud/slot-locked-octagon.png',
   ...Object.entries(PLAYER_HUD_ICON_FAMILIES).flatMap(([kind, families]) => (
     Object.keys(families).flatMap((id) => [1, 2, 3].map((level) => getPlayerHudIconPath(kind, id, level)))
   )),
@@ -71,8 +71,8 @@ export const PLAY_STARTUP_ASSET_PATHS = Object.freeze([
   ...Object.values(PLAY_TILE_ASSETS),
   VISOR_HUD_ASSET,
   PLAY_AWAKENING_SHUTTER_ASSET,
-  '/assets/editor/hud/visor-surround-balanced.png',
-  '/assets/editor/hud/slot-locked-octagon.png',
+  './assets/editor/hud/visor-surround-balanced.png',
+  './assets/editor/hud/slot-locked-octagon.png',
   getPlayerHudIconPath('weapon', 'knife', 1),
   PLAY_MAP_ASSET_URLS.descent[1],
 ].filter(Boolean));

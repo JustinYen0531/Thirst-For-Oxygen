@@ -111,11 +111,11 @@ test('public entry uses the authored helmet title screen while utility pages kee
   assert.match(home, /thirst-for-oxygen-logo-v2\.png/);
   assert.match(home, /id="home-map-preview"/);
   assert.doesNotMatch(home, /範本地圖|destination-grid/);
-  assert.match(sandbox, /<nav class="sandbox-nav">\s*<a href="\/home\.html">Back<\/a>\s*<\/nav>/);
-  assert.doesNotMatch(sandbox, /href="\/play\.html"|href="\/"|href="\/enemy-encyclopedia\.html"/);
+  assert.match(sandbox, /<nav class="sandbox-nav">\s*<a href="\.\/home\.html">Back<\/a>\s*<\/nav>/);
+  assert.doesNotMatch(sandbox, /href="\.\/play\.html"|href="\.\/index\.html"|href="\.\/enemy-encyclopedia\.html"/);
   assert.match(encyclopedia, /<html lang="en">/);
-  assert.match(encyclopedia, /<a class="back-link" href="\/home\.html" data-i18n="navHome">Back<\/a>/);
-  assert.doesNotMatch(encyclopedia, /href="\/play\.html"|href="\/sandbox\.html"|href="\/">Map Editor/);
+  assert.match(encyclopedia, /<a class="back-link" href="\.\/home\.html" data-i18n="navHome">Back<\/a>/);
+  assert.doesNotMatch(encyclopedia, /href="\.\/play\.html"|href="\.\/sandbox\.html"|href="\.\/index\.html">Map Editor/);
   assert.doesNotMatch(`${sandbox}\n${encyclopedia}`, /play\.html\?part=3/);
   assert.match(sandboxPage, /Build 已即時同步/);
   assert.doesNotMatch(sandboxPage, /重新套用 Build/);

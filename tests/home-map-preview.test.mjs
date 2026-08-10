@@ -18,6 +18,7 @@ import { HOME_PREVIEW_ROUTES } from '../src/home-map-preview.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
+const publicAssetPath = (assetPath) => `${ROOT}\\public\\${decodeURIComponent(assetPath).replace(/^\.?\//, '').replaceAll('/', '\\')}`;
 
 test('home contains the dark video, helmet turn, movable logo and final menu', () => {
   const html = read('../home.html');
@@ -114,7 +115,7 @@ test('background enemies use real six-frame idle and skill animations', () => {
     assert.equal(idleFrames.length, 6, `${enemy.enemyId} idle`);
     assert.equal(actionFrames.length, 6, `${enemy.enemyId} action`);
     [...idleFrames, ...actionFrames].forEach((assetPath) => {
-      assert.equal(existsSync(`${ROOT}\\public${assetPath.replaceAll('/', '\\')}`), true, assetPath);
+      assert.equal(existsSync(publicAssetPath(assetPath)), true, assetPath);
     });
   });
   assert.equal(getHomeEnemyFrameIndex(0), 0);

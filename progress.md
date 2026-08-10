@@ -1388,3 +1388,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 傳送會依下沉篇／上升篇的深度方向，尋找最接近指定深度且可通行的水域格；超出地圖範圍時會收斂到可抵達的最深位置，並避開牆面與非水域格。
 - 傳送後會清除速度、拉射、附著與卡牆狀態，但保留目前 Checkpoint，避免開發傳送意外改寫正式死亡重生點。
 - 六張正式地圖的淺層、中段與最深處安全落點測試 5/5 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — itch.io HTML5 package complete
+
+- 新增可重複執行的 `npm run package:itch`：以相對 Vite base 建置、將頭盔首頁提升為 ZIP 根目錄 `index.html`，並將地圖編輯器保留為 `editor.html`。
+- 所有玩家頁面導覽、執行期素材與六份中英文地圖路徑改為 `./` 相對路徑，避免 itch.io 子路徑部署失效；ZIP 條目由封裝腳本統一使用 `/`，拒絕反斜線、絕對路徑與 `../`。
+- 最終封裝 `output/Thirst-for-Oxygen-itch.io.zip` 共 714 個條目、6 個中文檔名、535,648,996 bytes；獨立驗證確認頭盔首頁與 `editor.html` 存在，SHA-256 為 `F3EB762D0D91938DD9436C5D6C2F20142521B027B63DFB3C54DC6056CF4266DC`。
+- 完整 `npm run check` 381/381、聚焦測試 142/142 與 production build 通過；依專案規則未執行瀏覽器／Playwright。

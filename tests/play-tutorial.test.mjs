@@ -198,6 +198,6 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playPageSource, /getPlayTutorialGuideKeyForSelectedTask/);
   assert.match(playPageSource, /updateTutorialCardHover/);
   assert.match(playPageSource, /scrollTutorialTaskList/);
-  assert.match(playPageSource, /window\.location\.href = '\/home\.html'/);
+  assert.match(playPageSource, /window\.location\.href = '\.\/home\.html'/);
   assert.doesNotMatch(playPageSource, /mapArc === TUTORIAL_ROUTE && \(tutorialProgress\?\.readyToLeave \|\| stageExit\.arrived\)/);
 });

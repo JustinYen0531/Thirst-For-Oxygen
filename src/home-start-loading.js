@@ -177,7 +177,7 @@ export function attachHomeStartLoading(root, options = {}) {
   const mainMenu = root.querySelector('#home-main-menu');
   if (!startLink || !loadingLayer || !loadingVideo || !progress || !progressFill || !percentage || !status) return null;
 
-  const destination = startLink.getAttribute('href') || '/play.html';
+  const destination = startLink.getAttribute('href') || './play.html';
   const navigate = options.navigate ?? ((href) => globalThis.location?.assign?.(href));
   let active = false;
   let state = Object.freeze({ active: false, completed: 0, failed: 0, ratio: 0, total: 0, video: 'idle' });

@@ -1,4 +1,4 @@
-const PLAYER_ANIMATION_ROOT = '/assets/editor/actors/player';
+const PLAYER_ANIMATION_ROOT = './assets/editor/actors/player';
 const framePaths = (action) => Object.freeze(Array.from({ length: 6 }, (_, index) => `${PLAYER_ANIMATION_ROOT}/${action}/player-diver__${action}__${String(index + 1).padStart(2, '0')}.png`));
 
 // The six source frames share a 512px canvas, but their authored alpha

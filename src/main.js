@@ -144,15 +144,15 @@ const gravityColours = {
   L3: '#132a76',
 };
 const waterTilePaths = {
-  'L-1': '/assets/editor/water/L-1.png',
-  L0: '/assets/editor/water/L0.png',
-  L1: '/assets/editor/water/L1.png',
-  L2: '/assets/editor/water/L2.png',
-  L3: '/assets/editor/water/L3.png',
+  'L-1': './assets/editor/water/L-1.png',
+  L0: './assets/editor/water/L0.png',
+  L1: './assets/editor/water/L1.png',
+  L2: './assets/editor/water/L2.png',
+  L3: './assets/editor/water/L3.png',
 };
-const conditionalGatePath = '/assets/editor/water/conditional-L1.png';
+const conditionalGatePath = './assets/editor/water/conditional-L1.png';
 const terrainImagePaths = {
-  blocked: '/assets/editor/terrain/blocked-dark-stone.png',
+  blocked: './assets/editor/terrain/blocked-dark-stone.png',
 };
 const objectSymbols = {
   coralCluster: '✿',
@@ -167,29 +167,29 @@ const objectSymbols = {
   button: '⏺',
 };
 const objectImagePaths = {
-  coralCluster: '/assets/editor/objects/coral-cluster.png',
-  ink: '/assets/editor/objects/ink-zone-overlay.png',
-  mine: '/assets/editor/objects/deep-sea-mine.png',
-  weightStone: '/assets/editor/objects/heavy-stone.png',
-  seaweed: '/assets/editor/objects/sea-grass.png',
-  oxygen: '/assets/editor/objects/oxygen-ore.png',
-  checkpoint: '/assets/editor/objects/checkpoint.png',
-  bubble: '/assets/editor/objects/photosynthesis-bubble.png',
-  torricelli: '/assets/editor/objects/torricelli-space.png',
-  razor: '/assets/editor/objects/razor-blade.png',
+  coralCluster: './assets/editor/objects/coral-cluster.png',
+  ink: './assets/editor/objects/ink-zone-overlay.png',
+  mine: './assets/editor/objects/deep-sea-mine.png',
+  weightStone: './assets/editor/objects/heavy-stone.png',
+  seaweed: './assets/editor/objects/sea-grass.png',
+  oxygen: './assets/editor/objects/oxygen-ore.png',
+  checkpoint: './assets/editor/objects/checkpoint.png',
+  bubble: './assets/editor/objects/photosynthesis-bubble.png',
+  torricelli: './assets/editor/objects/torricelli-space.png',
+  razor: './assets/editor/objects/razor-blade.png',
 };
 const componentImagePaths = {
-  razorAxis: '/assets/editor/objects/razor-axis.png',
+  razorAxis: './assets/editor/objects/razor-axis.png',
 };
 const edgeImagePaths = {
-  springJelly: '/assets/editor/edges/spring-jellyfish.png',
-  spike: '/assets/editor/edges/edge-spike-barrier.png',
-  barrier: '/assets/editor/edges/edge-spike-barrier.png',
-  layerPortal: '/assets/editor/edges/layer-portal-stair.png',
-  seaweed: '/assets/editor/objects/sea-grass.png',
-  coralCluster: '/assets/editor/objects/coral-cluster.png',
-  multiPortal: '/assets/editor/edges/multi-portal.png',
-  wallGillGate: '/assets/editor/edges/wall-gill-gate.png',
+  springJelly: './assets/editor/edges/spring-jellyfish.png',
+  spike: './assets/editor/edges/edge-spike-barrier.png',
+  barrier: './assets/editor/edges/edge-spike-barrier.png',
+  layerPortal: './assets/editor/edges/layer-portal-stair.png',
+  seaweed: './assets/editor/objects/sea-grass.png',
+  coralCluster: './assets/editor/objects/coral-cluster.png',
+  multiPortal: './assets/editor/edges/multi-portal.png',
+  wallGillGate: './assets/editor/edges/wall-gill-gate.png',
 };
 const actorImagePaths = {
   playerStart: PLAYER_ANIMATION_ASSETS.swim[0],

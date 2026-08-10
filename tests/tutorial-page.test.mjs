@@ -14,7 +14,7 @@ test('tutorial is a bundled Markdown entry with the requested long-form sections
 
   assert.match(page, /id="tutorial-content"/);
   assert.match(page, /src="\/src\/tutorial-page\.js"/);
-  assert.match(page, /href="\/home\.html"[^>]*>Back<\/a>/);
+  assert.match(page, /href="\.\/home\.html"[^>]*>Back<\/a>/);
   assert.match(page, /data-tutorial-language="en"/);
   assert.match(page, /data-tutorial-language="zh-Hant"/);
   assert.match(page, /data-i18n="tutorial\.title">Complete How to Play<\/h1>/);

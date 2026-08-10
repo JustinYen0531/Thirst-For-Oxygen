@@ -131,7 +131,7 @@ test('a defeated enemy drops one stationary orb and pickup opens the existing up
   const category = choosePlayUpgradeCategory(state, 'weapon');
   assert.equal(category.ok, true);
   assert.equal(category.choices.length, 2);
-  assert.match(category.choices[0].icon, /^\/assets\/editor\/icons\/weapons\/.+\/lv\d\.png$/);
+  assert.match(category.choices[0].icon, /^\.\/assets\/editor\/icons\/weapons\/.+\/lv\d\.png$/);
   assert.ok(category.choices[0].detail.length > 18, '卡面必須顯示該級的實際進化說明');
   const rejectedSwitch = choosePlayUpgradeCategory(state, 'passive');
   assert.deepEqual(

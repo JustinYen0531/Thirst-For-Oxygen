@@ -126,7 +126,7 @@ test('world field guide declares English as its initial document locale and uses
   assert.match(page, /getStoredEncyclopediaLocale\(\)/);
   assert.match(page, /getLocalizedEncyclopedia/);
   assert.match(page, /document\.documentElement\.lang = locale/);
-  assert.match(html, /<a class="back-link" href="\/home\.html" data-i18n="navHome">Back<\/a>/);
+  assert.match(html, /<a class="back-link" href="\.\/home\.html" data-i18n="navHome">Back<\/a>/);
   assert.doesNotMatch(html, /afterimage-controls|afterimage-toggle|Enable authored afterimages/);
   assert.doesNotMatch(page, /afterimage-toggle|AFTERIMAGE_PROFILE|afterimageEnabled/);
   assert.match(page, /section\.id === 'resonance'/);

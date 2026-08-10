@@ -32,12 +32,12 @@ export const HOME_LENS_WARP = Object.freeze({
 });
 
 const TILE_ASSETS = Object.freeze({
-  'L-1': '/assets/editor/water/L-1.png',
-  L0: '/assets/editor/water/L0.png',
-  L1: '/assets/editor/water/L1.png',
-  L2: '/assets/editor/water/L2.png',
-  L3: '/assets/editor/water/L3.png',
-  blocked: '/assets/editor/terrain/blocked-dark-stone.png',
+  'L-1': './assets/editor/water/L-1.png',
+  L0: './assets/editor/water/L0.png',
+  L1: './assets/editor/water/L1.png',
+  L2: './assets/editor/water/L2.png',
+  L3: './assets/editor/water/L3.png',
+  blocked: './assets/editor/terrain/blocked-dark-stone.png',
 });
 
 const DESCENT_MAP_URLS = Object.freeze({
@@ -57,21 +57,21 @@ export const HOME_PREVIEW_ROUTES = Object.freeze({
       part: 1,
       label: '第一部分｜深海森林入口',
       labelKey: 'home.map.partOne',
-      path: '/maps/下沉篇/下沉篇-第1部分.json',
+      path: './maps/下沉篇/下沉篇-第1部分.json',
       url: DESCENT_MAP_URLS[1],
     }),
     Object.freeze({
       part: 2,
       label: '第二部分｜穿越熱泉',
       labelKey: 'home.map.partTwo',
-      path: '/maps/下沉篇/下沉篇-第2部分.json',
+      path: './maps/下沉篇/下沉篇-第2部分.json',
       url: DESCENT_MAP_URLS[2],
     }),
     Object.freeze({
       part: 3,
       label: '第三部分｜深淵遺跡',
       labelKey: 'home.map.partThree',
-      path: '/maps/下沉篇/下沉篇-第3部分.json',
+      path: './maps/下沉篇/下沉篇-第3部分.json',
       url: DESCENT_MAP_URLS[3],
     }),
   ]),
@@ -80,21 +80,21 @@ export const HOME_PREVIEW_ROUTES = Object.freeze({
       part: 1,
       label: '第一部分｜逆游深海遺跡',
       labelKey: 'home.map.ascentPartOne',
-      path: '/maps/上升篇/上升篇-第1部分.json',
+      path: './maps/上升篇/上升篇-第1部分.json',
       url: ASCENT_MAP_URLS[1],
     }),
     Object.freeze({
       part: 2,
       label: '第二部分｜逆穿熱泉',
       labelKey: 'home.map.ascentPartTwo',
-      path: '/maps/上升篇/上升篇-第2部分.json',
+      path: './maps/上升篇/上升篇-第2部分.json',
       url: ASCENT_MAP_URLS[2],
     }),
     Object.freeze({
       part: 3,
       label: '第三部分｜重返森林出口',
       labelKey: 'home.map.ascentPartThree',
-      path: '/maps/上升篇/上升篇-第3部分.json',
+      path: './maps/上升篇/上升篇-第3部分.json',
       url: ASCENT_MAP_URLS[3],
     }),
   ]),

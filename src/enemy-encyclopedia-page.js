@@ -131,7 +131,7 @@ function weaponCard(weapon) {
     <p class="entry-role"><b>${escapeHtml(ui.role)}</b>${escapeHtml(weapon.role)}</p>
     <p class="entry-description">${escapeHtml(weapon.description)}</p>
     ${levelList(weapon)}
-    <a class="sandbox-entry-link" href="/sandbox.html">${escapeHtml(ui.openSandbox)}</a>
+    <a class="sandbox-entry-link" href="./sandbox.html">${escapeHtml(ui.openSandbox)}</a>
   </article>`;
 }
 

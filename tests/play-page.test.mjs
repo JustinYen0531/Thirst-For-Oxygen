@@ -141,7 +141,7 @@ test('descent completion pauses on Mission Complete before showing the Ascent pr
   assert.match(page, /showDescentPrototypeNotice\(\)/);
   assert.match(page, /resetDescentPrototypeNotice\(\);\s*runCompleted = false;\s*beginArcTransition\('ascent', 1\)/);
   assert.match(page, /prototypeMenuButton\?\.addEventListener\('click'/);
-  assert.match(page, /window\.location\.href = '\/home\.html'/);
+  assert.match(page, /window\.location\.href = '\.\/home\.html'/);
 });
 
 test('formal developer panel teleports to an authored safe depth instead of changing only the HUD label', () => {
@@ -212,7 +212,7 @@ test('Chapter 0 tutorial cards let Canvas controls pass through while retaining 
 test('a plain New Game always starts in Chapter 0 while explicit routes stay available', () => {
   assert.match(page, /if \(MAP_ROUTES\[requestedRoute\]\) mapArc = requestedRoute;\s*else mapArc = TUTORIAL_ROUTE;/);
   assert.doesNotMatch(page, /hasTutorialExitPreference|TUTORIAL_STORAGE_KEY/);
-  assert.match(home, /id="home-start-game" href="\/play\.html"/);
+  assert.match(home, /id="home-start-game" href="\.\/play\.html"/);
 });
 
 test('formal play uses honest programmatic fallbacks instead of broken or wrong assets', () => {

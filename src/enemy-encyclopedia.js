@@ -13,8 +13,8 @@ import {
 } from './map-model.js';
 
 const gif = (slug) => `reconstructed-preview__${slug}.gif`;
-const root = (id) => `/assets/enemies/${id}`;
-const afterimageRoot = (id) => `/assets/enemies-afterimage/${id}`;
+const root = (id) => `./assets/enemies/${id}`;
+const afterimageRoot = (id) => `./assets/enemies-afterimage/${id}`;
 const toAfterimagePath = (id, file) => `${afterimageRoot(id)}/${file.replace(/\.gif$/i, '.webp')}`;
 
 // The asset folders use the authored enemy ids after being copied into public/.
@@ -534,7 +534,7 @@ export const WEAPON_ENCYCLOPEDIA = Object.freeze(Object.values(WEAPONS).map((wea
     description: lore.description,
     levels: Object.freeze(Object.entries(weapon.levels).map(([level, values]) => Object.freeze({
       level: Number(level),
-      icon: `/assets/editor/icons/weapons/${weapon.id}/lv${level}.png`,
+      icon: `./assets/editor/icons/weapons/${weapon.id}/lv${level}.png`,
       summary: lore.levels[level],
       values: Object.freeze(values),
     }))),
@@ -574,7 +574,7 @@ export const PASSIVE_ENCYCLOPEDIA = Object.freeze(Object.values(PASSIVE_ABILITIE
     description: lore.description,
     levels: Object.freeze(Object.entries(passive.levels).map(([level, values]) => Object.freeze({
       level: Number(level),
-      icon: `/assets/editor/icons/passives/${passive.id}/lv${level}.png`,
+      icon: `./assets/editor/icons/passives/${passive.id}/lv${level}.png`,
       summary: lore.levels[level],
       values: Object.freeze(values),
     }))),

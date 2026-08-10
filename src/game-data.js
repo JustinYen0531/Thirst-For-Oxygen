@@ -203,7 +203,7 @@ export const WEAPONS = Object.freeze({
         hitArcDegrees: 110,
         effect: {
           style: 'katanaClockwiseSwing',
-          sprite: '/assets/editor/weapons/abyssal-katana.png',
+          sprite: './assets/editor/weapons/abyssal-katana.png',
           duration: 0.3,
           arcDegrees: 110,
           weaponLength: 36,
@@ -224,7 +224,7 @@ export const WEAPONS = Object.freeze({
         hitArcDegrees: 116,
         effect: {
           style: 'katanaClockwiseSwing',
-          sprite: '/assets/editor/weapons/abyssal-katana.png',
+          sprite: './assets/editor/weapons/abyssal-katana.png',
           duration: 0.3,
           arcDegrees: 116,
           weaponLength: 37,
@@ -249,7 +249,7 @@ export const WEAPONS = Object.freeze({
         hitArcDegrees: 122,
         effect: {
           style: 'katanaClockwiseSwing',
-          sprite: '/assets/editor/weapons/abyssal-katana.png',
+          sprite: './assets/editor/weapons/abyssal-katana.png',
           duration: 0.3,
           arcDegrees: 122,
           weaponLength: 38,
@@ -292,7 +292,7 @@ export const WEAPONS = Object.freeze({
         projectileCount: 1,
         effect: {
           style: 'tridentProjectile',
-          sprite: '/assets/editor/weapons/trident.png',
+          sprite: './assets/editor/weapons/trident.png',
           spriteScale: 0.72,
           projectileRadius: 8,
           trailLength: 24,
@@ -316,7 +316,7 @@ export const WEAPONS = Object.freeze({
         projectileCount: 1,
         effect: {
           style: 'tridentProjectile',
-          sprite: '/assets/editor/weapons/trident.png',
+          sprite: './assets/editor/weapons/trident.png',
           spriteScale: 0.84,
           projectileRadius: 9,
           trailLength: 36,
@@ -341,7 +341,7 @@ export const WEAPONS = Object.freeze({
         projectileCount: 1,
         effect: {
           style: 'tridentProjectile',
-          sprite: '/assets/editor/weapons/trident.png',
+          sprite: './assets/editor/weapons/trident.png',
           spriteScale: 0.98,
           projectileRadius: 10,
           trailLength: 50,
@@ -367,7 +367,7 @@ export const WEAPONS = Object.freeze({
         damage: 8, projectileSpeed: 430, range: 420, cooldown: 0.72, energyCost: 2,
         burstCount: 6, burstInterval: 0.085,
         effect: {
-          style: 'lightMachineGun', sprite: '/assets/editor/weapons/light-machine-gun.png', gunLength: 66, gunWidth: 14, gunColour: '#263b52', gunAccent: '#73e6ff',
+          style: 'lightMachineGun', sprite: './assets/editor/weapons/light-machine-gun.png', gunLength: 66, gunWidth: 14, gunColour: '#263b52', gunAccent: '#73e6ff',
           muzzleColour: '#d9fbff', bulletStyle: 'tracer', bulletLength: 18, bulletWidth: 5,
           bulletColour: '#8fe8ff', bulletOutline: '#d9fbff', bulletGlow: '#73e6ff',
         },
@@ -376,7 +376,7 @@ export const WEAPONS = Object.freeze({
         damage: 11, projectileSpeed: 460, range: 450, cooldown: 0.72, energyCost: 2,
         burstCount: 6, burstInterval: 0.08,
         effect: {
-          style: 'lightMachineGun', sprite: '/assets/editor/weapons/light-machine-gun.png', gunLength: 70, gunWidth: 15, gunColour: '#3d314b', gunAccent: '#ffbd6e',
+          style: 'lightMachineGun', sprite: './assets/editor/weapons/light-machine-gun.png', gunLength: 70, gunWidth: 15, gunColour: '#3d314b', gunAccent: '#ffbd6e',
           muzzleColour: '#fff0c2', bulletStyle: 'tracer', alternateBulletStyle: 'outlined', bulletLength: 20, bulletWidth: 6,
           bulletColour: '#ffd08a', bulletOutline: '#fff0c2', alternateBulletColour: '#ff8fd8', alternateBulletOutline: '#ffe2ff', bulletGlow: '#ffbd6e',
         },
@@ -385,7 +385,7 @@ export const WEAPONS = Object.freeze({
         damage: 14, projectileSpeed: 490, range: 480, cooldown: 0.72, energyCost: 2,
         burstCount: 6, burstInterval: 0.075,
         effect: {
-          style: 'lightMachineGun', sprite: '/assets/editor/weapons/light-machine-gun.png', gunLength: 74, gunWidth: 16, gunColour: '#392f5b', gunAccent: '#c1a2ff',
+          style: 'lightMachineGun', sprite: './assets/editor/weapons/light-machine-gun.png', gunLength: 74, gunWidth: 16, gunColour: '#392f5b', gunAccent: '#c1a2ff',
           muzzleColour: '#fff0ff', bulletStyle: 'prism', bulletLength: 22, bulletWidth: 7,
           bulletPalette: ['#8fe8ff', '#b8a1ff', '#ff8fd8', '#fff0a8', '#8dffc8', '#73d9ff'],
           bulletOutline: '#fff7ff', bulletGlow: '#d7c5ff',
