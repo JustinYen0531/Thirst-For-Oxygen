@@ -29,6 +29,7 @@
     radial-gradient(ellipse at 93% 46%, rgba(185, 246, 255, .3) 0, rgba(185, 246, 255, .1) 9%, transparent 24%),
     repeating-linear-gradient(105deg, transparent 0 13%, rgba(218, 252, 255, .06) 14%, transparent 15% 29%);
   animation: visor-glass-drift 9s ease-in-out infinite alternate;
+  display: none;
 }
 
 .visor-hud::before {
@@ -43,6 +44,7 @@
     linear-gradient(102deg, transparent 0 44%, rgba(175, 239, 255, .34) 48%, transparent 52% 100%),
     linear-gradient(180deg, rgba(198, 246, 255, .16), transparent 10% 88%, rgba(198, 246, 255, .11));
   animation: visor-glass-sheen 6s ease-in-out infinite alternate;
+  display: none;
 }
 
 @keyframes visor-glass-drift {
