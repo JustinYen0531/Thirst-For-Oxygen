@@ -1,4 +1,3 @@
-import { getDiscoveryTypedDescription } from './visor-discovery.js';
 import { translateGameplayText } from './i18n-gameplay.js';
 
 const VISOR_GREEN = '#8dffc4';
@@ -83,8 +82,11 @@ export function drawDiscoveryGuides(context, activeGuides, camera, viewport, tim
   {
     const { half, placeOnRight, panelX, panelY, panelWidth, panelHeight, panel, ok } = getDiscoveryGuideLayout(active, 0, camera, viewport);
     const lineEndX = placeOnRight ? panelX : panelX + panelWidth;
-    const typedDescription = getDiscoveryTypedDescription(active, timeSeconds, 24, translateGameplayText);
-    const descriptionLines = splitText(typedDescription, DISCOVERY_DESCRIPTION_LIMIT);
+    // Keep the authored explanation visible as soon as the card appears.
+    // A partial typewriter line was easy to mistake for missing copy, especially
+    // in the small tutorial viewport and in English where the translation is longer.
+    const description = translateGameplayText(active.guide.description);
+    const descriptionLines = splitText(description, DISCOVERY_DESCRIPTION_LIMIT);
     const categoryLabel = translateGameplayText(active.guide.categoryLabel);
     const title = translateGameplayText(active.guide.title);
     const titleLines = splitText(title, DISCOVERY_TITLE_LIMIT);

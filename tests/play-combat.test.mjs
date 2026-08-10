@@ -53,6 +53,27 @@ test('neutral Resonance partners cannot be targeted or damaged by player weapons
   assert.equal(state.experienceOrbs.length, 0, 'a resonated enemy never pays EXP even if another system later marks it defeated');
 });
 
+test('the tutorial Resonance fish stays invulnerable while the kill fish remains damageable', () => {
+  const state = createPlayCombatState();
+  const actor = createTestActor({ x: 40, y: 0 });
+  const resonanceFish = enemy('tutorial-resonance', 'explodingLanternfish', 0, 0, 10);
+  resonanceFish.tutorialInfiniteHealth = true;
+  const killFish = enemy('tutorial-kill', 'explodingLanternfish', 0, 0, 10);
+  killFish.tutorialResonanceDisabled = true;
+
+  stepPlayCombat(state, {
+    actor,
+    enemies: [resonanceFish, killFish],
+    previousPosition: { x: -40, y: 0 },
+    dt: 1 / 60,
+  });
+
+  assert.equal(resonanceFish.health, 10, 'the Resonance fish must ignore weapon damage');
+  assert.equal(resonanceFish.defeated, false);
+  assert.equal(killFish.health, 0, 'the kill fish must receive weapon damage');
+  assert.equal(killFish.defeated, true, 'the kill fish must be defeatable');
+});
+
 test('a defeated enemy drops one stationary orb and pickup opens the existing upgrade flow', () => {
   const state = createPlayCombatState();
   const actor = createTestActor({ x: 0, y: 0 });

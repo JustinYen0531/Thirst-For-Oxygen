@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { setLanguage } from '../src/i18n.js';
 import { installLiveLocalization, translateGameplayText } from '../src/i18n-gameplay.js';
+import { TUTORIAL_TASKS } from '../src/play-tutorial.js';
 
 const CJK_PATTERN = /[\u3400-\u9fff]/;
 
@@ -45,6 +46,14 @@ test('representative dynamic combat messages retain their meaning in English', (
     ['RESONANCE 完成：爆腹燈籠魚成為中立夥伴；Buff 已達 9/9 層上限，不提供 EXP。', 'RESONANCE complete: Burst-Belly Anglerfish is now neutral; buff already capped at 9/9. No EXP granted.'],
   ];
   messages.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
+});
+
+test('all First Breath task labels are translated in English', () => {
+  TUTORIAL_TASKS.forEach(({ title }) => {
+    const english = translateGameplayText(title, 'en');
+    assert.equal(CJK_PATTERN.test(english), false, `untranslated First Breath task: ${title}`);
+    assert.notEqual(english, title, `missing First Breath task translation: ${title}`);
+  });
 });
 
 test('play settings exposes the shared language selector', () => {

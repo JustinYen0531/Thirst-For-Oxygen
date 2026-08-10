@@ -57,6 +57,23 @@ test('English discovery cards draw no CJK copy into the Canvas', () => {
   assert.equal(textDraws.some((value) => /[\u3400-\u9fff\uf900-\ufaff]/.test(value)), false, textDraws.join(' | '));
 });
 
+test('English discovery cards show the full explanation on their first frame', () => {
+  setLanguage('en');
+  const textDraws = [];
+  const context = {
+    save() {}, restore() {}, beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fill() {}, fillRect() {}, strokeRect() {},
+    fillText(text) { textDraws.push(String(text)); },
+    set lineWidth(_) {}, set strokeStyle(_) {}, set shadowColor(_) {}, set shadowBlur(_) {}, set fillStyle(_) {}, set font(_) {}, set textBaseline(_) {}, set textAlign(_) {},
+  };
+  const active = {
+    ...target('oxygen-bubble-1', 'object:oxygenBubble', OBJECT_DISCOVERY_GUIDES.oxygenBubble),
+    startedAt: 0,
+  };
+  drawDiscoveryGuides(context, [active], { x: 0, y: 0 }, { width: 240, height: 160 }, 0);
+
+  assert.equal(textDraws.some((value) => value.includes('Instantly restores')), true, textDraws.join(' | '));
+});
+
 test('every discovery guide has complete English copy instead of the generic pending placeholder', () => {
   const guides = [
     ...Object.values(OBJECT_DISCOVERY_GUIDES),

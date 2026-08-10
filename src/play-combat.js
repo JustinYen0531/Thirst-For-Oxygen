@@ -26,7 +26,6 @@ import {
   applyResonanceBuffsToStats,
   createResonanceState,
   getResonanceRenderState,
-  isResonanceCombatant,
   reduceEnemyResonanceOnDamage,
 } from './resonance.js';
 
@@ -48,7 +47,15 @@ function distanceToSegment(point, start, end) {
 }
 
 function activeEnemies(enemies) {
-  return (enemies ?? []).filter(isResonanceCombatant);
+  // A tutorial target can opt out of Resonance while remaining a valid weapon
+  // target. Keep those two combat contracts separate: the right training fish
+  // must be killable even though it is not a Resonance lesson.
+  return (enemies ?? []).filter((enemy) => (
+    enemy
+    && !enemy.defeated
+    && !enemy.resonanceNeutral
+    && Number(enemy.health) > 0
+  ));
 }
 
 function enemyKey(enemy, index = 0) {
@@ -218,7 +225,7 @@ export function collectPlayCombatExperience(state, actor) {
 }
 
 function damageEnemy(state, actor, enemy, rawDamage, source) {
-  if (!isResonanceCombatant(enemy)) return 0;
+  if (!enemy || enemy.defeated || enemy.resonanceNeutral || Number(enemy.health) <= 0) return 0;
   if (enemy.tutorialInfiniteHealth) {
     addEffect(state, { type: 'weaponHit', weaponId: source, x: enemy.x, y: enemy.y, damage: 0, duration: 0.18 });
     return 0;
