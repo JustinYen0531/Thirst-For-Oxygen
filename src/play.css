@@ -80,14 +80,25 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-tutorial-heading .eyebrow { margin: 0 0 4px; color: #73ffc0; font-size: .48rem; }
 .play-tutorial-heading h2 { margin: 0; color: #effff6; font-size: .9rem; letter-spacing: .06em; }
 .play-tutorial-progress { color: #8bffbd; font: 800 .65rem/1 "Orbitron", "Segoe UI", sans-serif; }
+.play-tutorial-guide-line { margin-top: 7px !important; color: #7df9b4 !important; font-size: .56rem !important; letter-spacing: .04em; }
+.play-tutorial-guide-line span { color: #effff6; font-weight: 800; }
 .play-tutorial-panel h3 { margin: 11px 0 5px; color: #a8ffd1; font-size: .77rem; }
 .play-tutorial-panel p { margin: 0; color: #afd3c3; font-size: .61rem; line-height: 1.55; }
+.play-tutorial-step-instruction { margin-top: 8px !important; padding: 7px 8px; border: 1px solid rgba(125, 255, 177, .26); border-radius: 5px; color: #ecfff3 !important; background: rgba(66, 217, 143, .1); font-weight: 800; }
 .play-tutorial-object-heading { display: flex; justify-content: space-between; gap: 8px; margin-top: 11px; padding-top: 8px; border-top: 1px solid rgba(144, 235, 183, .18); color: #7df9b4; font-size: .56rem; font-weight: 800; letter-spacing: .06em; }
 .play-tutorial-object-heading span:last-child { color: #79a894; font-weight: 600; letter-spacing: 0; }
 .play-tutorial-object-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; max-height: 126px; overflow: hidden; margin: 7px 0 0; padding: 0; list-style: none; }
 .play-tutorial-object-list li { overflow: hidden; color: #73978c; font-size: .54rem; text-overflow: ellipsis; white-space: nowrap; }
 .play-tutorial-object-list li.is-used { color: #bdffd3; text-shadow: 0 0 8px rgba(106, 255, 169, .3); }
+.play-tutorial-object-list li.is-current { color: #f7dc78; }
 .play-tutorial-exit-hint { margin-top: 10px !important; padding-top: 8px; border-top: 1px solid rgba(144, 235, 183, .18); color: #8cb8a2 !important; font-size: .56rem !important; }
+.play-tutorial-skip-dialog { position: absolute; top: 50%; left: 50%; z-index: 20; width: min(390px, calc(100% - 34px)); padding: 21px 22px; border: 1px solid rgba(119, 232, 255, .58); border-radius: 10px; color: #e8f5ff; background: linear-gradient(155deg, rgba(7, 28, 49, .98), rgba(4, 14, 29, .98)); box-shadow: 0 20px 70px rgba(0, 0, 0, .5), 0 0 30px rgba(119, 232, 255, .12); transform: translate(-50%, -50%); pointer-events: auto; }
+.play-tutorial-skip-dialog[hidden] { display: none; }
+.play-tutorial-skip-dialog h2 { margin: 0 0 9px; color: #f7dc78; font-size: 1.05rem; letter-spacing: .08em; }
+.play-tutorial-skip-dialog > p:not(.eyebrow) { margin: 0; color: #b8d5ed; font-size: .72rem; line-height: 1.7; }
+.play-tutorial-skip-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; }
+.play-tutorial-skip-actions button { cursor: pointer; border: 1px solid rgba(119, 232, 255, .45); border-radius: 6px; padding: 8px 11px; color: #cceeff; background: #0c2b4b; font-size: .67rem; }
+.play-tutorial-skip-actions button:last-child { border-color: rgba(247, 220, 120, .65); color: #182035; background: linear-gradient(135deg, #f7dc78, #d9a94e); }
 .play-stage-frame.is-awakening .play-attempts { opacity: var(--awakening-attempt-opacity, 0); }
 .play-stage-frame.is-awakening .top-map-picker,
 .play-stage-frame.is-awakening .depth-readout,

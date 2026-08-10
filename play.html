@@ -30,8 +30,8 @@
               <span class="chapter-picker-label">地圖章節</span>
               <span class="sr-only">選擇地圖部分</span>
               <select id="play-map-select" aria-label="選擇地圖部分">
-                <optgroup label="新手引導">
-                  <option value="tutorial:1">新手教學房・第一次呼吸</option>
+                <optgroup label="第零篇章／新手引導">
+                  <option value="tutorial:0">第零篇章・第一次呼吸</option>
                 </optgroup>
                 <optgroup label="下沉篇">
                   <option value="descent:1" selected>下沉篇・第一部分</option>
@@ -50,12 +50,23 @@
             <section class="resonance-panel" id="play-resonance-panel" aria-labelledby="play-resonance-title" hidden><header><div><p class="eyebrow">LEVEL / RESONANCE</p><h2 id="play-resonance-title">永久共鳴 Buff</h2></div><button type="button" id="play-resonance-close" aria-label="關閉 Resonance Buff">×</button></header><p class="resonance-panel-note">共鳴敵人不會提供 EXP；同物種 Buff 只疊加到標示上限。</p><div class="resonance-buff-list" id="play-resonance-buffs"><p class="resonance-empty">尚未取得 Resonance Buff。</p></div></section>
             <p class="play-attempts" id="play-attempts" aria-label="剩餘嘗試次數 3，共 3 次">ATTEMPT 3/3</p>
             <section class="play-tutorial-panel" id="play-tutorial-panel" hidden aria-labelledby="play-tutorial-title">
-              <div class="play-tutorial-heading"><div><p class="eyebrow">FIRST DIVE / 教學房</p><h2 id="play-tutorial-title">第一次呼吸</h2></div><span class="play-tutorial-progress" id="play-tutorial-step-progress">0 / 6</span></div>
+              <div class="play-tutorial-heading"><div><p class="eyebrow">CHAPTER 0 / GUIDED TUTORIAL</p><h2 id="play-tutorial-title">第零篇章・第一次呼吸</h2></div><span class="play-tutorial-progress" id="play-tutorial-step-progress">0 / 20</span></div>
+              <p class="play-tutorial-guide-line"><span id="play-tutorial-guide-name">深淵導航員</span> 正在引導你</p>
               <h3 id="play-tutorial-step-title">先學會彈射</h3>
-              <p id="play-tutorial-step-body">拖曳潛水夫，調整方向與距離，放開後就會依慣性前進。</p>
+              <p id="play-tutorial-step-body">先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。</p>
+              <p class="play-tutorial-step-instruction" id="play-tutorial-step-instruction">請現在完成一次拉射。</p>
               <div class="play-tutorial-object-heading"><span>房內物件</span><span>靠近並觀察使用方式</span></div>
               <ul class="play-tutorial-object-list" id="play-tutorial-object-list"></ul>
-              <p class="play-tutorial-exit-hint" id="play-tutorial-exit-hint">你可以隨時前往房間底部的 EXIT，或直接切換地圖離開教學。</p>
+              <p class="play-tutorial-exit-hint" id="play-tutorial-exit-hint">導航員確認所有操作前，出口會保持鎖定。真的要離開請按 Enter。</p>
+            </section>
+            <section class="play-tutorial-skip-dialog" id="play-tutorial-skip-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="play-tutorial-skip-title">
+              <p class="eyebrow">CHAPTER 0 / EXIT</p>
+              <h2 id="play-tutorial-skip-title">Skip Tutorial?</h2>
+              <p>你還沒有完成導航員的教學。跳過後會回到水下主控台，不會進入或繼承到正式篇章。</p>
+              <div class="play-tutorial-skip-actions">
+                <button type="button" id="play-tutorial-skip-cancel">繼續教學</button>
+                <button type="button" id="play-tutorial-skip-confirm">Skip Tutorial</button>
+              </div>
             </section>
             <div class="play-resource-hud visor-hud" aria-label="主角狀態">
               <img class="visor-surround" src="/assets/editor/hud/visor-surround-balanced.png" alt="" aria-hidden="true" />

@@ -79,6 +79,7 @@ import {
 import { getPlayStageExitState } from './play-flow.js';
 import {
   TUTORIAL_ROUTE,
+  TUTORIAL_PART,
   TUTORIAL_STORAGE_KEY,
   createPlayTutorialState,
   createTutorialMap,
@@ -140,7 +141,7 @@ import {
 
 const MAP_ROUTES = Object.freeze({
   [TUTORIAL_ROUTE]: Object.freeze({
-    1: Object.freeze({ createMap: createTutorialMap, label: '新手教學房・第一次呼吸' }),
+    [TUTORIAL_PART]: Object.freeze({ createMap: createTutorialMap, label: '第零篇章・第一次呼吸' }),
   }),
   descent: Object.freeze({
     1: Object.freeze({ path: PLAY_MAP_ASSET_URLS.descent[1], label: '下沉篇・第一部分' }),
@@ -153,7 +154,7 @@ const MAP_ROUTES = Object.freeze({
     3: Object.freeze({ path: PLAY_MAP_ASSET_URLS.ascent[3], label: '上升篇・第三部分' }),
   }),
 });
-const ARC_LABELS = Object.freeze({ tutorial: '新手教學房', descent: '下沉篇', ascent: '上升篇' });
+const ARC_LABELS = Object.freeze({ tutorial: '第零篇章', descent: '下沉篇', ascent: '上升篇' });
 // A 4x world scale intentionally shows only about 60% of the reference map's
 // horizontal span, leaving room for the camera to keep the player readable.
 const SCALE = 4;
@@ -202,11 +203,16 @@ const storyIntroNarrator = document.querySelector('#play-story-narrator');
 const storyIntroHint = document.querySelector('#play-story-hint');
 const storyIntroSkip = document.querySelector('#play-story-skip');
 const tutorialPanel = document.querySelector('#play-tutorial-panel');
+const tutorialGuideName = document.querySelector('#play-tutorial-guide-name');
 const tutorialStepTitle = document.querySelector('#play-tutorial-step-title');
 const tutorialStepBody = document.querySelector('#play-tutorial-step-body');
+const tutorialStepInstruction = document.querySelector('#play-tutorial-step-instruction');
 const tutorialStepProgress = document.querySelector('#play-tutorial-step-progress');
 const tutorialObjectList = document.querySelector('#play-tutorial-object-list');
 const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
+const tutorialSkipDialog = document.querySelector('#play-tutorial-skip-dialog');
+const tutorialSkipConfirm = document.querySelector('#play-tutorial-skip-confirm');
+const tutorialSkipCancel = document.querySelector('#play-tutorial-skip-cancel');
 const upgradeOverlay = document.querySelector('#play-upgrade-overlay');
 const upgradeNote = document.querySelector('#play-upgrade-note');
 const upgradeCategories = document.querySelector('#play-upgrade-categories');
@@ -297,6 +303,7 @@ let renderClock = 0;
 let hudSlotSignature = '';
 let eventLogMarkup = '';
 let tutorialUiSignature = '';
+let tutorialSkipPromptOpen = false;
 const hudUpdateGate = createPlayUpdateGate(50);
 const discoveryUpdateGate = createPlayUpdateGate(120);
 let activeDiscoveryGuides = [];
@@ -321,6 +328,25 @@ function rememberTutorialExit(reason) {
   }
 }
 
+function openTutorialSkipPrompt() {
+  if (mapArc !== TUTORIAL_ROUTE || !tutorialSkipDialog) return;
+  tutorialSkipPromptOpen = true;
+  tutorialSkipDialog.hidden = false;
+  tutorialSkipConfirm?.focus();
+}
+
+function closeTutorialSkipPrompt() {
+  tutorialSkipPromptOpen = false;
+  if (tutorialSkipDialog) tutorialSkipDialog.hidden = true;
+}
+
+function leaveTutorial(reason = 'skipped') {
+  if (mapArc !== TUTORIAL_ROUTE) return;
+  rememberTutorialExit(reason);
+  closeTutorialSkipPrompt();
+  window.location.href = '/home.html';
+}
+
 function mapSelectionValue(arc = mapArc, part = mapPart) {
   return `${arc}:${part}`;
 }
@@ -328,11 +354,11 @@ function mapSelectionValue(arc = mapArc, part = mapPart) {
 function parseMapSelection(value) {
   const [arc, rawPart] = String(value).split(':');
   const part = Number(rawPart);
-  return MAP_ROUTES[arc]?.[part] ? { arc, part } : { arc: TUTORIAL_ROUTE, part: 1 };
+  return MAP_ROUTES[arc]?.[part] ? { arc, part } : { arc: TUTORIAL_ROUTE, part: TUTORIAL_PART };
 }
 
 function getCurrentStageExitState() {
-  if (mapArc === TUTORIAL_ROUTE) return getPlayTutorialExitState({ map, actor, origin });
+  if (mapArc === TUTORIAL_ROUTE) return getPlayTutorialExitState({ map, actor, origin, state: tutorialState, enemies });
   return getPlayStageExitState({ map, mapPart, actor, enemies, origin });
 }
 
@@ -350,16 +376,19 @@ function updateTutorialPresentation() {
     completed: tutorial.completedCoreSteps,
     objects: tutorial.objectUses.map((entry) => [entry.id, entry.used]),
     outcome: tutorial.outcome,
+    note: tutorial.lastGuideNote,
   });
   if (signature === tutorialUiSignature) return;
   tutorialUiSignature = signature;
+  tutorialGuideName.textContent = translateGameplayText(tutorial.guideName);
   tutorialStepTitle.textContent = translateGameplayText(tutorial.currentStep.title);
   tutorialStepBody.textContent = translateGameplayText(tutorial.currentStep.body);
+  tutorialStepInstruction.textContent = translateGameplayText(tutorial.currentStep.instruction ?? '請依照導航員的提示操作。');
   tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
-  tutorialExitHint.textContent = translateGameplayText(tutorial.freeExit);
+  tutorialExitHint.textContent = translateGameplayText(tutorial.lastGuideNote || tutorial.freeExit);
   tutorialObjectList.replaceChildren(...tutorial.objectUses.map((entry) => {
     const item = document.createElement('li');
-    item.className = entry.used ? 'is-used' : '';
+    item.className = `${entry.used ? 'is-used' : ''}${entry.id === tutorial.currentStep.id ? ' is-current' : ''}`.trim();
     item.textContent = `${entry.used ? '✓' : '○'} ${translateGameplayText(entry.label)}`;
     item.title = translateGameplayText(entry.description);
     return item;
@@ -518,9 +547,9 @@ function setupWorld(nextMap, { previousActor = null } = {}) {
   const mapDefinition = getMapDefinition();
   eventLog = mapArc === TUTORIAL_ROUTE
     ? [
-      '這裡是第一次呼吸：照著提示操作，也可以直接前往 EXIT 離開。',
+      '這裡是第零篇章：深淵導航員會逐步帶你完成每一個操作。',
       `${mapDefinition.label} 已載入。`,
-      '敵人可以被擊殺，也可以透過共鳴變成中立夥伴。',
+      '出口在所有示範完成前會鎖定；想離開請按 Enter，確認 Skip Tutorial。',
     ]
     : [
       '拖曳潛水夫，放開即可彈射。',
@@ -553,7 +582,8 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     completionOverlay.hidden = true;
   }
   mapArc = MAP_ROUTES[arc] ? arc : 'descent';
-  mapPart = MAP_ROUTES[mapArc]?.[Number(part)] ? Number(part) : 1;
+  const fallbackPart = mapArc === TUTORIAL_ROUTE ? TUTORIAL_PART : 1;
+  mapPart = MAP_ROUTES[mapArc]?.[Number(part)] ? Number(part) : fallbackPart;
   mapSelect.value = mapSelectionValue();
   loadingMask.classList.remove('is-hidden');
   loadingMask.textContent = mapArc === TUTORIAL_ROUTE
@@ -1355,9 +1385,43 @@ function drawStageExit() {
   context.font = 'bold 5px system-ui';
   context.textAlign = 'center';
   context.fillStyle = colour;
-  context.fillText(stageExit.unlocked ? (mapArc === TUTORIAL_ROUTE ? 'NEXT' : 'EXIT') : 'BOSS', x, y + 1.8);
+  context.fillText(stageExit.unlocked ? 'EXIT' : (mapArc === TUTORIAL_ROUTE ? 'GUIDE' : 'BOSS'), x, y + 1.8);
   context.restore();
 
+}
+
+function drawTutorialGuideMarker() {
+  if (mapArc !== TUTORIAL_ROUTE || !map) return;
+  const tutorial = getPlayTutorialRenderState(tutorialState, enemies);
+  if (tutorial.autoReady || !tutorial.targetCellKey) return;
+  const cell = getActiveCell(map, tutorial.targetCellKey, 'chapter1');
+  if (!cell) return;
+  const { x, y } = getHexCenter(cell, origin);
+  const pulse = 1 + Math.sin(worldTime * 4) * .12;
+  context.save();
+  context.globalCompositeOperation = 'lighter';
+  context.strokeStyle = '#73ffc0';
+  context.shadowColor = '#73ffc0';
+  context.shadowBlur = 8;
+  context.lineWidth = 1.1;
+  context.beginPath();
+  context.arc(x, y, 8 * pulse, 0, Math.PI * 2);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(x - 12, y);
+  context.lineTo(x - 5, y);
+  context.moveTo(x + 5, y);
+  context.lineTo(x + 12, y);
+  context.moveTo(x, y - 12);
+  context.lineTo(x, y - 5);
+  context.moveTo(x, y + 5);
+  context.lineTo(x, y + 12);
+  context.stroke();
+  context.font = 'bold 4.5px system-ui';
+  context.textAlign = 'center';
+  context.fillStyle = '#dffff0';
+  context.fillText('GUIDE', x, y - 12);
+  context.restore();
 }
 
 function drawKatanaBlade(effect, angle, alpha) {
@@ -1786,7 +1850,7 @@ function render() {
   updateVisibleRenderEntries();
   context.save(); context.scale(SCALE, SCALE); context.translate(-camera.x, -camera.y);
   visibleRenderCells.forEach((geometry) => renderCell(getActiveCell(map, geometry.key, 'chapter1'), geometry.key, geometry));
-  drawTerrainBoundaries(); drawEdges(); drawStageExit(); drawExperienceOrbs(); drawCombatEffects(); drawEnemyCombatRuntime(); drawEnemies(); drawCombatProjectiles(); drawTrajectory(); drawActor(); drawKatanaEffects();
+  drawTerrainBoundaries(); drawEdges(); drawStageExit(); drawTutorialGuideMarker(); drawExperienceOrbs(); drawCombatEffects(); drawEnemyCombatRuntime(); drawEnemies(); drawCombatProjectiles(); drawTrajectory(); drawActor(); drawKatanaEffects();
   if (discoveryUpdateGate.shouldUpdate(renderClock * 1000)) {
     activeDiscoveryGuides = updateDiscoverySession(discoverySession, collectVisibleDiscoverables(), worldTime);
   }
@@ -2186,7 +2250,16 @@ settingsToggle.addEventListener('click', () => { sfxController.play('menuSelecti
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
 levelInspect?.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel?.hidden ?? true); });
 resonanceClose?.addEventListener('click', () => { sfxController.play('button'); setResonancePanelOpen(false); levelInspect?.focus(); });
-exitButton.addEventListener('click', () => { sfxController.play('button'); window.location.href = '/home.html'; });
+exitButton.addEventListener('click', () => {
+  sfxController.play('button');
+  if (mapArc === TUTORIAL_ROUTE) {
+    openTutorialSkipPrompt();
+    return;
+  }
+  window.location.href = '/home.html';
+});
+tutorialSkipConfirm?.addEventListener('click', () => { sfxController.play('button'); leaveTutorial('skipped'); });
+tutorialSkipCancel?.addEventListener('click', () => { sfxController.play('button'); closeTutorialSkipPrompt(); });
 function syncMusicTrack() {
   musicController.setTrack(getMusicTrack({ part: mapPart, arc: musicArcSelect.value, mode: musicModeSelect.value }));
 }
@@ -2222,7 +2295,11 @@ function beginArcTransition(nextArc, nextPart = 1) {
 }
 mapSelect.addEventListener('change', () => {
   sfxController.play('menuSelection');
-  if (mapArc === TUTORIAL_ROUTE) rememberTutorialExit('skipped');
+  if (mapArc === TUTORIAL_ROUTE) {
+    mapSelect.value = mapSelectionValue();
+    openTutorialSkipPrompt();
+    return;
+  }
   const selection = parseMapSelection(mapSelect.value);
   mapArc = selection.arc;
   mapPart = selection.part;
@@ -2258,6 +2335,21 @@ upgradeChoices.addEventListener('click', (event) => {
 musicArcSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 musicModeSelect.addEventListener('change', () => { sfxController.play('menuSelection'); syncMusicTrack(); });
 window.addEventListener('keydown', (event) => {
+  if (mapArc === TUTORIAL_ROUTE && tutorialSkipPromptOpen) {
+    if (event.code === 'Enter') {
+      event.preventDefault();
+      leaveTutorial('skipped');
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      closeTutorialSkipPrompt();
+    }
+    return;
+  }
+  if (mapArc === TUTORIAL_ROUTE && event.code === 'Enter') {
+    event.preventDefault();
+    openTutorialSkipPrompt();
+    return;
+  }
   if (storyIntroState.active) {
     if (event.code === 'Space') {
       event.preventDefault();
@@ -2386,15 +2478,11 @@ function simulate(elapsed, now = performance.now()) {
         ? stepPlayTutorial(tutorialState, { enemies })
         : null;
       const stageExit = getCurrentStageExitState();
-      if (!actor.dead && mapArc === TUTORIAL_ROUTE && (tutorialProgress?.readyToLeave || stageExit.arrived)) {
-        const reason = tutorialProgress?.readyToLeave ? tutorialProgress.outcome : 'skipped';
-        rememberTutorialExit(reason);
-        eventLog.push(reason === 'resonance'
-          ? '教學完成：你用 Resonance 讓敵人中立；正在進入下沉篇。'
-          : reason === 'defeat'
-            ? '教學完成：你用武器解決敵人；正在進入下沉篇。'
-            : '你選擇離開教學房；不需要完成所有示範，正在進入下沉篇。');
-        beginArcTransition('descent', 1);
+      if (!actor.dead && mapArc === TUTORIAL_ROUTE && stageExit.arrived) {
+        eventLog.push(tutorialProgress?.outcome === 'resonance'
+          ? '第零篇章完成：你用 Resonance 讓敵人中立；返回水下主控台。'
+          : '第零篇章完成：導航員已確認你的操作；返回水下主控台。');
+        leaveTutorial('completed');
         accumulator = 0;
         break;
       }
@@ -2477,6 +2565,7 @@ function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame)
 if (MAP_ROUTES[requestedRoute]) mapArc = requestedRoute;
 else if (!hasTutorialExitPreference()) mapArc = TUTORIAL_ROUTE;
 if (requestedPart && MAP_ROUTES[mapArc]?.[requestedPart]) mapPart = Number(requestedPart);
+else if (mapArc === TUTORIAL_ROUTE) mapPart = TUTORIAL_PART;
 mapSelect.value = mapSelectionValue();
 const requestedArc = new URLSearchParams(window.location.search).get('arc');
 const requestedMode = new URLSearchParams(window.location.search).get('mode');
