@@ -67,33 +67,41 @@ For more details, open **How to Play** from the game's main page. You can also l
 
 **The real way to save the ocean is not to carry oxygen down to it, but to pull out the heart that made it forget how to breathe.**
 
-## 主題與遊戲的關係
+## Prototype status and honest warning
 
-### DIVE
+This build is closer to a playable concept showcase than to a finished, balanced game. Combat, progression, map routing, and difficulty are still being tuned. The balance is currently rough, and unexpected bugs may appear without warning. Some problems may be difficult to reproduce or confirm, so please treat this as an experimental prototype rather than a promise of a fair or stable challenge.
 
-- **空間上的 Dive**：玩家以肉身潛入世界最深的海溝，穿過深海森林、熱泉與遺跡。
-- **玩法上的 Dive**：玩家用拖曳彈射深入水域，氧氣與體力限制每一次前進，落點與回程都需要承擔風險。
-- **故事上的 Dive**：玩家深入人類造成的海洋罪責，直到看見深淵核心與生命循環的傷口。
-- **情緒上的 Dive**：玩家逐漸潛入一個問題——拯救海洋，是否代表必須承擔再次傷害它的代價？
+The game may also stutter or hitch, especially when a map contains many active effects or enemies. Performance improvements are planned for a later phase.
 
-### BUDDY
+## If you get stuck: use the developer interface
 
-Buddy 不是額外加入的一名 AI 夥伴，也不是固定跟隨玩家的第二角色。Buddy 是**人與海洋之間的關係**：一個曾經傷害海洋的人，如何重新與仍然活著的生命建立連結。
+The formal play page includes an exposed **Developer Interface** for testing and recovery. It is also the easiest way to make a run manageable when the current balance becomes frustrating.
 
-深海生物不只是敵人。玩家可以擊殺它們，取得經驗並建立武器／能力 Build；也可以靠近危險，使用 **Resonance（共鳴）** 理解它們的節奏。共鳴完成後，生物會成為不再攻擊玩家的中立夥伴，並提供本回合永久保留的 Resonance Buff。
+Press **`Ctrl + Alt + D`** to open or close it. The shortcuts can then give you a much stronger run:
 
-玩家不需要擊殺 Buddy。玩家可以選擇理解它、讓它留下，並以更高風險換取一段真正延續的關係。
+- **`Alt + 1`** fills the weapon slots.
+- **`Alt + 2`** fills the passive slots.
+- **`Alt + 3`** fills Resonance buffs.
+- **`Alt + 0`** clears the temporary developer overrides.
 
-### 下沉篇與上浮篇
+You can also enter commands for individual values, for example:
 
-- **下沉篇**：玩家培養武器、能力與對深海生命的理解，抵達深淵核心並將它拔出。
-- **上浮篇**：核心被取走後，封住裂口的傷口重新打開；同一個世界以變異、污染、重力與氧氣後果追殺玩家。
-- 下降篇使用的武器不會成為上浮篇的永久依靠，但一路培養的 Resonance Buff 與 Buddy 羈絆會留下。
-- 因此，玩家帶回海面的不只有深淵核心，也有那些選擇理解、而不是摧毀的生命回應。
+```text
+max weapons; max passives; max resonance
+weapon 2 katana 3
+passive 1 oxygenCirculator 3
+resonance crabGuard 9
+```
 
-## 公開文案使用原則
+These overrides affect the current run's in-memory Build, Resonance, and player position. They do not edit the map files. They can bypass much of the intended progression, so use them freely as a prototype aid when you want to explore the content instead of wrestling with unfinished balance.
 
-- itch.io 頁面不放入尚未穩定的等級數字、平衡數值或技術實作細節。
-- 「永久 Buff」指的是本回合／本次下潛旅程內永久保留，不宣稱跨新開局的 Meta Progression。
-- BUDDY 的重點是關係與選擇，不應被宣傳成傳統 AI 夥伴、合作角色或單一 NPC。
-- Resonance 是擊殺之外的第二條戰鬥路線；它需要玩家靠近危險，因此不是免費的和平按鈕。
+If a map becomes impossible to pass because of a routing or physics bug, enter a depth in the same interface and use **Depth Teleport**. The game will place you at the nearest traversable water cell for that depth; values outside the map are clamped to the closest available depth. This is a recovery tool for blocked routes, not a guarantee that every map bug has been fixed.
+
+## Adjust the difficulty in Settings
+
+If the normal challenge is too frustrating, open the **Settings** panel from the gear icon. You can adjust:
+
+- **Player damage reduction**, up to 90%.
+- **Oxygen / energy cost reduction**, up to 90%.
+
+These values are saved locally on your device. They make survival more forgiving, but they do not remove every enemy attack or guarantee that a broken route will be passable. If you are here to see the concept, lowering these coefficients is completely fine.
