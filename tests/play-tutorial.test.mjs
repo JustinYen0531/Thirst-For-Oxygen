@@ -162,7 +162,10 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playHtml, /id="play-tutorial-dialogue-control"/);
   assert.match(playHtml, /id="play-tutorial-task-list"/);
   assert.match(playHtml, /id="play-tutorial-dialogue-navigation"/);
-  assert.match(playHtml, /id="play-tutorial-task-progress">10 \/ 20</);
+  assert.match(playHtml, /id="play-tutorial-step-progress">0 \/ 10</);
+  assert.match(playHtml, /id="play-tutorial-task-progress">0 \/ 20</);
+  const fixedEnglishSections = [...playHtml.matchAll(/data-gameplay-language="fixed-en"[\s\S]*?<\/section>/g)].map(([section]) => section).join('\n');
+  assert.doesNotMatch(fixedEnglishSections, /[\u3400-\u9fff]/);
   assert.match(playHtml, /aria-label="First Breath tasks"/);
   assert.match(playHtml, /id="play-tutorial-task-list"[^>]*tabindex="0"/);
   assert.match(playHtml, /id="play-tutorial-skip-dialog"/);

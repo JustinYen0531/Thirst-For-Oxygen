@@ -1237,3 +1237,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 任務清單改成固定 96px 的兩欄滾動區，固定 grid row 高度並強制顯示 scrollbar；20 個任務不再因父卡高度或 auto overflow 而只呈現前 14 個。
 - Scrollbar thumb 與 track 增加明確視覺樣式；Play 靜態結構測試補上真正 scroll range 的 CSS 契約。
+
+## 2026-08-10 — First Breath progress semantics are explicit and English-only
+
+- 右上進度改為 `completed / required`（例如 `16 / 10`）；未達門檻為紅色，達到 10 項後為綠色。
+- 下方任務列表改為真實進度 `completed / total`（例如 `16 / 20`）；Chapter 0 教學區固定完整英文，避免全域語言觀察器重新混入中文。

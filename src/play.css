@@ -77,7 +77,9 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-tutorial-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .play-tutorial-heading .eyebrow { margin: 0 0 4px; color: #73ffc0; font-size: .48rem; }
 .play-tutorial-heading h2 { margin: 0; color: #effff6; font-size: .9rem; letter-spacing: .06em; }
-.play-tutorial-progress { color: #8bffbd; font: 800 .65rem/1 "Orbitron", "Segoe UI", sans-serif; }
+.play-tutorial-progress { color: #ff6f7b; font: 800 .65rem/1 "Orbitron", "Segoe UI", sans-serif; text-shadow: 0 0 8px rgba(255, 87, 101, .26); }
+.play-tutorial-progress.is-locked { color: #ff6f7b; }
+.play-tutorial-progress.is-ready { color: #8bffbd; text-shadow: 0 0 8px rgba(106, 255, 169, .32); }
 .play-tutorial-guide-line { margin-top: 7px !important; color: #7df9b4 !important; font-size: .56rem !important; letter-spacing: .04em; }
 .play-tutorial-guide-line span { color: #effff6; font-weight: 800; }
 .play-tutorial-panel h3 { margin: 11px 0 5px; color: #a8ffd1; font-size: .77rem; }

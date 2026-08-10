@@ -374,30 +374,34 @@ function updateTutorialPresentation() {
   });
   if (signature === tutorialUiSignature) return;
   tutorialUiSignature = signature;
-  tutorialGuideName.textContent = translateGameplayText(tutorial.guideName);
-  tutorialStepTitle.textContent = translateGameplayText(tutorial.currentTask?.title ?? tutorial.currentStep.title);
-  tutorialStepBody.textContent = translateGameplayText(tutorial.currentStep.body);
-  tutorialStepInstruction.textContent = translateGameplayText(tutorial.currentStep.instruction ?? '請依照導航員的提示操作。');
-  tutorialDialogueSpeaker.textContent = translateGameplayText(tutorial.dialogue.speaker);
-  tutorialDialogueTitle.textContent = translateGameplayText(tutorial.dialogue.title);
-  tutorialDialogueText.textContent = translateGameplayText(tutorial.dialogue.text);
+  const tutorialEnglishText = (value) => translateGameplayText(value, 'en');
+  tutorialGuideName.textContent = tutorialEnglishText(tutorial.guideName);
+  tutorialStepTitle.textContent = tutorialEnglishText(tutorial.currentTask?.title ?? tutorial.currentStep.title);
+  tutorialStepBody.textContent = tutorialEnglishText(tutorial.currentStep.body);
+  tutorialStepInstruction.textContent = tutorialEnglishText(tutorial.currentStep.instruction ?? '請依照導航員的提示操作。');
+  tutorialDialogueSpeaker.textContent = tutorialEnglishText(tutorial.dialogue.speaker);
+  tutorialDialogueTitle.textContent = tutorialEnglishText(tutorial.dialogue.title);
+  tutorialDialogueText.textContent = tutorialEnglishText(tutorial.dialogue.text);
   const tutorialControlHint = tutorial.currentStep.controlHint ?? tutorial.currentStep.instruction ?? '';
   const tutorialNavigationHint = `操作：使用 ← / → 切換 First Breath 任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
   tutorialDialogueControl.textContent = tutorial.autoReady
-    ? translateGameplayText(tutorial.dialogue.controlHint)
-    : `${translateGameplayText(tutorialControlHint)} ${translateGameplayText(tutorialNavigationHint)}`;
+    ? tutorialEnglishText(tutorial.dialogue.controlHint)
+    : `${tutorialEnglishText(tutorialControlHint)} ${tutorialEnglishText(tutorialNavigationHint)}`;
   const navigationCopy = tutorial.autoReady
     ? '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。'
     : `操作：使用 ← / → 切換 ${tutorial.totalCoreSteps} 個任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
-  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = translateGameplayText(navigationCopy);
-  tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
-  if (tutorialTaskProgress) tutorialTaskProgress.textContent = `${tutorial.completionTarget} / ${tutorial.totalCoreSteps}`;
-  tutorialExitHint.textContent = translateGameplayText(tutorial.lastGuideNote || tutorial.freeExit);
+  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = tutorialEnglishText(navigationCopy);
+  const tutorialReady = tutorial.completedCoreSteps >= tutorial.completionTarget;
+  tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.completionTarget}`;
+  tutorialStepProgress.classList.toggle('is-ready', tutorialReady);
+  tutorialStepProgress.classList.toggle('is-locked', !tutorialReady);
+  if (tutorialTaskProgress) tutorialTaskProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
+  tutorialExitHint.textContent = tutorialEnglishText(tutorial.lastGuideNote || tutorial.freeExit);
   tutorialTaskList.replaceChildren(...tutorial.tasks.map((entry, index) => {
     const item = document.createElement('li');
     item.className = `${entry.completed ? 'is-complete' : ''}${entry.selected ? ' is-current' : ''}`.trim();
-    item.textContent = `${entry.completed ? '✓' : '○'} ${String(index + 1).padStart(2, '0')} ${translateGameplayText(entry.title)}`;
-    item.title = entry.selected ? '目前 Guidance 任務' : '使用左右鍵切換 Guidance 任務';
+    item.textContent = `${entry.completed ? '✓' : '○'} ${String(index + 1).padStart(2, '0')} ${tutorialEnglishText(entry.title)}`;
+    item.title = entry.selected ? 'Current Guidance task' : 'Use the arrow keys to switch Guidance tasks';
     return item;
   }));
 }

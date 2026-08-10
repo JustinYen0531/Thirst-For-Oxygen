@@ -141,6 +141,31 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('Chapter 0 tutorial cards keep Canvas controls available and show honest English progress', () => {
+  assert.match(page, /const navigationCopy = tutorial\.autoReady/);
+  assert.match(page, /tutorialEnglishText\(navigationCopy\)/);
+  assert.match(page, /const tutorialControlHint = tutorial\.currentStep\.controlHint/);
+  assert.match(page, /tutorialDialogueControl\.textContent = tutorial\.autoReady/);
+  assert.match(page, /tutorialEnglishText\(tutorialNavigationHint\)/);
+  assert.match(page, /tutorialStepProgress\.textContent = `\$\{tutorial\.completedCoreSteps\} \/ \$\{tutorial\.completionTarget\}`/);
+  assert.match(page, /tutorialTaskProgress\.textContent = `\$\{tutorial\.completedCoreSteps\} \/ \$\{tutorial\.totalCoreSteps\}`/);
+  assert.match(page, /tutorialStepProgress\.classList\.toggle\('is-ready'/);
+  assert.match(page, /tutorialStepProgress\.classList\.toggle\('is-locked'/);
+  assert.match(page, /const tutorialEnglishText =/);
+  assert.match(html, /data-gameplay-language="fixed-en"/);
+  assert.match(page, /updateTutorialCardHover/);
+  assert.match(page, /tutorialTaskList\.scrollTop \+= event\.deltaY/);
+  assert.match(css, /\.play-tutorial-panel[^\n]*pointer-events: none/);
+  assert.match(css, /\.play-tutorial-dialogue[^\n]*pointer-events: none/);
+  assert.match(css, /\.play-tutorial-task-list \{[^\n]*pointer-events: auto/);
+  assert.match(css, /\.play-tutorial-object-list \{[^\n]*grid-auto-rows: max-content[^\n]*height: 96px[^\n]*overflow-y: scroll/);
+  assert.match(css, /\.play-tutorial-task-list::-webkit-scrollbar-thumb/);
+  assert.match(css, /\.play-tutorial-progress\.is-locked/);
+  assert.match(css, /\.play-tutorial-progress\.is-ready/);
+  assert.match(css, /\.play-tutorial-panel\.is-pointer-over/);
+  assert.match(css, /\.play-tutorial-dialogue\.is-pointer-over/);
+});
+
 test('a plain New Game always starts in Chapter 0 while explicit routes stay available', () => {
   assert.match(page, /if \(MAP_ROUTES\[requestedRoute\]\) mapArc = requestedRoute;\s*else mapArc = TUTORIAL_ROUTE;/);
   assert.doesNotMatch(page, /hasTutorialExitPreference|TUTORIAL_STORAGE_KEY/);

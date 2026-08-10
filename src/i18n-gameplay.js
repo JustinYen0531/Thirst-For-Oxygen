@@ -730,6 +730,7 @@ export function installLiveLocalization(root = document) {
     : clearTimeout;
 
   function localizeTextNode(node, refreshSource = false) {
+    if (node?.parentElement?.closest?.('[data-gameplay-language="fixed-en"]')) return;
     if (!originalText.has(node) || refreshSource) originalText.set(node, node.nodeValue ?? '');
     const source = originalText.get(node);
     const next = translateGameplayText(source);
@@ -737,7 +738,7 @@ export function installLiveLocalization(root = document) {
   }
 
   function localizeElement(element, refreshAttribute) {
-    if (!element?.getAttribute) return;
+    if (!element?.getAttribute || element.closest?.('[data-gameplay-language="fixed-en"]')) return;
     const stored = originalAttributes.get(element) ?? {};
     attributes.forEach((name) => {
       if (!element.hasAttribute(name)) return;
@@ -749,11 +750,13 @@ export function installLiveLocalization(root = document) {
   }
 
   function isAppliedTextMutation(node) {
+    if (node?.parentElement?.closest?.('[data-gameplay-language="fixed-en"]')) return true;
     if (!originalText.has(node)) return false;
     return node.nodeValue === translateGameplayText(originalText.get(node));
   }
 
   function isAppliedAttributeMutation(element, attribute) {
+    if (element?.closest?.('[data-gameplay-language="fixed-en"]')) return true;
     const stored = originalAttributes.get(element);
     if (!stored || !(attribute in stored)) return false;
     return element.getAttribute(attribute) === translateGameplayText(stored[attribute]);
