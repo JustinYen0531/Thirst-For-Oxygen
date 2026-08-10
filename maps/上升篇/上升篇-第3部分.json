@@ -24789,7 +24789,7 @@
     "-26,78": {
       "q": -26,
       "r": 78,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -25090,7 +25090,7 @@
     "-28,79": {
       "q": -28,
       "r": 79,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -25103,7 +25103,7 @@
     "-27,79": {
       "q": -27,
       "r": 79,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L1",
       "waterLayer": "T1",
       "conditionalGate": null,

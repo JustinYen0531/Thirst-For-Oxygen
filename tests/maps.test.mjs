@@ -499,6 +499,16 @@ test('part 3 keeps the direct water passage beside the Razor at 38 metres', () =
   assert.equal(razor.params.count, 3);
 });
 
+test('part 3 keeps the 36-to-38 metre route free of hidden blocked Cells', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const corridorKeys = ['-7,36', '-7,37', '-6,37', '-6,38', '-7,38', '-8,39', '-9,39', '-9,40'];
+
+  corridorKeys.forEach((key) => assert.equal(part3.cells[key]?.terrain, 'water', `${key} must remain visible and traversable water`));
+  corridorKeys.slice(0, -1).forEach((key, index) => {
+    assert.equal(canTraverse(part3, key, corridorKeys[index + 1]), true, `${key} -> ${corridorKeys[index + 1]} must not hide a wall`);
+  });
+});
+
 test('part 3 provides five Torricelli rest spaces through the bright L-1 pockets', () => {
   const part3 = loadMap('下沉篇-第3部分.json');
   const torricelli = freeObjectsOf(part3).filter(({ object }) => object.kind === 'torricelli');
