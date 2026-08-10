@@ -37,6 +37,32 @@ finally {
   Pop-Location
 }
 
+# Keep the authored source videos untouched, but make the upload copy small
+# enough for itch.io. The story player is muted, so packaged MP4 audio tracks
+# are unnecessary; CRF 30 retains the visuals while cutting upload weight.
+$legacyHomeVideos = @(
+  'assets/home/abyss-seafloor-ping-pong-067.mp4',
+  'assets/home/abyss-seafloor-ping-pong-v2-067.mp4'
+)
+foreach ($relativePath in $legacyHomeVideos) {
+  [System.IO.File]::Delete((Join-Path $stageDirectory $relativePath))
+}
+
+$packageVideos = @(
+  Get-ChildItem -LiteralPath (Join-Path $stageDirectory 'assets/story') -Recurse -File -Filter '*.mp4'
+  Get-Item -LiteralPath (Join-Path $stageDirectory 'assets/home/start-game-descent-loading.mp4')
+  Get-Item -LiteralPath (Join-Path $stageDirectory 'assets/home/abyss-seafloor-ping-pong-v3-audio-067.mp4')
+)
+foreach ($video in $packageVideos) {
+  $compressedPath = "$($video.FullName).package.mp4"
+  & ffmpeg -hide_banner -loglevel error -y -i $video.FullName -map 0:v:0 -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -an -movflags +faststart $compressedPath
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $compressedPath)) {
+    throw "Failed to compress packaged video: $($video.FullName)"
+  }
+  [System.IO.File]::Delete($video.FullName)
+  [System.IO.File]::Move($compressedPath, $video.FullName)
+}
+
 $sourceEditorPath = Join-Path $stageDirectory 'index.html'
 $editorPath = Join-Path $stageDirectory 'editor.html'
 $homePath = Join-Path $stageDirectory 'home.html'
@@ -177,6 +203,9 @@ $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash
   $utf8NoBom
 )
 $zipInfo = Get-Item -LiteralPath $zipPath
+if ($zipInfo.Length -ge 500000000) {
+  throw "itch.io ZIP must stay below 500 MB; actual bytes: $($zipInfo.Length)"
+}
 
 Write-Host "ITCH_PACKAGE=$zipPath"
 Write-Host "ITCH_SHA256=$hash"

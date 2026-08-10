@@ -1400,3 +1400,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 - 修正 Tutorial 右側任務面板與左下導航對話在非 hover 狀態被固定降到 42% opacity 的可讀性問題；兩者現在常態保持 100% 可見，hover 僅保留邊框與背景回饋。
 - 依專案規則只做靜態測試、build 與 itch.io 封包驗證，不執行瀏覽器／Playwright。
+
+## 2026-08-10 — itch.io package under 500 MB
+
+- 封包流程只在 `output/itch-stage` 內以 CRF 30 重新壓縮故事與首頁 MP4，不修改原始影片；移除已由 v3 取代的兩支首頁舊影片。
+- 封包腳本新增 500,000,000 bytes 硬上限，超標會直接失敗，避免再次產生無法上傳 itch.io 的 ZIP。

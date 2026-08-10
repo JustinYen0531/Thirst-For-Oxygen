@@ -34,6 +34,14 @@ test('itch packaging normalizes and verifies ZIP paths including Unicode names',
   assert.match(script, /Compare-Object -ReferenceObject \$expectedEntries -DifferenceObject \$actualEntries/);
 });
 
+test('itch packaging compresses upload-only videos and enforces the 500 MB cap', () => {
+  const script = read('../scripts/package-itch.ps1');
+
+  assert.match(script, /-c:v libx264 -preset veryfast -crf 30/);
+  assert.match(script, /abyss-seafloor-ping-pong-v2-067\.mp4/);
+  assert.match(script, /zipInfo\.Length -ge 500000000/);
+});
+
 test('all player-facing page navigation is relative for itch subpath hosting', () => {
   const htmlFiles = [
     '../index.html',
