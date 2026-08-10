@@ -123,6 +123,12 @@ test('the public play entry starts at Part 1 and stage exits preserve the run', 
   assert.match(home, /src="\/src\/home-page\.js"/);
 });
 
+test('a plain New Game always starts in Chapter 0 while explicit routes stay available', () => {
+  assert.match(page, /if \(MAP_ROUTES\[requestedRoute\]\) mapArc = requestedRoute;\s*else mapArc = TUTORIAL_ROUTE;/);
+  assert.doesNotMatch(page, /hasTutorialExitPreference|TUTORIAL_STORAGE_KEY/);
+  assert.match(home, /id="home-start-game" href="\/play\.html"/);
+});
+
 test('formal play uses honest programmatic fallbacks instead of broken or wrong assets', () => {
   assert.doesNotMatch(page, /button\.png/);
   assert.doesNotMatch(page, /current:\s*['"]\/assets\/editor\/edges\/edge-spike-barrier\.png/);

@@ -8,7 +8,6 @@ import {
 
 export const TUTORIAL_ROUTE = 'tutorial';
 export const TUTORIAL_PART = 0;
-export const TUTORIAL_STORAGE_KEY = 'thirst-for-oxygen-tutorial-exit';
 
 const TUTORIAL_WIDTH = 12;
 const TUTORIAL_HEIGHT = 24;

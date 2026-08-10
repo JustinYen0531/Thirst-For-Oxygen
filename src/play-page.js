@@ -80,7 +80,6 @@ import { getPlayStageExitState } from './play-flow.js';
 import {
   TUTORIAL_ROUTE,
   TUTORIAL_PART,
-  TUTORIAL_STORAGE_KEY,
   createPlayTutorialState,
   createTutorialMap,
   getPlayTutorialExitState,
@@ -316,22 +315,6 @@ function getMapDefinition(arc = mapArc, part = mapPart) {
   return MAP_ROUTES[arc]?.[part] ?? null;
 }
 
-function hasTutorialExitPreference() {
-  try {
-    return Boolean(localStorage.getItem(TUTORIAL_STORAGE_KEY));
-  } catch {
-    return false;
-  }
-}
-
-function rememberTutorialExit(reason) {
-  try {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, reason || 'skipped');
-  } catch {
-    // The current run can still continue when storage is unavailable.
-  }
-}
-
 function openTutorialSkipPrompt() {
   if (mapArc !== TUTORIAL_ROUTE || !tutorialSkipDialog) return;
   tutorialSkipPromptOpen = true;
@@ -344,9 +327,8 @@ function closeTutorialSkipPrompt() {
   if (tutorialSkipDialog) tutorialSkipDialog.hidden = true;
 }
 
-function leaveTutorial(reason = 'skipped') {
+function leaveTutorial() {
   if (mapArc !== TUTORIAL_ROUTE) return;
-  rememberTutorialExit(reason);
   closeTutorialSkipPrompt();
   window.location.href = '/home.html';
 }
@@ -2595,8 +2577,10 @@ window.advanceTime = (milliseconds) => { const steps = Math.max(1, Math.round(Ma
 
 function frame(now) { const elapsed = Math.min(.1, Math.max(0, (now - lastFrame) / 1000)); lastFrame = now; simulate(elapsed, now); render(); requestAnimationFrame(frame); }
 
+// A plain New Game is always a fresh Chapter 0 run. Explicit route parameters
+// remain available for formal-chapter testing and direct map selection.
 if (MAP_ROUTES[requestedRoute]) mapArc = requestedRoute;
-else if (!hasTutorialExitPreference()) mapArc = TUTORIAL_ROUTE;
+else mapArc = TUTORIAL_ROUTE;
 if (requestedPart && MAP_ROUTES[mapArc]?.[requestedPart]) mapPart = Number(requestedPart);
 else if (mapArc === TUTORIAL_ROUTE) mapPart = TUTORIAL_PART;
 mapSelect.value = mapSelectionValue();
