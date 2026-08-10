@@ -499,6 +499,20 @@ test('part 3 keeps the direct water passage beside the Razor at 38 metres', () =
   assert.equal(razor.params.count, 3);
 });
 
+test('part 3 provides five Torricelli rest spaces through the bright L-1 pockets', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const torricelli = freeObjectsOf(part3).filter(({ object }) => object.kind === 'torricelli');
+  const expectedKeys = ['19,6', '8,28', '-22,49', '-9,61', '-20,84'];
+
+  assert.equal(torricelli.length, 5);
+  expectedKeys.forEach((key) => {
+    const cell = part3.cells[key];
+    assert.ok(cell, `${key} should contain an authored Torricelli space`);
+    assert.equal(cell.gravityLevel, 'L-1', `${key} should stay in the bright rising-water pocket`);
+    assert.equal(cell.freeObjects.filter((object) => object.kind === 'torricelli').length, 1, `${key} should contain one Torricelli space`);
+  });
+});
+
 test('part 1 ends in a dedicated sealed Prism Crab Mini Boss room', () => {
   const part1 = loadMap('下沉篇-第1部分.json');
   const part2 = loadMap('下沉篇-第2部分.json');

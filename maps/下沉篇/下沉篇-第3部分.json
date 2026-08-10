@@ -9120,7 +9120,19 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 30,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
       "region": "default"
     },
@@ -19485,7 +19497,19 @@
       "conditionalGate": null,
       "overlays": [],
       "objects": [],
-      "freeObjects": [],
+      "freeObjects": [
+        {
+          "kind": "torricelli",
+          "offset": {
+            "x": 0,
+            "y": 0
+          },
+          "size": 30,
+          "params": {
+            "oxygenRecoveryPerSecond": 20
+          }
+        }
+      ],
       "actors": [],
       "region": "default"
     },

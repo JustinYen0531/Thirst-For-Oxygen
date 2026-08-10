@@ -1105,6 +1105,9 @@ function buildPart3(source) {
     ['oxygen', 69, 7], ['bubble', 76, 20], ['mine', 88, 4],
     ['checkpoint', 97, 18], ['weightStone', 103, 9], ['ink', 109, 21],
     ['oxygen', 113, 3], ['bubble', 116, 14], ['razor', 100, 20],
+    // The bright L-1 side pockets need readable oxygen-rest stops, not a
+    // single isolated pickup every few dozen rows.
+    ['torricelli', 28, 22], ['torricelli', 61, 21],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used));
   addEdgeSet(map, 'springJelly', [18, 46, 78, 108]);
   addEdgeSet(map, 'spike', [23, 57, 91, 104]);
