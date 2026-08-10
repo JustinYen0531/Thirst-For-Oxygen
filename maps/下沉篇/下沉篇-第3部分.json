@@ -10880,7 +10880,7 @@
     "-5,34": {
       "q": -5,
       "r": 34,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11179,7 +11179,7 @@
     "-6,35": {
       "q": -6,
       "r": 35,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11508,7 +11508,7 @@
     "-6,36": {
       "q": -6,
       "r": 36,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -11900,7 +11900,7 @@
     "-1,37": {
       "q": -1,
       "r": 37,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -12407,7 +12407,7 @@
     "-11,39": {
       "q": -11,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -12459,7 +12459,7 @@
     "-7,39": {
       "q": -7,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -12472,7 +12472,7 @@
     "-6,39": {
       "q": -6,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -12485,7 +12485,7 @@
     "-5,39": {
       "q": -5,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -12498,7 +12498,7 @@
     "-4,39": {
       "q": -4,
       "r": 39,
-      "terrain": "blocked",
+      "terrain": "water",
       "gravityLevel": "L0",
       "waterLayer": "T1",
       "conditionalGate": null,
@@ -37807,10 +37807,10 @@
         "damage": 20
       }
     },
-    "-1,37|-1,38": {
+    "-1,24|-1,25": {
       "cells": [
-        "-1,37",
-        "-1,38"
+        "-1,24",
+        "-1,25"
       ],
       "type": "barrier",
       "blocksPassage": true,
@@ -37987,10 +37987,10 @@
       "size": 30,
       "params": {}
     },
-    "-1,36|-1,37": {
+    "-1,31|0,31": {
       "cells": [
-        "-1,36",
-        "-1,37"
+        "-1,31",
+        "0,31"
       ],
       "type": "seaweed",
       "blocksPassage": false,
@@ -38083,10 +38083,10 @@
       "size": 30,
       "params": {}
     },
-    "-1,24|-1,25": {
+    "-1,24|-2,25": {
       "cells": [
         "-1,24",
-        "-1,25"
+        "-2,25"
       ],
       "type": "coralCluster",
       "blocksPassage": false,
@@ -38095,10 +38095,10 @@
       "size": 30,
       "params": {}
     },
-    "-10,34|-11,34": {
+    "-1,32|0,31": {
       "cells": [
-        "-11,34",
-        "-10,34"
+        "0,31",
+        "-1,32"
       ],
       "type": "coralCluster",
       "blocksPassage": false,

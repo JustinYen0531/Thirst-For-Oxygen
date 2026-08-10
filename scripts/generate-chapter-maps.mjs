@@ -486,6 +486,37 @@ function moveExistingEdge(map, fromKey, toKey) {
   }));
 }
 
+function clearPart3AirWallCorridor(map) {
+  const rowStart = 34;
+  const rowEnd = 40;
+  const columnStart = 8;
+  const columnEnd = 17;
+  for (let row = rowStart; row <= rowEnd; row += 1) {
+    for (let column = columnStart; column <= columnEnd; column += 1) {
+      const cell = map.cells[cellKeyFromColumn(column, row)];
+      if (!cell) continue;
+      cell.terrain = 'water';
+      cell.waterLayer = 'T1';
+      cell.conditionalGate = null;
+    }
+  }
+
+  const removableEdges = new Set();
+  Object.entries(map.edges).forEach(([key, edge]) => {
+    if (edge.type === 'none') return;
+    const touchesCorridor = edge.cells.some((cellKey) => {
+      const cell = map.cells[cellKey];
+      if (!cell || cell.r < rowStart || cell.r > rowEnd) return false;
+      const column = columnOf(cell);
+      return column >= columnStart && column <= columnEnd + 1;
+    });
+    if (!touchesCorridor) return;
+    removableEdges.add(key);
+    if (edge.portalTargetKey) removableEdges.add(edge.portalTargetKey);
+  });
+  removableEdges.forEach((key) => delete map.edges[key]);
+}
+
 function repairPart3PortalRoute(map) {
   // The player-authored ruin uses three visible portal rings. The template
   // preserved their geometry, but most individual Edge targets were null.
@@ -1114,7 +1145,7 @@ function buildPart3(source) {
   const torricelliCellKey = addFreeObject(map, 'torricelli', 109, 17, used);
   addEdgeSet(map, 'springJelly', [18, 46, 78, 108]);
   addEdgeSet(map, 'spike', [23, 57, 91, 104]);
-  addEdgeSet(map, 'barrier', [37, 73, 99]);
+  addEdgeSet(map, 'barrier', [24, 73, 99]);
   addEdgeSet(map, 'current', [12, 52, 82, 112]);
   addEdgeSet(map, 'seaweed', [27, 68, 96]);
   addEdgeSet(map, 'coralCluster', [42, 76, 106]);
@@ -1133,9 +1164,13 @@ function buildPart3(source) {
     ['-15,76|-15,77', '-17,76|-18,76'],
     ['-30,106|-30,107', '-32,104|-32,105'],
   ].forEach(([fromKey, toKey]) => moveExistingEdge(map, fromKey, toKey));
-  addReachableSupportSet(map, 'seaweed', [10, 18, 36, 45, 55, 70, 82, 100, 114]);
-  addReachableSupportSet(map, 'coralCluster', [14, 24, 34, 52, 62, 86, 104, 112, 116]);
+  addReachableSupportSet(map, 'seaweed', [10, 18, 31, 45, 55, 70, 82, 100, 114]);
+  addReachableSupportSet(map, 'coralCluster', [14, 24, 31, 52, 62, 86, 104, 112, 116]);
   addWallGillRoutes(map, [28, 70, 106], 'descent-part3-wall-gill');
+  // The authored 34-40m passage must be a plain, broad water corridor. The
+  // old source geometry mixed blocked Cells and non-visual blocking Edges here,
+  // which felt like an invisible wall even when the player was on the route.
+  clearPart3AirWallCorridor(map);
   map.metadata.bossRoom = {
     id: 'abyssal-throne',
     enemyId: 'abyssalSpermWhale',

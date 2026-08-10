@@ -469,10 +469,14 @@ test('part 3 preserves the player-authored template geometry outside the final B
       && sourceCell.r <= finalBossRoom.rowEnd
       && sourceColumn >= finalBossRoom.columnStart
       && sourceColumn <= finalBossRoom.columnEnd;
-    // The final Boss room is an intentional authored carve-out; all geometry outside it stays untouched.
-    if (!isFinalBossRoomCell) assert.equal(generated.terrain, sourceCell.terrain, `${key} terrain should stay player-authored`);
+    const isAirWallCorrectionCell = sourceCell.r >= 34
+      && sourceCell.r <= 40
+      && sourceColumn >= 8
+      && sourceColumn <= 17;
+    // The final Boss room and the explicit 34-40m air-wall correction are intentional carve-outs.
+    if (!isFinalBossRoomCell && !isAirWallCorrectionCell) assert.equal(generated.terrain, sourceCell.terrain, `${key} terrain should stay player-authored`);
     assert.equal(generated.gravityLevel, sourceCell.gravityLevel, `${key} gravity should stay player-authored`);
-    assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
+    if (!isFinalBossRoomCell && !isAirWallCorrectionCell) assert.equal(generated.waterLayer, sourceCell.waterLayer, `${key} layer should stay player-authored`);
   });
   assert.equal(part3.metadata.source, '範本map.json（玩家原始第三部分）');
   assert.equal(Object.values(part3.edges).filter((edge) => edge.type === 'multiPortal').length, 38);
@@ -506,6 +510,27 @@ test('part 3 keeps the 36-to-38 metre route free of hidden blocked Cells', () =>
   corridorKeys.forEach((key) => assert.equal(part3.cells[key]?.terrain, 'water', `${key} must remain visible and traversable water`));
   corridorKeys.slice(0, -1).forEach((key, index) => {
     assert.equal(canTraverse(part3, key, corridorKeys[index + 1]), true, `${key} -> ${corridorKeys[index + 1]} must not hide a wall`);
+  });
+});
+
+test('part 3 clears the 34-to-40 metre central corridor of walls and mechanisms', () => {
+  const part3 = loadMap('下沉篇-第3部分.json');
+  const corridorKeys = [];
+  for (let row = 34; row <= 40; row += 1) {
+    for (let column = 8; column <= 17; column += 1) {
+      const key = `${column - Math.floor(row / 2)},${row}`;
+      corridorKeys.push(key);
+      assert.equal(part3.cells[key]?.terrain, 'water', `${key} must be open water`);
+      assert.equal(part3.cells[key]?.waterLayer, 'T1', `${key} must not hide a layer wall`);
+    }
+  }
+  Object.values(part3.edges).filter((edge) => edge.type !== 'none').forEach((edge) => {
+    const touchesCorridor = edge.cells.some((key) => corridorKeys.includes(key));
+    assert.equal(touchesCorridor, false, `${edge.type} must not obstruct the 34-40m corridor`);
+  });
+  const verticalRoute = [33, 34, 35, 36, 37, 38, 39, 40, 41].map((row) => `${8 - Math.floor(row / 2)},${row}`);
+  verticalRoute.slice(0, -1).forEach((key, index) => {
+    assert.equal(canTraverse(part3, key, verticalRoute[index + 1]), true, `${key} -> ${verticalRoute[index + 1]} must stay open`);
   });
 });
 
