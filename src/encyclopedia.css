@@ -21,10 +21,6 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .back-link:hover { border-color: #8feeff; background: #1b5075; }
 .guide-note { display: flex; gap: 14px; align-items: baseline; margin-bottom: 18px; padding: 12px 14px; border: 1px solid #2b6079; border-radius: 7px; background: rgba(10, 40, 61, .72); color: #a9cbe0; font-size: 13px; line-height: 1.45; }
 .guide-note strong { color: #8df1e7; white-space: nowrap; }
-.afterimage-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; padding: 9px 12px; border: 1px solid #355d79; border-radius: 6px; color: #a7c2d4; background: rgba(11, 32, 50, .8); font-size: 12px; }
-.afterimage-toggle { display: inline-flex; align-items: center; gap: 7px; color: #e7fbff; font-weight: 700; cursor: pointer; }
-.afterimage-toggle input { width: 15px; height: 15px; margin: 0; accent-color: #73e2ed; }
-.afterimage-controls strong { color: #73e2ed; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .section-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 10px; padding-top: 18px; border-top: 1px solid #234763; }
 .section-filters button { border: 1px solid #477f93; border-radius: 5px; padding: 9px 14px; color: #d9f4ff; background: #12384e; font-weight: 700; }
 .section-filters button:hover, .section-filters button.is-active { border-color: #8ee7ff; background: #1e5b80; }
@@ -97,6 +93,22 @@ h1 { font-size: clamp(28px, 4vw, 44px); letter-spacing: .04em; }
 .entry-values b { color: #6e9bb2; font-weight: 500; }
 .sandbox-entry-link { display: inline-flex; margin-top: 14px; padding: 8px 10px; border: 1px solid #4e829c; border-radius: 5px; color: #bdf6ff; background: rgba(23, 78, 107, .42); text-decoration: none; font-size: 12px; }
 .sandbox-entry-link:hover, .sandbox-entry-link:focus-visible { border-color: #8fefff; color: #fff; outline: none; }
-.afterimage-controls[hidden], .tier-filters[hidden] { display: none; }
+.tier-filters[hidden] { display: none; }
 .enemy-card.is-lore-open .preview-actions, .enemy-card.is-lore-open .enemy-stats, .enemy-card.is-lore-open .enemy-description, .enemy-card.is-lore-open .selected-skill-panel { display: none; }
+.resonance-card { grid-column: 1 / -1; }
+.resonance-card > h3, .resonance-buff-section > h3, .resonance-guide-columns h3 { color: #e5f6ff; font-size: 14px; }
+.resonance-guide-columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 18px; margin-top: 17px; padding-top: 14px; border-top: 1px solid #31566f; }
+.resonance-steps { display: grid; gap: 9px; margin: 10px 0 0; padding: 0; list-style: none; }
+.resonance-steps li { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px; padding: 9px 10px; border: 1px solid rgba(91, 177, 205, .24); border-radius: 6px; background: rgba(3, 25, 40, .45); }
+.resonance-steps strong { color: #8df1e7; font: 700 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.resonance-steps span { color: #c3d8e4; font-size: 12px; line-height: 1.55; }
+.resonance-rules { margin-top: 10px; padding-top: 10px; }
+.resonance-buff-section { margin-top: 18px; padding-top: 14px; border-top: 1px solid #31566f; }
+.resonance-buff-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.resonance-buff { display: grid; gap: 5px; min-width: 0; padding: 9px 10px; border: 1px solid rgba(109, 255, 166, .2); border-radius: 6px; background: rgba(8, 53, 54, .46); }
+.resonance-buff > div { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.resonance-buff strong { color: #d8ffe6; font-size: 12px; }
+.resonance-buff small { color: #65c9a0; font: 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: right; }
+.resonance-buff p { margin: 0; color: #a9cdbb; font-size: 11px; line-height: 1.45; }
 @media (max-width: 720px) { body { min-width: 0; } .encyclopedia-shell { padding: 20px 12px 40px; } .encyclopedia-header { align-items: start; flex-direction: column; } .guide-note { display: block; } .guide-note span { display: block; margin-top: 5px; } .enemy-grid { grid-template-columns: 1fr; } }
+@media (max-width: 780px) { .resonance-guide-columns { grid-template-columns: 1fr; } }

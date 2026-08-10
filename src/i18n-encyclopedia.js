@@ -5,6 +5,8 @@ import {
   PASSIVE_ENCYCLOPEDIA,
   WEAPON_ENCYCLOPEDIA,
 } from './enemy-encyclopedia.js';
+import { RESONANCE_BUFFS, RESONANCE_RULES } from './resonance.js';
+import { translateGameplayText } from './i18n-gameplay.js';
 import {
   DEFAULT_LANGUAGE,
   LANGUAGE_STORAGE_KEY,
@@ -16,6 +18,54 @@ import {
 export const DEFAULT_ENCYCLOPEDIA_LOCALE = DEFAULT_LANGUAGE;
 export const SUPPORTED_ENCYCLOPEDIA_LOCALES = SUPPORTED_LANGUAGES;
 export const ENCYCLOPEDIA_LOCALE_STORAGE_KEY = LANGUAGE_STORAGE_KEY;
+
+const resonanceRuleValues = (labels) => Object.freeze([
+  [labels.bodyGraze, `${RESONANCE_RULES.bodyGrazePadding} px`],
+  [labels.projectileGraze, `${RESONANCE_RULES.projectileGrazePadding} px`],
+  [labels.disengageGrace, `${RESONANCE_RULES.disengageGraceSeconds} s`],
+  [labels.decay, `${RESONANCE_RULES.decayPerSecond} / s`],
+  [labels.damageLoss, `-${RESONANCE_RULES.damageProgressLossPerHit}`],
+]);
+
+const RESONANCE_ZH = Object.freeze({
+  title: '共鳴 Resonance',
+  role: '把危險敵人轉為中立夥伴，取得永久 Resonance Buff。',
+  description: '靠近敵人本體或擦過它發出的投射物，可以累積共鳴。進度完成後，敵人停止攻擊並成為中立夥伴；同一物種還會把 Buff 疊加到自己的上限。',
+  steps: Object.freeze([
+    ['累積', '保持在敵人的擦身範圍內，或讓自己的身體擦過它的投射物。'],
+    ['中立化', '共鳴條滿後，敵人會停止攻擊、變成中立夥伴，且不再提供擊殺 EXP。'],
+    ['維持', '離開後會有極短寬限；再繼續遠離，共鳴進度就會衰減。受到傷害也會讓進度下降。'],
+    ['獲得 Buff', '每個物種都有一種永久 Buff；同一物種可以重複疊層，但不會超過標示上限。'],
+  ]),
+  rules: resonanceRuleValues({ bodyGraze: '身體擦身範圍', projectileGraze: '投射物擦彈範圍', disengageGrace: '脫離寬限', decay: '離開後衰減', damageLoss: '每次受傷退回' }),
+  buffs: Object.freeze(Object.values(RESONANCE_BUFFS).map((buff) => Object.freeze({
+    enemyId: buff.enemyId,
+    name: buff.name,
+    description: buff.description,
+    combatStyle: buff.combatStyle === 'melee' ? '近戰擦身' : '遠程擦彈',
+    maxStacks: buff.maxStacks,
+  }))),
+});
+
+const RESONANCE_EN = Object.freeze({
+  title: 'Resonance',
+  role: 'Turn dangerous enemies into neutral companions and earn permanent Resonance buffs.',
+  description: 'Build Resonance by grazing an enemy body or one of its projectiles. When the meter fills, the enemy stops attacking and becomes a neutral companion; its species buff is added to the run.',
+  steps: Object.freeze([
+    ['Build', 'Stay within an enemy\'s graze range, or let your body graze its projectile.'],
+    ['Neutralize', 'When the meter fills, the enemy stops attacking, becomes neutral, and no longer grants kill EXP.'],
+    ['Maintain', 'A very short grace window follows disengagement; continued distance drains Resonance. Taking damage also reduces progress.'],
+    ['Earn a buff', 'Each species owns one permanent buff. Repeated neutralizations add stacks up to that species\'s displayed cap.'],
+  ]),
+  rules: resonanceRuleValues({ bodyGraze: 'Body-graze range', projectileGraze: 'Projectile-graze range', disengageGrace: 'Disengage grace', decay: 'Decay after leaving', damageLoss: 'Progress lost per hit' }),
+  buffs: Object.freeze(Object.values(RESONANCE_BUFFS).map((buff) => Object.freeze({
+    enemyId: buff.enemyId,
+    name: translateGameplayText(buff.name, 'en'),
+    description: translateGameplayText(buff.description, 'en'),
+    combatStyle: buff.combatStyle === 'melee' ? 'Melee graze' : 'Ranged graze',
+    maxStacks: buff.maxStacks,
+  }))),
+});
 
 const TIME_VALUE_KEYS = new Set([
   'aftermathDelay', 'bubbleLifetime', 'castTime', 'cooldown', 'detonationDelay',
@@ -365,13 +415,13 @@ export const ENGLISH_ENTRY_VALUE_LABELS = Object.freeze({
 
 const UI_EN = Object.freeze({
   pageTitle: 'Thirst for Oxygen — World Field Guide', heading: 'World Field Guide', lede: 'Learn the game language of this abyss, from enemies and map elements to weapons and passive abilities.',
-  navHome: 'Return to Command Console', navPlay: 'Play Map', navEditor: 'Return to Map Editor', navSandbox: 'Open Enemy Sandbox',
+  navHome: 'Back',
   guideLabel: 'Field guide instructions', guideTitle: 'One complete reference', guideBody: 'Enemy entries include natural drift, skill demonstrations, and Lore files. Map elements, weapons, and passives use the same card system for role, gameplay purpose, and level changes. Numeric values remain sourced from the game-data module.',
-  afterimageLabel: 'Afterimage demonstration controls', afterimageToggle: 'Enable authored afterimages', afterimageHint: 'A single clean animation is shown by default; enable this to composite prior frames.', afterimageFrames: 'frames', afterimageOffset: 'offset per frame',
   sectionNavLabel: 'Field guide categories', tierNavLabel: 'Enemy level filters',
   all: 'All', tierDescriptions: { all: 'All enemies and Bosses', 1: 'Introductory creatures', 2: 'Core enemies', 3: 'Special enemies and elites', 4: 'Mutant elites', miniBoss: 'Large creature archetypes', mutatedMiniBoss: 'Mutated large archetypes', finalBoss: 'Final battlefield controller' },
-  sections: { enemies: ['Enemies / Bosses', 'Creature reference, visual identity, and combat skill demonstrations.'], map: ['Map Elements', '30 placement entries and 28 unique elements, covering cells, gravity, water layers, and edges.'], weapons: ['Weapons', 'Roles, level changes, and build identity for four weapons.'], passives: ['Passive Abilities', 'Survival, resource, and damage directions across four passive lines.'] },
-  naturalDrift: 'Natural drift', authoredAfterimage: 'Authored afterimage', animationPending: 'Animation asset pending', noPreview: 'No GIF preview is currently available', valuesAvailable: 'animation asset pending; numeric values remain available', materialPending: 'asset pending',
+  sections: { enemies: ['Enemies / Bosses', 'Creature reference, visual identity, and combat skill demonstrations.'], map: ['Map Elements', '30 placement entries and 28 unique elements, covering cells, gravity, water layers, and edges.'], weapons: ['Weapons', 'Roles, level changes, and build identity for four weapons.'], passives: ['Passive Abilities', 'Survival, resource, and damage directions across four passive lines.'], resonance: ['Resonance', 'How to neutralize enemies and collect permanent species buffs.'] },
+  naturalDrift: 'Natural drift', animationPending: 'Animation asset pending', noPreview: 'No GIF preview is currently available', valuesAvailable: 'animation asset pending; numeric values remain available', materialPending: 'asset pending',
+  systemGuide: 'System Guide', permanentBuffs: 'Permanent Buffs', resonanceSteps: 'How Resonance works', resonanceRules: 'Resonance rules', resonanceBuffs: 'Species buffs', stacks: 'stacks',
   loreButton: 'Lore File', loreHeading: 'LORE / CREATURE FILE', loreSubheading: 'Visual and biological reference', scientificReference: 'Real-world reference', identification: 'Identification', visualSetting: 'Visual direction', loreNote: 'These references guide silhouette, anatomy, and movement. They are not requests for a literal copy of the real animal.',
   health: 'Health', moveSpeed: 'Move speed', skills: 'Skills', ecology: 'Ecology Notes',
   levelIcon: 'icon', weapon: 'Weapon', passive: 'Passive Ability', maximum: 'Max', role: 'Role', openSandbox: 'Open Verification Sandbox', yes: 'Yes', no: 'No', seconds: 's',
@@ -384,12 +434,12 @@ const UI_EN = Object.freeze({
 
 const UI_ZH = Object.freeze({
   pageTitle: 'Thirst for Oxygen — 世界圖鑑', heading: '世界圖鑑', lede: '從敵人、地圖元素到武器與被動能力，一次讀懂這片深海的遊戲語言。',
-  navHome: '返回主控台', navPlay: '遊玩地圖', navEditor: '返回地圖編輯器', navSandbox: '開啟敵人沙盒',
+  navHome: '返回',
   guideLabel: '圖鑑使用說明', guideTitle: '完整資料入口已整合', guideBody: '敵人分類保留自然漂浮、技能演示與 Lore 檔案；地圖元素、武器與被動能力則用同一套卡片列出正式定位、玩法作用與等級變化。數值資料仍以遊戲資料模組為準。',
-  afterimageLabel: '殘影演示控制', afterimageToggle: '啟用正式殘影', afterimageHint: '預設顯示單一乾淨動畫；勾選後才以歷史幀疊合。', afterimageFrames: '幀', afterimageOffset: '每幀偏移',
   sectionNavLabel: '圖鑑分類', tierNavLabel: '敵人等級篩選', all: '全部', tierDescriptions: { all: '所有敵人與 Boss', 1: '教學型生物', 2: '核心小怪', 3: '特殊小怪與精英', 4: '變異精英', miniBoss: '大型生物原型', mutatedMiniBoss: '變異大型生物原型', finalBoss: '最終戰場控制者' },
-  sections: { enemies: ['敵人／Boss', '生物原型、視覺識別與戰鬥技能演示。'], map: ['地圖元素', '30 種放置語彙、28 個唯一元素；從 Cell、重力、水域層到 Edge 的完整地圖語言。'], weapons: ['武器', '四把武器的定位、等級變化與建構角色。'], passives: ['被動能力', '四條能力線的生存、資源與輸出方向。'] },
-  naturalDrift: '自然漂浮', authoredAfterimage: '正式殘影', animationPending: '動畫素材待補', noPreview: '目前沒有 GIF 預覽素材', valuesAvailable: '動畫素材待補，數值已可查閱', materialPending: '待素材',
+  sections: { enemies: ['敵人／Boss', '生物原型、視覺識別與戰鬥技能演示。'], map: ['地圖元素', '30 種放置語彙、28 個唯一元素；從 Cell、重力、水域層到 Edge 的完整地圖語言。'], weapons: ['武器', '四把武器的定位、等級變化與建構角色。'], passives: ['被動能力', '四條能力線的生存、資源與輸出方向。'], resonance: ['Resonance 共鳴', '如何讓敵人中立，並取得永久物種 Buff。'] },
+  naturalDrift: '自然漂浮', animationPending: '動畫素材待補', noPreview: '目前沒有 GIF 預覽素材', valuesAvailable: '動畫素材待補，數值已可查閱', materialPending: '待素材',
+  systemGuide: '系統 Guide', permanentBuffs: '永久 Buff', resonanceSteps: 'Resonance 怎麼運作', resonanceRules: 'Resonance 規則', resonanceBuffs: '物種 Buff', stacks: '層',
   loreButton: 'Lore 檔案', loreHeading: 'LORE / 生物檔案', loreSubheading: '視覺與原型參考', scientificReference: '現實生物參考', identification: '識別特徵', visualSetting: '視覺設定', loreNote: '這些參考提供輪廓、部位與動作靈感，不代表現實生物的寫實複製。',
   health: '生命', moveSpeed: '移速', skills: '技能', ecology: '生態觀察', levelIcon: '圖示', weapon: '武器', passive: '被動能力', maximum: '最高', role: '定位', openSandbox: '前往驗收沙盒', yes: '是', no: '否', seconds: '秒', weaponTypeLabels: { melee: '近戰', projectile: '遠程投射' }, skillTypeLabels: {}, tierLabels: TIER_ZH, attackValueLabels: ZH_ATTACK_VALUE_LABELS,
   entryValueLabels: {
@@ -483,6 +533,7 @@ export function getLocalizedEncyclopedia(locale = DEFAULT_ENCYCLOPEDIA_LOCALE) {
       mapEntries: MAP_ENCYCLOPEDIA,
       weapons: WEAPON_ENCYCLOPEDIA,
       passives: PASSIVE_ENCYCLOPEDIA,
+      resonance: RESONANCE_ZH,
     });
   }
   return Object.freeze({
@@ -493,5 +544,6 @@ export function getLocalizedEncyclopedia(locale = DEFAULT_ENCYCLOPEDIA_LOCALE) {
     mapEntries: Object.freeze(MAP_ENCYCLOPEDIA.map(cloneMapEnglish)),
     weapons: Object.freeze(WEAPON_ENCYCLOPEDIA.map((entry) => cloneBuildEnglish(entry, WEAPON_EN, 'weapon'))),
     passives: Object.freeze(PASSIVE_ENCYCLOPEDIA.map((entry) => cloneBuildEnglish(entry, PASSIVE_EN, 'passive'))),
+    resonance: RESONANCE_EN,
   });
 }

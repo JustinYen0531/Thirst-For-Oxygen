@@ -505,6 +505,7 @@ const EXACT_ENGLISH = Object.freeze({
   '潮律肺鐘': 'Tidal Lung Bell', '變異稜鏡': 'Mutant Prism', '變異潮律': 'Mutant Tidal Law',
   '深淵共鳴': 'Abyssal Resonance',
   '近戰快速共鳴': 'Fast Melee Resonance', '遠程擦彈共鳴': 'Ranged Graze Resonance', '每層': 'Per stack: ',
+  '每層在補充氧氣或能量時，額外恢復約 1.33% 生命。': 'Per stack: Recover approximately 1.33% extra health when restoring oxygen or energy.',
   '受到的所有傷害 -1%。': 'All incoming damage -1%.', '最大氧氣約 +2.60%。': 'Maximum oxygen approximately +2.60%.',
   '高氧高能時的生命恢復速度約 +4.77%。': 'Health recovery at high oxygen and energy approximately +4.77%.',
   '所有武器傷害約 +1.96%。': 'All weapon damage approximately +1.96%.', '武器傷害約 +1.32%，武器能量消耗約 -0.67%。': 'Weapon damage approximately +1.32%; weapon energy cost approximately -0.67%.',

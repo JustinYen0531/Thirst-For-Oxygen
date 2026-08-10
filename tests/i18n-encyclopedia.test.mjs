@@ -47,7 +47,13 @@ test('English encyclopedia exhaustively localizes all authored content without C
   assert.equal(new Set(english.mapEntries.map(({ placementId }) => placementId)).size, 30);
   assert.equal(english.weapons.length, 4);
   assert.equal(english.passives.length, 4);
-  assert.equal(english.sections.length, 4);
+  assert.equal(english.sections.length, 5);
+  assert.equal(english.sections.at(-1).id, 'resonance');
+  assert.equal(english.resonance.buffs.length, 19);
+  assert.ok(english.resonance.title && english.resonance.role && english.resonance.description);
+  assert.equal(english.resonance.steps.length, 4);
+  assert.equal(english.resonance.rules.length, 5);
+  assert.ok(english.resonance.buffs.every(({ name, description, maxStacks }) => name && description && maxStacks > 0));
 
   for (const enemy of english.enemies) {
     assert.ok(enemy.name && enemy.role && enemy.description && enemy.tierLabel, enemy.id);
@@ -96,6 +102,8 @@ test('Traditional Chinese remains available with the same stable ids and counts'
   assert.deepEqual(chinese.mapEntries.map(({ placementId }) => placementId), english.mapEntries.map(({ placementId }) => placementId));
   assert.deepEqual(chinese.weapons.map(({ id }) => id), english.weapons.map(({ id }) => id));
   assert.deepEqual(chinese.passives.map(({ id }) => id), english.passives.map(({ id }) => id));
+  assert.deepEqual(chinese.resonance.buffs.map(({ enemyId }) => enemyId), english.resonance.buffs.map(({ enemyId }) => enemyId));
+  assert.match(chinese.resonance.title, CJK);
   assert.match(chinese.enemies[0].name, CJK);
   assert.match(chinese.ui.heading, CJK);
 });
@@ -118,4 +126,8 @@ test('world field guide declares English as its initial document locale and uses
   assert.match(page, /getStoredEncyclopediaLocale\(\)/);
   assert.match(page, /getLocalizedEncyclopedia/);
   assert.match(page, /document\.documentElement\.lang = locale/);
+  assert.match(html, /<a class="back-link" href="\/home\.html" data-i18n="navHome">Back<\/a>/);
+  assert.doesNotMatch(html, /afterimage-controls|afterimage-toggle|Enable authored afterimages/);
+  assert.doesNotMatch(page, /afterimage-toggle|AFTERIMAGE_PROFILE|afterimageEnabled/);
+  assert.match(page, /section\.id === 'resonance'/);
 });

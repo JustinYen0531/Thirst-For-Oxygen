@@ -1,4 +1,3 @@
-import { AFTERIMAGE_PROFILE } from './afterimage.js';
 import {
   formatEncyclopediaValue,
   getLocalizedEncyclopedia,
@@ -14,6 +13,7 @@ const {
   locale,
   mapEntries: MAP_ENCYCLOPEDIA,
   passives: PASSIVE_ENCYCLOPEDIA,
+  resonance: RESONANCE_ENCYCLOPEDIA,
   sections: ENCYCLOPEDIA_SECTIONS,
   ui,
   weapons: WEAPON_ENCYCLOPEDIA,
@@ -29,22 +29,11 @@ document.querySelectorAll('[data-i18n-aria]').forEach((element) => {
   const value = ui[element.dataset.i18nAria];
   if (typeof value === 'string') element.setAttribute('aria-label', value);
 });
-[
-  ['/home.html', ui.navHome],
-  ['/play.html', ui.navPlay],
-  ['/', ui.navEditor],
-  ['/sandbox.html', ui.navSandbox],
-].forEach(([href, label]) => {
-  const link = document.querySelector(`.encyclopedia-header a[href="${href}"]`);
-  if (link) link.textContent = label;
-});
 
 const sectionFilters = document.querySelector('#section-filters');
 const tierFilters = document.querySelector('#tier-filters');
 const sectionSummary = document.querySelector('#section-summary');
 const enemyGrid = document.querySelector('#enemy-grid');
-const afterimageControls = document.querySelector('.afterimage-controls');
-const afterimageToggle = document.querySelector('#afterimage-toggle');
 const tierOrder = ['all', 1, 2, 3, 4, 'miniBoss', 'mutatedMiniBoss', 'finalBoss'];
 const tierLabels = ui.tierLabels;
 const tierDescriptions = ui.tierDescriptions;
@@ -52,7 +41,6 @@ const weaponTypeLabels = ui.weaponTypeLabels;
 const entryValueLabels = ui.entryValueLabels;
 let activeSection = 'enemies';
 let activeTier = 'all';
-let afterimageEnabled = afterimageToggle?.checked ?? false;
 
 const escapeHtml = (value) => String(value)
   .replaceAll('&', '&amp;')
@@ -99,15 +87,12 @@ function lorePanel(lore) {
 }
 
 function getPreviewSource(enemy, attackId) {
-  const normalSource = attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle;
-  const trailSource = attackId ? enemy.visuals?.afterimageActions?.[attackId] : enemy.visuals?.afterimageIdle;
-  const showingAfterimage = afterimageEnabled && Boolean(trailSource);
-  return { source: showingAfterimage ? trailSource : normalSource, showingAfterimage };
+  return { source: attackId ? enemy.visuals?.actions?.[attackId] : enemy.visuals?.idle };
 }
 
 function enemyCard(enemy) {
   const hasIdle = Boolean(enemy.visuals?.idle);
-  const { source: previewSource, showingAfterimage } = getPreviewSource(enemy);
+  const { source: previewSource } = getPreviewSource(enemy);
   const preview = hasIdle
     ? `<img class="enemy-preview-image" src="${previewSource}" alt="${escapeHtml(enemy.name)} ${escapeHtml(ui.naturalDrift)}" data-preview-image />`
     : `<div class="enemy-preview-placeholder"><span>GIF</span><small>${escapeHtml(ui.animationPending)}</small></div>`;
@@ -120,7 +105,7 @@ function enemyCard(enemy) {
       <div><span class="tier-chip">${escapeHtml(enemy.tierLabel)}</span><h2>${escapeHtml(enemy.name)}</h2></div>
       <div class="enemy-heading-meta"><span class="role-label">${escapeHtml(enemy.role)}</span><button class="lore-button" type="button" data-lore-toggle aria-expanded="false">${escapeHtml(ui.loreButton)}</button></div>
     </div>
-    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? `${escapeHtml(ui.naturalDrift)}${showingAfterimage ? ` · ${escapeHtml(ui.authoredAfterimage)}` : ''}` : escapeHtml(ui.noPreview)}</p></div>
+    <div class="enemy-preview" data-preview-panel>${preview}<p data-preview-caption>${hasIdle ? escapeHtml(ui.naturalDrift) : escapeHtml(ui.noPreview)}</p></div>
     <div class="preview-actions">${actions}</div>
     <dl class="enemy-stats"><div><dt>${escapeHtml(ui.health)}</dt><dd>${enemy.maxHealth}</dd></div><div><dt>${escapeHtml(ui.moveSpeed)}</dt><dd>${enemy.moveSpeed}</dd></div><div><dt>${escapeHtml(ui.skills)}</dt><dd>${enemy.attacks.length}</dd></div></dl>
     <section class="enemy-description" data-enemy-description><h3>${escapeHtml(ui.ecology)}</h3><p>${escapeHtml(enemy.description)}</p></section>
@@ -160,6 +145,22 @@ function passiveCard(passive) {
   </article>`;
 }
 
+function resonanceCard(resonance) {
+  const steps = resonance.steps.map(([label, description]) => `<li><strong>${escapeHtml(label)}</strong><span>${escapeHtml(description)}</span></li>`).join('');
+  const rules = resonance.rules.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('');
+  const buffs = resonance.buffs.map((buff) => `<li class="resonance-buff"><div><strong>${escapeHtml(buff.name)}</strong><small>${escapeHtml(buff.combatStyle)} · ${buff.maxStacks} ${escapeHtml(ui.stacks)}</small></div><p>${escapeHtml(buff.description)}</p></li>`).join('');
+  return `<article class="entry-card resonance-card">
+    <div class="entry-card-heading"><div><span class="tier-chip">${escapeHtml(ui.systemGuide)}</span><h2>${escapeHtml(resonance.title)}</h2></div><span class="role-label">${escapeHtml(ui.permanentBuffs)}</span></div>
+    <p class="entry-role"><b>${escapeHtml(ui.role)}</b>${escapeHtml(resonance.role)}</p>
+    <p class="entry-description">${escapeHtml(resonance.description)}</p>
+    <div class="resonance-guide-columns">
+      <section><h3>${escapeHtml(ui.resonanceSteps)}</h3><ol class="resonance-steps">${steps}</ol></section>
+      <section><h3>${escapeHtml(ui.resonanceRules)}</h3><dl class="entry-details resonance-rules">${rules}</dl></section>
+    </div>
+    <section class="resonance-buff-section"><h3>${escapeHtml(ui.resonanceBuffs)}</h3><ul class="resonance-buff-grid">${buffs}</ul></section>
+  </article>`;
+}
+
 function renderEnemyCards() {
   enemyGrid.innerHTML = ENEMY_ENCYCLOPEDIA
     .filter((enemy) => activeTier === 'all' || String(enemy.tier) === String(activeTier))
@@ -174,10 +175,10 @@ function renderSection(sectionId) {
   sectionSummary.innerHTML = `<strong>${escapeHtml(section.label)}</strong><span>${escapeHtml(section.description)}</span>`;
   const isEnemySection = section.id === 'enemies';
   tierFilters.hidden = !isEnemySection;
-  afterimageControls.hidden = !isEnemySection;
   if (section.id === 'map') enemyGrid.innerHTML = MAP_ENCYCLOPEDIA.map(mapCard).join('');
   if (section.id === 'weapons') enemyGrid.innerHTML = WEAPON_ENCYCLOPEDIA.map(weaponCard).join('');
   if (section.id === 'passives') enemyGrid.innerHTML = PASSIVE_ENCYCLOPEDIA.map(passiveCard).join('');
+  if (section.id === 'resonance') enemyGrid.innerHTML = resonanceCard(RESONANCE_ENCYCLOPEDIA);
   if (isEnemySection) renderEnemyCards();
 }
 
@@ -203,20 +204,10 @@ tierFilters.addEventListener('click', (event) => {
   if (button) setActiveTier(button.dataset.filter);
 });
 
-afterimageToggle.checked = afterimageEnabled;
-afterimageToggle.addEventListener('change', () => {
-  afterimageEnabled = afterimageToggle.checked;
-  if (activeSection !== 'enemies') return;
-  enemyGrid.querySelectorAll('.enemy-card').forEach((card) => {
-    const enemy = ENEMY_ENCYCLOPEDIA.find(({ id }) => id === card.dataset.enemyId);
-    if (enemy) updatePreview(card, enemy, card.dataset.selectedAction === 'idle' ? undefined : card.dataset.selectedAction);
-  });
-});
-
 function updatePreview(card, enemy, attackId) {
   const image = card.querySelector('[data-preview-image]');
   const caption = card.querySelector('[data-preview-caption]');
-  const { source, showingAfterimage } = getPreviewSource(enemy, attackId);
+  const { source } = getPreviewSource(enemy, attackId);
   const attack = enemy.attacks.find(({ id }) => id === attackId);
   const enemyDescription = card.querySelector('[data-enemy-description]');
   const skillPanel = card.querySelector('[data-skill-panel]');
@@ -224,7 +215,7 @@ function updatePreview(card, enemy, attackId) {
     image.hidden = false;
     image.src = source;
     image.alt = `${enemy.name} ${attack?.name ?? ui.naturalDrift}`;
-    caption.textContent = `${attack?.name ?? ui.naturalDrift}${showingAfterimage ? ` · ${ui.authoredAfterimage}` : ''}`;
+    caption.textContent = attack?.name ?? ui.naturalDrift;
   } else {
     if (image) {
       image.removeAttribute('src');
@@ -274,6 +265,5 @@ enemyGrid.addEventListener('click', (event) => {
   updatePreview(card, enemy, attackId);
 });
 
-document.querySelector('#afterimage-profile').textContent = `${AFTERIMAGE_PROFILE.sampleCount} ${ui.afterimageFrames}: ${Math.round(AFTERIMAGE_PROFILE.nearestOpacity * 100)}% → ${Math.round(AFTERIMAGE_PROFILE.opacities.at(-1) * 100)}%, ${ui.afterimageOffset} ${AFTERIMAGE_PROFILE.driftX}px`;
 renderSection('enemies');
 setActiveTier('all');

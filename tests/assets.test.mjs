@@ -113,7 +113,8 @@ test('public entry uses the authored helmet title screen while utility pages kee
   assert.doesNotMatch(home, /範本地圖|destination-grid/);
   assert.match(sandbox, /href="\/play\.html">遊玩地圖<\/a>/);
   assert.match(encyclopedia, /<html lang="en">/);
-  assert.match(encyclopedia, /href="\/play\.html">Play Map<\/a>/);
+  assert.match(encyclopedia, /<a class="back-link" href="\/home\.html" data-i18n="navHome">Back<\/a>/);
+  assert.doesNotMatch(encyclopedia, /href="\/play\.html"|href="\/sandbox\.html"|href="\/">Map Editor/);
   assert.doesNotMatch(`${sandbox}\n${encyclopedia}`, /play\.html\?part=3/);
   assert.match(sandbox, /href="\/enemy-encyclopedia\.html">世界圖鑑<\/a>/);
   assert.match(sandboxPage, /Build 已即時同步/);
