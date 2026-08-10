@@ -106,6 +106,12 @@ const EVENT_TO_OBJECT_ID = Object.freeze({
   coralInvisibility: 'coralCluster',
 });
 
+const TUTORIAL_GUIDE_READ_STEP_BY_KEY = Object.freeze({
+  'object:weightStone': 'weightStone',
+  'object:mine': 'mine',
+  'edge:current': 'current',
+});
+
 const WEAPON_EFFECT_TYPES = new Set([
   'knifePath',
   'knifeSidePath',
@@ -322,6 +328,11 @@ function tutorialWeaponEffectSucceeded(effect) {
 
 export function recordPlayTutorialLaunch(state) {
   return observeTutorialAction(state, 'launch');
+}
+
+export function recordPlayTutorialGuideRead(state, guideKey) {
+  const stepId = TUTORIAL_GUIDE_READ_STEP_BY_KEY[guideKey];
+  return stepId ? observeTutorialAction(state, stepId) : state;
 }
 
 export function recordPlayTutorialInteraction(state, result) {

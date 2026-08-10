@@ -86,6 +86,7 @@ import {
   getPlayTutorialRenderState,
   recordPlayTutorialCombat,
   recordPlayTutorialEvents,
+  recordPlayTutorialGuideRead,
   recordPlayTutorialInteraction,
   recordPlayTutorialLaunch,
   selectPlayTutorialTask,
@@ -205,6 +206,7 @@ const tutorialStepTitle = document.querySelector('#play-tutorial-step-title');
 const tutorialStepBody = document.querySelector('#play-tutorial-step-body');
 const tutorialStepInstruction = document.querySelector('#play-tutorial-step-instruction');
 const tutorialStepProgress = document.querySelector('#play-tutorial-step-progress');
+const tutorialTaskProgress = document.querySelector('#play-tutorial-task-progress');
 const tutorialTaskList = document.querySelector('#play-tutorial-task-list');
 const tutorialDialogueNavigation = document.querySelector('#play-tutorial-dialogue-navigation');
 const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
@@ -356,6 +358,7 @@ function updateTutorialPresentation() {
   tutorialPanel.hidden = !active;
   tutorialDialogue.hidden = !active;
   if (!active) {
+    clearTutorialCardHover();
     tutorialUiSignature = '';
     return;
   }
@@ -379,10 +382,12 @@ function updateTutorialPresentation() {
   tutorialDialogueTitle.textContent = translateGameplayText(tutorial.dialogue.title);
   tutorialDialogueText.textContent = translateGameplayText(tutorial.dialogue.text);
   tutorialDialogueControl.textContent = translateGameplayText(tutorial.dialogue.controlHint);
-  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = tutorial.autoReady
+  const navigationCopy = tutorial.autoReady
     ? '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。'
     : `操作：使用 ← / → 切換 ${tutorial.totalCoreSteps} 個任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
+  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = translateGameplayText(navigationCopy);
   tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
+  if (tutorialTaskProgress) tutorialTaskProgress.textContent = `${tutorial.completionTarget} / ${tutorial.totalCoreSteps}`;
   tutorialExitHint.textContent = translateGameplayText(tutorial.lastGuideNote || tutorial.freeExit);
   tutorialTaskList.replaceChildren(...tutorial.tasks.map((entry, index) => {
     const item = document.createElement('li');
@@ -2227,6 +2232,28 @@ storyIntroSkip?.addEventListener('click', (event) => {
   render();
 });
 
+function updateTutorialCardHover(event) {
+  const x = Number(event?.clientX);
+  const y = Number(event?.clientY);
+  [tutorialPanel, tutorialDialogue].forEach((card) => {
+    if (!card || card.hidden || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    const bounds = card.getBoundingClientRect();
+    card.classList.toggle('is-pointer-over', x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom);
+  });
+}
+
+function clearTutorialCardHover() {
+  [tutorialPanel, tutorialDialogue].forEach((card) => card?.classList.remove('is-pointer-over'));
+}
+
+function scrollTutorialTaskList(event) {
+  if (!tutorialTaskList || tutorialTaskList.hidden || !Number.isFinite(Number(event?.clientX)) || !Number.isFinite(Number(event?.clientY))) return;
+  const bounds = tutorialTaskList.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
+  tutorialTaskList.scrollTop += event.deltaY;
+  event.preventDefault();
+}
+
 canvas.addEventListener('pointerdown', (event) => {
   if (!actor) return;
   const point = canvasPoint(event);
@@ -2235,8 +2262,10 @@ canvas.addEventListener('pointerdown', (event) => {
   if (acknowledgement) {
     event.preventDefault();
     if (acknowledgeDiscoveryGuide(discoverySession, acknowledgement.guideKey)) {
+      if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialGuideRead(tutorialState, acknowledgement.guideKey);
       sfxController.play('button', { volumeMultiplier: .55 });
       discoveryAcknowledgementTargets = [];
+      updateTutorialPresentation();
       render();
     }
     return;
@@ -2252,7 +2281,14 @@ canvas.addEventListener('pointerdown', (event) => {
   refreshTrajectory(true);
   updateHud();
 });
-canvas.addEventListener('pointermove', (event) => { if (!dragging) return; aimPoint = screenToWorld(canvasPoint(event)); refreshTrajectory(); });
+canvas.addEventListener('pointermove', (event) => {
+  updateTutorialCardHover(event);
+  if (!dragging) return;
+  aimPoint = screenToWorld(canvasPoint(event));
+  refreshTrajectory();
+});
+canvas.addEventListener('pointerleave', clearTutorialCardHover);
+canvas.addEventListener('wheel', scrollTutorialTaskList, { passive: false });
 canvas.addEventListener('pointerup', (event) => { if (!dragging) return; dragging = false; if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId); aimPoint = screenToWorld(canvasPoint(event)); if ((actor.stunnedUntil ?? 0) > worldTime) { eventLog.push('暈眩中，暫時無法彈射。'); trajectory = []; updateHud(); return; } const result = launchActor(actor, aimPoint); if (result.launched) { if (mapArc === TUTORIAL_ROUTE) recordPlayTutorialLaunch(tutorialState); sfxController.play('launch'); eventLog.push(`彈射 ${Math.round(result.distance)} px · 初速度 ${Math.round(result.speed)} · 能量 -${Math.ceil(result.costs.energy)} · 氧氣持續倒數`); } else { sfxController.play('button', { volumeMultiplier: .55 }); eventLog.push(result.reason === 'energy' ? '能量不足，無法彈射。' : result.reason === 'bubbleLock' ? '光合作用氣泡作用中，暫時無法彈射。' : '這次彈射距離太短。'); } trajectory = []; updateTutorialPresentation(); updateHud(); });
 canvas.addEventListener('pointercancel', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });
 canvas.addEventListener('lostpointercapture', () => { dragging = false; trajectory = []; lastTrajectoryAt = -Infinity; });

@@ -27,6 +27,19 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
   assert.doesNotMatch(page, /const PLAYER_LEVEL|const PLAYER_EXPERIENCE|PLAYER_HUD_LOADOUT/);
 });
 
+test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
+  assert.match(page, /const navigationCopy = tutorial\.autoReady/);
+  assert.match(page, /translateGameplayText\(navigationCopy\)/);
+  assert.match(page, /tutorialTaskProgress\.textContent = `\$\{tutorial\.completionTarget\} \/ \$\{tutorial\.totalCoreSteps\}`/);
+  assert.match(page, /updateTutorialCardHover/);
+  assert.match(page, /tutorialTaskList\.scrollTop \+= event\.deltaY/);
+  assert.match(css, /\.play-tutorial-panel[^\n]*pointer-events: none/);
+  assert.match(css, /\.play-tutorial-dialogue[^\n]*pointer-events: none/);
+  assert.match(css, /\.play-tutorial-task-list \{[^\n]*pointer-events: auto/);
+  assert.match(css, /\.play-tutorial-panel\.is-pointer-over/);
+  assert.match(css, /\.play-tutorial-dialogue\.is-pointer-over/);
+});
+
 test('formal play exposes Resonance bars, neutral partners, permanent buffs, and descent-to-ascent carryover', () => {
   assert.match(page, /if \(enemy\.resonanceNeutral\) return;/);
   assert.match(page, /drawEnemyResonanceBar\(enemy/);

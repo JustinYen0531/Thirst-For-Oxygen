@@ -56,6 +56,14 @@ test('all First Breath task labels are translated in English', () => {
   });
 });
 
+test('dynamic First Breath navigation copy stays English for any task count', () => {
+  const cases = [
+    ['操作：使用 ← / → 切換 20 個任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。', 'Control: Use ← / → to switch between 20 tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.'],
+    ['操作：使用 ← / → 切換 14 個任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。', 'Control: Use ← / → to switch between 14 tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.'],
+  ];
+  cases.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
+});
+
 test('play settings exposes the shared language selector', () => {
   const html = fs.readFileSync(new URL('../play.html', import.meta.url), 'utf8');
   const source = fs.readFileSync(new URL('../src/play-page.js', import.meta.url), 'utf8');

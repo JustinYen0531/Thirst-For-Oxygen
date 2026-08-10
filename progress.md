@@ -1221,3 +1221,9 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 左側 Resonance 訓練燈籠魚與右側擊殺訓練燈籠魚都固定不動；左側無限生命，右側改為 20 HP、有限生命且不會自爆。玩家必須自己靠近左側魚累積 Resonance。
 - 珊瑚 Edge 從牆邊移到房間內側，兩端都連接可通行水格，避免珊瑚根貼住封閉牆面而難以互動。
 - Chapter 0 First Breath 面板與左下 Guidance 對話框預設半透明，滑鼠懸浮或聚焦時才恢復高不透明度；20 項清單可滾動顯示。
+
+## 2026-08-10 — First Breath cards no longer block controls
+
+- Navigator 與 Guidance DOM 卡片改為穿透滑鼠事件，玩家可以在卡片覆蓋區直接拖曳潛水夫；卡片仍會依游標位置恢復高不透明度。
+- 20 個任務的解鎖門檻明確顯示為 `10 / 20`，清單可用滑鼠滾輪或原生 scrollbar 拖動；讀取重石、深海地雷與洋流的 Visor 說明卡並按下 OK 後，會正式完成對應任務。
+- Skip Tutorial 導航提示改為明確要求按 Enter；聚焦測試 34/34、完整 `npm run check` 342/342、Vite production build 通過；依專案規則未執行瀏覽器／Playwright。

@@ -186,7 +186,7 @@ const EXACT_ENGLISH = Object.freeze({
   '← / → 切換': '← / → Switch',
   '20 項・完成 10 項': '20 Tasks · Complete 10',
   '完成任意 10 項任務前，出口會保持鎖定。真的要離開請按 Enter。': 'The exit stays locked until you complete any 10 tasks. Press Enter if you really want to leave.',
-  '操作：使用 ← / → 切換 20 個任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch between 20 tasks; complete any 10 to unlock the EXIT; Enter opens Skip Tutorial.',
+  '操作：使用 ← / → 切換 20 個任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch between 20 tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.',
   '操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch First Breath tasks; Enter opens Skip Tutorial.',
   '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。': 'Control: Go to the EXIT on the right; Enter can still open Skip Tutorial.',
   '使用左右鍵切換 Guidance 任務': 'Use the arrow keys to switch Guidance tasks',
@@ -570,6 +570,7 @@ const TERM_ENGLISH = Object.freeze({
 });
 
 const SENTENCE_REPLACEMENTS = Object.freeze([
+  [/^操作：使用 ← \/ → 切換 (\d+) 個任務；完成任意 (\d+) 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。$/, 'Control: Use ← / → to switch between $1 tasks; complete any $2 to unlock the EXIT; press Enter to open Skip Tutorial.'],
   [/^速度 (\d+) m\/s$/, 'SPEED $1 m/s'],
   [/^目前下沉 (\d+) 公尺$/, 'Current depth: $1 meters'],
   [/^剩餘嘗試次數 (\d+)，共 (\d+) 次$/, '$1 attempts remaining out of $2'],

@@ -12,6 +12,7 @@ import {
   getPlayTutorialRenderState,
   recordPlayTutorialCombat,
   recordPlayTutorialEvents,
+  recordPlayTutorialGuideRead,
   recordPlayTutorialInteraction,
   recordPlayTutorialLaunch,
   selectPlayTutorialTask,
@@ -112,6 +113,19 @@ test('First Breath unlocks the exit after any ten selected tasks', () => {
   assert.equal(getPlayTutorialRenderState(state).completedCoreSteps, 10);
 });
 
+test('reading the matching Visor cards completes the read-information tasks', () => {
+  const state = createPlayTutorialState();
+  recordPlayTutorialGuideRead(state, 'object:weightStone');
+  recordPlayTutorialGuideRead(state, 'object:mine');
+  recordPlayTutorialGuideRead(state, 'edge:current');
+  assert.equal(state.completed.has('weightStone'), true);
+  assert.equal(state.completed.has('mine'), true);
+  assert.equal(state.completed.has('current'), true);
+  const completedBeforeUnknownGuide = [...state.completed];
+  recordPlayTutorialGuideRead(state, 'object:unknown');
+  assert.deepEqual([...state.completed], completedBeforeUnknownGuide);
+});
+
 test('First Breath lets the player choose any task with the arrow keys', () => {
   const state = createPlayTutorialState();
   selectPlayTutorialTask(state, -1);
@@ -148,12 +162,18 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playHtml, /id="play-tutorial-dialogue-control"/);
   assert.match(playHtml, /id="play-tutorial-task-list"/);
   assert.match(playHtml, /id="play-tutorial-dialogue-navigation"/);
+  assert.match(playHtml, /id="play-tutorial-task-progress">10 \/ 20</);
+  assert.match(playHtml, /aria-label="First Breath tasks"/);
+  assert.match(playHtml, /id="play-tutorial-task-list"[^>]*tabindex="0"/);
   assert.match(playHtml, /id="play-tutorial-skip-dialog"/);
   assert.match(playHtml, /Skip Tutorial\?/);
   assert.match(playPageSource, /tutorialDialogueControl/);
   assert.match(playPageSource, /event\.code === 'Enter'/);
   assert.match(playPageSource, /event\.code === 'ArrowLeft'/);
   assert.match(playPageSource, /selectPlayTutorialTask/);
+  assert.match(playPageSource, /recordPlayTutorialGuideRead/);
+  assert.match(playPageSource, /updateTutorialCardHover/);
+  assert.match(playPageSource, /scrollTutorialTaskList/);
   assert.match(playPageSource, /window\.location\.href = '\/home\.html'/);
   assert.doesNotMatch(playPageSource, /mapArc === TUTORIAL_ROUTE && \(tutorialProgress\?\.readyToLeave \|\| stageExit\.arrived\)/);
 });
