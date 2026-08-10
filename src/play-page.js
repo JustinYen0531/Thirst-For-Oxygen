@@ -335,11 +335,7 @@ function closeTutorialSkipPrompt() {
 function leaveTutorial(reason = 'skipped') {
   if (mapArc !== TUTORIAL_ROUTE) return;
   closeTutorialSkipPrompt();
-  if (reason === 'completed') {
-    beginArcTransition('descent', 1);
-    return;
-  }
-  window.location.href = '/home.html';
+  beginArcTransition('descent', 1);
 }
 
 function mapSelectionValue(arc = mapArc, part = mapPart) {

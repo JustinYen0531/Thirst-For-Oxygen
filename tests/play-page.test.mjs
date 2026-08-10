@@ -271,7 +271,12 @@ test('completing Tutorial enters the Descent Part 1 story slides instead of home
   assert.match(html, /<optgroup label="Tutorial">\s*<option value="tutorial:0">Tutorial<\/option>/);
   assert.match(html, /<p class="eyebrow">TUTORIAL<\/p><h2 id="play-tutorial-title">Tutorial<\/h2>/);
   assert.match(page, /const MAP_ROUTES = Object\.freeze\([\s\S]*label: 'Tutorial'/);
-  assert.match(page, /function leaveTutorial\(reason = 'skipped'\)[\s\S]*if \(reason === 'completed'\) \{\s*beginArcTransition\('descent', 1\);/);
+  assert.match(page, /function leaveTutorial\(reason = 'skipped'\)[\s\S]*beginArcTransition\('descent', 1\);/);
   assert.match(page, /Tutorial 完成：[^\n]*前往下沉篇第一部分/);
   assert.doesNotMatch(page, /Tutorial 完成：[^\n]*返回水下主控台/);
+  const tutorialLeaveBlock = page.match(/function leaveTutorial\(reason = 'skipped'\)[\s\S]*?[\r\n]}[\r\n]+[\r\n]+function mapSelectionValue/);
+  assert.ok(tutorialLeaveBlock, 'Tutorial leave handler should be present');
+  assert.match(tutorialLeaveBlock[0], /beginArcTransition\('descent', 1\)/);
+  assert.doesNotMatch(tutorialLeaveBlock[0], /window\.location\.href/);
+  assert.match(html, /Skipping enters Descent Part 1 and opens its story slides/);
 });
