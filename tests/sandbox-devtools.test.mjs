@@ -39,10 +39,10 @@ test('sandbox dev command supports max aliases and clearing Resonance', () => {
 test('sandbox developer shortcut contract stays explicit', () => {
   assert.deepEqual(SANDBOX_DEV_SHORTCUTS, {
     toggle: 'Ctrl+Alt+D',
-    maxWeapons: 'Ctrl+Alt+W',
-    maxPassives: 'Ctrl+Alt+A',
-    maxResonance: 'Ctrl+Alt+R',
-    clear: 'Ctrl+Alt+0',
+    maxWeapons: 'Alt+1',
+    maxPassives: 'Alt+2',
+    maxResonance: 'Alt+3',
+    clear: 'Alt+0',
   });
   assert.deepEqual(parseSandboxDevCommand('resonance none', options).actions, [{ type: 'clearResonance' }]);
 });

@@ -2586,28 +2586,29 @@ playDevCommandForm?.addEventListener('submit', (event) => {
 });
 window.addEventListener('keydown', (event) => {
   const editingControl = event.target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName);
-  const devShortcut = event.ctrlKey && event.altKey && !event.shiftKey;
-  if (devShortcut && event.code === 'KeyD') {
+  const devToggleShortcut = event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey;
+  const devActionShortcut = event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey;
+  if (devToggleShortcut && event.code === 'KeyD') {
     event.preventDefault();
     togglePlayDevtools();
     return;
   }
-  if (devShortcut && event.code === 'KeyW') {
+  if (devActionShortcut && event.code === 'Digit1') {
     event.preventDefault();
     applyPlayDevActions([{ type: 'maxWeapons' }]);
     return;
   }
-  if (devShortcut && event.code === 'KeyA') {
+  if (devActionShortcut && event.code === 'Digit2') {
     event.preventDefault();
     applyPlayDevActions([{ type: 'maxPassives' }]);
     return;
   }
-  if (devShortcut && event.code === 'KeyR') {
+  if (devActionShortcut && event.code === 'Digit3') {
     event.preventDefault();
     applyPlayDevActions([{ type: 'resonance', id: 'all', stacks: 'max' }]);
     return;
   }
-  if (devShortcut && event.code === 'Digit0') {
+  if (devActionShortcut && event.code === 'Digit0') {
     event.preventDefault();
     applyPlayDevActions([{ type: 'clear' }]);
     return;

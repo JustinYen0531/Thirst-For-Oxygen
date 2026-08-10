@@ -1314,6 +1314,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 
 ## 2026-08-10 — Formal play developer shortcut overrides
 
-- 正式遊戲 `play.html` 現在可用 `Ctrl + Alt + D` 開啟開發者面板；`Ctrl + Alt + W/A/R/0` 分別拉滿武器、被動、Resonance，或清除目前覆寫。
+- 正式遊戲 `play.html` 現在可用 `Ctrl + Alt + D` 開啟開發者面板；`Alt + 1/2/3/0` 分別拉滿武器、被動、Resonance，或清除目前覆寫。
 - 正式遊戲支援與沙盒相同的命令輸入，可直接指定武器、被動能力與 Resonance 層數；開發者 Build 覆寫可暫時替換固定起始小刀，清除後恢復小刀。
 - 新增正式戰鬥 Build／Resonance 覆寫 API 與回歸測試；聚焦 40/40 通過，依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — Simplify developer shortcut chords
+
+- 保留 `Ctrl + Alt + D` 開關開發者面板；正式遊戲與沙盒的動作快捷鍵改為兩鍵式 `Alt + 1/2/3/0`，避開原本與其他軟體衝突的 `Ctrl + Alt + W/A/R/0`。

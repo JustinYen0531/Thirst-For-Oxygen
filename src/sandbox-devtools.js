@@ -2,10 +2,10 @@ const SLOT_COUNT = 3;
 
 export const SANDBOX_DEV_SHORTCUTS = Object.freeze({
   toggle: 'Ctrl+Alt+D',
-  maxWeapons: 'Ctrl+Alt+W',
-  maxPassives: 'Ctrl+Alt+A',
-  maxResonance: 'Ctrl+Alt+R',
-  clear: 'Ctrl+Alt+0',
+  maxWeapons: 'Alt+1',
+  maxPassives: 'Alt+2',
+  maxResonance: 'Alt+3',
+  clear: 'Alt+0',
 });
 
 const commandAliases = Object.freeze({
