@@ -28,6 +28,7 @@ test('tutorial map is Chapter 0 with a small authored room and two training enem
   const map = createTutorialMap();
   assert.deepEqual(map.layout, { orientation: 'pointy', coordinateSystem: 'axial', rowLayout: 'odd-r rectangle', width: 12, height: 24 });
   assert.equal(TUTORIAL_PART, 0);
+  assert.equal(map.metadata.title, 'Tutorial');
   assert.equal(map.metadata.part, 0);
   assert.equal(map.metadata.difficulty, 'tutorial');
   assert.equal(map.metadata.enemyTargetCount, 2);

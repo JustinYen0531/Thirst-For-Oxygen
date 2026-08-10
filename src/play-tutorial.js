@@ -235,7 +235,7 @@ export function createTutorialMap() {
     metadata: {
       chapter: '新手教學房',
       part: TUTORIAL_PART,
-      title: '第零篇章｜第一次呼吸',
+      title: 'Tutorial',
       difficulty: 'tutorial',
       designIntent: '由深淵導航員逐步帶領玩家理解彈射、物件、資源、武器，以及擊殺／共鳴兩種勝利方式。',
       enemyTargetCount: 2,
@@ -439,7 +439,7 @@ export function getPlayTutorialRenderState(state, enemies = []) {
   const progress = stepPlayTutorial(safeState, { enemies });
   const selectedTask = getCurrentTask(safeState);
   const currentStep = progress.readyToLeave
-    ? Object.freeze({ id: 'ready', title: '第零篇章完成', body: '你已經完成導航員的所有示範。這次教學不會把資源或進度帶入正式篇章；請前往右側出口離開。', instruction: '請前往右側醒目的 EXIT 離開第零篇章。', controlHint: '操作：依照右側牆面的 EXIT 標記離開。', target: TUTORIAL_EXIT_POSITION, targetLabel: 'EXIT' })
+    ? Object.freeze({ id: 'ready', title: 'Tutorial Complete', body: '你已經完成導航員的所有示範。這次教學即將進入正式篇章；請前往右側出口離開。', instruction: '請前往右側醒目的 EXIT 離開 Tutorial。', controlHint: '操作：依照右側牆面的 EXIT 標記離開。', target: TUTORIAL_EXIT_POSITION, targetLabel: 'EXIT' })
     : progress.currentStep ?? TUTORIAL_GUIDED_STEPS[0];
   const completedTasks = TUTORIAL_TASKS.filter((task) => isTutorialTaskComplete(safeState, task));
   const taskStep = progress.readyToLeave ? currentStep : currentStep;
@@ -472,7 +472,7 @@ export function getPlayTutorialRenderState(state, enemies = []) {
     outcome: progress.outcome,
     autoReady: progress.readyToLeave,
     freeExit: progress.readyToLeave
-      ? '導航員已解除出口鎖定。請前往右側牆面的 EXIT 離開第零篇章。'
+      ? '導航員已解除出口鎖定。請前往右側牆面的 EXIT 離開 Tutorial。'
       : `導航員確認任意 ${TUTORIAL_TASK_COMPLETION_TARGET} 項任務前，出口會保持鎖定。真的要離開請按 Enter。`,
     lockedExit: !progress.readyToLeave,
     completionTarget: TUTORIAL_TASK_COMPLETION_TARGET,
