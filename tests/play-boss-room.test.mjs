@@ -20,7 +20,16 @@ function createRoomMap() {
   [...entranceGateCellKeys, ...exitGateCellKeys].forEach((key) => {
     map.cells[key].conditionalGate = { opened: true, bossRoomGate: true };
   });
-  map.metadata = { bossRoom: { id: 'test-room', enemyId: 'prismCrabGuardian', triggerCellKey: cellKeyFromColumn(3, 5), entranceGateCellKeys, exitGateCellKeys } };
+  map.metadata = {
+    bossRoom: {
+      id: 'test-room',
+      enemyId: 'prismCrabGuardian',
+      triggerCellKey: cellKeyFromColumn(3, 5),
+      entranceGateCellKeys,
+      exitGateCellKeys,
+      room: { rowStart: 0, rowEnd: 11, columnStart: 2, columnEnd: 5 },
+    },
+  };
   return map;
 }
 
@@ -107,7 +116,13 @@ test('every active Boss encounter receives a persistent source and timed oxygen 
 
   const initial = stepPlayBossRoom(state, { map, actor, enemies: [boss], origin, time: 0 });
   assert.equal(initial.changed, true);
-  assert.equal(Object.values(map.cells).flatMap((cell) => cell.freeObjects).filter((object) => object.kind === 'torricelli').length, 1);
+  const torricelliEntry = Object.entries(map.cells).find(([, cell]) => (
+    cell.freeObjects.some((object) => object.kind === 'torricelli')
+  ));
+  assert.ok(torricelliEntry, 'Boss encounter should receive a persistent Torricelli source');
+  const torricelliCell = map.cells[torricelliEntry[0]];
+  assert.ok(torricelliCell.r < bossCell.r, 'The persistent source should be upstream of the Boss, not in the center');
+  assert.notEqual(torricelliEntry[0], cellKeyFromColumn(6, 6), 'The persistent source should not share the Boss center cell');
 
   const oxygenSpawn = stepPlayBossRoom(state, { map, actor, enemies: [boss], origin, time: 12.1 });
   assert.equal(oxygenSpawn.events.some((event) => event.type === 'bossRoomOxygenBubbleSpawned'), true);
@@ -118,4 +133,16 @@ test('every active Boss encounter receives a persistent source and timed oxygen 
   const photosynthesis = Object.values(map.cells).flatMap((cell) => cell.freeObjects).find((object) => object.kind === 'bubble');
   assert.equal(photosynthesis.params.oxygenAmount, 50);
   assert.equal(getPlayBossRoomRenderState(state, map).resources[0].sourcePresent, true);
+});
+
+test('formal Boss rooms place Torricelli at the upper side turn', () => {
+  const map = createRoomMap();
+  const state = createPlayBossRoomState(map);
+  const boss = { enemyId: 'prismCrabGuardian', health: 1000, defeated: false };
+  stepPlayBossRoom(state, { map, actor: actorAt(map, 3, 6), enemies: [boss], origin, time: 0 });
+  const sourceEntry = Object.entries(map.cells).find(([, cell]) => (
+    cell.freeObjects.some((object) => object.kind === 'torricelli')
+  ));
+  assert.ok(sourceEntry);
+  assert.equal(sourceEntry[0], cellKeyFromColumn(2, 1), 'The source should be placed in the upper-left turn, not the room center');
 });

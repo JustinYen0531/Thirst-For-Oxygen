@@ -1,10 +1,18 @@
-import { HEX_SIZE, getActiveCell, getHexCenter, patchCell } from './map-model.js';
+import {
+  DIRECTIONS,
+  HEX_SIZE,
+  getActiveCell,
+  getHexCenter,
+  neighborKey,
+  patchCell,
+} from './map-model.js';
 import { getOfficialFreeObjectState } from './map-object-settings.js';
 
 export const BOSS_ROOM_OXYGEN_BUBBLE_INTERVAL = 12;
 export const BOSS_ROOM_PHOTOSYNTHESIS_BUBBLE_INTERVAL = 18;
 export const BOSS_ROOM_RESOURCE_RADIUS = HEX_SIZE * 6;
 export const BOSS_ROOM_RESOURCE_ACTIVATION_RADIUS = HEX_SIZE * 9;
+export const BOSS_ROOM_RESOURCE_TURN_ROW_OFFSET = 1;
 
 const BOSS_TIERS = new Set(['miniBoss', 'mutatedMiniBoss', 'finalBoss']);
 
@@ -74,6 +82,45 @@ function isGroupCell(cell, group, origin) {
   return Math.hypot(center.x - group.center.x, center.y - group.center.y) <= BOSS_ROOM_RESOURCE_RADIUS;
 }
 
+function countBlockedNeighbors(map, cell) {
+  const key = `${cell.q},${cell.r}`;
+  return DIRECTIONS.reduce((count, _, direction) => (
+    count + Number(map.cells[neighborKey(key, direction)]?.terrain === 'blocked')
+  ), 0);
+}
+
+function findTorricelliDetourCell(map, group, candidates) {
+  const room = group.definition?.room;
+  if (room) {
+    const turnRowStart = room.rowStart + BOSS_ROOM_RESOURCE_TURN_ROW_OFFSET;
+    const turnCandidates = candidates.filter(({ cell }) => (
+      cell.r >= turnRowStart
+      && cell.r <= Math.min(room.rowEnd, turnRowStart + 1)
+    ));
+    if (turnCandidates.length) {
+      return turnCandidates
+        .sort((left, right) => (
+          left.cell.r - right.cell.r
+          || cellColumn(left.cell) - cellColumn(right.cell)
+          || right.blockedNeighbors - left.blockedNeighbors
+          || right.distance - left.distance
+        ))[0].cell;
+    }
+  }
+
+  const upwardCandidates = candidates.filter(({ center }) => (
+    center.y <= group.center.y - HEX_SIZE * 2
+  ));
+  const detourCandidates = upwardCandidates.length ? upwardCandidates : candidates;
+  return detourCandidates
+    .sort((left, right) => (
+      Number(left.occupied > 0) - Number(right.occupied > 0)
+      || right.blockedNeighbors - left.blockedNeighbors
+      || (group.center.y - right.center.y) - (group.center.y - left.center.y)
+      || right.distance - left.distance
+    ))[0]?.cell ?? null;
+}
+
 function findResourceCell(map, group, origin, kind) {
   const candidates = Object.values(map.cells)
     .filter((cell) => isGroupCell(cell, group, origin))
@@ -83,17 +130,20 @@ function findResourceCell(map, group, origin, kind) {
       const hasKind = objects.some((object) => object.kind === kind);
       return {
         cell,
+        center,
         distance: Math.hypot(center.x - group.center.x, center.y - group.center.y),
         occupied: objects.length + (cell.actors?.length ?? 0),
+        blockedNeighbors: countBlockedNeighbors(map, cell),
         hasKind,
       };
     })
-    .filter(({ hasKind }) => !hasKind)
-    .sort((left, right) => (
-      Number(left.occupied > 0) - Number(right.occupied > 0)
-      || left.occupied - right.occupied
-      || left.distance - right.distance
-    ));
+    .filter(({ hasKind }) => !hasKind);
+  if (kind === 'torricelli') return findTorricelliDetourCell(map, group, candidates);
+  candidates.sort((left, right) => (
+    Number(left.occupied > 0) - Number(right.occupied > 0)
+    || left.occupied - right.occupied
+    || left.distance - right.distance
+  ));
   return candidates[0]?.cell ?? null;
 }
 
