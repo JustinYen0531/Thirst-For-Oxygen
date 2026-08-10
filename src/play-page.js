@@ -845,7 +845,7 @@ function buildBackgroundLayer() {
   layer.height = canvas.height;
   const layerContext = layer.getContext('2d');
   const gradient = layerContext.createLinearGradient(0, 0, layer.width, layer.height);
-  gradient.addColorStop(0, '#1f638f'); gradient.addColorStop(.5, '#164b72'); gradient.addColorStop(1, '#0c3155');
+  gradient.addColorStop(0, '#0c3155'); gradient.addColorStop(.5, '#061a31'); gradient.addColorStop(1, '#030e1d');
   layerContext.fillStyle = gradient; layerContext.fillRect(0, 0, layer.width, layer.height);
   layerContext.save(); layerContext.globalAlpha = .13; layerContext.strokeStyle = '#6ee8ff'; layerContext.lineWidth = 1;
   for (let x = -layer.height; x < layer.width + layer.height; x += 88) { layerContext.beginPath(); layerContext.moveTo(x, 0); layerContext.lineTo(x - layer.height * .25, layer.height); layerContext.stroke(); }
@@ -863,7 +863,7 @@ function renderCell(cell, key, geometry = null) {
   context.save();
   hexPath(context, cell, 0, geometry);
   context.clip();
-  drawImage(activeTilePath(cell), center.x, center.y, TILE_SIZE * 1.78, TILE_SIZE * 2.03, cell.terrain === 'blocked' ? 1 : .96);
+  drawImage(activeTilePath(cell), center.x, center.y, TILE_SIZE * 1.78, TILE_SIZE * 2.03, cell.terrain === 'blocked' ? .98 : .86);
   if (cell.waterLayer === 'T2' && cell.terrain !== 'blocked') { context.fillStyle = 'rgba(11, 16, 49, .24)'; context.fillRect(center.x - TILE_SIZE, center.y - TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2); }
   if (cell.terrain === 'water') drawWaterMotion(cell, center);
   (cell.overlays ?? []).forEach((kind) => {
@@ -2165,14 +2165,6 @@ function drawInkVisibilityMask() {
   context.restore();
 }
 
-function applyWorldExposure() {
-  context.save();
-  context.globalCompositeOperation = 'screen';
-  context.fillStyle = 'rgba(38, 132, 176, .24)';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.restore();
-}
-
 function render() {
   renderBackground();
   if (!map || !actor) return;
@@ -2185,7 +2177,6 @@ function render() {
   }
   discoveryAcknowledgementTargets = drawDiscoveryGuides(context, activeDiscoveryGuides, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE }, worldTime);
   context.restore();
-  applyWorldExposure();
   drawInkVisibilityMask();
   drawAwakeningMask();
 }
