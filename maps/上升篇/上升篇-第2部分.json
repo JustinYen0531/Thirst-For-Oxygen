@@ -1175,7 +1175,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "7,4": {
       "q": 7,
@@ -1188,7 +1188,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "8,4": {
       "q": 8,
@@ -1201,7 +1201,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "9,4": {
       "q": 9,
@@ -1214,7 +1214,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "10,4": {
       "q": 10,
@@ -1227,7 +1227,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "11,4": {
       "q": 11,
@@ -1240,7 +1240,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "12,4": {
       "q": 12,
@@ -1266,7 +1266,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "14,4": {
       "q": 14,
@@ -1279,7 +1279,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "15,4": {
       "q": 15,
@@ -1292,7 +1292,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "16,4": {
       "q": 16,
@@ -1305,7 +1305,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "17,4": {
       "q": 17,
@@ -1435,7 +1435,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "7,5": {
       "q": 7,
@@ -1448,7 +1448,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "8,5": {
       "q": 8,
@@ -1461,7 +1461,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "9,5": {
       "q": 9,
@@ -1484,7 +1484,7 @@
         }
       ],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "10,5": {
       "q": 10,
@@ -1497,7 +1497,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "11,5": {
       "q": 11,
@@ -1510,7 +1510,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "12,5": {
       "q": 12,
@@ -1536,7 +1536,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "14,5": {
       "q": 14,
@@ -1549,7 +1549,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "15,5": {
       "q": 15,
@@ -1562,7 +1562,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "16,5": {
       "q": 16,
@@ -1575,7 +1575,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "17,5": {
       "q": 17,
@@ -1705,7 +1705,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "6,6": {
       "q": 6,
@@ -1718,7 +1718,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "7,6": {
       "q": 7,
@@ -1731,7 +1731,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "8,6": {
       "q": 8,
@@ -1744,7 +1744,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "9,6": {
       "q": 9,
@@ -1757,7 +1757,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "10,6": {
       "q": 10,
@@ -1770,7 +1770,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "11,6": {
       "q": 11,
@@ -1796,7 +1796,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "13,6": {
       "q": 13,
@@ -1809,7 +1809,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "14,6": {
       "q": 14,
@@ -1822,7 +1822,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "15,6": {
       "q": 15,
@@ -1835,7 +1835,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "16,6": {
       "q": 16,
@@ -1965,7 +1965,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "6,7": {
       "q": 6,
@@ -1978,7 +1978,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "7,7": {
       "q": 7,
@@ -1991,7 +1991,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "8,7": {
       "q": 8,
@@ -2004,7 +2004,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "9,7": {
       "q": 9,
@@ -2017,7 +2017,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "10,7": {
       "q": 10,
@@ -2030,7 +2030,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "11,7": {
       "q": 11,
@@ -2056,7 +2056,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "13,7": {
       "q": 13,
@@ -2069,7 +2069,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "14,7": {
       "q": 14,
@@ -2082,7 +2082,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "15,7": {
       "q": 15,
@@ -2095,7 +2095,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "16,7": {
       "q": 16,
@@ -2225,7 +2225,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "5,8": {
       "q": 5,
@@ -2238,7 +2238,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "6,8": {
       "q": 6,
@@ -2251,7 +2251,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "7,8": {
       "q": 7,
@@ -2264,7 +2264,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "8,8": {
       "q": 8,
@@ -2277,7 +2277,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "9,8": {
       "q": 9,
@@ -2290,7 +2290,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-rise"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "10,8": {
       "q": 10,
@@ -2316,7 +2316,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "12,8": {
       "q": 12,
@@ -2329,7 +2329,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "13,8": {
       "q": 13,
@@ -2342,7 +2342,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "14,8": {
       "q": 14,
@@ -2355,7 +2355,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-thermal-west"
     },
     "15,8": {
       "q": 15,
@@ -2595,7 +2595,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "12,9": {
       "q": 12,
@@ -2608,7 +2608,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "13,9": {
       "q": 13,
@@ -2621,7 +2621,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "14,9": {
       "q": 14,
@@ -2855,7 +2855,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,10": {
       "q": 11,
@@ -2868,7 +2868,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "12,10": {
       "q": 12,
@@ -2881,7 +2881,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "13,10": {
       "q": 13,
@@ -3115,7 +3115,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,11": {
       "q": 11,
@@ -3128,7 +3128,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "12,11": {
       "q": 12,
@@ -3141,7 +3141,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "13,11": {
       "q": 13,
@@ -3375,7 +3375,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,12": {
       "q": 10,
@@ -3388,7 +3388,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,12": {
       "q": 11,
@@ -3401,7 +3401,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "12,12": {
       "q": 12,
@@ -3647,7 +3647,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,13": {
       "q": 10,
@@ -3660,7 +3660,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,13": {
       "q": 11,
@@ -3673,7 +3673,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "12,13": {
       "q": 12,
@@ -3919,7 +3919,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,14": {
       "q": 9,
@@ -3932,7 +3932,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,14": {
       "q": 10,
@@ -3945,7 +3945,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,14": {
       "q": 11,
@@ -4179,7 +4179,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,15": {
       "q": 9,
@@ -4192,7 +4192,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,15": {
       "q": 10,
@@ -4205,7 +4205,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "11,15": {
       "q": 11,
@@ -4452,7 +4452,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "8,16": {
       "q": 8,
@@ -4465,7 +4465,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,16": {
       "q": 9,
@@ -4478,7 +4478,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,16": {
       "q": 10,
@@ -4715,8 +4715,12 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [],
-      "region": "thermal-crust"
+      "actors": [
+        {
+          "kind": "enemySpawn"
+        }
+      ],
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "8,17": {
       "q": 8,
@@ -4729,7 +4733,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,17": {
       "q": 9,
@@ -4742,7 +4746,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "10,17": {
       "q": 10,
@@ -4976,7 +4980,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "7,18": {
       "q": 7,
@@ -4989,7 +4993,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "8,18": {
       "q": 8,
@@ -5002,7 +5006,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,18": {
       "q": 9,
@@ -5249,7 +5253,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "7,19": {
       "q": 7,
@@ -5262,7 +5266,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "8,19": {
       "q": 8,
@@ -5275,7 +5279,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-thermal-west"
     },
     "9,19": {
       "q": 9,
@@ -7149,7 +7153,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-12,27": {
       "q": -12,
@@ -7162,7 +7166,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-11,27": {
       "q": -11,
@@ -7175,7 +7179,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-10,27": {
       "q": -10,
@@ -7188,7 +7192,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-9,27": {
       "q": -9,
@@ -7214,7 +7218,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-7,27": {
       "q": -7,
@@ -7227,7 +7231,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-6,27": {
       "q": -6,
@@ -7240,7 +7244,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-5,27": {
       "q": -5,
@@ -7253,7 +7257,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-4,27": {
       "q": -4,
@@ -7409,7 +7413,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-13,28": {
       "q": -13,
@@ -7422,7 +7426,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-12,28": {
       "q": -12,
@@ -7435,7 +7439,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-11,28": {
       "q": -11,
@@ -7448,7 +7452,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-10,28": {
       "q": -10,
@@ -7478,7 +7482,7 @@
           "kind": "enemySpawn"
         }
       ],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-8,28": {
       "q": -8,
@@ -7491,7 +7495,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-7,28": {
       "q": -7,
@@ -7504,7 +7508,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-6,28": {
       "q": -6,
@@ -7517,7 +7521,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-5,28": {
       "q": -5,
@@ -7673,7 +7677,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-13,29": {
       "q": -13,
@@ -7686,7 +7690,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-12,29": {
       "q": -12,
@@ -7699,7 +7703,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-11,29": {
       "q": -11,
@@ -7712,7 +7716,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-10,29": {
       "q": -10,
@@ -7738,7 +7742,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-8,29": {
       "q": -8,
@@ -7751,7 +7755,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-7,29": {
       "q": -7,
@@ -7764,7 +7768,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-6,29": {
       "q": -6,
@@ -7777,7 +7781,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-5,29": {
       "q": -5,
@@ -7959,7 +7963,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-14,30": {
       "q": -14,
@@ -7972,7 +7976,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-13,30": {
       "q": -13,
@@ -7985,7 +7989,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-12,30": {
       "q": -12,
@@ -7998,7 +8002,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-11,30": {
       "q": -11,
@@ -8024,7 +8028,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-9,30": {
       "q": -9,
@@ -8037,7 +8041,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-8,30": {
       "q": -8,
@@ -8050,7 +8054,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-7,30": {
       "q": -7,
@@ -8063,7 +8067,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-6,30": {
       "q": -6,
@@ -8219,7 +8223,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-14,31": {
       "q": -14,
@@ -8232,7 +8236,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-13,31": {
       "q": -13,
@@ -8245,7 +8249,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-12,31": {
       "q": -12,
@@ -8258,7 +8262,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-11,31": {
       "q": -11,
@@ -8284,7 +8288,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-9,31": {
       "q": -9,
@@ -8297,7 +8301,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-8,31": {
       "q": -8,
@@ -8310,7 +8314,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-7,31": {
       "q": -7,
@@ -8323,7 +8327,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "pressure-lock"
+      "region": "torricelli-junction-part2-pressure-east"
     },
     "-6,31": {
       "q": -6,
@@ -8479,7 +8483,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,32": {
       "q": -15,
@@ -8492,7 +8496,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-14,32": {
       "q": -14,
@@ -8505,7 +8509,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-13,32": {
       "q": -13,
@@ -8739,7 +8743,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,33": {
       "q": -15,
@@ -8752,7 +8756,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-14,33": {
       "q": -14,
@@ -8765,7 +8769,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-13,33": {
       "q": -13,
@@ -8999,7 +9003,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,34": {
       "q": -16,
@@ -9012,7 +9016,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,34": {
       "q": -15,
@@ -9025,7 +9029,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-14,34": {
       "q": -14,
@@ -9259,7 +9263,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,35": {
       "q": -16,
@@ -9272,7 +9276,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,35": {
       "q": -15,
@@ -9285,7 +9289,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-14,35": {
       "q": -14,
@@ -9535,7 +9539,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-17,36": {
       "q": -17,
@@ -9548,7 +9552,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,36": {
       "q": -16,
@@ -9561,7 +9565,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,36": {
       "q": -15,
@@ -9795,7 +9799,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-17,37": {
       "q": -17,
@@ -9808,7 +9812,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,37": {
       "q": -16,
@@ -9821,7 +9825,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-15,37": {
       "q": -15,
@@ -10055,7 +10059,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-18,38": {
       "q": -18,
@@ -10068,7 +10072,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-17,38": {
       "q": -17,
@@ -10081,7 +10085,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,38": {
       "q": -16,
@@ -10315,7 +10319,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-18,39": {
       "q": -18,
@@ -10328,7 +10332,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-17,39": {
       "q": -17,
@@ -10341,7 +10345,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,39": {
       "q": -16,
@@ -10575,7 +10579,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-19,40": {
       "q": -19,
@@ -10588,7 +10592,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-18,40": {
       "q": -18,
@@ -10601,7 +10605,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-17,40": {
       "q": -17,
@@ -10835,7 +10839,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-19,41": {
       "q": -19,
@@ -10848,7 +10852,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-18,41": {
       "q": -18,
@@ -10874,7 +10878,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-pressure-east"
     },
     "-16,41": {
       "q": -16,
@@ -13061,7 +13065,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-14,49": {
       "q": -14,
@@ -13074,7 +13078,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-13,49": {
       "q": -13,
@@ -13087,7 +13091,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-12,49": {
       "q": -12,
@@ -13100,7 +13104,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-11,49": {
       "q": -11,
@@ -13113,7 +13117,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-10,49": {
       "q": -10,
@@ -13130,7 +13134,7 @@
           "kind": "enemySpawn"
         }
       ],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-9,49": {
       "q": -9,
@@ -13143,7 +13147,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-8,49": {
       "q": -8,
@@ -13156,7 +13160,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-7,49": {
       "q": -7,
@@ -13169,7 +13173,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-6,49": {
       "q": -6,
@@ -13182,7 +13186,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-5,49": {
       "q": -5,
@@ -13325,7 +13329,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-15,50": {
       "q": -15,
@@ -13338,7 +13342,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-14,50": {
       "q": -14,
@@ -13351,7 +13355,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-13,50": {
       "q": -13,
@@ -13364,7 +13368,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-12,50": {
       "q": -12,
@@ -13377,7 +13381,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-11,50": {
       "q": -11,
@@ -13390,7 +13394,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-10,50": {
       "q": -10,
@@ -13403,7 +13407,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-9,50": {
       "q": -9,
@@ -13416,7 +13420,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-8,50": {
       "q": -8,
@@ -13429,7 +13433,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-7,50": {
       "q": -7,
@@ -13442,7 +13446,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-6,50": {
       "q": -6,
@@ -13585,7 +13589,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-15,51": {
       "q": -15,
@@ -13598,7 +13602,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-14,51": {
       "q": -14,
@@ -13611,7 +13615,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-13,51": {
       "q": -13,
@@ -13624,7 +13628,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-12,51": {
       "q": -12,
@@ -13637,7 +13641,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-11,51": {
       "q": -11,
@@ -13650,7 +13654,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-10,51": {
       "q": -10,
@@ -13663,7 +13667,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-9,51": {
       "q": -9,
@@ -13676,7 +13680,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-8,51": {
       "q": -8,
@@ -13689,7 +13693,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-7,51": {
       "q": -7,
@@ -13702,7 +13706,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-6,51": {
       "q": -6,
@@ -13857,7 +13861,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-16,52": {
       "q": -16,
@@ -13870,7 +13874,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-15,52": {
       "q": -15,
@@ -13883,7 +13887,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-14,52": {
       "q": -14,
@@ -13896,7 +13900,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-13,52": {
       "q": -13,
@@ -13909,7 +13913,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-12,52": {
       "q": -12,
@@ -13921,12 +13925,8 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [
-        {
-          "kind": "enemySpawn"
-        }
-      ],
-      "region": "split-spring-basin"
+      "actors": [],
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-11,52": {
       "q": -11,
@@ -13938,8 +13938,12 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [],
-      "region": "thermal-crust"
+      "actors": [
+        {
+          "kind": "enemySpawn"
+        }
+      ],
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-10,52": {
       "q": -10,
@@ -13952,7 +13956,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-9,52": {
       "q": -9,
@@ -13965,7 +13969,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-8,52": {
       "q": -8,
@@ -13978,7 +13982,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-7,52": {
       "q": -7,
@@ -14121,7 +14125,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-16,53": {
       "q": -16,
@@ -14134,7 +14138,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-15,53": {
       "q": -15,
@@ -14147,7 +14151,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-14,53": {
       "q": -14,
@@ -14160,7 +14164,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-13,53": {
       "q": -13,
@@ -14173,7 +14177,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-12,53": {
       "q": -12,
@@ -14186,7 +14190,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "split-spring-basin"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-11,53": {
       "q": -11,
@@ -14199,7 +14203,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-10,53": {
       "q": -10,
@@ -14212,7 +14216,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-9,53": {
       "q": -9,
@@ -14225,7 +14229,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-8,53": {
       "q": -8,
@@ -14238,7 +14242,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-mid-west"
     },
     "-7,53": {
       "q": -7,
@@ -14472,7 +14476,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,54": {
       "q": -10,
@@ -14485,7 +14489,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-9,54": {
       "q": -9,
@@ -14498,7 +14502,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-8,54": {
       "q": -8,
@@ -14732,7 +14736,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,55": {
       "q": -10,
@@ -14745,7 +14749,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-9,55": {
       "q": -9,
@@ -14758,7 +14762,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-8,55": {
       "q": -8,
@@ -15007,7 +15011,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,56": {
       "q": -11,
@@ -15020,7 +15024,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,56": {
       "q": -10,
@@ -15033,7 +15037,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-9,56": {
       "q": -9,
@@ -15267,7 +15271,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,57": {
       "q": -11,
@@ -15280,7 +15284,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,57": {
       "q": -10,
@@ -15293,7 +15297,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-9,57": {
       "q": -9,
@@ -15527,7 +15531,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,58": {
       "q": -12,
@@ -15540,7 +15544,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,58": {
       "q": -11,
@@ -15553,7 +15557,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,58": {
       "q": -10,
@@ -15787,7 +15791,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,59": {
       "q": -12,
@@ -15800,7 +15804,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,59": {
       "q": -11,
@@ -15813,7 +15817,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-10,59": {
       "q": -10,
@@ -16059,7 +16063,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-13,60": {
       "q": -13,
@@ -16072,7 +16076,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,60": {
       "q": -12,
@@ -16085,7 +16089,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,60": {
       "q": -11,
@@ -16319,7 +16323,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-13,61": {
       "q": -13,
@@ -16332,7 +16336,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,61": {
       "q": -12,
@@ -16345,7 +16349,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-11,61": {
       "q": -11,
@@ -16579,7 +16583,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-14,62": {
       "q": -14,
@@ -16592,7 +16596,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-13,62": {
       "q": -13,
@@ -16605,7 +16609,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,62": {
       "q": -12,
@@ -16839,7 +16843,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-14,63": {
       "q": -14,
@@ -16852,7 +16856,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-13,63": {
       "q": -13,
@@ -16865,7 +16869,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-mid-west"
     },
     "-12,63": {
       "q": -12,
@@ -17434,7 +17438,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-31,66": {
       "q": -31,
@@ -17447,7 +17451,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-30,66": {
       "q": -30,
@@ -17460,7 +17464,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-29,66": {
       "q": -29,
@@ -17473,7 +17477,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-28,66": {
       "q": -28,
@@ -17486,7 +17490,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-27,66": {
       "q": -27,
@@ -17499,7 +17503,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-26,66": {
       "q": -26,
@@ -17512,7 +17516,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-25,66": {
       "q": -25,
@@ -17525,7 +17529,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-24,66": {
       "q": -24,
@@ -17694,7 +17698,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-31,67": {
       "q": -31,
@@ -17707,7 +17711,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-30,67": {
       "q": -30,
@@ -17720,7 +17724,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-29,67": {
       "q": -29,
@@ -17733,7 +17737,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-28,67": {
       "q": -28,
@@ -17746,7 +17750,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-27,67": {
       "q": -27,
@@ -17759,7 +17763,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-26,67": {
       "q": -26,
@@ -17772,7 +17776,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-25,67": {
       "q": -25,
@@ -17785,7 +17789,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-24,67": {
       "q": -24,
@@ -17954,7 +17958,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-32,68": {
       "q": -32,
@@ -17967,7 +17971,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-31,68": {
       "q": -31,
@@ -17980,7 +17984,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-30,68": {
       "q": -30,
@@ -17993,7 +17997,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-29,68": {
       "q": -29,
@@ -18006,7 +18010,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-28,68": {
       "q": -28,
@@ -18019,7 +18023,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-27,68": {
       "q": -27,
@@ -18032,7 +18036,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-26,68": {
       "q": -26,
@@ -18045,7 +18049,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-25,68": {
       "q": -25,
@@ -18214,7 +18218,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-32,69": {
       "q": -32,
@@ -18227,7 +18231,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-31,69": {
       "q": -31,
@@ -18240,7 +18244,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-30,69": {
       "q": -30,
@@ -18253,7 +18257,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-29,69": {
       "q": -29,
@@ -18266,7 +18270,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-28,69": {
       "q": -28,
@@ -18283,7 +18287,7 @@
           "kind": "enemySpawn"
         }
       ],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-27,69": {
       "q": -27,
@@ -18296,7 +18300,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-26,69": {
       "q": -26,
@@ -18309,7 +18313,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-25,69": {
       "q": -25,
@@ -18478,7 +18482,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-33,70": {
       "q": -33,
@@ -18491,7 +18495,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-32,70": {
       "q": -32,
@@ -18504,7 +18508,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-31,70": {
       "q": -31,
@@ -18516,8 +18520,12 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [],
-      "region": "thermal-crust"
+      "actors": [
+        {
+          "kind": "enemySpawn"
+        }
+      ],
+      "region": "torricelli-junction-part2-early-east"
     },
     "-30,70": {
       "q": -30,
@@ -18529,12 +18537,8 @@
       "overlays": [],
       "objects": [],
       "freeObjects": [],
-      "actors": [
-        {
-          "kind": "enemySpawn"
-        }
-      ],
-      "region": "warm-current-mouth"
+      "actors": [],
+      "region": "torricelli-junction-part2-early-east"
     },
     "-29,70": {
       "q": -29,
@@ -18547,7 +18551,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-28,70": {
       "q": -28,
@@ -18560,7 +18564,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-27,70": {
       "q": -27,
@@ -18573,7 +18577,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "warm-current-mouth"
+      "region": "torricelli-junction-part2-early-east"
     },
     "-26,70": {
       "q": -26,
@@ -18742,7 +18746,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-33,71": {
       "q": -33,
@@ -18755,7 +18759,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-32,71": {
       "q": -32,
@@ -18768,7 +18772,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-31,71": {
       "q": -31,
@@ -19002,7 +19006,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,72": {
       "q": -34,
@@ -19015,7 +19019,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-33,72": {
       "q": -33,
@@ -19028,7 +19032,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-32,72": {
       "q": -32,
@@ -19262,7 +19266,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,73": {
       "q": -34,
@@ -19275,7 +19279,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-33,73": {
       "q": -33,
@@ -19288,7 +19292,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-32,73": {
       "q": -32,
@@ -19522,7 +19526,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,74": {
       "q": -35,
@@ -19535,7 +19539,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,74": {
       "q": -34,
@@ -19548,7 +19552,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-33,74": {
       "q": -33,
@@ -19782,7 +19786,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,75": {
       "q": -35,
@@ -19795,7 +19799,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,75": {
       "q": -34,
@@ -19808,7 +19812,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-33,75": {
       "q": -33,
@@ -20042,7 +20046,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-36,76": {
       "q": -36,
@@ -20055,7 +20059,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,76": {
       "q": -35,
@@ -20068,7 +20072,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,76": {
       "q": -34,
@@ -20316,7 +20320,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-36,77": {
       "q": -36,
@@ -20329,7 +20333,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,77": {
       "q": -35,
@@ -20342,7 +20346,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-34,77": {
       "q": -34,
@@ -20576,7 +20580,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-37,78": {
       "q": -37,
@@ -20589,7 +20593,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-36,78": {
       "q": -36,
@@ -20602,7 +20606,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,78": {
       "q": -35,
@@ -20836,7 +20840,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-37,79": {
       "q": -37,
@@ -20849,7 +20853,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-36,79": {
       "q": -36,
@@ -20862,7 +20866,7 @@
       "objects": [],
       "freeObjects": [],
       "actors": [],
-      "region": "thermal-crust"
+      "region": "torricelli-ascent-part2-early-east"
     },
     "-35,79": {
       "q": -35,

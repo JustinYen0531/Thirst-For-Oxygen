@@ -1189,4 +1189,10 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - 教學房正式改為獨立的「第零篇章・第一次呼吸」（Part 0），由「深淵導航員」逐步給出標題、說明、當前操作與 Canvas GUIDE 目標標記；未完成當前知識點時，出口保持鎖定。
 - 引導流程要求玩家實際完成 20 個操作：拉射、附著／離開水草、Checkpoint、氧氣與能量資源、各種物件與 Edge、潛壁鰓門、武器命中，最後必須以真正的 Resonance 中立化另一隻敵人；單純擊殺不會被算成 Resonance，失敗的低速撞擊也不會通過。
 - 按 Enter 會開啟 Skip Tutorial? 確認；確認後只回到水下主控台，不會進入或把教學資源／進度繼承到正式篇章。完成教學後抵達 EXIT 也只回主控台。
+
+## 2026-08-10 — 下沉篇第二部分四條托里切利回返洞
+
+- 下沉篇第二部分由兩個普通托里切利物件補成四條偏軸高風險回返洞，分布在 row 8、24、46、68；每條三格寬，與主路保留岩牆，必須先下沉到下方接點再逆著重力回返。
+- detour metadata 同時保存上行終點、接點、shaft 寬度、分隔牆與 T1/T2 水層；T2 熱泉支路不會被錯刻成 T1，並同步保留上升篇的地形鏡像。
+- 地圖專項測試 22/22、完整 `npm run check` 328/328、Vite production build 與 `git diff --check` 通過；依專案規則未執行瀏覽器／Playwright。
 - `tests/play-tutorial.test.mjs` 新增第零篇章、逐步 Gate、擊殺不等於 Resonance、Enter Skip 靜態回歸測試；聚焦測試 26/26，完整 `npm run check` 328/328，Vite production build 與 `git diff --check` 均通過。依專案規則未執行瀏覽器／Playwright。

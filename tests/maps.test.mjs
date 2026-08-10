@@ -396,7 +396,30 @@ test('part 2 combines every advanced object and places its button before its gat
   assert.ok(gateRows.every((row) => button.row < row), 'the player must find the side-route button before reaching the sealed threshold');
   assert.equal(Object.values(part2.edges).filter((edge) => edge.type === 'layerPortal').length, 1);
   assert.equal(Object.values(part2.edges).filter((edge) => edge.type === 'multiPortal').length, 6);
-  assert.equal(part2.metadata.teachingSequence.length, 7);
+  assert.equal(part2.metadata.teachingSequence.length, 8);
+});
+
+test('part 2 provides four separated Torricelli return routes', () => {
+  const part2 = loadMap('下沉篇-第2部分.json');
+  const detours = part2.metadata.torricelliDetours;
+  const torricelliObjects = freeObjectsOf(part2).filter(({ object }) => object.kind === 'torricelli');
+  const { reachable } = reachableKeysAfterAvailableButtons(part2, { portals: false });
+  assert.equal(detours.length, 4);
+  assert.equal(torricelliObjects.length, 4);
+  detours.forEach((detour) => {
+    const key = `${detour.objectColumn - Math.floor(detour.objectRow / 2)},${detour.objectRow}`;
+    const cell = part2.cells[key];
+    assert.ok(cell, `${key} should exist`);
+    assert.equal(cell.freeObjects.some((object) => object.kind === 'torricelli'), true, `${key} should contain the Torricelli reward`);
+    assert.equal(cell.gravityLevel, 'L1', `${key} should be a natural floating rest room`);
+    assert.equal(cell.waterLayer, detour.waterLayer, `${key} should stay on its thermal water layer`);
+    assert.ok(detour.ascentRows >= 9, `${key} should require a meaningful return climb`);
+    assert.ok(detour.shaftWidth >= 3, `${key} should remain broad enough to avoid precision movement`);
+    assert.ok(detour.separationWallWidth >= 1, `${key} should be separated from the main route by a rock wall`);
+    assert.ok(DIRECTIONS.filter((_, direction) => part2.cells[neighborKey(key, direction)]?.terrain === 'blocked').length >= 2, `${key} should sit against a cap and side wall`);
+    assert.equal(reachable.has(key), true, `${key} should be reachable through its lower junction`);
+    assert.equal(reachableKeysAfterAvailableButtons(part2, { maxRow: detour.junctionRow - 1, portals: false }).reachable.has(key), false, `${key} must stay hidden until the lower junction`);
+  });
 });
 
 test('part 3 preserves the player-authored template geometry as the final exam', () => {

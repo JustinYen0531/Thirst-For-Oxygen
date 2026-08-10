@@ -528,21 +528,29 @@ function deduplicateCellObjectKind(map, kind) {
   });
 }
 
-function carveWaterCell(map, row, column, region, gravityLevel = 'L1') {
+function carveWaterCell(map, row, column, region, gravityLevel = 'L1', waterLayer = 'T1') {
   if (row < 0 || row >= map.layout.height || column <= 0 || column >= map.layout.width - 1) return;
   const cell = map.cells[cellKeyFromColumn(column, row)];
   if (!cell) return;
   cell.terrain = 'water';
   cell.gravityLevel = gravityLevel;
-  cell.waterLayer = 'T1';
+  cell.waterLayer = waterLayer;
   cell.region = region;
   cell.conditionalGate = null;
 }
 
-function carveRoom(map, { rowStart, rowEnd, columnStart, columnEnd, region, gravityLevel = 'L1' }) {
+function carveRoom(map, {
+  rowStart,
+  rowEnd,
+  columnStart,
+  columnEnd,
+  region,
+  gravityLevel = 'L1',
+  waterLayer = 'T1',
+}) {
   for (let row = rowStart; row <= rowEnd; row += 1) {
     for (let column = columnStart; column <= columnEnd; column += 1) {
-      carveWaterCell(map, row, column, region, gravityLevel);
+      carveWaterCell(map, row, column, region, gravityLevel, waterLayer);
     }
   }
 }
@@ -601,6 +609,7 @@ function carveBroadRoute(map, points, region, gravityLevel = 'L1', radius = 2) {
         gravityLevel,
       });
     }
+  waterLayer = 'T1',
   }
 }
 
@@ -611,6 +620,7 @@ function paintPart1Terrain(map) {
 
   // Loop 1: two broad routes around the first forest monolith. Both are easy
   // to steer through, but they contain different optional rewards.
+    waterLayer,
   carveBroadRoute(map, [
     { column: 9, row: 8 }, { column: 9, row: 23 }, { column: 4, row: 29 }, { column: 9, row: 36 },
   ], 'monolith-west-route');
@@ -620,6 +630,7 @@ function paintPart1Terrain(map) {
   // The first Torricelli cavern replaces the old shallow upper grotto. Its
   // sealed cap is separated from the entry route by two rock columns, so the
   // player must first descend to the row-23 junction and then swim back up.
+      waterLayer,
   carveTorricelliDetour(map, {
     objectRow: 12,
     ascentEndRow: 22,
@@ -822,8 +833,22 @@ function buildPart2() {
     height: 88,
     metadata: {
       chapter: '下沉篇', part: 2, title: '下沉篇・第二部分｜穿越熱泉', difficulty: 'medium',
-      designIntent: '完全獨立的熱泉路線：左右熱泉室交替，先探索支路啟動閘門，再穿越 L3 脈衝與可選傳送捷徑。',
-      routeBeats: ['暖流入口', '左右熱泉分流', '開門支路', '壓力閘門', '傳送捷徑', '熱泉出口'],
+      designIntent: '完全獨立的熱泉路線：左右熱泉室交替，以四條偏軸托里切利回返洞提供高風險但穩定的氧氣，再穿越 L3 脈衝與可選傳送捷徑。',
+      routeBeats: ['暖流入口', '左右熱泉分流', '四條托里切利回返洞', '開門支路', '壓力閘門', '傳送捷徑', '熱泉出口'],
+      torricelliDetours: PART2_TORRICELLI_DETOURS.map((detour) => ({
+        side: detour.side,
+        region: detour.region,
+        objectRow: detour.objectRow,
+        objectColumn: detour.objectColumn,
+        ascentEndRow: detour.ascentEndRow,
+        junctionRow: detour.junctionRow,
+        junctionColumn: detour.junctionColumn,
+        ascentRows: detour.ascentEndRow - detour.objectRow + 1,
+        terminalRestRows: TORRICELLI_TERMINAL_REST_ROWS,
+        shaftWidth: detour.shaftWidth,
+        separationWallWidth: detour.separationWallWidth,
+        waterLayer: detour.waterLayer,
+      })),
       teachingSequence: [
         '層間轉接門：第一次從 T1 進入 T2，入口沒有其他危險。',
         '珊瑚＋地雷：先在保護範圍理解反彈，再遇到無保護地雷。',
@@ -842,13 +867,13 @@ function buildPart2() {
   [[18, 13], [38, 5], [59, 14], [78, 6]].forEach(([row, column]) => addActor(map, 'enemySpawn', row, column));
   const used = new Set();
   [
-    ['oxygen', 6, 7], ['bubble', 11, 12], ['torricelli', 17, 4],
+    ['oxygen', 6, 7], ['bubble', 11, 12],
+    ...PART2_TORRICELLI_DETOURS.map((detour) => ['torricelli', detour.objectRow, detour.objectColumn]),
     ['checkpoint', 22, 11], ['mine', 27, 15], ['button', 31, 4],
     ['mine', 35, 14], ['oxygen', 40, 7], ['weightStone', 42, 13],
     ['checkpoint', 48, 5], ['ink', 52, 14], ['bubble', 58, 7],
     ['razor', 63, 13], ['oxygen', 68, 5], ['weightStone', 71, 14],
     ['ink', 74, 4], ['razor', 78, 14], ['checkpoint', 82, 8],
-    ['torricelli', 85, 12],
   ].forEach(([kind, row, column]) => addFreeObject(map, kind, row, column, used, kind === 'button' ? { targetGates: gateKeys } : {}));
   addEdgeSet(map, 'current', [8, 28, 52, 73]);
   addEdgeSet(map, 'springJelly', [14, 37, 60, 80]);
@@ -856,8 +881,100 @@ function buildPart2() {
   addEdgeSet(map, 'barrier', [41, 76]);
   addEdgeSet(map, 'seaweed', [14, 20, 32, 44, 56, 68, 76, 84]);
   addEdgeSet(map, 'coralCluster', [9, 18, 27, 36, 45, 54, 63, 72, 78, 81, 83, 86]);
+
+  // Part 2 needs four reliable oxygen decisions, not four objects placed on
+  // the center line. Each shaft is separated from the main thermal route by
+  // a rock column and only reconnects through a lower junction, so the player
+  // must descend farther before turning back upward for the refill.
+  PART2_TORRICELLI_DETOURS.forEach((detour) => {
+    carveTorricelliDetour(map, detour);
+    carveRoom(map, {
+      rowStart: detour.junctionRow,
+      rowEnd: detour.junctionEndRow,
+      columnStart: detour.junctionColumnStart,
+      columnEnd: detour.junctionColumnEnd,
+      region: detour.junctionRegion,
+      gravityLevel: 'L1',
+      waterLayer: detour.waterLayer,
+    });
+  });
   addLayerPortal(map, 21);
   addLinkedPortal(map, 16, 70, 'part2-thermal-shortcut', new Set());
+const PART2_TORRICELLI_DETOURS = Object.freeze([
+  Object.freeze({
+    side: 'right',
+    region: 'torricelli-ascent-part2-early-east',
+    junctionRegion: 'torricelli-junction-part2-early-east',
+    objectRow: 8,
+    objectColumn: 16,
+    ascentEndRow: 16,
+    junctionRow: 17,
+    junctionEndRow: 21,
+    columnStart: 16,
+    columnEnd: 18,
+    junctionColumn: 12,
+    junctionColumnStart: 11,
+    junctionColumnEnd: 18,
+    waterLayer: 'T1',
+    shaftWidth: 3,
+    separationWallWidth: 1,
+  }),
+  Object.freeze({
+    side: 'left',
+    region: 'torricelli-ascent-part2-mid-west',
+    junctionRegion: 'torricelli-junction-part2-mid-west',
+    objectRow: 24,
+    objectColumn: 1,
+    ascentEndRow: 33,
+    junctionRow: 34,
+    junctionEndRow: 38,
+    columnStart: 1,
+    columnEnd: 3,
+    junctionColumn: 8,
+    junctionColumnStart: 1,
+    junctionColumnEnd: 10,
+    waterLayer: 'T2',
+    shaftWidth: 3,
+    separationWallWidth: 1,
+  }),
+  Object.freeze({
+    side: 'right',
+    region: 'torricelli-ascent-part2-pressure-east',
+    junctionRegion: 'torricelli-junction-part2-pressure-east',
+    objectRow: 46,
+    objectColumn: 16,
+    ascentEndRow: 55,
+    junctionRow: 56,
+    junctionEndRow: 60,
+    columnStart: 16,
+    columnEnd: 18,
+    junctionColumn: 12,
+    junctionColumnStart: 11,
+    junctionColumnEnd: 18,
+    waterLayer: 'T2',
+    shaftWidth: 3,
+    separationWallWidth: 1,
+  }),
+  Object.freeze({
+    side: 'left',
+    region: 'torricelli-ascent-part2-thermal-west',
+    junctionRegion: 'torricelli-junction-part2-thermal-west',
+    objectRow: 68,
+    objectColumn: 1,
+    ascentEndRow: 78,
+    junctionRow: 79,
+    junctionEndRow: 83,
+    columnStart: 1,
+    columnEnd: 3,
+    junctionColumn: 8,
+    junctionColumnStart: 1,
+    junctionColumnEnd: 10,
+    waterLayer: 'T2',
+    shaftWidth: 3,
+    separationWallWidth: 1,
+  }),
+]);
+
   setRuntimeExit(map, 85, 12);
   return map;
 }
@@ -872,6 +989,7 @@ function removeInvalidButtons(map) {
 
 function buildPart3(source) {
   const map = preparePlayerFinaleMap(source, {
+        '四條托里切利回返洞：先走偏軸高風險支路，下沉到接點後逆著重力回返，換取穩定氧氣。',
     chapter: '下沉篇', part: 3, title: '下沉篇・第三部分｜深淵遺跡', difficulty: 'hard',
     designIntent: '完整保留玩家設計的第三部分地形與傳送結構，把前兩部分教過的所有物件改成不提示的複合考題。',
     routeBeats: ['原始遺跡入口', '重力與層間門考題', '環境傷害混合區', '多邊傳送迷陣', 'Boss 前補給', '深淵收束'],
