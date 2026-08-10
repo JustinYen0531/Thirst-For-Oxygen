@@ -50,13 +50,13 @@
             <section class="resonance-panel" id="play-resonance-panel" aria-labelledby="play-resonance-title" hidden><header><div><p class="eyebrow">LEVEL / RESONANCE</p><h2 id="play-resonance-title">永久共鳴 Buff</h2></div><button type="button" id="play-resonance-close" aria-label="關閉 Resonance Buff">×</button></header><p class="resonance-panel-note">共鳴敵人不會提供 EXP；同物種 Buff 只疊加到標示上限。</p><div class="resonance-buff-list" id="play-resonance-buffs"><p class="resonance-empty">尚未取得 Resonance Buff。</p></div></section>
             <p class="play-attempts" id="play-attempts" aria-label="剩餘嘗試次數 3，共 3 次">ATTEMPT 3/3</p>
             <section class="play-tutorial-panel" id="play-tutorial-panel" hidden aria-labelledby="play-tutorial-title">
-              <div class="play-tutorial-heading"><div><p class="eyebrow">CHAPTER 0 / GUIDED TUTORIAL</p><h2 id="play-tutorial-title">第零篇章・第一次呼吸</h2></div><span class="play-tutorial-progress" id="play-tutorial-step-progress">0 / 20</span></div>
+              <div class="play-tutorial-heading"><div><p class="eyebrow">CHAPTER 0 / FIRST BREATH</p><h2 id="play-tutorial-title">第零篇章・第一次呼吸</h2></div><span class="play-tutorial-progress" id="play-tutorial-step-progress">0 / 10</span></div>
               <p class="play-tutorial-guide-line"><span id="play-tutorial-guide-name">深淵導航員</span> 正在引導你</p>
               <h3 id="play-tutorial-step-title">先學會彈射</h3>
               <p id="play-tutorial-step-body">先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。</p>
               <p class="play-tutorial-step-instruction" id="play-tutorial-step-instruction">請現在完成一次拉射。</p>
-              <div class="play-tutorial-object-heading"><span>房內物件</span><span>靠近並觀察使用方式</span></div>
-              <ul class="play-tutorial-object-list" id="play-tutorial-object-list"></ul>
+              <div class="play-tutorial-object-heading"><span>FIRST BREATH 任務</span><span>← / → 切換</span></div>
+              <ul class="play-tutorial-object-list play-tutorial-task-list" id="play-tutorial-task-list"></ul>
               <p class="play-tutorial-exit-hint" id="play-tutorial-exit-hint">導航員確認所有操作前，出口會保持鎖定。真的要離開請按 Enter。</p>
             </section>
             <section class="play-tutorial-dialogue" id="play-tutorial-dialogue" hidden aria-live="polite" aria-labelledby="play-tutorial-dialogue-title">
@@ -66,6 +66,7 @@
                 <h2 id="play-tutorial-dialogue-title">先學會彈射</h2>
                 <p id="play-tutorial-dialogue-text">先不要往出口走。把游標放在潛水夫身上，拖曳出方向與距離，放開完成一次拉射。</p>
                 <p class="play-tutorial-dialogue-control" id="play-tutorial-dialogue-control">操作：按住滑鼠左鍵拖曳潛水夫，放開完成一次拉射。</p>
+                <p class="play-tutorial-dialogue-navigation" id="play-tutorial-dialogue-navigation">操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。</p>
               </div>
             </section>
             <section class="play-tutorial-skip-dialog" id="play-tutorial-skip-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="play-tutorial-skip-title">

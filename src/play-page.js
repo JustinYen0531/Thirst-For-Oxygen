@@ -88,6 +88,7 @@ import {
   recordPlayTutorialEvents,
   recordPlayTutorialInteraction,
   recordPlayTutorialLaunch,
+  selectPlayTutorialTask,
   stepPlayTutorial,
 } from './play-tutorial.js';
 import { createPlayBossRoomState, getPlayBossRoomRenderState, stepPlayBossRoom } from './play-boss-room.js';
@@ -204,7 +205,8 @@ const tutorialStepTitle = document.querySelector('#play-tutorial-step-title');
 const tutorialStepBody = document.querySelector('#play-tutorial-step-body');
 const tutorialStepInstruction = document.querySelector('#play-tutorial-step-instruction');
 const tutorialStepProgress = document.querySelector('#play-tutorial-step-progress');
-const tutorialObjectList = document.querySelector('#play-tutorial-object-list');
+const tutorialTaskList = document.querySelector('#play-tutorial-task-list');
+const tutorialDialogueNavigation = document.querySelector('#play-tutorial-dialogue-navigation');
 const tutorialExitHint = document.querySelector('#play-tutorial-exit-hint');
 const tutorialSkipDialog = document.querySelector('#play-tutorial-skip-dialog');
 const tutorialSkipConfirm = document.querySelector('#play-tutorial-skip-confirm');
@@ -360,8 +362,9 @@ function updateTutorialPresentation() {
   const tutorial = getPlayTutorialRenderState(tutorialState, enemies);
   const signature = JSON.stringify({
     step: tutorial.currentStep.id,
+    task: tutorial.selectedTaskId,
     completed: tutorial.completedCoreSteps,
-    objects: tutorial.objectUses.map((entry) => [entry.id, entry.used]),
+    tasks: tutorial.tasks.map((entry) => [entry.id, entry.completed, entry.selected]),
     outcome: tutorial.outcome,
     note: tutorial.lastGuideNote,
     dialogue: tutorial.dialogue,
@@ -369,20 +372,23 @@ function updateTutorialPresentation() {
   if (signature === tutorialUiSignature) return;
   tutorialUiSignature = signature;
   tutorialGuideName.textContent = translateGameplayText(tutorial.guideName);
-  tutorialStepTitle.textContent = translateGameplayText(tutorial.currentStep.title);
+  tutorialStepTitle.textContent = translateGameplayText(tutorial.currentTask?.title ?? tutorial.currentStep.title);
   tutorialStepBody.textContent = translateGameplayText(tutorial.currentStep.body);
   tutorialStepInstruction.textContent = translateGameplayText(tutorial.currentStep.instruction ?? '請依照導航員的提示操作。');
   tutorialDialogueSpeaker.textContent = translateGameplayText(tutorial.dialogue.speaker);
   tutorialDialogueTitle.textContent = translateGameplayText(tutorial.dialogue.title);
   tutorialDialogueText.textContent = translateGameplayText(tutorial.dialogue.text);
   tutorialDialogueControl.textContent = translateGameplayText(tutorial.dialogue.controlHint);
+  if (tutorialDialogueNavigation) tutorialDialogueNavigation.textContent = tutorial.autoReady
+    ? '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。'
+    : '操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。';
   tutorialStepProgress.textContent = `${tutorial.completedCoreSteps} / ${tutorial.totalCoreSteps}`;
   tutorialExitHint.textContent = translateGameplayText(tutorial.lastGuideNote || tutorial.freeExit);
-  tutorialObjectList.replaceChildren(...tutorial.objectUses.map((entry) => {
+  tutorialTaskList.replaceChildren(...tutorial.tasks.map((entry, index) => {
     const item = document.createElement('li');
-    item.className = `${entry.used ? 'is-used' : ''}${entry.id === tutorial.currentStep.id ? ' is-current' : ''}`.trim();
-    item.textContent = `${entry.used ? '✓' : '○'} ${translateGameplayText(entry.label)}`;
-    item.title = translateGameplayText(entry.description);
+    item.className = `${entry.completed ? 'is-complete' : ''}${entry.selected ? ' is-current' : ''}`.trim();
+    item.textContent = `${entry.completed ? '✓' : '○'} ${String(index + 1).padStart(2, '0')} ${translateGameplayText(entry.title)}`;
+    item.title = entry.selected ? '目前 Guidance 任務' : '使用左右鍵切換 Guidance 任務';
     return item;
   }));
 }
@@ -1376,23 +1382,38 @@ function drawStageExit() {
   const stageExit = getCurrentStageExitState();
   if (!stageExit.exit) return;
   const { x, y } = stageExit.exit;
-  const colour = stageExit.unlocked ? '#7cf2ff' : '#ff9d78';
-  const pulse = 1 + Math.sin(worldTime * 2.4) * .08;
+  const isTutorialExit = mapArc === TUTORIAL_ROUTE;
+  const colour = isTutorialExit
+    ? (stageExit.unlocked ? '#8dffd3' : '#ffd36b')
+    : (stageExit.unlocked ? '#7cf2ff' : '#ff9d78');
+  const pulse = 1 + Math.sin(worldTime * (isTutorialExit ? 3.2 : 2.4)) * (isTutorialExit ? .13 : .08);
   context.save();
   context.globalCompositeOperation = 'lighter';
   context.strokeStyle = colour;
   context.shadowColor = colour;
-  context.shadowBlur = 10;
+  context.shadowBlur = isTutorialExit ? 19 : 10;
   context.lineWidth = 1.4;
-  context.setLineDash(stageExit.unlocked ? [3, 2] : [1, 2]);
+  context.setLineDash(isTutorialExit ? [5, 2] : stageExit.unlocked ? [3, 2] : [1, 2]);
   context.beginPath();
-  context.arc(x, y, 11 * pulse, 0, Math.PI * 2);
+  context.arc(x, y, (isTutorialExit ? 16 : 11) * pulse, 0, Math.PI * 2);
   context.stroke();
   context.setLineDash([]);
-  context.font = 'bold 5px "IBM Plex Sans TC", system-ui, sans-serif';
+  if (isTutorialExit) {
+    context.globalAlpha = .26;
+    context.fillStyle = colour;
+    context.beginPath();
+    context.arc(x, y, 12 * pulse, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 1;
+  }
+  context.font = isTutorialExit ? '900 8px "Orbitron", "IBM Plex Sans TC", system-ui, sans-serif' : 'bold 5px "IBM Plex Sans TC", system-ui, sans-serif';
   context.textAlign = 'center';
   context.fillStyle = colour;
-  context.fillText(stageExit.unlocked ? 'EXIT' : (mapArc === TUTORIAL_ROUTE ? 'GUIDE' : 'BOSS'), x, y + 1.8);
+  context.fillText(isTutorialExit || stageExit.unlocked ? 'EXIT' : 'BOSS', x, y + (isTutorialExit ? 2.5 : 1.8));
+  if (isTutorialExit && !stageExit.unlocked) {
+    context.font = '700 3.7px "IBM Plex Sans TC", system-ui, sans-serif';
+    context.fillText('LOCKED', x, y + 8.5);
+  }
   context.restore();
 
 }
@@ -1514,6 +1535,7 @@ function drawEnemyHealthBar(enemy, x, y, width, height) {
 }
 
 function drawEnemyResonanceBar(enemy, x, y, width, height) {
+  if (enemy.tutorialResonanceDisabled) return;
   const required = Math.max(1, Number(enemy.resonanceRequired) || 1);
   const ratio = enemy.resonanceNeutral ? 1 : clamp((Number(enemy.resonanceProgress) || 0) / required, 0, 1);
   context.save();
@@ -1534,7 +1556,7 @@ function drawEnemyResonanceBar(enemy, x, y, width, height) {
 }
 
 function drawEnemyResonanceRange(enemy, x, y) {
-  if (enemy.resonanceNeutral) return;
+  if (enemy.resonanceNeutral || enemy.tutorialResonanceDisabled) return;
   const radius = (enemy.radius ?? 0) + (actor?.radius ?? 0) + RESONANCE_RULES.bodyGrazePadding;
   context.save();
   context.globalCompositeOperation = 'source-over';
@@ -2359,6 +2381,13 @@ window.addEventListener('keydown', (event) => {
     }
     return;
   }
+  if (mapArc === TUTORIAL_ROUTE && (event.code === 'ArrowLeft' || event.code === 'ArrowRight')) {
+    event.preventDefault();
+    selectPlayTutorialTask(tutorialState, event.code === 'ArrowLeft' ? -1 : 1);
+    sfxController.play('menuSelection', { volumeMultiplier: .65 });
+    updateTutorialPresentation();
+    return;
+  }
   if (mapArc === TUTORIAL_ROUTE && event.code === 'Enter') {
     event.preventDefault();
     openTutorialSkipPrompt();
@@ -2549,7 +2578,7 @@ window.render_game_to_text = () => {
     combat,
     enemyCombat: getPlayEnemyRenderState(enemies, worldTime),
     katana: equippedWeapon('katana') ? { level: katanaState.level, cooldown: Math.round(katanaState.cooldown * 100) / 100, empowerNextSlash: katanaState.empowerNextSlash, slashCount: katanaState.slashCount, lastHitCount: katanaState.lastHitCount, lastDamage: katanaState.lastDamage, effects: katanaState.effects.map((effect) => ({ type: effect.type, persistent: effect.persistent, empowered: effect.empowered ?? false, hitCount: effect.hitCount ?? 0, damage: effect.damage ?? 0 })) } : null,
-    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), resonance: { progress: Math.round((enemy.resonanceProgress ?? 0) * 10) / 10, required: enemy.resonanceRequired ?? 0, source: enemy.resonanceSource ?? null, neutral: Boolean(enemy.resonanceNeutral) }, hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, visual: getPlayEnemyFrameState(enemy, worldTime), pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
+    enemies: enemies.filter((enemy) => isPlayEnemyVisible(enemy, camera, { width: canvas.width / SCALE, height: canvas.height / SCALE })).map((enemy) => ({ id: enemy.enemyId, name: enemy.name, markerKind: enemy.markerKind, tutorialRole: enemy.tutorialRole ?? null, tutorialInfiniteHealth: Boolean(enemy.tutorialInfiniteHealth), tutorialResonanceDisabled: Boolean(enemy.tutorialResonanceDisabled), x: Math.round(enemy.x), y: Math.round(enemy.y), health: Math.round(enemy.health), maxHealth: Math.round(enemy.maxHealth), defeated: Boolean(enemy.defeated), resonance: { progress: Math.round((enemy.resonanceProgress ?? 0) * 10) / 10, required: enemy.resonanceRequired ?? 0, source: enemy.resonanceSource ?? null, neutral: Boolean(enemy.resonanceNeutral) }, hitFlash: Math.round((enemy.hitFlash ?? 0) * 100) / 100, state: enemy.state, facing: enemy.facing, spawnPattern: enemy.spawnPattern, visual: getPlayEnemyFrameState(enemy, worldTime), pendingSkill: enemy.pendingSkill ? { id: enemy.pendingSkill.skillId, remaining: Math.round(enemy.pendingSkill.remaining * 100) / 100 } : null })),
     totalEnemySpawns: enemies.length,
     totalEncounterGroups: new Set(enemies.map((enemy) => enemy.anchorCellKey)).size,
     totalClusteredSpawns: enemies.filter((enemy) => enemy.spawnPattern === 'cluster').length,

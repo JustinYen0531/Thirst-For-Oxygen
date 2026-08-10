@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   TUTORIAL_GUIDED_STEPS,
+  TUTORIAL_TASKS,
   TUTORIAL_PART,
   createPlayTutorialState,
   createTutorialMap,
@@ -12,6 +13,7 @@ import {
   recordPlayTutorialEvents,
   recordPlayTutorialInteraction,
   recordPlayTutorialLaunch,
+  selectPlayTutorialTask,
   stepPlayTutorial,
 } from '../src/play-tutorial.js';
 import { getHexCenter } from '../src/map-model.js';
@@ -27,10 +29,14 @@ test('tutorial map is Chapter 0 with a small authored room and two training enem
   assert.equal(map.metadata.difficulty, 'tutorial');
   assert.equal(map.metadata.enemyTargetCount, 2);
   assert.equal(map.metadata.tutorial.guided, true);
-  assert.equal(map.metadata.tutorial.coreSteps.length, TUTORIAL_GUIDED_STEPS.length);
+  assert.equal(map.metadata.tutorial.coreSteps.length, TUTORIAL_TASKS.length);
+  assert.equal(TUTORIAL_TASKS.length, 10);
   assert.ok(map.cells[map.metadata.exitCellKey]);
   assert.equal(map.cells[map.metadata.exitCellKey].terrain, 'water');
-  assert.equal(Object.values(map.cells).filter((cell) => cell.actors.some((actor) => actor.kind === 'enemySpawn')).length, 2);
+  const enemyMarkers = Object.values(map.cells).flatMap((cell) => cell.actors.filter((actor) => actor.kind === 'enemySpawn'));
+  assert.equal(enemyMarkers.length, 2);
+  assert.equal(enemyMarkers.find((actor) => actor.tutorialRole === 'resonance')?.tutorialInfiniteHealth, true);
+  assert.equal(enemyMarkers.every((actor) => actor.tutorialNoSelfDestruct), true);
   assert.ok(Object.values(map.cells).some((cell) => cell.freeObjects.some((object) => object.kind === 'torricelli')));
   assert.ok(Object.values(map.edges).some((edge) => edge.type === 'seaweed'));
 });
@@ -40,8 +46,10 @@ test('tutorial advances only after each guided operation is actually observed', 
   const initialRender = getPlayTutorialRenderState(state);
   assert.equal(initialRender.currentStep.id, 'launch');
   assert.equal(initialRender.autoReady, false);
+  assert.equal(initialRender.totalCoreSteps, 10);
+  assert.equal(initialRender.tasks.length, 10);
   assert.equal(initialRender.dialogue.speaker, '深淵導航員');
-  assert.equal(initialRender.dialogue.controlHint, TUTORIAL_GUIDED_STEPS[0].controlHint);
+  assert.match(initialRender.dialogue.controlHint, /← \/ →/);
   assert.ok(TUTORIAL_GUIDED_STEPS.every((step) => step.controlHint), 'every guided step must explain its control');
   recordPlayTutorialLaunch(state);
   recordPlayTutorialInteraction(state, { type: 'seaweed', attached: true });
@@ -67,22 +75,37 @@ test('tutorial advances only after each guided operation is actually observed', 
   recordPlayTutorialInteraction(state, { type: 'wallGillEnter' });
   recordPlayTutorialInteraction(state, { type: 'wallGillExit' });
   recordPlayTutorialCombat(state, { effects: [{ type: 'knifePath', hitIds: ['training-a'] }] });
-  const enemy = { health: 100, defeated: false, resonanceNeutral: false };
-  assert.equal(stepPlayTutorial(state, { enemies: [enemy] }).readyToLeave, false);
-  enemy.resonanceNeutral = true;
-  const result = stepPlayTutorial(state, { enemies: [enemy] });
+  const killEnemy = { tutorialRole: 'kill', health: 100, defeated: false, resonanceNeutral: false };
+  const resonanceEnemy = { tutorialRole: 'resonance', health: 100, defeated: false, resonanceNeutral: false };
+  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, false);
+  killEnemy.health = 0;
+  killEnemy.defeated = true;
+  assert.equal(stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] }).readyToLeave, false);
+  resonanceEnemy.resonanceNeutral = true;
+  const result = stepPlayTutorial(state, { enemies: [killEnemy, resonanceEnemy] });
   assert.equal(result.readyToLeave, true);
   assert.equal(result.outcome, 'resonance');
-  const renderState = getPlayTutorialRenderState(state, [enemy]);
+  const renderState = getPlayTutorialRenderState(state, [killEnemy, resonanceEnemy]);
   assert.equal(renderState.outcome, 'resonance');
   assert.equal(renderState.currentStep.id, 'ready');
-  assert.equal(renderState.completedCoreSteps, TUTORIAL_GUIDED_STEPS.length);
+  assert.equal(renderState.completedCoreSteps, TUTORIAL_TASKS.length);
+});
+
+test('First Breath lets the player choose any task with the arrow keys', () => {
+  const state = createPlayTutorialState();
+  selectPlayTutorialTask(state, -1);
+  const previous = getPlayTutorialRenderState(state);
+  assert.equal(previous.selectedTaskIndex, 9);
+  assert.equal(previous.selectedTaskId, TUTORIAL_TASKS[9].id);
+  selectPlayTutorialTask(state, 1);
+  const next = getPlayTutorialRenderState(state);
+  assert.equal(next.selectedTaskIndex, 0);
+  assert.equal(next.selectedTaskId, TUTORIAL_TASKS[0].id);
 });
 
 test('defeating an enemy does not satisfy the Resonance lesson', () => {
   const state = createPlayTutorialState();
   TUTORIAL_GUIDED_STEPS.slice(0, -1).forEach((step) => state.observedActions.add(step.id));
-  state.currentStepIndex = TUTORIAL_GUIDED_STEPS.length - 1;
   state.completed = new Set(TUTORIAL_GUIDED_STEPS.slice(0, -1).map((step) => step.id));
   const result = stepPlayTutorial(state, { enemies: [{ defeated: true, health: 0, resonanceNeutral: false }] });
   assert.equal(result.readyToLeave, false);
@@ -103,10 +126,14 @@ test('tutorial exposes an Enter-confirmed skip flow without entering Chapter 1',
   assert.match(playHtml, /value="tutorial:0"/);
   assert.match(playHtml, /id="play-tutorial-dialogue"/);
   assert.match(playHtml, /id="play-tutorial-dialogue-control"/);
+  assert.match(playHtml, /id="play-tutorial-task-list"/);
+  assert.match(playHtml, /id="play-tutorial-dialogue-navigation"/);
   assert.match(playHtml, /id="play-tutorial-skip-dialog"/);
   assert.match(playHtml, /Skip Tutorial\?/);
   assert.match(playPageSource, /tutorialDialogueControl/);
   assert.match(playPageSource, /event\.code === 'Enter'/);
+  assert.match(playPageSource, /event\.code === 'ArrowLeft'/);
+  assert.match(playPageSource, /selectPlayTutorialTask/);
   assert.match(playPageSource, /window\.location\.href = '\/home\.html'/);
   assert.doesNotMatch(playPageSource, /mapArc === TUTORIAL_ROUTE && \(tutorialProgress\?\.readyToLeave \|\| stageExit\.arrived\)/);
 });

@@ -62,7 +62,7 @@ export function getResonanceRequirement(enemy) {
 }
 
 export function isResonanceCombatant(enemy) {
-  return Boolean(enemy && !enemy.defeated && !enemy.resonanceNeutral && Number(enemy.health) > 0);
+  return Boolean(enemy && !enemy.tutorialResonanceDisabled && !enemy.defeated && !enemy.resonanceNeutral && Number(enemy.health) > 0);
 }
 
 export function reduceEnemyResonanceOnDamage(enemy) {

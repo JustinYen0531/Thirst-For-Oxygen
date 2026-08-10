@@ -13,6 +13,7 @@ const TUTORIAL_WIDTH = 12;
 const TUTORIAL_HEIGHT = 24;
 const TUTORIAL_OBJECT_SIZE = 30;
 const TUTORIAL_EXIT_ARRIVAL_RADIUS = 9;
+const TUTORIAL_EXIT_POSITION = Object.freeze({ column: 10, row: 2 });
 
 export const TUTORIAL_OBJECT_GUIDES = Object.freeze([
   Object.freeze({ id: 'checkpoint', label: 'Checkpoint', description: '碰到後更新重生點，並回滿生命、氧氣與能量。' }),
@@ -45,18 +46,34 @@ export const TUTORIAL_GUIDED_STEPS = Object.freeze([
   Object.freeze({ id: 'torricelli', title: '找到可以停留的空間', body: '托里切利空間會持續回復氧氣，適合在長距離路線中停下來整理資源。', instruction: '請進入托里切利空間並停留片刻。', controlHint: '操作：把潛水夫移進托里切利空間，停留在裡面回復氧氣。', target: { column: 2, row: 9 }, targetLabel: '托里切利空間' }),
   Object.freeze({ id: 'bubble', title: '讓氣泡替你承受重力', body: '光合作用氣泡會補氧並暫時免疫重力，但作用期間不能立刻再次彈射。', instruction: '請碰到光合作用氣泡，實際取得它的效果。', controlHint: '操作：用潛水夫碰到光合作用氣泡，接觸後效果會自動啟動。', target: { column: 5, row: 10 }, targetLabel: '光合作用氣泡' }),
   Object.freeze({ id: 'weightStone', title: '分辨撞擊速度', body: '重石會把低速撞擊壓回；只有高速撞擊才會被擊碎。', instruction: '請用高速撞擊擊碎重石。', controlHint: '操作：拉射撞上重石；低速會被彈回，高速才會擊碎它。', target: { column: 7, row: 12 }, targetLabel: '重石' }),
-  Object.freeze({ id: 'mine', title: '危險也要讀懂', body: '地雷會反彈並造成傷害。這一間房把傷害調低，但你仍要實際碰過它，知道它不是補給。', instruction: '請碰觸深海地雷一次。', controlHint: '操作：用潛水夫碰觸深海地雷，感受它的反彈與傷害。', target: { column: 3, row: 15 }, targetLabel: '深海地雷' }),
+  Object.freeze({ id: 'mine', title: '危險也要讀懂', body: '地雷會反彈並造成傷害。這一間房把傷害調低，但你仍要實際碰過它，知道它不是補給。', instruction: '請碰觸深海地雷一次。', controlHint: '操作：用潛水夫碰觸深海地雷，感受它的反彈與傷害。', target: { column: 4, row: 14 }, targetLabel: '深海地雷' }),
   Object.freeze({ id: 'razor', title: '不要硬闖剃刀', body: '剃刀會強制把你推開。遇到它時要調整路線，不是一直往前撞。', instruction: '請碰觸剃刀一次，觀察它如何把你推開。', controlHint: '操作：用潛水夫碰觸剃刀，觀察反彈後再調整下一次拉射。', target: { column: 4, row: 17 }, targetLabel: '剃刀' }),
-  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', controlHint: '操作：靠近珊瑚群落後按 E，啟動短暫隱形。', target: { column: 2, row: 15 }, targetLabel: '珊瑚群落' }),
+  Object.freeze({ id: 'coralCluster', title: '珊瑚是短暫的掩護', body: '靠近珊瑚後按 E，可以讓敵人暫時看不見你；這不是永久安全區。', instruction: '請靠近珊瑚並按 E 啟動隱形。', controlHint: '操作：靠近珊瑚群落後按 E，啟動短暫隱形。', target: { column: 10, row: 13 }, targetLabel: '珊瑚群落' }),
   Object.freeze({ id: 'button', title: '碰到按鈕才會開門', body: '按鈕會切換指定的條件通行門。先碰按鈕，再觀察前方的門。', instruction: '請碰到按鈕，打開教學房的通行門。', controlHint: '操作：用潛水夫碰到按鈕，條件通行門就會打開。', target: { column: 8, row: 18 }, targetLabel: '按鈕' }),
   Object.freeze({ id: 'springJelly', title: '借力改變方向', body: '彈簧水母會依照入射角反射並加速，把一次撞擊轉成新的位移。', instruction: '請撞上彈簧水母一次，感受反射方向。', controlHint: '操作：用拉射撞上彈簧水母，觀察它把你反射到哪裡。', target: { column: 4, row: 6 }, targetLabel: '彈簧水母' }),
   Object.freeze({ id: 'current', title: '讀懂洋流', body: '洋流會沿箭頭方向推動你，會改變下一次拉射的落點。', instruction: '請穿過洋流一次，觀察它如何改變你的漂移。', controlHint: '操作：讓潛水夫穿過洋流箭頭區域，觀察推力方向。', target: { column: 6, row: 9 }, targetLabel: '洋流' }),
   Object.freeze({ id: 'spike', title: '尖刺會傷害你', body: '尖刺 Edge 會阻擋通路並造成接觸傷害。先看角度，再決定要不要繞路。', instruction: '請安全地碰到尖刺 Edge 一次，讀懂它的阻擋反應。', controlHint: '操作：用較安全的角度碰到尖刺 Edge，確認它會阻擋並造成傷害。', target: { column: 3, row: 13 }, targetLabel: '尖刺 Edge' }),
   Object.freeze({ id: 'barrier', title: '障礙只是在說不行', body: '障礙 Edge 會阻擋通路，但不會造成傷害；你需要換一個角度。', instruction: '請碰到障礙 Edge 一次，確認它和尖刺不同。', controlHint: '操作：碰到障礙 Edge，確認它只阻擋、不造成傷害。', target: { column: 9, row: 13 }, targetLabel: '障礙 Edge' }),
   Object.freeze({ id: 'wallGillGate', title: '穿進牆裡也要記得氧氣', body: '潛壁鰓門需要按 E 進入與離開。牆內仍會消耗氧氣，而且不能使用武器。', instruction: '請按 E 進入牆體，再按一次 E 離開。', controlHint: '操作：靠近潛壁鰓門按 E 進入，再按一次 E 離開。', target: { column: 10, row: 18 }, targetLabel: '潛壁鰓門' }),
-  Object.freeze({ id: 'weapon', title: '讓移動也成為攻擊', body: '第一把武器會跟著你的移動運作。你不一定要追著敵人砍，先用拉射路徑擦過敵人。', instruction: '請用一次拉射路徑命中訓練敵人。', controlHint: '操作：拖曳並放開拉射，讓路徑真正擦過訓練敵人 A。', target: { column: 8, row: 15 }, targetLabel: '訓練敵人 A' }),
-  Object.freeze({ id: 'resonance', title: '敵人不一定要死', body: '靠近敵人並維持擦身距離，可以累積 Resonance。共鳴完成後，敵人會成為中立夥伴。', instruction: '請對另一隻訓練敵人完成一次 Resonance。只有真正中立化，導航員才會開放出口。', controlHint: '操作：靠近訓練敵人 B，保持擦身距離直到 Resonance 完成；不必殺死它。', target: { column: 9, row: 17 }, targetLabel: '訓練敵人 B' }),
+  Object.freeze({ id: 'weapon', title: '讓移動也成為攻擊', body: '第一把武器會跟著你的移動運作。你不一定要追著敵人砍，先用拉射路徑擦過敵人。', instruction: '請用一次拉射路徑命中訓練敵人。', controlHint: '操作：拖曳並放開拉射，讓路徑真正擦過訓練敵人 B。', target: { column: 9, row: 15 }, targetLabel: '訓練敵人 B' }),
+  Object.freeze({ id: 'kill', title: '擊殺也可以取勝', body: '右側的訓練敵人有有限生命，而且不會自爆。你可以用武器把它的生命降到零，理解「擊殺」這條路。', instruction: '請把右側訓練敵人的生命降到零。', controlHint: '操作：持續用武器命中訓練敵人 B，直到它的生命歸零。', target: { column: 9, row: 15 }, targetLabel: '訓練敵人 B' }),
+  Object.freeze({ id: 'resonance', title: '敵人不一定要死', body: '靠近敵人並維持擦身距離，可以累積 Resonance。共鳴完成後，敵人會成為中立夥伴。', instruction: '請對另一隻訓練敵人完成一次 Resonance。只有真正中立化，導航員才會開放出口。', controlHint: '操作：靠近訓練敵人 A，保持擦身距離直到 Resonance 完成；不必殺死它。', target: { column: 7, row: 15 }, targetLabel: '訓練敵人 A' }),
 ]);
+
+export const TUTORIAL_TASKS = Object.freeze([
+  Object.freeze({ id: 'launch', title: '先學會彈射', stepIds: Object.freeze(['launch']) }),
+  Object.freeze({ id: 'anchor', title: '停下來與記住退路', stepIds: Object.freeze(['seaweedAttach', 'seaweedRelease', 'checkpoint']) }),
+  Object.freeze({ id: 'resources', title: '管理氧氣與能量', stepIds: Object.freeze(['oxygen', 'oxygenBubble', 'torricelli', 'bubble']) }),
+  Object.freeze({ id: 'impact', title: '分辨撞擊速度', stepIds: Object.freeze(['weightStone']) }),
+  Object.freeze({ id: 'hazards', title: '讀懂接觸危險', stepIds: Object.freeze(['mine', 'razor']) }),
+  Object.freeze({ id: 'objects', title: '使用環境物件', stepIds: Object.freeze(['coralCluster', 'button', 'springJelly', 'current']) }),
+  Object.freeze({ id: 'edges', title: '分辨尖刺與障礙', stepIds: Object.freeze(['spike', 'barrier']) }),
+  Object.freeze({ id: 'wallGill', title: '穿越潛壁鰓門', stepIds: Object.freeze(['wallGillGate']) }),
+  Object.freeze({ id: 'kill', title: '學會擊殺敵人', stepIds: Object.freeze(['weapon', 'kill']) }),
+  Object.freeze({ id: 'resonance', title: '學會 Resonance', stepIds: Object.freeze(['resonance']) }),
+]);
+
+const TUTORIAL_TASK_NAVIGATION_HINT = '操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。';
 
 const EVENT_TO_OBJECT_ID = Object.freeze({
   checkpoint: 'checkpoint',
@@ -152,8 +169,20 @@ export function createTutorialMap() {
   }
 
   addActor(map, 2, 2, { kind: 'playerStart' });
-  addActor(map, 8, 15, { kind: 'enemySpawn', enemyId: 'explodingLanternfish' });
-  addActor(map, 9, 17, { kind: 'enemySpawn', enemyId: 'explodingLanternfish' });
+  addActor(map, 7, 15, {
+    kind: 'enemySpawn',
+    enemyId: 'explodingLanternfish',
+    tutorialRole: 'resonance',
+    tutorialInfiniteHealth: true,
+    tutorialNoSelfDestruct: true,
+  });
+  addActor(map, 9, 15, {
+    kind: 'enemySpawn',
+    enemyId: 'explodingLanternfish',
+    tutorialRole: 'kill',
+    tutorialNoSelfDestruct: true,
+    tutorialResonanceDisabled: true,
+  });
 
   addObject(map, 2, 4, 'checkpoint');
   addObject(map, 4, 6, 'oxygen', { oxygenAmount: 100, activationSpeed: 110 });
@@ -161,7 +190,7 @@ export function createTutorialMap() {
   addObject(map, 2, 9, 'torricelli', { oxygenRecoveryPerSecond: 20 });
   addObject(map, 5, 10, 'bubble', { oxygenAmount: 50, gravityImmunitySeconds: 2.5, launchLockSeconds: 1.5 });
   addObject(map, 7, 12, 'weightStone', { breakSpeed: 31, weight: 4 });
-  addObject(map, 3, 15, 'mine', { damage: 0 });
+  addObject(map, 4, 14, 'mine', { damage: 0 });
   addObject(map, 4, 17, 'razor', { count: 1, damage: 0, knockbackSpeed: 58, rotationSpeed: 180 });
   addObject(map, 8, 18, 'button', { mode: 'once', targetGates: [tutorialKey(8, 19)] });
   addClosedGate(map, 8, 19, 'tutorial-button-gate');
@@ -171,10 +200,10 @@ export function createTutorialMap() {
   addEdge(map, 6, 9, 0, 'current', { currentDirection: 0, currentStrength: 1 });
   addEdge(map, 3, 13, 0, 'spike', { damage: 0 });
   addEdge(map, 9, 13, 0, 'barrier');
-  addEdge(map, 2, 15, 0, 'coralCluster');
+  addEdge(map, 10, 13, 0, 'coralCluster');
   addEdge(map, 10, 18, 0, 'wallGillGate');
 
-  const exitCellKey = tutorialKey(10, 21);
+  const exitCellKey = tutorialKey(TUTORIAL_EXIT_POSITION.column, TUTORIAL_EXIT_POSITION.row);
   return {
     ...map,
     metadata: {
@@ -188,7 +217,8 @@ export function createTutorialMap() {
         room: 'first-breath',
         guided: true,
         guideName: TUTORIAL_GUIDE_NAME,
-        coreSteps: TUTORIAL_GUIDED_STEPS.map((step) => step.id),
+        coreSteps: TUTORIAL_TASKS.map((task) => task.id),
+        tasks: TUTORIAL_TASKS.map((task) => ({ id: task.id, title: task.title, stepIds: [...task.stepIds] })),
         objectGuides: TUTORIAL_OBJECT_GUIDES.map((guide) => guide.id),
         skipKey: 'Enter',
       },
@@ -202,7 +232,7 @@ export function createPlayTutorialState() {
     completed: new Set(),
     observedActions: new Set(),
     objectUses: new Set(),
-    currentStepIndex: 0,
+    selectedTaskIndex: 0,
     seaweedAttached: false,
     wallGillEntered: false,
     wallGillExited: false,
@@ -212,22 +242,50 @@ export function createPlayTutorialState() {
   };
 }
 
+function getTaskByIndex(index) {
+  const safeIndex = ((Number(index) || 0) % TUTORIAL_TASKS.length + TUTORIAL_TASKS.length) % TUTORIAL_TASKS.length;
+  return TUTORIAL_TASKS[safeIndex] ?? TUTORIAL_TASKS[0];
+}
+
+function isTutorialTaskComplete(state, task) {
+  return task.stepIds.every((stepId) => state.completed.has(stepId));
+}
+
+function refreshTutorialTaskProgress(state) {
+  state.completedTasks = new Set(TUTORIAL_TASKS.filter((task) => isTutorialTaskComplete(state, task)).map((task) => task.id));
+  state.autoReady = state.completedTasks.size >= TUTORIAL_TASKS.length;
+  if (state.autoReady) return state;
+  const selectedTask = getTaskByIndex(state.selectedTaskIndex);
+  if (!isTutorialTaskComplete(state, selectedTask)) return state;
+  const nextIndex = TUTORIAL_TASKS.findIndex((task) => !isTutorialTaskComplete(state, task));
+  if (nextIndex >= 0) state.selectedTaskIndex = nextIndex;
+  return state;
+}
+
+function getCurrentTask(state) {
+  return getTaskByIndex(state?.selectedTaskIndex);
+}
+
 function getCurrentGuidedStep(state) {
-  const index = Math.max(0, Number(state?.currentStepIndex) || 0);
-  return TUTORIAL_GUIDED_STEPS[Math.min(index, TUTORIAL_GUIDED_STEPS.length - 1)] ?? null;
+  const task = getCurrentTask(state);
+  const incompleteStepId = task.stepIds.find((stepId) => !state.completed.has(stepId));
+  const stepId = incompleteStepId ?? task.stepIds[task.stepIds.length - 1];
+  return TUTORIAL_GUIDED_STEPS.find((step) => step.id === stepId) ?? TUTORIAL_GUIDED_STEPS[0];
+}
+
+export function selectPlayTutorialTask(state, direction = 1) {
+  if (!state) return state;
+  const delta = Number(direction) < 0 ? -1 : 1;
+  state.selectedTaskIndex = ((Number(state.selectedTaskIndex) || 0) + delta + TUTORIAL_TASKS.length) % TUTORIAL_TASKS.length;
+  state.lastGuideNote = null;
+  return state;
 }
 
 function observeTutorialAction(state, actionId) {
   if (!state || !actionId) return state;
   state.observedActions.add(actionId);
-  while (state.currentStepIndex < TUTORIAL_GUIDED_STEPS.length) {
-    const step = TUTORIAL_GUIDED_STEPS[state.currentStepIndex];
-    if (!state.observedActions.has(step.id)) break;
-    state.completed.add(step.id);
-    state.currentStepIndex += 1;
-  }
-  state.autoReady = state.currentStepIndex >= TUTORIAL_GUIDED_STEPS.length;
-  return state;
+  state.completed.add(actionId);
+  return refreshTutorialTaskProgress(state);
 }
 
 function tutorialEventSucceeded(event) {
@@ -317,14 +375,18 @@ export function getPlayTutorialExitState({ map, actor, origin = { x: 0, y: 0 }, 
 
 export function stepPlayTutorial(state, { enemies = [] } = {}) {
   if (!state) return { readyToLeave: false, outcome: null };
-  const neutralEnemy = enemies.find((enemy) => enemy?.resonanceNeutral);
+  const neutralEnemy = enemies.find((enemy) => enemy?.tutorialRole === 'resonance' && enemy?.resonanceNeutral);
   if (neutralEnemy) {
     state.exitReason = 'resonance';
     observeTutorialAction(state, 'resonance');
-  } else if (!state.observedActions.has('resonance') && enemies.some((enemy) => enemy?.defeated || Number(enemy?.health) <= 0)) {
+  }
+  const killEnemy = enemies.find((enemy) => enemy?.tutorialRole === 'kill' && (enemy?.defeated || Number(enemy?.health) <= 0));
+  if (killEnemy) observeTutorialAction(state, 'kill');
+  const anyDefeatedEnemy = enemies.some((enemy) => enemy?.defeated || Number(enemy?.health) <= 0);
+  if (!state.observedActions.has('resonance') && anyDefeatedEnemy) {
     state.lastGuideNote = '這隻敵人被擊敗了。導航員要你用另一隻敵人練習 Resonance；出口仍然鎖定。';
   }
-  state.autoReady = state.currentStepIndex >= TUTORIAL_GUIDED_STEPS.length;
+  refreshTutorialTaskProgress(state);
   return {
     readyToLeave: state.autoReady,
     outcome: state.exitReason,
@@ -336,28 +398,42 @@ export function stepPlayTutorial(state, { enemies = [] } = {}) {
 export function getPlayTutorialRenderState(state, enemies = []) {
   const safeState = state ?? createPlayTutorialState();
   const progress = stepPlayTutorial(safeState, { enemies });
+  const selectedTask = getCurrentTask(safeState);
   const currentStep = progress.readyToLeave
-    ? Object.freeze({ id: 'ready', title: '第零篇章完成', body: '你已經完成導航員的所有示範。這次教學不會把資源或進度帶入正式篇章；請前往出口離開。', instruction: '請前往出口離開第零篇章。', controlHint: '操作：依照 EXIT 標記前往房間底部的出口。', target: { column: 10, row: 21 }, targetLabel: 'EXIT' })
+    ? Object.freeze({ id: 'ready', title: '第零篇章完成', body: '你已經完成導航員的所有示範。這次教學不會把資源或進度帶入正式篇章；請前往右側出口離開。', instruction: '請前往右側醒目的 EXIT 離開第零篇章。', controlHint: '操作：依照右側牆面的 EXIT 標記離開。', target: TUTORIAL_EXIT_POSITION, targetLabel: 'EXIT' })
     : progress.currentStep ?? TUTORIAL_GUIDED_STEPS[0];
-  const completedCoreSteps = TUTORIAL_GUIDED_STEPS.filter((step) => safeState.completed.has(step.id)).length;
+  const completedTasks = TUTORIAL_TASKS.filter((task) => isTutorialTaskComplete(safeState, task));
+  const taskStep = progress.readyToLeave ? currentStep : currentStep;
   const targetCellKey = currentStep.target ? tutorialKey(currentStep.target.column, currentStep.target.row) : null;
   return {
     active: true,
     guideName: TUTORIAL_GUIDE_NAME,
     dialogue: Object.freeze({
       speaker: TUTORIAL_GUIDE_NAME,
-      title: currentStep.title,
+      title: progress.readyToLeave ? currentStep.title : selectedTask.title,
       text: progress.lastGuideNote || currentStep.body,
-      controlHint: currentStep.controlHint ?? currentStep.instruction ?? '',
+      controlHint: progress.readyToLeave
+        ? (currentStep.controlHint ?? currentStep.instruction ?? '')
+        : `${currentStep.controlHint ?? currentStep.instruction ?? ''} ${TUTORIAL_TASK_NAVIGATION_HINT}`,
     }),
     currentStep,
-    completedCoreSteps,
-    totalCoreSteps: TUTORIAL_GUIDED_STEPS.length,
+    currentTask: selectedTask,
+    selectedTaskIndex: safeState.selectedTaskIndex,
+    selectedTaskId: selectedTask.id,
+    tasks: TUTORIAL_TASKS.map((task, index) => ({
+      id: task.id,
+      title: task.title,
+      completed: isTutorialTaskComplete(safeState, task),
+      selected: index === safeState.selectedTaskIndex,
+      currentStepId: task === selectedTask ? taskStep.id : null,
+    })),
+    completedCoreSteps: completedTasks.length,
+    totalCoreSteps: TUTORIAL_TASKS.length,
     objectUses: TUTORIAL_OBJECT_GUIDES.map((guide) => ({ ...guide, used: safeState.objectUses.has(guide.id) })),
     outcome: progress.outcome,
     autoReady: progress.readyToLeave,
     freeExit: progress.readyToLeave
-      ? '導航員已解除出口鎖定。請前往房間底部的 EXIT 離開第零篇章。'
+      ? '導航員已解除出口鎖定。請前往右側牆面的 EXIT 離開第零篇章。'
       : '導航員確認所有操作前，出口會保持鎖定。真的要離開請按 Enter。',
     lockedExit: !progress.readyToLeave,
     lastGuideNote: progress.lastGuideNote,

@@ -219,6 +219,10 @@ export function collectPlayCombatExperience(state, actor) {
 
 function damageEnemy(state, actor, enemy, rawDamage, source) {
   if (!isResonanceCombatant(enemy)) return 0;
+  if (enemy.tutorialInfiniteHealth) {
+    addEffect(state, { type: 'weaponHit', weaponId: source, x: enemy.x, y: enemy.y, damage: 0, duration: 0.18 });
+    return 0;
+  }
   if (enemy.linkedProtection) {
     addEffect(state, { type: 'weaponBlocked', weaponId: source, protectorId: enemy.linkedProtection, x: enemy.x, y: enemy.y, duration: 0.24 });
     return 0;

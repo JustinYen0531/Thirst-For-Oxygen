@@ -464,16 +464,21 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
   const spawnCells = markers.length ? getDistributedSpawnCells(map, chapter, origin, targetCount, markers) : [];
   const localCounts = new Map();
 
-  const createInstance = ({ enemyId, spawn, anchorCellKey, instanceId, markerKind }) => {
+  const createInstance = ({ enemyId, spawn, anchorCellKey, instanceId, markerKind, marker = null }) => {
     const definition = ENEMY_DEFINITIONS[enemyId];
     const position = getHexCenter(spawn.cell, origin);
     const size = getPlayEnemySize(definition.tier);
+    const tutorialInfiniteHealth = Boolean(marker?.tutorialInfiniteHealth);
     const instance = {
       instanceId,
       enemyId,
       name: definition.name,
       tier: definition.tier,
       markerKind,
+      tutorialRole: marker?.tutorialRole ?? null,
+      tutorialInfiniteHealth,
+      tutorialNoSelfDestruct: Boolean(marker?.tutorialNoSelfDestruct),
+      tutorialResonanceDisabled: Boolean(marker?.tutorialResonanceDisabled),
       anchorCellKey,
       spawnCellKey: spawn.cellKey,
       spawnPattern: spawn.spawnPattern,
@@ -481,8 +486,8 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       y: position.y,
       homeX: position.x,
       homeY: position.y,
-      health: definition.maxHealth,
-      maxHealth: definition.maxHealth,
+      health: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : definition.maxHealth,
+      maxHealth: tutorialInfiniteHealth ? Number.MAX_SAFE_INTEGER : definition.maxHealth,
       moveSpeed: definition.moveSpeed ?? 0,
       vx: 0,
       vy: 0,
@@ -528,9 +533,10 @@ export function createPlayEnemies(map, mapPart, chapter = 'chapter1', origin = {
       const marker = markers[encounterIndex];
       const localIndex = localCounts.get(encounterIndex) ?? 0;
       localCounts.set(encounterIndex, localIndex + 1);
-      const configuredEnemyId = encounterEnemyId(part, encounterIndex, markers.length, localIndex, globalIndex);
+      const configuredEnemyId = encounterEnemyId(part, encounterIndex, markers.length, localIndex, globalIndex, spawnCells.length);
       const enemyId = isDescentEnemy(marker.marker.enemyId) ? marker.marker.enemyId : configuredEnemyId;
       return createInstance({
+        marker: marker.marker,
         enemyId,
         spawn,
         anchorCellKey: marker.cellKey,
@@ -1753,7 +1759,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
     if ((enemy.stunnedUntil ?? 0) > 0) enemy.stunnedUntil = 0;
     Object.keys(enemy.cooldowns).forEach((key) => { enemy.cooldowns[key] = Math.max(0, enemy.cooldowns[key] - elapsed); });
     updateLinkedSupport(runtime, enemies, enemy, definition, elapsed);
-    if (updateSuicideCharge(runtime, enemy, definition, actor, elapsed, onDamage, bounds)) return;
+    if (!enemy.tutorialNoSelfDestruct && updateSuicideCharge(runtime, enemy, definition, actor, elapsed, onDamage, bounds)) return;
     const distance = distanceBetween(enemy, actor);
     const activationRadius = playEnemyActivationRadius(enemy);
     const movementSpeed = playEnemyMovementSpeed(enemy, definition);
@@ -1820,7 +1826,7 @@ export function updatePlayEnemies(enemies, actor, dt, time = null, onDamage = nu
       enemy.state = enemy.defeated ? 'defeated' : 'attacking';
       return;
     }
-    const attacks = definition.attacks ?? [];
+    const attacks = (definition.attacks ?? []).filter((skill) => !enemy.tutorialNoSelfDestruct || skill.type !== 'suicideCharge');
     const preferred = preferredDistance(enemy, definition);
     const controllerMover = playEnemyKeepsRepositioning(enemy, definition);
     const moveSpeedMultiplier = (enemy.activeEffects.speedForm?.moveSpeedMultiplier ?? 1)
