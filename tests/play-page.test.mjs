@@ -30,6 +30,9 @@ test('formal play connects the shared combat build instead of a hard-coded HUD s
 test('Chapter 0 tutorial cards let Canvas controls pass through while retaining hover feedback', () => {
   assert.match(page, /const navigationCopy = tutorial\.autoReady/);
   assert.match(page, /translateGameplayText\(navigationCopy\)/);
+  assert.match(page, /const tutorialControlHint = tutorial\.currentStep\.controlHint/);
+  assert.match(page, /tutorialDialogueControl\.textContent = tutorial\.autoReady/);
+  assert.match(page, /translateGameplayText\(tutorialNavigationHint\)/);
   assert.match(page, /tutorialTaskProgress\.textContent = `\$\{tutorial\.completionTarget\} \/ \$\{tutorial\.totalCoreSteps\}`/);
   assert.match(page, /updateTutorialCardHover/);
   assert.match(page, /tutorialTaskList\.scrollTop \+= event\.deltaY/);

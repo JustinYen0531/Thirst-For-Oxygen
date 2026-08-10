@@ -1227,3 +1227,8 @@ Original prompt: 開始製作遊戲,你可以開始製作程式碼了。第一�
 - Navigator 與 Guidance DOM 卡片改為穿透滑鼠事件，玩家可以在卡片覆蓋區直接拖曳潛水夫；卡片仍會依游標位置恢復高不透明度。
 - 20 個任務的解鎖門檻明確顯示為 `10 / 20`，清單可用滑鼠滾輪或原生 scrollbar 拖動；讀取重石、深海地雷與洋流的 Visor 說明卡並按下 OK 後，會正式完成對應任務。
 - Skip Tutorial 導航提示改為明確要求按 Enter；聚焦測試 34/34、完整 `npm run check` 342/342、Vite production build 通過；依專案規則未執行瀏覽器／Playwright。
+
+## 2026-08-10 — English Guidance control copy is fully separated
+
+- 左下 Guidance 操作框不再翻譯串接後的複合句；當前操作與 First Breath 任務切換提示分開翻譯，英文模式不會殘留中文。
+- 聚焦 i18n／Play 靜態測試 27/27 通過；依專案規則未執行瀏覽器／Playwright。

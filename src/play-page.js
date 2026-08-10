@@ -381,7 +381,11 @@ function updateTutorialPresentation() {
   tutorialDialogueSpeaker.textContent = translateGameplayText(tutorial.dialogue.speaker);
   tutorialDialogueTitle.textContent = translateGameplayText(tutorial.dialogue.title);
   tutorialDialogueText.textContent = translateGameplayText(tutorial.dialogue.text);
-  tutorialDialogueControl.textContent = translateGameplayText(tutorial.dialogue.controlHint);
+  const tutorialControlHint = tutorial.currentStep.controlHint ?? tutorial.currentStep.instruction ?? '';
+  const tutorialNavigationHint = `操作：使用 ← / → 切換 First Breath 任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;
+  tutorialDialogueControl.textContent = tutorial.autoReady
+    ? translateGameplayText(tutorial.dialogue.controlHint)
+    : `${translateGameplayText(tutorialControlHint)} ${translateGameplayText(tutorialNavigationHint)}`;
   const navigationCopy = tutorial.autoReady
     ? '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。'
     : `操作：使用 ← / → 切換 ${tutorial.totalCoreSteps} 個任務；完成任意 ${tutorial.completionTarget} 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。`;

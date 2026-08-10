@@ -188,6 +188,7 @@ const EXACT_ENGLISH = Object.freeze({
   '完成任意 10 項任務前，出口會保持鎖定。真的要離開請按 Enter。': 'The exit stays locked until you complete any 10 tasks. Press Enter if you really want to leave.',
   '操作：使用 ← / → 切換 20 個任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch between 20 tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.',
   '操作：使用 ← / → 切換 First Breath 任務；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch First Breath tasks; Enter opens Skip Tutorial.',
+  '操作：使用 ← / → 切換 First Breath 任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。': 'Control: Use ← / → to switch First Breath tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.',
   '操作：前往右側 EXIT 離開；Enter 仍可開啟 Skip Tutorial。': 'Control: Go to the EXIT on the right; Enter can still open Skip Tutorial.',
   '使用左右鍵切換 Guidance 任務': 'Use the arrow keys to switch Guidance tasks',
   '目前 Guidance 任務': 'Current Guidance task',

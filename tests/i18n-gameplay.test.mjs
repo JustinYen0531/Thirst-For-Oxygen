@@ -64,6 +64,13 @@ test('dynamic First Breath navigation copy stays English for any task count', ()
   cases.forEach(([source, expected]) => assert.equal(translateGameplayText(source, 'en'), expected));
 });
 
+test('First Breath control-box navigation copy translates as a standalone sentence', () => {
+  assert.equal(
+    translateGameplayText('操作：使用 ← / → 切換 First Breath 任務；完成任意 10 項即可解鎖 EXIT；Enter 可開啟 Skip Tutorial。', 'en'),
+    'Control: Use ← / → to switch First Breath tasks; complete any 10 to unlock the EXIT; press Enter to open Skip Tutorial.',
+  );
+});
+
 test('play settings exposes the shared language selector', () => {
   const html = fs.readFileSync(new URL('../play.html', import.meta.url), 'utf8');
   const source = fs.readFileSync(new URL('../src/play-page.js', import.meta.url), 'utf8');
