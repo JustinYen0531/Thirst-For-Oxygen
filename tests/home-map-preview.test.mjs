@@ -41,7 +41,7 @@ test('home contains the dark video, helmet turn, movable logo and final menu', (
   assert.match(html, /href="\/sandbox\.html"/);
   assert.match(html, /href="\/"/);
   assert.match(html, /href="\/tutorial\.html"/);
-  assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status|home-music-control/);
+  assert.doesNotMatch(html, /home-topbar|hero-copy|destination-grid|home-status/);
 });
 
 test('all homepage helmet and logo assets are RGBA PNG files', () => {
@@ -173,7 +173,7 @@ test('homepage supports click-anywhere, keyboard input and deterministic text st
   assert.match(page, /window\.render_game_to_text/);
   assert.match(page, /mainMenu\.toggleAttribute\('inert'/);
   assert.match(page, /attachHomeMapPreview\(homeRoot\)/);
-  assert.match(page, /attachHomeMusic\(document\)/);
+  assert.match(page, /attachHomeMusic\(document, \{ controlsRoot:/);
   assert.match(page, /eventTarget\.addEventListener\('pointermove'/);
   assert.match(page, /window\.triggerHomeEnemySkill/);
   assert.match(page, /window\.triggerHomeNoSignal/);

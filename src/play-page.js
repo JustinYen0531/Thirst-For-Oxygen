@@ -56,6 +56,14 @@ import { attachMusicControls, createMusicController, getMusicTrack } from './mus
 import { attachSfxVolumeControl, createSfxController } from './sfx.js';
 import { bindLanguageSelect, installLiveLocalization, translateGameplayText } from './i18n-gameplay.js';
 import {
+  getAmbientEnabled,
+  getPlayerDamageReduction,
+  getResourceCostReduction,
+  setAmbientEnabled as setAmbientEnabledPreference,
+  setPlayerDamageReduction as setPlayerDamageReductionPreference,
+  setResourceCostReduction as setResourceCostReductionPreference,
+} from './game-settings.js';
+import {
   createPlayKatanaState,
   markPlayKatanaMovement,
   resolvePlayKatanaSlash,
@@ -291,26 +299,19 @@ let aimPoint = null;
 let trajectory = [];
 let lastTrajectoryAt = -Infinity;
 let paused = false;
-let ambientEnabled = true;
-const DAMAGE_REDUCTION_STORAGE_KEY = 'thirst-for-oxygen-play-damage-reduction';
-const DAMAGE_REDUCTION_DEFAULT = 0.5;
-const RESOURCE_COST_REDUCTION_STORAGE_KEY = 'thirst-for-oxygen-play-resource-cost-reduction';
-const RESOURCE_COST_REDUCTION_DEFAULT = 0.3;
-const DAMAGE_REDUCTION_OPTIONS = new Set([0, 0.3, 0.5, 0.75, 0.9]);
-function readReductionPreference(storageKey, defaultValue) {
-  try {
-    const storedValue = localStorage.getItem(storageKey);
-    if (storedValue === null) return defaultValue;
-    const value = Number(storedValue);
-    return DAMAGE_REDUCTION_OPTIONS.has(value) ? value : defaultValue;
-  } catch {
-    return defaultValue;
-  }
-}
-let playerDamageReduction = readReductionPreference(DAMAGE_REDUCTION_STORAGE_KEY, DAMAGE_REDUCTION_DEFAULT);
-let resourceCostReduction = readReductionPreference(RESOURCE_COST_REDUCTION_STORAGE_KEY, RESOURCE_COST_REDUCTION_DEFAULT);
+let ambientEnabled = getAmbientEnabled();
+let playerDamageReduction = getPlayerDamageReduction();
+let resourceCostReduction = getResourceCostReduction();
 damageReductionSelect.value = String(playerDamageReduction);
 resourceCostReductionSelect.value = String(resourceCostReduction);
+
+function renderAmbientToggle() {
+  if (!ambientToggle) return;
+  ambientToggle.setAttribute('aria-pressed', String(ambientEnabled));
+  ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音：${ambientEnabled ? '開' : '關'}`;
+}
+
+renderAmbientToggle();
 let lastFrame = performance.now();
 let accumulator = 0;
 let eventLog = ['拖曳潛水夫，放開即可彈射。'];
@@ -2578,28 +2579,26 @@ resetButton.addEventListener('click', () => { if (!actor || actor.gameOver) retu
 pauseButton.addEventListener('click', () => { sfxController.play('menuSelection'); paused = !paused; pauseButton.textContent = paused ? '▶ 繼續' : 'Ⅱ 暫停'; pauseButton.setAttribute('aria-pressed', String(paused)); });
 damageReductionSelect.addEventListener('change', () => {
   const requestedReduction = Number(damageReductionSelect.value);
-  playerDamageReduction = DAMAGE_REDUCTION_OPTIONS.has(requestedReduction) ? requestedReduction : DAMAGE_REDUCTION_DEFAULT;
+  playerDamageReduction = setPlayerDamageReductionPreference(requestedReduction);
   damageReductionSelect.value = String(playerDamageReduction);
   if (actor) setPlayerDamageReduction(actor, playerDamageReduction);
-  try { localStorage.setItem(DAMAGE_REDUCTION_STORAGE_KEY, String(playerDamageReduction)); } catch { /* Storage may be disabled; the current run still keeps the selection. */ }
   sfxController.play('menuSelection');
   eventLog.push(`玩家減傷已調整為 ${Math.round(playerDamageReduction * 100)}%。`);
   updateHud();
 });
 resourceCostReductionSelect.addEventListener('change', () => {
   const requestedReduction = Number(resourceCostReductionSelect.value);
-  resourceCostReduction = DAMAGE_REDUCTION_OPTIONS.has(requestedReduction) ? requestedReduction : RESOURCE_COST_REDUCTION_DEFAULT;
+  resourceCostReduction = setResourceCostReductionPreference(requestedReduction);
   resourceCostReductionSelect.value = String(resourceCostReduction);
   if (actor) {
     actor.resourceCostReduction = resourceCostReduction;
     syncPlayCombatBuild(combatState, actor);
   }
-  try { localStorage.setItem(RESOURCE_COST_REDUCTION_STORAGE_KEY, String(resourceCostReduction)); } catch { /* Storage may be disabled; the current run still keeps the selection. */ }
   sfxController.play('menuSelection');
   eventLog.push(`氧氣與能量消耗減免已調整為 ${Math.round(resourceCostReduction * 100)}%。`);
   updateHud();
 });
-ambientToggle.addEventListener('click', () => { ambientEnabled = !ambientEnabled; ambientToggle.setAttribute('aria-pressed', String(ambientEnabled)); ambientToggle.textContent = `${ambientEnabled ? '◉' : '○'} 潛水環境音：${ambientEnabled ? '開' : '關'}`; if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
+ambientToggle.addEventListener('click', () => { ambientEnabled = setAmbientEnabledPreference(!ambientEnabled); renderAmbientToggle(); if (ambientEnabled) sfxController.startAmbient(); else sfxController.stopAmbient(); });
 settingsToggle.addEventListener('click', () => { sfxController.play('menuSelection'); setSettingsOpen(settingsPanel.hidden); });
 settingsClose.addEventListener('click', () => { sfxController.play('button'); setSettingsOpen(false); });
 levelInspect?.addEventListener('click', () => { sfxController.play('menuSelection'); setResonancePanelOpen(resonancePanel?.hidden ?? true); });

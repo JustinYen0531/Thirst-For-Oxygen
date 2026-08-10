@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const read = (relativePath) => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 const page = read('../src/play-page.js');
+const gameSettings = read('../src/game-settings.js');
 const preload = read('../src/play-preload.js');
 const sandbox = read('../src/sandbox-page.js');
 const html = read('../play.html');
@@ -66,7 +67,7 @@ test('optional Resonance inspection cannot prevent the player and HUD from booti
 test('play settings expose a persistent player damage-reduction mode', () => {
   assert.match(html, /id="play-damage-reduction"/);
   ['0', '0.3', '0.5', '0.75', '0.9'].forEach((value) => assert.match(html, new RegExp(`<option value="${value}"`)));
-  assert.match(page, /thirst-for-oxygen-play-damage-reduction/);
+  assert.match(gameSettings, /thirst-for-oxygen-play-damage-reduction/);
   assert.match(page, /setPlayerDamageReduction\(actor, playerDamageReduction\)/);
   assert.match(page, /damageReductionPercent: Math\.round\(playerDamageReduction \* 100\)/);
 });

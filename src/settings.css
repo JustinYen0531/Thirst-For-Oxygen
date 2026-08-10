@@ -91,6 +91,139 @@
   line-height: 1.65;
 }
 
+.home-settings-section {
+  margin: 0 0 26px;
+  padding: 18px 0 22px;
+  border-top: 1px solid rgba(126, 226, 255, 0.18);
+}
+
+.home-settings-section h3 {
+  margin: 0 0 14px;
+  color: #eaffff;
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-settings-field {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+  color: rgba(220, 245, 250, 0.82);
+  font-size: 0.78rem;
+}
+
+.home-settings-field select {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid rgba(126, 226, 255, 0.28);
+  border-radius: 4px;
+  color: #e6faff;
+  font: inherit;
+  background: rgba(2, 18, 29, 0.82);
+}
+
+.home-settings-help {
+  margin: 12px 0 0;
+  color: rgba(173, 222, 236, 0.68);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.home-settings-audio-card {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(126, 226, 255, 0.2);
+  border-radius: 7px;
+  background: rgba(2, 18, 29, 0.5);
+}
+
+.home-settings-toggle {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid rgba(247, 220, 120, 0.42);
+  border-radius: 6px;
+  color: #d5e8f8;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: #0b2742;
+}
+
+.home-settings-toggle[aria-pressed="true"] {
+  border-color: #f7dc78;
+  color: #172136;
+  background: linear-gradient(135deg, #f7dc78, #d9a94e);
+}
+
+.home-settings-audio-card .home-settings-field {
+  margin: 12px 0 0;
+}
+
+.home-settings-section #home-music-control .music-control,
+.home-settings-audio-card .music-control {
+  margin-top: 0;
+}
+
+.home-settings-section #home-music-control .music-control,
+.home-settings-audio-card .home-settings-field {
+  padding: 10px;
+  border: 1px solid rgba(126, 226, 255, 0.18);
+  border-radius: 6px;
+  color: rgba(220, 245, 250, 0.82);
+  background: rgba(2, 18, 29, 0.42);
+}
+
+.home-settings-audio-card .music-control-heading,
+.home-settings-audio-card .music-control-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.home-settings-audio-card .music-control-heading span,
+.home-settings-audio-card .music-control-actions label span,
+.home-settings-audio-card .home-settings-field span {
+  color: rgba(173, 222, 236, 0.78);
+  font-size: 0.72rem;
+}
+
+.home-settings-audio-card .music-control-actions {
+  margin-top: 9px;
+}
+
+.home-settings-audio-card .music-control-actions button {
+  padding: 7px 9px;
+  border: 1px solid rgba(126, 226, 255, 0.38);
+  border-radius: 5px;
+  color: #bcecff;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  background: #0c2b4b;
+}
+
+.home-settings-audio-card .music-control-actions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.home-settings-section #home-music-control input[type="range"],
+.home-settings-audio-card input[type="range"] {
+  width: 100%;
+  accent-color: #7deaff;
+}
+
+.home-settings-audio-card .music-control small {
+  display: block;
+  margin-top: 7px;
+  color: rgba(173, 222, 236, 0.68);
+  font-size: 0.68rem;
+}
+
 .home-settings-fieldset {
   min-width: 0;
   margin: 0;
@@ -143,7 +276,11 @@
 }
 
 .home-settings-close:focus-visible,
-.home-language-options button:focus-visible {
+.home-language-options button:focus-visible,
+.home-settings-toggle:focus-visible,
+.home-settings-field select:focus-visible,
+.home-settings-audio-card button:focus-visible,
+.home-settings-audio-card input:focus-visible {
   outline: 2px solid #b7f4ff;
   outline-offset: 3px;
 }

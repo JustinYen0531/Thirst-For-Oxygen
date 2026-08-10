@@ -15,6 +15,14 @@ import {
   PLAY_ENEMY_VISUAL_SETS,
   getPlayEnemyFramePaths,
 } from './play-enemies.js';
+import {
+  getAmbientEnabled,
+  getPlayerDamageReduction,
+  getResourceCostReduction,
+  setAmbientEnabled,
+  setPlayerDamageReduction,
+  setResourceCostReduction,
+} from './game-settings.js';
 
 export const HOME_HELMET_TURN_DURATION_MS = 1250;
 export const HOME_HELMET_TURN_FRAME_COUNT = 4;
@@ -283,13 +291,15 @@ export function attachHomeFlashlight(root, options = {}) {
   return { moveLight };
 }
 
-export function attachHomeMusic(eventTarget = document) {
+export function attachHomeMusic(eventTarget = document, options = {}) {
   let controllerPromise = null;
   let started = false;
   function getController() {
-    controllerPromise ??= import('./music.js').then(({ MUSIC_TRACKS, createMusicController }) => (
-      createMusicController({ ...MUSIC_TRACKS.mainMenu, startAt: 75 })
-    ));
+    controllerPromise ??= import('./music.js').then(({ MUSIC_TRACKS, createMusicController, attachMusicControls }) => {
+      const controller = createMusicController({ ...MUSIC_TRACKS.mainMenu, startAt: 75 });
+      if (options.controlsRoot) attachMusicControls(options.controlsRoot, controller);
+      return controller;
+    });
     return controllerPromise;
   }
   function startMusic() {
@@ -317,11 +327,20 @@ export function attachHomeSettings(root, options = {}) {
   const mainMenu = root.querySelector('#home-main-menu');
   const languageStatus = panel?.querySelector('#home-language-status');
   const languageButtons = [...(panel?.querySelectorAll('[data-language-option]') ?? [])];
-  if (!panel || !openButton || !closeButton || !languageStatus || languageButtons.length !== 2) return null;
+  const damageReductionSelect = panel?.querySelector('#home-damage-reduction');
+  const resourceCostReductionSelect = panel?.querySelector('#home-resource-cost-reduction');
+  const ambientToggle = panel?.querySelector('#home-ambient-toggle');
+  const ambientVolumeInput = panel?.querySelector('#home-ambient-volume');
+  if (!panel || !openButton || !closeButton || !languageStatus || languageButtons.length !== 2
+    || !damageReductionSelect || !resourceCostReductionSelect || !ambientToggle || !ambientVolumeInput) return null;
 
   let language = options.language ?? getLanguage();
   let open = false;
   let returnFocus = null;
+  let playerDamageReduction = getPlayerDamageReduction();
+  let resourceCostReduction = getResourceCostReduction();
+  let ambientEnabled = getAmbientEnabled();
+  let sfxController = null;
 
   function languageName(languageId, displayLanguage = language) {
     return translateText(
@@ -338,6 +357,17 @@ export function attachHomeSettings(root, options = {}) {
     languageStatus.textContent = interpolateTranslation('home.settings.currentLanguage', language, {
       language: languageName(language),
     });
+    ambientToggle.textContent = translateText(
+      ambientEnabled ? 'home.settings.ambientOn' : 'home.settings.ambientOff',
+      language,
+    );
+  }
+
+  function renderPreferences() {
+    damageReductionSelect.value = String(playerDamageReduction);
+    resourceCostReductionSelect.value = String(resourceCostReduction);
+    ambientToggle.setAttribute('aria-pressed', String(ambientEnabled));
+    renderLanguage(language);
   }
 
   function setOpen(nextOpen, { restoreFocus = true } = {}) {
@@ -376,7 +406,8 @@ export function attachHomeSettings(root, options = {}) {
       return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = [closeButton, ...languageButtons].filter((element) => !element.disabled && !element.hidden);
+    const focusable = [...panel.querySelectorAll('button, select, input, [tabindex]:not([tabindex="-1"])')]
+      .filter((element) => !element.disabled && !element.hidden);
     const first = focusable[0];
     const last = focusable.at(-1);
     const activeElement = panel.ownerDocument?.activeElement;
@@ -392,11 +423,34 @@ export function attachHomeSettings(root, options = {}) {
   openButton.addEventListener('click', () => setOpen(true));
   panel.addEventListener('click', onPanelClick);
   panel.addEventListener('keydown', onPanelKeyDown);
-  renderLanguage(language);
+  damageReductionSelect.addEventListener('change', () => {
+    playerDamageReduction = setPlayerDamageReduction(damageReductionSelect.value);
+    renderPreferences();
+  });
+  resourceCostReductionSelect.addEventListener('change', () => {
+    resourceCostReduction = setResourceCostReduction(resourceCostReductionSelect.value);
+    renderPreferences();
+  });
+  ambientToggle.addEventListener('click', () => {
+    ambientEnabled = setAmbientEnabled(!ambientEnabled);
+    renderPreferences();
+  });
+  ambientVolumeInput.addEventListener('input', () => sfxController?.setVolume(ambientVolumeInput.value));
+  import('./sfx.js').then(({ createSfxController }) => {
+    sfxController = createSfxController();
+    sfxController.subscribe(({ volume }) => { ambientVolumeInput.value = String(volume); });
+  });
+  renderPreferences();
 
   return {
     close: () => setOpen(false),
-    getState: () => ({ language, open }),
+    getState: () => ({
+      ambientEnabled,
+      language,
+      open,
+      playerDamageReduction,
+      resourceCostReduction,
+    }),
     open: () => setOpen(true),
     setLanguage: renderLanguage,
   };
@@ -526,7 +580,7 @@ if (typeof document !== 'undefined') {
       const detail = previewLoading.dataset.errorDetail;
       previewLoading.textContent = `${translateText('home.map.loadFailed', getLanguage())}${detail ? `: ${detail}` : ''}`;
     });
-    attachHomeMusic(document);
+    attachHomeMusic(document, { controlsRoot: document.querySelector('#home-music-control') });
     const applyHomeLanguage = (language) => {
       applyDocumentLanguage(document, language);
       intro.setLanguage(language);
