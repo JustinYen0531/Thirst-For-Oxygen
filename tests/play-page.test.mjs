@@ -62,6 +62,9 @@ test('optional Resonance inspection cannot prevent the player and HUD from booti
   assert.match(read('../src/play.css'), /\.experience-track[\s\S]*height: 9px[\s\S]*cursor: pointer/);
   assert.match(page, /loadingMask\.classList\.add\('is-hidden'\);/);
   assert.match(page, /loadingMask\.classList\.remove\('is-hidden'\);/);
+  assert.match(page, /const playableWorldReady = Boolean\(map && actor\);/);
+  assert.match(page, /loadingMask\.classList\.toggle\('is-hidden', playableWorldReady\);/);
+  assert.match(read('../src/play.css'), /\.loading-mask\.is-hidden \{ visibility: hidden;/);
 });
 
 test('play settings expose a persistent player damage-reduction mode', () => {
@@ -308,7 +311,9 @@ test('Part 1 presents the three-slide narrator before the existing shutter awake
   assert.match(page, /storyIntroVideo\?\.addEventListener\('ended'/);
   assert.match(page, /storyIntroOverlay\.dataset\.storyFraming = story\.mediaFraming/);
   assert.match(storyIntro, /PLAY_STORY_INTRO_SLIDES/);
-  assert.match(css, /\.play-story-intro-overlay \{[^}]*z-index: 1/);
+  assert.match(css, /\.play-story-intro-overlay \{[^}]*z-index: auto[^}]*isolation: auto/);
+  assert.match(css, /\.play-story-topline \{[^}]*z-index: 5/);
+  assert.match(css, /\.play-story-narrator \{[^}]*z-index: 5/);
   assert.match(css, /\.play-stage-wrap\.is-story-intro \.stage-meta/);
   assert.match(css, /\.play-story-narrator \{[^}]*padding:/);
   assert.match(css, /\.play-story-footer button \{[^}]*border: 0/);

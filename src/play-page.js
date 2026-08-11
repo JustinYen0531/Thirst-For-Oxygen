@@ -800,8 +800,9 @@ async function loadMap(part, { preserveRun = false, arc = mapArc } = {}) {
     awakeningState.awaitingTrigger = false;
     updateAwakeningPresentation();
     eventLog = [`地圖載入失敗：${error.message}`];
-    loadingMask.classList.remove('is-hidden');
-    loadingMask.textContent = '地圖載入失敗';
+    const playableWorldReady = Boolean(map && actor);
+    loadingMask.classList.toggle('is-hidden', playableWorldReady);
+    if (!playableWorldReady) loadingMask.textContent = '地圖載入失敗';
     console.error('Play map setup failed.', error);
   }
 }

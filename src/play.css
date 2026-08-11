@@ -155,7 +155,7 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-resource-hud .resource-row:nth-child(2) b { background: linear-gradient(90deg, #69e7ff, #2f8dce); }
 .play-resource-hud .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
 .loading-mask { position: absolute; inset: 0; display: grid; place-items: center; color: #b9eefe; font-size: .85rem; letter-spacing: .12em; background: rgba(5, 20, 37, .86); transition: opacity .3s ease; }
-.loading-mask.is-hidden { opacity: 0; pointer-events: none; }
+.loading-mask.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .play-story-intro-overlay { position: absolute; inset: 0; z-index: auto; display: grid; grid-template-rows: 1fr auto; overflow: hidden; color: #eefcff; background: #020d17; cursor: pointer; isolation: auto; }
 .play-story-intro-overlay[hidden] { display: none; }
 .play-story-intro-overlay.is-story-cover > * { visibility: hidden; }
