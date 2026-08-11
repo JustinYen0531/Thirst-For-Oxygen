@@ -327,16 +327,7 @@ body { min-width: 0; }
 .resonance-buff p { grid-column: 1 / -1; margin: 3px 0 0; color: #a9cdbb; font-size: .61rem; line-height: 1.42; }
 .resonance-buff.is-capped { border-color: rgba(255, 220, 105, .42); }
 .resonance-buff.is-capped > b { color: #ffe47c; }
-.play-stage-frame { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: inset 0 0 70px rgba(29, 135, 190, .2); filter: brightness(1.9) saturate(1.04); isolation: isolate; }
-.play-stage-frame::after {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  content: '';
-  pointer-events: none;
-  background: rgba(84, 160, 205, .18);
-  mix-blend-mode: screen;
-}
+.play-stage-frame { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: inset 0 0 70px rgba(29, 135, 190, .2); filter: brightness(1.65); }
 #play-canvas { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; }
 /* Keep the rendered game inside the broad lens opening. Reserve only the
    bezel edges; the bottom HP core remains an intentional HUD overlay instead
