@@ -85,7 +85,7 @@ $editorHtml = [System.IO.File]::ReadAllText($editorPath, [System.Text.Encoding]:
 if (-not $entryHtml.Contains('id="home-intro"')) {
   throw 'ZIP root index.html is not the authored helmet title screen.'
 }
-if (-not $editorHtml.Contains('Thirst for Oxygen — Map Editor')) {
+if (-not $editorHtml.Contains('id="map-canvas"')) {
   throw 'editor.html does not contain the map editor.'
 }
 

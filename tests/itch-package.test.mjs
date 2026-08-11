@@ -21,6 +21,7 @@ test('itch packaging promotes the helmet home to index and keeps the editor sepa
   assert.match(script, /Move-Item[\s\S]*\$editorPath/);
   assert.match(script, /href="\.\/index\.html[\s\S]*href="\.\/editor\.html/);
   assert.match(script, /id=\"home-intro\"/);
+  assert.match(script, /id=\"map-canvas\"/);
   assert.match(script, /ZIP root index\.html is not the authored helmet title screen/);
 });
 
