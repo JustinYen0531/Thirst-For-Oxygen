@@ -18,6 +18,8 @@ test('formal Play runtime owns both gameplay styles in addition to HTML early-pa
   assert.match(html, /href="\/src\/visor-hud\.css"/);
   assert.match(page, /import '\.\/play\.css';/);
   assert.match(page, /import '\.\/visor-hud\.css';/);
+  assert.match(css, /\.play-resource-hud:not\(\.visor-hud\) \{[^}]*background: rgba\(7, 18, 33, \.9\)/);
+  assert.doesNotMatch(css, /\.play-resource-hud \{[^}]*background: rgba\(7, 18, 33, \.9\)/);
 });
 
 test('formal play connects the shared combat build instead of a hard-coded HUD showcase', () => {

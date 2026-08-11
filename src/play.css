@@ -147,13 +147,17 @@ select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(119, 232, 2
 .play-stage-frame.is-awakening .level-readout,
 .play-stage-frame.is-awakening .play-resource-hud { opacity: var(--awakening-hud-opacity, 0); }
 .play-stage-frame.is-awakening .loading-mask { color: transparent; background: #000; }
-.play-resource-hud { position: absolute; right: 12px; bottom: 12px; left: 12px; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px 10px 9px; border: 1px solid rgba(143, 214, 255, .78); border-radius: 6px; background: rgba(7, 18, 33, .9); box-shadow: 0 5px 18px rgba(0, 0, 0, .24); pointer-events: none; }
-.play-resource-hud .resource-row { display: grid; grid-template-columns: 34px 33px 1fr; align-items: center; gap: 6px; color: #b0c9e1; font-size: .68rem; }
-.play-resource-hud .resource-row strong { color: white; font-size: .7rem; text-align: right; }
-.play-resource-hud .resource-row i { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: #061323; }
-.play-resource-hud .resource-row b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff9f92, #ef5e75); transition: width .2s ease; }
-.play-resource-hud .resource-row:nth-child(2) b { background: linear-gradient(90deg, #69e7ff, #2f8dce); }
-.play-resource-hud .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
+/* This compact HUD predates the full-screen visor component. Production builds
+   may extract visor-hud.css into a shared chunk that loads before play.css, so
+   these fallback styles must never match the modern visor host. Otherwise its
+   opaque panel becomes a page-sized dark layer over the playable world. */
+.play-resource-hud:not(.visor-hud) { position: absolute; right: 12px; bottom: 12px; left: 12px; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px 10px 9px; border: 1px solid rgba(143, 214, 255, .78); border-radius: 6px; background: rgba(7, 18, 33, .9); box-shadow: 0 5px 18px rgba(0, 0, 0, .24); pointer-events: none; }
+.play-resource-hud:not(.visor-hud) .resource-row { display: grid; grid-template-columns: 34px 33px 1fr; align-items: center; gap: 6px; color: #b0c9e1; font-size: .68rem; }
+.play-resource-hud:not(.visor-hud) .resource-row strong { color: white; font-size: .7rem; text-align: right; }
+.play-resource-hud:not(.visor-hud) .resource-row i { display: block; height: 6px; border-radius: 999px; overflow: hidden; background: #061323; }
+.play-resource-hud:not(.visor-hud) .resource-row b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff9f92, #ef5e75); transition: width .2s ease; }
+.play-resource-hud:not(.visor-hud) .resource-row:nth-child(2) b { background: linear-gradient(90deg, #69e7ff, #2f8dce); }
+.play-resource-hud:not(.visor-hud) .resource-row:nth-child(3) b { background: linear-gradient(90deg, #f9ec9b, #eead42); }
 .loading-mask { position: absolute; inset: 0; display: grid; place-items: center; color: #b9eefe; font-size: .85rem; letter-spacing: .12em; background: rgba(5, 20, 37, .86); transition: opacity .3s ease; }
 .loading-mask.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .play-story-intro-overlay { position: absolute; inset: 0; z-index: auto; display: grid; grid-template-rows: 1fr auto; overflow: hidden; color: #eefcff; background: #020d17; cursor: pointer; isolation: auto; }
