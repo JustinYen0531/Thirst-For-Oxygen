@@ -3,15 +3,62 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "desktop/main.cjs",
   "scripts": {
     "dev": "npx vite --host 127.0.0.1",
     "build": "vite build",
     "package:itch": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-itch.ps1",
+    "check:desktop": "node --check desktop/main.cjs && node --test tests/desktop-build.test.mjs",
+    "package:desktop": "npm run package:itch && electron-builder --win --x64",
     "check:editor-maps": "node --check src/editor-map-library.js && node --check scripts/editor-map-api.mjs && node --test tests/editor-map-library.test.mjs",
     "generate:maps": "node scripts/generate-chapter-maps.mjs",
     "check": "node --check src/main.js && node --check src/map-model.js && node --check src/physics.js && node --check src/game-data.js && node --check src/aim-slow-motion.js && node --check src/afterimage.js && node --check src/launch-guide.js && node --check src/edge-attachment.js && node --check src/play-awakening.js && node --check src/play-enemies.js && node --check src/play-combat.js && node --check src/play-flow.js && node --check src/play-depth-teleport.js && node --check src/play-tutorial.js && node --check src/play-boss-room.js && node --check src/play-world-visuals.js && node --check src/play-preload.js && node --check src/player-animation.js && node --check src/portal.js && node --check src/progression.js && node --check src/katana-visual.js && node --check src/sandbox-devtools.js && node --check src/sandbox-sim.js && node --check src/sandbox-page.js && node --check src/play-katana.js && node --check src/play-page.js && node --check src/music.js && node --check src/sfx.js && node --check src/home-map-preview.js && node --check src/home-start-loading.js && node --check src/home-page.js && node --check src/i18n.js && node --check src/i18n-gameplay.js && node --check src/i18n-editor.js && node --check src/i18n-encyclopedia.js && node --check src/visor-hud.js && node --check src/visor-discovery.js && node --check src/visor-discovery-renderer.js && node --check src/enemy-encyclopedia.js && node --check src/enemy-encyclopedia-page.js && node --check src/markdown-renderer.js && node --check src/tutorial-page.js && node --check tests/aim-slow-motion.test.mjs && node --check tests/assets.test.mjs && node --check tests/i18n-core.test.mjs && node --check tests/i18n-gameplay.test.mjs && node --check tests/i18n-editor.test.mjs && node --check tests/i18n-encyclopedia.test.mjs && node --check tests/home-map-preview.test.mjs && node --check tests/home-start-loading.test.mjs && node --check tests/menu-music.test.mjs && node --check tests/launch-guide.test.mjs && node --check tests/edge-attachment.test.mjs && node --check tests/play-awakening.test.mjs && node --check tests/play-enemies.test.mjs && node --check tests/play-combat.test.mjs && node --check tests/play-flow.test.mjs && node --check tests/play-depth-teleport.test.mjs && node --check tests/play-boss-room.test.mjs && node --check tests/play-page.test.mjs && node --check tests/play-tutorial.test.mjs && node --check tests/play-world-visuals.test.mjs && node --check tests/play-katana.test.mjs && node --check tests/sandbox-devtools.test.mjs && node --check tests/sandbox-showcase.test.mjs && node --check tests/player-animation.test.mjs && node --check tests/maps.test.mjs && node --check tests/visor-hud.test.mjs && node --check tests/visor-discovery.test.mjs && node --check tests/progression.test.mjs && node --check tests/tutorial-page.test.mjs && node --check tests/itch-package.test.mjs && node --test tests/aim-slow-motion.test.mjs tests/i18n-core.test.mjs tests/i18n-gameplay.test.mjs tests/i18n-editor.test.mjs tests/i18n-encyclopedia.test.mjs tests/assets.test.mjs tests/physics.test.mjs tests/home-map-preview.test.mjs tests/home-start-loading.test.mjs tests/menu-music.test.mjs tests/launch-guide.test.mjs tests/edge-attachment.test.mjs tests/play-awakening.test.mjs tests/play-enemies.test.mjs tests/play-combat.test.mjs tests/play-flow.test.mjs tests/play-depth-teleport.test.mjs tests/play-boss-room.test.mjs tests/play-page.test.mjs tests/play-tutorial.test.mjs tests/play-world-visuals.test.mjs tests/play-katana.test.mjs tests/sandbox-devtools.test.mjs tests/sandbox-showcase.test.mjs tests/player-animation.test.mjs tests/maps.test.mjs tests/visor-hud.test.mjs tests/visor-discovery.test.mjs tests/progression.test.mjs tests/tutorial-page.test.mjs tests/itch-package.test.mjs"
   },
   "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
+    "node-int64": "github:broofa/node-int64#c67310fe292bb8902b38687bc94e1111182d3414",
     "vite": "^7.3.1"
+  },
+  "build": {
+    "appId": "io.itch.thirstforoxygen.game",
+    "productName": "Thirst for Oxygen",
+    "artifactName": "Thirst-for-Oxygen-${version}-windows-${arch}.${ext}",
+    "compression": "normal",
+    "directories": {
+      "output": "output/desktop"
+    },
+    "files": [
+      "desktop/main.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "output/itch-stage",
+        "to": "web"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Thirst for Oxygen"
+    }
   }
 }
